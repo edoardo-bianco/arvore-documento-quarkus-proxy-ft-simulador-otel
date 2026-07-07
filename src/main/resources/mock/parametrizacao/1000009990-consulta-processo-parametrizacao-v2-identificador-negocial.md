@@ -1,4 +1,4 @@
-# mock consulta-processo-parametrizacao-v2-identificador-negocial-1000009990
+# mock 1000009990-consulta-processo-parametrizacao-v2-identificador-negocial
 
 ## enpoint
 GET {{microservice-BaseUrl-api-manager_usar}}/parametrizacao/v2/patriarca/processo/identificador-negocial/1000009990

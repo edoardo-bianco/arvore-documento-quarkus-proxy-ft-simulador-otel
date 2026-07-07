@@ -8,6 +8,7 @@
 - [Arquitetura](#arquitetura)
 - [Pacotes](#pacotes)
 - [Configuracao atual](#configuracao-atual)
+- [Mock do processo](#mock-do-processo)
 - [Perfis de observabilidade](#perfis-de-observabilidade)
 - [Execucao local](#execucao-local)
 - [Tratamento de erro](#tratamento-de-erro)
@@ -283,6 +284,193 @@ Em ambiente real, configure a URL do MTR por variavel de ambiente:
 
 ```bash
 export QUARKUS_REST_CLIENT_PARAMETRIZACAO_PROCESSO_URL=https://simtr-parametrizacao-des.apps.nprd.caixa
+```
+
+## Mock do processo
+
+O projeto possui um simulador local para permitir desenvolvimento sem chamar o MTR Parametrizacao real.
+
+O simulador e controlado pela propriedade:
+
+```properties
+arvore-documento.simulador.parametrizacao-processo.habilitado=false
+%dev.arvore-documento.simulador.parametrizacao-processo.habilitado=true
+```
+
+Com isso:
+
+- fora do dev mode, o padrao e chamar o REST Client real do MTR;
+- em dev mode, o padrao e usar o mock local;
+- quando o mock esta ativo, o fluxo nao chama `ParametrizacaoProcessoClient`;
+- o `ProcessoService` chama `ProcessoMockFactory`;
+- o retorno mockado continua passando por `ProcessoMapper`, mantendo o mesmo fluxo DTO -> VO -> DTO da API.
+
+### Arquivos de mock
+
+O `ProcessoMockFactory` le os dados de mock a partir de arquivos Markdown versionados em:
+
+```text
+src/main/resources/mock/parametrizacao
+```
+
+Os arquivos de processo usados pelo simulador atual sao:
+
+```text
+src/main/resources/mock/parametrizacao/1000016487-consulta-processo-parametrizacao-v2-identificador-negocial.md
+src/main/resources/mock/parametrizacao/1000009990-consulta-processo-parametrizacao-v2-identificador-negocial.md
+```
+
+Existe tambem um mock de checklist documentado para uso futuro, ainda nao conectado a um endpoint do simulador:
+
+```text
+src/main/resources/mock/parametrizacao/1000012583-v1-checklist-parametrizacao-versao-1.md
+```
+
+Cada arquivo documenta a chamada original e contem o corpo JSON retornado pelo MTR na secao:
+
+```markdown
+## dados do mock corpo do retorno json
+```
+
+O factory de processo extrai o primeiro objeto JSON `{ ... }` depois dessa secao e converte para `ProcessoDto` usando Jackson.
+
+### Convencao de nomes
+
+O identificador deve ficar no inicio do nome para facilitar ordenacao, busca no IntelliJ/Explorer e comparacao entre cenarios de mock.
+
+Para mock de processo, use:
+
+```text
+{identificador}-consulta-processo-parametrizacao-v2-identificador-negocial.md
+```
+
+Exemplo:
+
+```text
+1000016487-consulta-processo-parametrizacao-v2-identificador-negocial.md
+```
+
+Para mock de checklist, use:
+
+```text
+{identificador}-v{versao-api}-checklist-parametrizacao-versao-{versao-checklist}.md
+```
+
+Exemplo:
+
+```text
+1000012583-v1-checklist-parametrizacao-versao-1.md
+```
+
+Esse nome representa o endpoint:
+
+```http
+GET /simtr-parametrizacao/v1/cadastro/checklist/identificador-negocial/1000012583/versao/1
+```
+
+Para endpoints com mais parametros, coloque os parametros relevantes no inicio, antes da descricao do endpoint. Isso deixa mocks relacionados ao mesmo identificador agrupados na listagem de arquivos.
+
+### Identificador e fallback
+
+Quando a API e chamada com um identificador, o factory procura primeiro o arquivo correspondente ao identificador informado.
+
+Exemplo:
+
+```http
+GET /arvore-documento/v1/processo/identificador-negocial/1000016487
+```
+
+Procura:
+
+```text
+mock/parametrizacao/1000016487-consulta-processo-parametrizacao-v2-identificador-negocial.md
+```
+
+Se nao existir um arquivo especifico para o identificador consultado, o simulador usa como fallback o arquivo `1000016487`.
+
+Isso permite chamar outros ids em dev mode sem quebrar a execucao, mas o conteudo retornado sera o processo padrao do mock.
+
+### Dados atuais do mock
+
+O mock atual representa o processo:
+
+| Campo | Valor |
+|---|---|
+| `identificador_negocial` | `1000016487` |
+| `nome` | `Concessao Habitacional` |
+| `relacionamentos` | `9` itens |
+| `produtos` | `16` itens |
+| `fases` | `3` itens |
+
+O JSON do Markdown pode conter campos que ainda nao fazem parte dos DTOs expostos pela API, por exemplo `indicador_produto_obrigatorio` ou `permite_multiplo`. Esses campos sao ignorados na desserializacao para manter o mock aderente ao retorno real do MTR sem obrigar a API a expor tudo imediatamente.
+
+### Como adicionar outro mock
+
+Para criar um novo cenario de mock de processo:
+
+1. Crie um arquivo em `src/main/resources/mock/parametrizacao`.
+2. Use o padrao de nome:
+
+```text
+{identificador}-consulta-processo-parametrizacao-v2-identificador-negocial.md
+```
+
+3. Inclua a secao:
+
+```markdown
+## dados do mock corpo do retorno json
+```
+
+4. Cole abaixo dela o JSON completo do retorno do MTR.
+5. Rode a aplicacao em dev mode e chame o identificador novo.
+
+Exemplo:
+
+```powershell
+mvn quarkus:dev -Ddebug=false
+```
+
+```http
+GET http://localhost:8080/arvore-documento/v1/processo/identificador-negocial/{identificador}
+```
+
+Para preparar mock de checklist para a proxima implementacao:
+
+1. Crie um arquivo em `src/main/resources/mock/parametrizacao`.
+2. Use o padrao:
+
+```text
+{identificador}-v{versao-api}-checklist-parametrizacao-versao-{versao-checklist}.md
+```
+
+3. Mantenha a chamada original no inicio do Markdown.
+4. Inclua a secao `## dados do mock corpo do retorno json`.
+5. Cole abaixo dela o JSON completo do retorno do checklist.
+
+Exemplo ja versionado:
+
+```text
+1000012583-v1-checklist-parametrizacao-versao-1.md
+```
+
+### Como chamar o MTR real em dev mode
+
+Se precisar testar a integracao real mesmo em dev mode, desabilite o simulador:
+
+```powershell
+mvn quarkus:dev -Ddebug=false "-Darvore-documento.simulador.parametrizacao-processo.habilitado=false"
+```
+
+Ou configure por variavel de ambiente:
+
+```powershell
+$env:ARVORE_DOCUMENTO_SIMULADOR_PARAMETRIZACAO_PROCESSO_HABILITADO="false"
+```
+
+Nesse caso, configure tambem a URL real do MTR:
+
+```powershell
+$env:QUARKUS_REST_CLIENT_PARAMETRIZACAO_PROCESSO_URL="https://simtr-parametrizacao-des.apps.nprd.caixa"
 ```
 
 ## Perfis de observabilidade
@@ -847,6 +1035,48 @@ Nesse modo, o projeto nao tenta conectar em `localhost:4317`. A execucao fica ob
 
 ```powershell
 Get-Content -Tail 20 target/logs/arvore-documento.json
+```
+
+### API retorna sempre o processo `1000016487` no dev mode
+
+Isso e esperado quando o simulador esta habilitado e nao existe um arquivo de mock especifico para o identificador consultado.
+
+O factory procura:
+
+```text
+mock/parametrizacao/{identificador}-consulta-processo-parametrizacao-v2-identificador-negocial.md
+```
+
+Se nao encontrar, usa o fallback:
+
+```text
+mock/parametrizacao/1000016487-consulta-processo-parametrizacao-v2-identificador-negocial.md
+```
+
+Para retornar outro processo, crie um arquivo `.md` com o identificador desejado e coloque o JSON na secao `## dados do mock corpo do retorno json`.
+
+### Erro ao converter JSON do arquivo de mock
+
+Confirme se o arquivo Markdown contem a secao:
+
+```markdown
+## dados do mock corpo do retorno json
+```
+
+O primeiro `{` depois dessa secao deve ser o inicio do corpo JSON. Evite colocar exemplos com `{` antes do JSON nessa mesma secao.
+
+### Quero chamar o MTR real em dev mode
+
+Desabilite o simulador:
+
+```powershell
+mvn quarkus:dev -Ddebug=false "-Darvore-documento.simulador.parametrizacao-processo.habilitado=false"
+```
+
+E configure a URL real:
+
+```powershell
+$env:QUARKUS_REST_CLIENT_PARAMETRIZACAO_PROCESSO_URL="https://simtr-parametrizacao-des.apps.nprd.caixa"
 ```
 
 ### Servidor remoto nao recebe traces ou logs

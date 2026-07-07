@@ -1,4 +1,4 @@
-# consulta-checklist-parametrizacao-v1-identificador-negocial-1000012583-versao-1
+# 1000012583-v1-checklist-parametrizacao-versao-1
 
 ## enpoint
 GET {{parametrizacao-BaseUrl}}/simtr-parametrizacao/v1/cadastro/checklist/identificador-negocial/1000012583/versao/1

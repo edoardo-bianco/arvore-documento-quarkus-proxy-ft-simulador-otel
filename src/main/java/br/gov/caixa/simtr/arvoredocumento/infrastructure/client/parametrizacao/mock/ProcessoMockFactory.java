@@ -1,124 +1,88 @@
 package br.gov.caixa.simtr.arvoredocumento.infrastructure.client.parametrizacao.mock;
 
-import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.CampoFormularioDto;
-import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.ChecklistReferenciaDto;
-import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.DocumentoDto;
-import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.FaseDto;
-import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.FuncaoDocumentalDto;
-import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.GarantiaDto;
-import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.MacroprocessoDto;
-import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.OpcaoDisponivelDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.ProcessoDto;
-import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.ProdutoDto;
-import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.RelacionamentoDto;
-import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.TipoDocumentoDto;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
-import java.util.List;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 @ApplicationScoped
 public class ProcessoMockFactory {
 
+    private static final long DEFAULT_IDENTIFICADOR_NEGOCIAL = 1000016487L;
+    private static final String JSON_SECTION_TITLE = "## dados do mock corpo do retorno json";
+    private static final String MOCK_RESOURCE_TEMPLATE =
+            "mock/parametrizacao/%d-consulta-processo-parametrizacao-v2-identificador-negocial.md";
+    private static final String DEFAULT_MOCK_RESOURCE = mockResourceName(DEFAULT_IDENTIFICADOR_NEGOCIAL);
+
+    private final ObjectMapper objectMapper;
+
+    @Inject
+    public ProcessoMockFactory(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper.copy()
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    }
+
     public ProcessoDto criarProcessoMock(Long identificador) {
-        ChecklistReferenciaDto checklist = new ChecklistReferenciaDto(1000006317L, 1);
+        long identificadorMock = Objects.requireNonNullElse(identificador, DEFAULT_IDENTIFICADOR_NEGOCIAL);
+        String resourceName = mockResourceName(identificadorMock);
+        String markdown = readResource(resourceName);
 
-        CampoFormularioDto campoFormulario = new CampoFormularioDto(
-                29848450L,
-                "Campo mockado",
-                true,
-                true,
-                null,
-                12,
-                1,
-                "TEXTO",
-                null,
-                "Informe o valor",
-                1,
-                100,
-                "Campo gerado pelo simulador do arvore-documento.",
-                false,
-                List.of(new OpcaoDisponivelDto("1", "Opção mockada", true))
-        );
+        if (markdown == null && !DEFAULT_MOCK_RESOURCE.equals(resourceName)) {
+            resourceName = DEFAULT_MOCK_RESOURCE;
+            markdown = readResource(resourceName);
+        }
 
-        TipoDocumentoDto tipoDocumento = new TipoDocumentoDto(
-                "MOCK-TIPO-DOC",
-                "Tipo de documento mockado",
-                true,
-                true,
-                checklist
-        );
+        if (markdown == null) {
+            throw new IllegalStateException("Arquivo de mock nao encontrado no classpath: " + resourceName);
+        }
 
-        DocumentoDto documento = new DocumentoDto(
-                new FuncaoDocumentalDto(
-                        "Função documental mockada",
-                        List.of(tipoDocumento),
-                        checklist
-                ),
-                tipoDocumento,
-                true
-        );
+        return readProcessoFromMarkdown(markdown, resourceName);
+    }
 
-        GarantiaDto garantia = new GarantiaDto(
-                999L,
-                "Garantia mockada",
-                false,
-                List.of(campoFormulario),
-                List.of(documento),
-                checklist
-        );
+    private static String mockResourceName(long identificador) {
+        return MOCK_RESOURCE_TEMPLATE.formatted(identificador);
+    }
 
-        ProdutoDto produto = new ProdutoDto(
-                123L,
-                456L,
-                "Produto mockado",
-                List.of(campoFormulario),
-                List.of(documento),
-                List.of(garantia),
-                checklist
-        );
+    private String readResource(String resourceName) {
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        try (InputStream inputStream = classLoader.getResourceAsStream(resourceName)) {
+            if (inputStream == null) {
+                return null;
+            }
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Erro ao ler arquivo de mock: " + resourceName, e);
+        }
+    }
 
-        FaseDto fase = new FaseDto(
-                7001L,
-                "Fase mockada",
-                true,
-                "07/07/2026 10:00:00",
-                1,
-                "Orientação mockada para o usuário.",
-                List.of(produto),
-                List.of(garantia),
-                List.of(campoFormulario),
-                List.of(documento),
-                checklist
-        );
+    private ProcessoDto readProcessoFromMarkdown(String markdown, String resourceName) {
+        try {
+            return objectMapper.readValue(extractJsonBody(markdown, resourceName), ProcessoDto.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Erro ao converter JSON do arquivo de mock: " + resourceName, e);
+        }
+    }
 
-        RelacionamentoDto relacionamento = new RelacionamentoDto(
-                8001L,
-                "Relacionamento mockado",
-                "F",
-                true,
-                true,
-                false,
-                false,
-                List.of(campoFormulario),
-                List.of(documento)
-        );
+    private static String extractJsonBody(String markdown, String resourceName) {
+        int jsonSectionStart = markdown.indexOf(JSON_SECTION_TITLE);
+        int searchStart = jsonSectionStart >= 0
+                ? jsonSectionStart + JSON_SECTION_TITLE.length()
+                : 0;
+        int start = markdown.indexOf('{', searchStart);
+        int end = markdown.lastIndexOf('}');
 
-        return new ProcessoDto(
-                identificador,
-                "Processo mockado pelo simulador do arvore-documento",
-                true,
-                "07/07/2026 10:00:00",
-                new MacroprocessoDto(
-                        1000L,
-                        "Macroprocesso mockado",
-                        true,
-                        "07/07/2026 10:00:00"
-                ),
-                List.of(relacionamento),
-                List.of(produto),
-                List.of(fase),
-                List.of(documento),
-                checklist
-        );
+        if (start < 0 || end <= start) {
+            throw new IllegalStateException("Arquivo de mock nao contem corpo JSON valido: " + resourceName);
+        }
+
+        return markdown.substring(start, end + 1);
     }
 }
