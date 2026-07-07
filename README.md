@@ -91,7 +91,7 @@ GET /arvore-documento/doc
 OpenAPI:
 
 ```http
-GET /arvore-documento/openapi
+GET /arvore-documento/openai
 ```
 
 ## Chamada de exemplo
@@ -138,7 +138,7 @@ Spans explícitos criados:
 - `arvore-documento.service.processo.consultar`
 - `mtr.parametrizacao.processo.consultar`
 
-Logs estruturados JSON ficam habilitados no console com MDC achatado, incluindo campos como:
+Logs estruturados JSON ficam habilitados no console e no arquivo `target/logs/arvore-documento.json` com MDC achatado, incluindo campos como:
 
 - `evento`
 - `traceId`
@@ -150,15 +150,28 @@ Logs estruturados JSON ficam habilitados no console com MDC achatado, incluindo 
 - `resultado`
 - `erro_tipo`
 
-Configurações principais:
+Por padrão, o projeto não exporta OpenTelemetry para fora. Isso evita erro ou ruído em máquinas sem Docker, Jaeger ou OpenTelemetry Collector. Nesse modo, a observabilidade fica disponível nos logs JSON locais.
+
+Configuração padrão:
 
 ```properties
-quarkus.otel.exporter.otlp.endpoint=http://localhost:4317
 quarkus.otel.traces.sampler=always_on
 quarkus.otel.traces.sampler.arg=1.0
-%dev.quarkus.otel.traces.exporter=logging
+quarkus.otel.traces.exporter=none
+quarkus.otel.logs.enabled=false
+quarkus.otel.logs.handler.enabled=false
+quarkus.otel.logs.exporter=none
 
 quarkus.log.console.json.enabled=true
 quarkus.log.console.json.mdc.flat-fields=true
 quarkus.log.console.json.exception-output-type=formatted
+quarkus.log.file.enabled=true
+quarkus.log.file.path=target/logs/arvore-documento.json
+quarkus.log.file.json.enabled=true
+```
+
+Para enviar traces e logs OpenTelemetry ao Jaeger, suba o Jaeger/OTLP em `localhost:4317` e rode com o profile opcional:
+
+```bash
+mvn quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,jaeger"
 ```

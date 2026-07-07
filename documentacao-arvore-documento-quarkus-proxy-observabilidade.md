@@ -8,6 +8,7 @@
 - [Arquitetura](#arquitetura)
 - [Pacotes](#pacotes)
 - [Configuracao atual](#configuracao-atual)
+- [Perfis de observabilidade](#perfis-de-observabilidade)
 - [Execucao local](#execucao-local)
 - [Tratamento de erro](#tratamento-de-erro)
 - [Resiliencia](#resiliencia)
@@ -30,7 +31,7 @@ O projeto nao faz apenas repasse HTTP. Ele cria uma fronteira controlada para:
 - aplicar timeout, retry e circuit breaker;
 - permitir desenvolvimento local com simulador;
 - registrar logs JSON estruturados;
-- exportar traces e logs por OpenTelemetry;
+- exportar traces e logs por OpenTelemetry quando um backend for ativado;
 - visualizar a execucao em Jaeger ou, como alternativa mais completa, Grafana.
 
 Tecnologias principais:
@@ -231,12 +232,24 @@ arvore-documento.simulador.parametrizacao-processo.habilitado=false
 Configuracao de observabilidade atual:
 
 ```properties
-quarkus.otel.exporter.otlp.endpoint=http://localhost:4317
 quarkus.otel.traces.sampler=always_on
 quarkus.otel.traces.sampler.arg=1.0
-quarkus.otel.logs.enabled=true
-quarkus.otel.logs.handler.enabled=true
-quarkus.otel.logs.exporter=cdi
+quarkus.otel.traces.exporter=none
+quarkus.otel.logs.enabled=false
+quarkus.otel.logs.handler.enabled=false
+quarkus.otel.logs.exporter=none
+
+%jaeger.quarkus.otel.exporter.otlp.endpoint=http://localhost:4317
+%jaeger.quarkus.otel.traces.exporter=cdi
+%jaeger.quarkus.otel.logs.enabled=true
+%jaeger.quarkus.otel.logs.handler.enabled=true
+%jaeger.quarkus.otel.logs.exporter=cdi
+
+%grafana.quarkus.otel.exporter.otlp.endpoint=http://localhost:4317
+%grafana.quarkus.otel.traces.exporter=cdi
+%grafana.quarkus.otel.logs.enabled=true
+%grafana.quarkus.otel.logs.handler.enabled=true
+%grafana.quarkus.otel.logs.exporter=cdi
 
 quarkus.log.console.json.enabled=true
 quarkus.log.console.json.pretty-print=false
@@ -257,10 +270,12 @@ quarkus.log.file.json.additional-field."service.name".type=string
 
 Pontos importantes:
 
-- `quarkus.otel.exporter.otlp.endpoint=http://localhost:4317` envia sinais OTLP para um backend local.
-- `quarkus.otel.logs.enabled=true` habilita logs como sinal OpenTelemetry.
-- `quarkus.otel.logs.handler.enabled=true` conecta o logging do Quarkus ao OpenTelemetry.
-- `quarkus.otel.logs.exporter=cdi` usa o exporter OTLP padrao fornecido pelo Quarkus.
+- O modo padrao nao tenta conectar em Jaeger, Grafana ou OpenTelemetry Collector.
+- `quarkus.otel.traces.exporter=none` evita exportacao de traces quando nao ha backend local.
+- `quarkus.otel.logs.enabled=false` e `quarkus.otel.logs.handler.enabled=false` evitam exportacao de logs OpenTelemetry quando nao ha backend local.
+- Os logs JSON continuam sendo escritos no console e em `target/logs/arvore-documento.json`.
+- O profile `jaeger` habilita a exportacao OTLP para Jaeger em `localhost:4317`.
+- O profile `grafana` habilita a exportacao OTLP para um OpenTelemetry Collector em `localhost:4317`.
 - `target/logs/arvore-documento.json` recebe uma copia local dos logs JSON.
 - Jaeger e bom para traces; para consultar logs em UI, use Grafana/Loki ou outro backend de logs.
 
@@ -270,6 +285,184 @@ Em ambiente real, configure a URL do MTR por variavel de ambiente:
 export QUARKUS_REST_CLIENT_PARAMETRIZACAO_PROCESSO_URL=https://simtr-parametrizacao-des.apps.nprd.caixa
 ```
 
+## Perfis de observabilidade
+
+O projeto foi configurado para nao depender de Docker, Jaeger ou Grafana no modo padrao. Isso evita erro em maquina de trabalho sem backend de observabilidade local.
+
+Os profiles sao:
+
+| Cenario | Profile Quarkus | Exporta OpenTelemetry | Destino esperado | Quando usar |
+|---|---|---|---|---|
+| Sem Jaeger/Grafana | `dev` | Nao | Nenhum backend externo | Maquina sem Docker ou sem collector |
+| Jaeger local | `dev,jaeger` | Sim | Jaeger/OTLP em `localhost:4317` | Desenvolvimento local com Jaeger |
+| Jaeger remoto | `dev,jaeger` + variavel de endpoint | Sim | Jaeger/OTLP remoto | Maquina sem Docker usando servidor compartilhado |
+| Grafana local | `dev,grafana` | Sim | OpenTelemetry Collector em `localhost:4317` | Stack Grafana/Tempo/Loki local |
+| Grafana remoto | `dev,grafana` + variavel de endpoint | Sim | OpenTelemetry Collector remoto | Ambiente corporativo com Grafana centralizado |
+
+Importante: o profile `grafana` nao aponta para a URL da UI do Grafana. A aplicacao envia dados para um OpenTelemetry Collector. O Collector encaminha traces para Tempo e logs para Loki. A UI do Grafana apenas consulta Tempo/Loki.
+
+### Modo sem Jaeger/Grafana
+
+Use quando nao houver Docker, Jaeger, Grafana, Tempo, Loki ou OpenTelemetry Collector disponivel.
+
+```powershell
+mvn quarkus:dev -Ddebug=false
+```
+
+Nesse modo:
+
+- nao existe tentativa de conexao em `localhost:4317`;
+- os logs JSON aparecem no console;
+- os logs JSON tambem sao gravados em `target/logs/arvore-documento.json`;
+- os campos `traceId` e `spanId` podem aparecer quando houver contexto de span local, mas nenhum trace e enviado para fora.
+
+### Jaeger local
+
+Use quando o Jaeger estiver rodando na propria maquina.
+
+```powershell
+mvn quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,jaeger"
+```
+
+Endpoint usado pela aplicacao:
+
+```text
+http://localhost:4317
+```
+
+UI do Jaeger:
+
+```text
+http://localhost:16686
+```
+
+### Jaeger remoto
+
+Use quando nao houver Docker local, mas existir um Jaeger ou collector OTLP em outro servidor.
+
+No PowerShell:
+
+```powershell
+$env:QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT="http://servidor-jaeger:4317"
+mvn quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,jaeger"
+```
+
+No IntelliJ, configure:
+
+| Campo | Valor |
+|---|---|
+| `Run` | `quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,jaeger"` |
+| `Profiles` | vazio |
+| `Environment variables` | `QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT=http://servidor-jaeger:4317` |
+
+Troque `servidor-jaeger` pelo host real. A porta `4317` precisa estar acessivel pela sua maquina via rede, VPN ou firewall. A UI do Jaeger, se estiver publicada, normalmente fica em:
+
+```text
+http://servidor-jaeger:16686
+```
+
+Se o endpoint remoto usar HTTPS, configure o endpoint com `https://`:
+
+```powershell
+$env:QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT="https://servidor-jaeger:4317"
+```
+
+Se o servidor remoto exigir header de autenticacao, configure tambem os headers OTLP conforme orientacao da equipe responsavel pelo collector:
+
+```powershell
+$env:QUARKUS_OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer <token>"
+```
+
+### Grafana local
+
+Use quando existir uma stack local com OpenTelemetry Collector, Tempo, Loki e Grafana. A aplicacao deve apontar para o Collector, nao para o Grafana.
+
+```powershell
+mvn quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,grafana"
+```
+
+Endpoint usado pela aplicacao:
+
+```text
+http://localhost:4317
+```
+
+UI comum do Grafana, quando publicada localmente:
+
+```text
+http://localhost:3000
+```
+
+### Grafana remoto
+
+Use quando a empresa disponibilizar um OpenTelemetry Collector remoto integrado ao Grafana, Tempo e Loki.
+
+No PowerShell:
+
+```powershell
+$env:QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT="http://servidor-otel-collector:4317"
+mvn quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,grafana"
+```
+
+No IntelliJ, configure:
+
+| Campo | Valor |
+|---|---|
+| `Run` | `quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,grafana"` |
+| `Profiles` | vazio |
+| `Environment variables` | `QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT=http://servidor-otel-collector:4317` |
+
+Troque `servidor-otel-collector` pelo host real do Collector. A URL da UI do Grafana e separada, por exemplo:
+
+```text
+http://servidor-grafana:3000
+```
+
+Se o Collector remoto exigir HTTPS:
+
+```powershell
+$env:QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT="https://servidor-otel-collector:4317"
+```
+
+Se o Collector remoto exigir token ou outro header:
+
+```powershell
+$env:QUARKUS_OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer <token>"
+```
+
+### Configuracao no IntelliJ
+
+Crie uma configuracao Maven em `Run > Edit Configurations`.
+
+Para rodar sem backend externo:
+
+| Campo | Valor |
+|---|---|
+| `Name` | `arvore-documento [dev]` |
+| `Run` | `quarkus:dev -Ddebug=false` |
+| `Working directory` | raiz do projeto, onde esta o `pom.xml` |
+| `Profiles` | vazio |
+
+Para rodar com Jaeger local:
+
+| Campo | Valor |
+|---|---|
+| `Name` | `arvore-documento [dev jaeger]` |
+| `Run` | `quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,jaeger"` |
+| `Working directory` | raiz do projeto, onde esta o `pom.xml` |
+| `Profiles` | vazio |
+
+Para rodar com Grafana/Collector local:
+
+| Campo | Valor |
+|---|---|
+| `Name` | `arvore-documento [dev grafana]` |
+| `Run` | `quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,grafana"` |
+| `Working directory` | raiz do projeto, onde esta o `pom.xml` |
+| `Profiles` | vazio |
+
+O campo `Profiles` do IntelliJ e para Maven profiles (`-P`). Ele nao deve ser usado para `dev,jaeger` ou `dev,grafana`, porque estes sao Quarkus profiles e ficam em `-Dquarkus.profile`.
+
 ## Execucao local
 
 ### Compilar
@@ -278,10 +471,20 @@ export QUARKUS_REST_CLIENT_PARAMETRIZACAO_PROCESSO_URL=https://simtr-parametriza
 mvn -q -DskipTests compile
 ```
 
-### Rodar em dev mode
+### Rodar em dev mode sem Docker/Jaeger
+
+Este e o modo recomendado para maquina de trabalho sem Docker. A aplicacao nao tenta exportar OpenTelemetry para `localhost:4317`; os logs ficam no console e em `target/logs/arvore-documento.json`.
 
 ```powershell
 mvn quarkus:dev -Ddebug=false
+```
+
+### Rodar em dev mode com Jaeger
+
+Use este modo somente quando houver um backend OTLP disponivel, por exemplo Jaeger rodando localmente com a porta `4317` publicada.
+
+```powershell
+mvn quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,jaeger"
 ```
 
 ### Chamar a API
@@ -340,12 +543,12 @@ Erros `4xx` abortam retry e sao ignorados pelo circuit breaker, porque represent
 
 ## Observabilidade do projeto
 
-A observabilidade atual tem quatro saidas:
+A observabilidade atual tem duas saidas sempre ativas e duas saidas opcionais:
 
-1. Traces OpenTelemetry exportados por OTLP.
-2. Logs OpenTelemetry exportados por OTLP.
-3. Logs JSON no console.
-4. Logs JSON em arquivo local.
+1. Logs JSON no console.
+2. Logs JSON em arquivo local.
+3. Traces OpenTelemetry exportados por OTLP quando o profile `jaeger` ou outro profile equivalente estiver ativo.
+4. Logs OpenTelemetry exportados por OTLP quando o profile `jaeger` ou outro profile equivalente estiver ativo.
 
 ### Spans criados
 
@@ -402,7 +605,7 @@ Use Jaeger quando o objetivo for entender:
 - erros registrados no trace;
 - atributos como `identificador_negocial`, `origem_dados` e `processo.nome`.
 
-Importante: Jaeger nao e a melhor ferramenta para consultar logs. Mesmo com `quarkus.otel.logs.enabled=true`, a UI do Jaeger e focada em traces. Os logs ficam disponiveis no console, no arquivo JSON e podem ser enviados por OTLP para outro backend que aceite logs.
+Importante: Jaeger nao e a melhor ferramenta para consultar logs. A UI do Jaeger e focada em traces. Os logs ficam disponiveis no console, no arquivo JSON e, quando o profile `jaeger` esta ativo, tambem podem ser enviados por OTLP para um backend que aceite logs.
 
 ### Subir Jaeger
 
@@ -426,7 +629,7 @@ Portas:
 ### Rodar a aplicacao
 
 ```powershell
-mvn quarkus:dev -Ddebug=false
+mvn quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,jaeger"
 ```
 
 ### Gerar trace
@@ -509,7 +712,9 @@ Use Grafana quando o objetivo for:
 - observar mais de um servico;
 - evoluir para metricas.
 
-### Opcao recomendada: Grafana LGTM via Quarkus Dev Services
+### Opcao com Docker: Grafana LGTM via Quarkus Dev Services
+
+Esta opcao e util em maquina de desenvolvimento com Docker. Ela nao e necessaria para a maquina sem Docker e nao substitui a configuracao remota via OpenTelemetry Collector.
 
 Adicionar a dependencia:
 
@@ -521,13 +726,18 @@ Adicionar a dependencia:
 </dependency>
 ```
 
-Para usar Dev Services LGTM, evite manter o endpoint fixo do Jaeger em dev:
+Para usar Dev Services LGTM, mantenha a aplicacao sem endpoint OTLP fixo ou crie um profile especifico para LGTM. O projeto ja evita endpoint fixo no modo padrao:
 
 ```properties
-# quarkus.otel.exporter.otlp.endpoint=http://localhost:4317
+quarkus.otel.traces.exporter=none
+quarkus.otel.logs.enabled=false
+quarkus.otel.logs.handler.enabled=false
+quarkus.otel.logs.exporter=none
 ```
 
-Motivo: o Dev Service sobe seu proprio stack e configura o endpoint OTLP automaticamente. Se a aplicacao continuar apontando para `localhost:4317`, ela vai enviar para o Jaeger, nao para o collector do stack LGTM.
+Motivo: o Dev Service sobe seu proprio stack e pode configurar o endpoint OTLP automaticamente. Se a aplicacao apontar fixamente para `localhost:4317`, ela pode enviar para outro backend local, como Jaeger, e nao para o collector do stack LGTM.
+
+Na pratica, para este projeto, prefira o profile `grafana` quando ja existir um OpenTelemetry Collector local ou remoto. Use Dev Services LGTM apenas quando quiser que o Quarkus suba a stack local via Docker.
 
 Executar:
 
@@ -545,16 +755,23 @@ O Dev UI deve mostrar os servicos de observabilidade iniciados e o link do Grafa
 
 ### Opcao manual: Grafana + Tempo + Loki + OpenTelemetry Collector
 
-Nesse modelo, a aplicacao continua usando OTLP:
+Nesse modelo, a aplicacao usa um profile especifico para apontar para o OpenTelemetry Collector:
 
 ```properties
-quarkus.otel.exporter.otlp.endpoint=http://localhost:4317
-quarkus.otel.logs.enabled=true
-quarkus.otel.logs.handler.enabled=true
-quarkus.otel.logs.exporter=cdi
+%grafana.quarkus.otel.exporter.otlp.endpoint=http://localhost:4317
+%grafana.quarkus.otel.traces.exporter=cdi
+%grafana.quarkus.otel.logs.enabled=true
+%grafana.quarkus.otel.logs.handler.enabled=true
+%grafana.quarkus.otel.logs.exporter=cdi
 ```
 
-O `localhost:4317` deve ser um OpenTelemetry Collector, nao o Jaeger.
+Neste caso, o `localhost:4317` deve ser um OpenTelemetry Collector, nao o Jaeger.
+
+Execucao em dev mode:
+
+```powershell
+mvn quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,grafana"
+```
 
 Fluxo recomendado:
 
@@ -618,6 +835,56 @@ Essa correlacao funciona porque `ObservabilityLog` copia o contexto do span atua
 
 ## Troubleshooting
 
+### Maquina sem Docker ou sem Jaeger
+
+Use o modo padrao:
+
+```powershell
+mvn quarkus:dev -Ddebug=false
+```
+
+Nesse modo, o projeto nao tenta conectar em `localhost:4317`. A execucao fica observavel pelo console JSON e pelo arquivo:
+
+```powershell
+Get-Content -Tail 20 target/logs/arvore-documento.json
+```
+
+### Servidor remoto nao recebe traces ou logs
+
+Confirme se a aplicacao foi iniciada com o profile correto.
+
+Para Jaeger remoto:
+
+```powershell
+mvn quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,jaeger"
+```
+
+Para Grafana remoto via OpenTelemetry Collector:
+
+```powershell
+mvn quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,grafana"
+```
+
+Confirme tambem a variavel de endpoint:
+
+```powershell
+$env:QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT
+```
+
+Teste conectividade de rede com a porta OTLP gRPC:
+
+```powershell
+Test-NetConnection servidor-otel-collector -Port 4317
+```
+
+Pontos de verificacao:
+
+- Para Jaeger, a aplicacao envia OTLP para `servidor-jaeger:4317`; a UI, quando publicada, fica em `servidor-jaeger:16686`.
+- Para Grafana, a aplicacao nao envia dados para `servidor-grafana:3000`; ela envia para o OpenTelemetry Collector, normalmente em `servidor-otel-collector:4317`.
+- Se houver proxy, VPN, firewall ou rede corporativa, a porta `4317` precisa estar liberada.
+- Se o endpoint remoto exigir token, configure `QUARKUS_OTEL_EXPORTER_OTLP_HEADERS`.
+- Depois de subir a aplicacao, gere uma chamada HTTP real e aguarde alguns segundos, porque o exporter envia dados em lote.
+
 ### `/q/swagger-ui/` retorna 404
 
 O Swagger deste projeto nao esta no path padrao do Quarkus.
@@ -658,6 +925,12 @@ Depois reinicie o dev mode.
 
 ### Jaeger nao mostra `arvore-documento`
 
+Confirme primeiro se a aplicacao foi iniciada com o profile `jaeger`:
+
+```powershell
+mvn quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,jaeger"
+```
+
 Verifique se o container esta rodando:
 
 ```powershell
@@ -682,7 +955,7 @@ Aguarde alguns segundos, porque o exporter envia dados em lote.
 
 ### Logs nao aparecem no Jaeger
 
-Isso e esperado. Jaeger e uma ferramenta de traces. Para logs, use:
+Isso e esperado. Jaeger e uma ferramenta de traces. Mesmo com o profile `jaeger`, a consulta principal na UI do Jaeger e para traces. Para logs, use:
 
 - console JSON;
 - `target/logs/arvore-documento.json`;
@@ -697,13 +970,21 @@ Nao use:
 %dev.quarkus.otel.traces.exporter=otlp
 ```
 
-Nesta versao do Quarkus, o valor correto para o exporter padrao e `cdi`, que ja e o default. O projeto usa:
+Nesta versao do Quarkus, use `none` quando nao quiser exportar e `cdi` quando quiser usar o exporter fornecido pelo Quarkus. O projeto usa `none` por padrao:
 
 ```properties
-quarkus.otel.logs.exporter=cdi
+quarkus.otel.traces.exporter=none
+quarkus.otel.logs.exporter=none
 ```
 
-E deixa os traces usarem o default do Quarkus.
+E usa `cdi` apenas nos profiles opcionais:
+
+```properties
+%jaeger.quarkus.otel.traces.exporter=cdi
+%jaeger.quarkus.otel.logs.exporter=cdi
+%grafana.quarkus.otel.traces.exporter=cdi
+%grafana.quarkus.otel.logs.exporter=cdi
+```
 
 ### Arquivo de log nao foi criado
 
@@ -725,8 +1006,7 @@ Get-Content -Tail 20 target/logs/arvore-documento.json
 
 1. Decidir se o path OpenAPI deve continuar `/arvore-documento/openai` ou mudar para `/arvore-documento/openapi`.
 2. Criar um `docker-compose-jaeger.yml` para padronizar a subida do Jaeger.
-3. Criar um profile separado para Grafana LGTM, evitando conflito com Jaeger em `localhost:4317`.
-4. Adicionar configuracao versionada de OpenTelemetry Collector para enviar traces ao Tempo e logs ao Loki.
-5. Adicionar testes unitarios para `ProcessoService` cobrindo simulador e MTR real.
-6. Adicionar stub/WireMock para respostas `200`, `404`, `500` e timeout do `simtr-parametrizacao`.
-7. Criar dashboard Grafana com latencia, erro, volume e correlacao por `traceId`.
+3. Adicionar configuracao versionada de OpenTelemetry Collector para enviar traces ao Tempo e logs ao Loki.
+4. Adicionar testes unitarios para `ProcessoService` cobrindo simulador e MTR real.
+5. Adicionar stub/WireMock para respostas `200`, `404`, `500` e timeout do `simtr-parametrizacao`.
+6. Criar dashboard Grafana com latencia, erro, volume e correlacao por `traceId`.
