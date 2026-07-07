@@ -1,0 +1,308 @@
+# Quarkus configuration property
+quarkus:
+  jackson:
+    timezone: America/Sao_Paulo
+  banner:
+    enabled: false
+  http:
+    cors: true
+    # HTTP root path. All web content will be served relative to this root path.
+    root-path: /simtr-hub-outsourcing
+    # A common root path for non-application endpoints. Various extension-provided endpoints such as metrics, health, and openapi are deployed under this path by default.
+    non-application-root-path: /simtr-hub-outsourcing
+    port: 8090
+    test-port: 8083
+    test-ssl-port: 8446
+
+# Logging configuration property 
+  log:
+    min-level: INFO
+    level: INFO
+    file:
+      enable: false
+      rotation:
+        max-file-size: 10M
+        max-backup-index: 100
+        file-suffix: .yyyy-MM-dd
+        rotate-on-boot: true
+    category:
+      "br.gov.caixa.simtr":
+        level: INFO  
+
+ # Datasource configuration property   
+  datasource:
+    db-kind: oracle  
+    jdbc:
+      driver: oracle.jdbc.driver.OracleDriver
+      url: jdbc:oracle:thin:@//cnpexdadvm01-scan4.extra.caixa.gov.br:1521/cdbd08ngpdb007
+      initial-size: 0
+      min-size: 0
+      max-size: 20 
+      #initial-size: ${QUARKUS_DATASOURCE_JDBC_INITIAL_SIZE}
+      #min-size: ${QUARKUS_DATASOURCE_JDBC_MIN_SIZE}
+      #max-size: ${QUARKUS_DATASOURCE_JDBC_MAX_SIZE}
+    username: mtr
+    password: ${SIMTR_DB_PASSWORD}
+    devservices:
+      enabled: false    
+  hibernate-orm:
+    dialect: org.hibernate.dialect.OracleDialect
+    database:
+      generation: validate
+    log:
+      sql: false
+    unsupported-properties:
+      "hibernate.query.mutation_strategy": org.hibernate.query.sqm.mutation.internal.inline.InlineMutationStrategy
+      "hibernate.hql.bulk_id_strategy.global_temporary.create_tables": false
+      "hibernate.hql.bulk_id_strategy.global_temporary.drop_tables": false
+  transaction-manager:
+    default-transaction-timeout: PT2M  
+
+#Swagger UI
+  swagger-ui:
+    always-include: true
+    path: /simtr-hub-outsourcing/doc
+    default-models-expand-depth: -1
+
+#SmallRye OpenAPI
+  smallrye-openapi:
+    info-version: ${quarkus.application.version}
+
+  tls:
+    trust-all: true
+
+#OpenID Connect
+  oidc:
+    authentication:
+     verify-access-token: true  
+    public-key: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzcYY/UbvrEldbQRd4TgLeP9bS8YnaL67MZUsfozWRyocBF3S0L7UEbkPaPoCoBnhoRv8VJHp0grqe3mqEmkMuDlt20Vx6q04ADDyS0c8xaU+Ot+g1Pgwjze944ATUjZogEMko6jvqqUGTt/Nt64yCCIaMaTB119vOBExQim7vPHNe/o7hLxh6VBYINxFA/esxjz8j28/uJWIiK0Gvt07Yx7ycn2DJlQHjnH2GzCSUL87AAYmjyYxW2JZaPLLvRlpcHIWrlr9GNtLiq0++xfJ0jFYxQWs1jxhlfXdqr8NE5vfA/RRRjRFnWzFOhIsOnIHPO9eEwwYzCZSoW2zXkFDYwIDAQAB
+    auth-server-url: https://login.des.caixa/auth/realms/intranet
+    client-id: cli-ser-mtr
+    credentials:
+      secret: ${SIMTR_OIDC_CLIENT_SECRET}
+    internet:
+      public-key: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxz8PNmiUW5J1669pWY0APB4flqqDnghAv/QV5DIHyXE39fj9u1DPXbgfDUhUfK0i/B0CHJukbI44Rgo/vuhCMImTnLjS49XuTH6GI4lU/CtdzE/qACMO/GUky73m0Uszo2Bh1wNV+fvw/mMQVAGKj6/qXjSB9npRZKydoXnwGPIepcrqF6KkMJIFtZ+0w35J9SYwgLNezUbAJgs9dq3yMj4ussSfxMFcUC9UKziJJSg0UQfl0fOQGMsrsnUbS2GgXeDqdskbZq9/wfL0ikU2pWf0hKjX+PXtqZI0SVWurVyydc0efbTE7qIlrwF8lWZ8NZ8zcV2oVk7TjoIktZ4zBwIDAQAB
+      auth-server-url: ${QUARKUS_OIDC_INTERNET_AUTH_SERVER_URL}
+      client-id: ${QUARKUS_OIDC_INTERNET_CLIENT_ID}
+      credentials:
+        secret: ${SIMTR_OIDC_INTERNET_CLIENT_SECRET}
+
+#OpenID Connect Client
+  oidc-client:
+    auth-server-url: ${quarkus.oidc.auth-server-url}
+    tls:
+      verification: none
+    discovery-enabled: false
+    token-path: /protocol/openid-connect/token
+    client-id: ${quarkus.oidc.client-id}
+    credentials:
+      client-secret:
+        value: ${quarkus.oidc.credentials.secret}
+    connection-timeout: PT15S
+    connection-retry-count: 3
+    connection-delay: PT20S         
+    grant:
+      type: CLIENT
+
+# Rest Client configuration property    
+  rest-client:
+    #Global Configuration
+    connect-timeout: ${simtr.http.establishconnectiontimeout}
+    read-timeout: ${simtr.http.sockettimeout}
+    #Client Specific Configuration
+    siecm-api:
+      url:  ${quarkus.rest.client.siecm.api.url}
+      scope: jakarta.enterprise.context.ApplicationScoped
+      connection-pool-size: 5
+      connect-timeout: ${simtr.http.establishconnectiontimeout}
+      read-timeout: ${simtr.http.sockettimeout}
+      proxy-address: none
+    cadastro-receita:
+      url: ${quarkus.rest.client.cadastro.receita.api.url}
+      scope: jakarta.enterprise.context.ApplicationScoped
+      connection-pool-size: 5
+      connect-timeout: ${simtr.http.establishconnectiontimeout}
+      read-timeout: ${simtr.http.sockettimeout}
+      proxy-address: none
+    sinda-api:
+      url: https://api.des.caixa:8443
+      scope: jakarta.enterprise.context.ApplicationScoped
+      connection-pool-size: 15
+      connect-timeout: 15000
+      read-timeout: 90000
+      proxy-address: none
+    #logging:
+    #  scope: request-response
+    #  body-limit: 500    
+
+  # JWT RBAC behavior configuration property
+  security:
+    jaxrs:
+      deny-unannotated-endpoints: false
+    deny-unannotated-members: false  
+  
+  # Smallrye health configuration property
+  smallrye-health:
+    ui:
+      enable: true
+
+  #  Jacoco report Configuration property
+  jacoco:
+    report: true
+    #title: 
+    #includes: **
+    excludes: "src/main/java/br/gov/caixa/simtr/mapeamento/**/*, src/test/java/**/*, src/main/java/br/gov/caixa/simtr/excecao/**/*"
+    report-location: "jacoco-report"
+
+#Azure Configuration property
+service-bus-azure-configuracao:
+  http-client-options:
+    #proxy-options:
+    #  proxy-host: "prd-internet365.caixa"
+    #  proxy-port: 80
+    connect-timeout: 10000
+    write-timeout: 60000
+    response-timeout: 60000
+    read-timeout: 60000
+    maximum-connection-pool-size: 500
+    connection-idle-timeout: 60000
+  amqp-client-retry-options:
+    #max-retries: 3
+    #delay: 800
+    #max-delay: 60000
+    #try-timeout: 60000
+    #retry-mode: EXPONENTIAL
+    max-retries: 1
+    delay: 10
+    max-delay: 1000
+    try-timeout: 20000    
+    retry-mode: FIXED    
+  namespace-configuracao:
+    namespace: dossiedigitaldes
+    connection-string: ${SIMTR_SERVICE_BUS_CONNECTION_STRING}
+    #transport-type: AmqpWebSockets    
+    transport-type: Amqp
+    queues:
+      process-every:
+         expr: 180s
+      #queue-config[0]:
+      #    nome: outsourcing-envio-fornecedor-canal
+      #    nome-fisico: outsourcing-envio-fornecedor-canal
+      #    retry: 3
+      #    processor-max-concurrent-calls: 5
+      #    processor-max-dlq-concurrent-calls: 1
+      #    processor-ativar-calls: true
+      #queue-config[1]:
+      #    nome: outsourcing-envio-fornecedor-processor
+      #    nome-fisico: outsourcing-envio-fornecedor-processor
+      #    retry: 3
+      #    processor-max-concurrent-calls: 5
+      #    processor-max-dlq-concurrent-calls: 1
+      #    processor-ativar-calls: true        
+      #queue-config[2]:
+      #    nome: outsourcing-retorno-fornecedor
+      #    nome-fisico: outsourcing-retorno-fornecedor
+      #    retry: 3
+      #    processor-max-concurrent-calls: 5
+      #    processor-max-dlq-concurrent-calls: 1
+      #    processor-ativar-calls: true  
+      #queue-config[3]:
+      #    nome: outsourcing-retorno-fornecedor-canal
+      #    nome-fisico: outsourcing-retorno-fornecedor-canal
+      #    retry: 3
+      #    processor-max-concurrent-calls: 5
+      #    processor-max-dlq-concurrent-calls: 1
+      #    processor-ativar-calls: true
+      #queue-config[4]:
+      #    nome: outsourcing-dossie-envio-fornecedor-processor
+      #    nome-fisico: outsourcing-dossie-envio-fornecedor-processor
+      #    retry: 3
+      #    processor-max-concurrent-calls: 5
+      #    processor-max-dlq-concurrent-calls: 1
+      #    processor-ativar-calls: true
+      #queue-config[5]:
+      #    nome: dossie-produto-efetua-tratamento
+      #    nome-fisico: dossie-produto-efetua-tratamento
+      #    retry: 3
+      #    processor-max-concurrent-calls: 5
+      #    processor-max-dlq-concurrent-calls: 1
+      #    processor-ativar-calls: true
+      #queue-config[6]:
+      #    nome: outsourcing-documento-envio-ia
+      #    nome-fisico: outsourcing-documento-envio-ia
+      #    retry: 3
+      #    processor-max-concurrent-calls: 5
+      #    processor-max-dlq-concurrent-calls: 1
+      #    processor-ativar-calls: true
+      #queue-config[7]:
+      #    nome: outsourcing-documento-classificacao-ia
+      #    nome-fisico: outsourcing-documento-classificacao-ia
+      #    retry: 3
+      #    processor-max-concurrent-calls: 5
+      #    processor-max-dlq-concurrent-calls: 1
+      #    processor-ativar-calls: true
+      #queue-config[8]:
+      #    nome: outsourcing-documento-extracao-ia
+      #    nome-fisico: outsourcing-documento-extracao-ia
+      #    retry: 3
+      #    processor-max-concurrent-calls: 5
+      #    processor-max-dlq-concurrent-calls: 1
+      #    processor-ativar-calls: true
+      #queue-config[9]:
+      #    nome: outsourcing-documento-validacao-negocial-ia
+      #    nome-fisico: outsourcing-documento-validacao-negocial-ia
+      #    retry: 3
+      #    processor-max-concurrent-calls: 5
+      #    processor-max-dlq-concurrent-calls: 1
+      #    processor-ativar-calls: true
+      
+#SIMTR  configuration property
+simtr:
+  simulador:
+    canal: false
+    sinda: false
+    fornecedor-envio: false
+  http:
+    establishconnectiontimeout: 15000
+    sockettimeout: 30000
+  apikey: ${SIMTR_API_KEY}
+  documento:
+    validacao:
+      limite-score-autenticidade: 71
+  sinda:
+    canal: 61
+  proxy:
+    https:
+      host: proxydes.caixa
+      port: 80
+      schema: http
+    http:
+      host: proxydes.caixa
+      port: 80
+      schema: http 
+  atualiza-tipo-documento:
+    every:
+      expr: 180s
+# Envia Documentos Dossie Produto configuration property
+  envia-documentos-dossie-produto:
+    rotina-ativa: false
+    maximo-retries: 3
+    every:
+      expr: 10m
+  atualiza-canal:
+    every:
+      expr: 180s
+  atualiza-etapa:
+    every:
+      expr: 180s
+  log-filtro:
+    body-limit: 1000
+    req[0]: binario
+    req[1]: sas
+    res[0]: binario
+    res[1]: sas
+    client-req[0]: binario
+    client-res[0]: binario
+  feature:
+    usa-novos-campos:
+      identidade-fiscal: true
