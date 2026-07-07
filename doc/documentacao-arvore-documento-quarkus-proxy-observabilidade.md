@@ -168,7 +168,7 @@ HTTP GET /arvore-documento/v1/processo/identificador-negocial/{id}
 ## Pacotes
 
 ```text
-br.gov.caixa.arvoredocumento
+br.gov.caixa.simtr.arvoredocumento
 |-- api
 |   |-- dev
 |   |-- dto

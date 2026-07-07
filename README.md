@@ -35,7 +35,7 @@ ProcessoResource
 ## Organização de pacotes
 
 ```text
-br.gov.caixa.arvoredocumento
+br.gov.caixa.simtr.arvoredocumento
 ├── api
 │   ├── dto
 │   │   ├── erro
