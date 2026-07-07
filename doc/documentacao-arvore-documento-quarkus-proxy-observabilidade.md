@@ -1023,6 +1023,71 @@ Essa correlacao funciona porque `ObservabilityLog` copia o contexto do span atua
 
 ## Troubleshooting
 
+### Como verificar erros internos
+
+Quando a API retorna erro `500`, a resposta HTTP fica propositalmente generica para nao expor detalhes internos:
+
+```json
+{
+  "codigo_http": 500,
+  "recurso": "arvore-documento",
+  "id_erro": "cbcc0f91-0f3d-4d7c-8c8d-fdfeb6c14049",
+  "codigo_erro": "ARVDOCP9999",
+  "erros": [
+    {
+      "mensagem": "Erro interno ao processar a requisição."
+    }
+  ]
+}
+```
+
+O detalhe tecnico da excecao, incluindo stacktrace, deve ser consultado apenas nos logs.
+
+Use o `id_erro` retornado na resposta para localizar a linha correspondente no arquivo JSON:
+
+```powershell
+Select-String `
+  -Path target/logs/arvore-documento.json `
+  -Pattern "cbcc0f91-0f3d-4d7c-8c8d-fdfeb6c14049"
+```
+
+Para acompanhar os erros em tempo real:
+
+```powershell
+Get-Content -Tail 50 -Wait target/logs/arvore-documento.json
+```
+
+O log de erro nao tratado e emitido pelo `GenericExceptionMapper` com o evento:
+
+```text
+arvore-documento.erro.nao-tratado
+```
+
+Campos importantes para diagnostico:
+
+| Campo | Uso |
+|---|---|
+| `id_erro` | Mesmo identificador retornado na resposta HTTP |
+| `codigo_erro` | Codigo funcional do erro, por exemplo `ARVDOCP9999` |
+| `erro_tipo` | Classe da excecao original |
+| `erro_mensagem` | Mensagem tecnica da excecao |
+| `traceId` | Correlacao com trace, quando houver span ativo |
+| `spanId` | Span onde o erro foi registrado |
+
+O stacktrace fica no campo de excecao do log JSON e tambem no console, conforme configurado em:
+
+```properties
+quarkus.log.console.json.exception-output-type=formatted
+quarkus.log.file.json.exception-output-type=formatted
+```
+
+Se o erro acontecer durante o uso do simulador, verifique principalmente:
+
+- se existe arquivo `.md` para o identificador consultado;
+- se o arquivo possui a secao `## dados do mock corpo do retorno json`;
+- se o JSON dessa secao e valido;
+- se algum campo do JSON real possui formato diferente do DTO esperado.
+
 ### Maquina sem Docker ou sem Jaeger
 
 Use o modo padrao:
