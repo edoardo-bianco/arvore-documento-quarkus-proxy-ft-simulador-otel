@@ -6,11 +6,17 @@ public abstract class MtrRestClientException extends RuntimeException {
 
     private final int status;
     private final ErroPadraoDto erro;
+    private final MtrErrorType tipoErro;
 
     protected MtrRestClientException(int status, ErroPadraoDto erro) {
+        this(status, erro, MtrErrorType.TECNICO_CLIENTE);
+    }
+
+    protected MtrRestClientException(int status, ErroPadraoDto erro, MtrErrorType tipoErro) {
         super(resolveMessage(erro));
         this.status = status;
         this.erro = erro;
+        this.tipoErro = tipoErro != null ? tipoErro : MtrErrorType.TECNICO_CLIENTE;
     }
 
     public int status() {
@@ -19,6 +25,10 @@ public abstract class MtrRestClientException extends RuntimeException {
 
     public ErroPadraoDto erro() {
         return erro;
+    }
+
+    public MtrErrorType tipoErro() {
+        return tipoErro;
     }
 
     private static String resolveMessage(ErroPadraoDto erro) {

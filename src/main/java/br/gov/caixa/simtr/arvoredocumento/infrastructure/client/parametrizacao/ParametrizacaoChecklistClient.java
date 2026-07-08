@@ -2,7 +2,9 @@ package br.gov.caixa.simtr.arvoredocumento.infrastructure.client.parametrizacao;
 
 import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.checklist.ChecklistDto;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.RequestHeaderFactory;
-import br.gov.caixa.simtr.arvoredocumento.shared.exception.MtrClientErrorException;
+import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.RestClientObservabilityFilter;
+import br.gov.caixa.simtr.arvoredocumento.shared.exception.MtrBusinessErrorException;
+import br.gov.caixa.simtr.arvoredocumento.shared.exception.MtrClientTechnicalException;
 import br.gov.caixa.simtr.arvoredocumento.shared.exception.MtrServerErrorException;
 import io.quarkus.oidc.client.reactive.filter.OidcClientRequestReactiveFilter;
 import io.quarkus.rest.client.reactive.ClientExceptionMapper;
@@ -28,6 +30,7 @@ import java.time.temporal.ChronoUnit;
 @Path("/parametrizacao/v1/cadastro/checklist")
 @RegisterClientHeaders(RequestHeaderFactory.class)
 @RegisterProvider(OidcClientRequestReactiveFilter.class)
+@RegisterProvider(RestClientObservabilityFilter.class)
 @Produces(MediaType.APPLICATION_JSON)
 public interface ParametrizacaoChecklistClient {
 
@@ -46,7 +49,8 @@ public interface ParametrizacaoChecklistClient {
                     TimeoutException.class
             },
             abortOn = {
-                    MtrClientErrorException.class
+                    MtrBusinessErrorException.class,
+                    MtrClientTechnicalException.class
             }
     )
     @CircuitBreaker(
@@ -61,7 +65,8 @@ public interface ParametrizacaoChecklistClient {
                     TimeoutException.class
             },
             skipOn = {
-                    MtrClientErrorException.class
+                    MtrBusinessErrorException.class,
+                    MtrClientTechnicalException.class
             }
     )
     Uni<ChecklistDto> consultarPorIdentificadorNegocialEVersao(

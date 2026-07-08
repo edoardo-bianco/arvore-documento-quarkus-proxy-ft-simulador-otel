@@ -13,6 +13,7 @@
 - [Execucao local](#execucao-local)
 - [Tratamento de erro](#tratamento-de-erro)
 - [Resiliencia](#resiliencia)
+- [Logs de REST Client](#logs-de-rest-client)
 - [Observabilidade do projeto](#observabilidade-do-projeto)
 - [Jaeger](#jaeger)
 - [Grafana](#grafana)
@@ -274,6 +275,10 @@ arvore-documento.simulador.parametrizacao-checklist.habilitado=false
 Configuracao de observabilidade atual:
 
 ```properties
+arvore-documento.observabilidade.rest-client.payload.habilitado=true
+arvore-documento.observabilidade.rest-client.payload.input.max-length=2000
+arvore-documento.observabilidade.rest-client.payload.output.max-length=4000
+
 quarkus.otel.traces.sampler=always_on
 quarkus.otel.traces.sampler.arg=1.0
 quarkus.otel.traces.exporter=none
@@ -773,14 +778,15 @@ Fluxo:
 MTR retorna 4xx/5xx
   -> ParametrizacaoClientExceptionMapper.toException(...)
   -> ClientErrorBodyReader
-  -> MtrClientErrorException ou MtrServerErrorException
+  -> MtrBusinessErrorException, MtrClientTechnicalException ou MtrServerErrorException
   -> MtrRestClientExceptionMapper
   -> ErroPadraoDto retornado ao chamador
 ```
 
 | Condicao | Comportamento |
 |---|---|
-| `4xx` do MTR | `MtrClientErrorException`; sem retry; nao conta como falha do circuito |
+| `400`, `404`, `409`, `422` do MTR | `MtrBusinessErrorException`; sem retry; nao conta como falha do circuito |
+| Demais `4xx` do MTR | `MtrClientTechnicalException`; sem retry; nao conta como falha do circuito |
 | `5xx` do MTR | `MtrServerErrorException`; com retry; pode abrir circuito |
 | Timeout | Com retry; pode abrir circuito |
 | Falha de comunicacao | Com retry; pode abrir circuito |
@@ -801,7 +807,28 @@ A resiliencia fica no REST Client, que e a fronteira com a dependencia externa.
 )
 ```
 
-Erros `4xx` abortam retry e sao ignorados pelo circuit breaker, porque representam erro funcional ou de contrato. Erros `5xx`, timeout e falha de comunicacao sao tratados como falha potencialmente transitoria.
+Erros de negocio (`400`, `404`, `409`, `422`) abortam retry e sao ignorados pelo circuit breaker, porque representam erro funcional retornado pelo MTR. Demais erros `4xx`, como autenticacao/autorizacao, tambem abortam retry, mas sao classificados como erro tecnico de cliente. Erros `5xx`, timeout e falha de comunicacao sao tratados como falha potencialmente transitoria.
+
+## Logs de REST Client
+
+As chamadas dos REST Clients de parametrizacao passam pelo `RestClientObservabilityFilter`. O filtro registra dois eventos por chamada:
+
+- `mtr.rest-client.request.enviada`
+- `mtr.rest-client.response.recebida`
+
+Esses logs incluem URL real montada pelo client, metodo HTTP, classe e operacao do client, status HTTP, duracao e payload truncado de entrada/saida. Headers nao sao logados para evitar exposicao de `apikey` ou token.
+
+As mesmas informacoes principais tambem sao adicionadas ao span corrente como atributos/eventos, incluindo `rest_client.url`, `rest_client.request.body`, `rest_client.response.body`, tamanhos e marcadores de truncamento.
+
+Controle por propriedade:
+
+```properties
+arvore-documento.observabilidade.rest-client.payload.habilitado=true
+arvore-documento.observabilidade.rest-client.payload.input.max-length=2000
+arvore-documento.observabilidade.rest-client.payload.output.max-length=4000
+```
+
+Se `payload.habilitado=false`, o filtro continua registrando URL, metodo, operacao, status e duracao, mas omite os corpos de entrada e saida.
 
 ## Observabilidade do projeto
 

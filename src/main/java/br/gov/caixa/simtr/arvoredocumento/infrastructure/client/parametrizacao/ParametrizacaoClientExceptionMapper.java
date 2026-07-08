@@ -1,7 +1,8 @@
 package br.gov.caixa.simtr.arvoredocumento.infrastructure.client.parametrizacao;
 
 import br.gov.caixa.simtr.arvoredocumento.api.dto.erro.ErroPadraoDto;
-import br.gov.caixa.simtr.arvoredocumento.shared.exception.MtrClientErrorException;
+import br.gov.caixa.simtr.arvoredocumento.shared.exception.MtrBusinessErrorException;
+import br.gov.caixa.simtr.arvoredocumento.shared.exception.MtrClientTechnicalException;
 import br.gov.caixa.simtr.arvoredocumento.shared.exception.MtrServerErrorException;
 import jakarta.ws.rs.core.Response;
 
@@ -17,12 +18,24 @@ final class ParametrizacaoClientExceptionMapper {
             return null;
         }
 
+        int status = response.getStatus();
         ErroPadraoDto erro = ClientErrorBodyReader.read(response, RECURSO);
 
-        if (response.getStatus() >= 500) {
-            return new MtrServerErrorException(response.getStatus(), erro);
+        if (status >= 500) {
+            return new MtrServerErrorException(status, erro);
         }
 
-        return new MtrClientErrorException(response.getStatus(), erro);
+        if (isBusinessError(status)) {
+            return new MtrBusinessErrorException(status, erro);
+        }
+
+        return new MtrClientTechnicalException(status, erro);
+    }
+
+    private static boolean isBusinessError(int status) {
+        return status == Response.Status.BAD_REQUEST.getStatusCode()
+                || status == Response.Status.NOT_FOUND.getStatusCode()
+                || status == Response.Status.CONFLICT.getStatusCode()
+                || status == 422;
     }
 }

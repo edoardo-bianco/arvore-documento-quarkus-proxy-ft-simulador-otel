@@ -131,9 +131,9 @@ A chamada para o MTR Parametrização é feita pelos REST Clients de parametriza
 - `@Timeout` de 2 segundos;
 - `@Retry` com 3 retentativas para erro 5xx, timeout e falha de comunicação;
 - `@CircuitBreaker` para abertura do circuito quando houver falhas recorrentes na integração;
-- `@ClientExceptionMapper` para converter erro 4xx em `MtrClientErrorException` e erro 5xx em `MtrServerErrorException`.
+- `@ClientExceptionMapper` para classificar erro de negócio, erro técnico de cliente e erro técnico de servidor.
 
-Erros 4xx não entram em retry nem contam como falha do circuito, porque representam erro funcional ou de contrato.
+Erros de negócio (`400`, `404`, `409`, `422`) não entram em retry nem contam como falha do circuito. Erros técnicos `5xx`, timeout e falha de comunicação são tratados como falhas potencialmente transitórias.
 
 O simulador é controlado por propriedade:
 
@@ -154,6 +154,7 @@ O projeto inclui observabilidade no fluxo do endpoint de processo:
 2. `ProcessoService` registra a execução do caso de uso e a decisão entre simulador e MTR real.
 3. `ParametrizacaoProcessoGateway` registra a chamada externa ao `simtr-parametrizacao`.
 4. Os REST Clients mantêm `@Timeout`, `@Retry` e `@CircuitBreaker`.
+5. `RestClientObservabilityFilter` registra URL real, método, operação, status, duração e payload truncado das chamadas REST Client.
 
 O endpoint de checklist segue o mesmo padrão com `ChecklistResource`, `ChecklistService`, `ParametrizacaoChecklistGateway` e `ParametrizacaoChecklistClient`.
 
@@ -177,12 +178,22 @@ Logs estruturados JSON ficam habilitados no console e no arquivo `target/logs/ar
 - `identificador_negocial`
 - `resultado`
 - `erro_tipo`
+- `url`
+- `status_http`
+- `request_body`
+- `request_body_truncado`
+- `response_body`
+- `response_body_truncado`
 
 Por padrão, o projeto não exporta OpenTelemetry para fora. Isso evita erro ou ruído em máquinas sem Docker, Jaeger ou OpenTelemetry Collector. Nesse modo, a observabilidade fica disponível nos logs JSON locais.
 
 Configuração padrão:
 
 ```properties
+arvore-documento.observabilidade.rest-client.payload.habilitado=true
+arvore-documento.observabilidade.rest-client.payload.input.max-length=2000
+arvore-documento.observabilidade.rest-client.payload.output.max-length=4000
+
 quarkus.otel.traces.sampler=always_on
 quarkus.otel.traces.sampler.arg=1.0
 quarkus.otel.traces.exporter=none
