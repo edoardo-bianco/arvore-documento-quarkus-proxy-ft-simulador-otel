@@ -10,6 +10,7 @@ public record ProcessoDto(
         String nome,
         Boolean ativo,
         @JsonProperty("ultima_alteracao") String ultimaAlteracao,
+        @JsonProperty("indicador_produto_obrigatorio") Boolean indicadorProdutoObrigatorio,
         MacroprocessoDto macroprocesso,
         List<RelacionamentoDto> relacionamentos,
         List<ProdutoDto> produtos,

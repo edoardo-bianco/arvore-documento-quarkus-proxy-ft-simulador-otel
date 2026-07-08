@@ -7,6 +7,7 @@ public record ProcessoVo(
         String nome,
         Boolean ativo,
         String ultimaAlteracao,
+        Boolean indicadorProdutoObrigatorio,
         MacroprocessoVo macroprocesso,
         List<RelacionamentoVo> relacionamentos,
         List<ProdutoVo> produtos,

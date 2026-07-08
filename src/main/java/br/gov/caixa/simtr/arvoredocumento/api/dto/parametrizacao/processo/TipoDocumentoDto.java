@@ -8,6 +8,7 @@ public record TipoDocumentoDto(
         @JsonProperty("codigo_tipologia") String codigoTipologia,
         String nome,
         @JsonProperty("permite_reuso") Boolean permiteReuso,
+        @JsonProperty("permite_multiplo") Boolean permiteMultiplo,
         Boolean ativo,
         ChecklistReferenciaDto checklist
 ) {

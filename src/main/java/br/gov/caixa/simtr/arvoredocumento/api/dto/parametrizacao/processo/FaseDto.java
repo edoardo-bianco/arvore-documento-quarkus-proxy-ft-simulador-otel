@@ -16,6 +16,6 @@ public record FaseDto(
         List<GarantiaDto> garantias,
         @JsonProperty("campos_formulario") List<CampoFormularioDto> camposFormulario,
         List<DocumentoDto> documentos,
-        ChecklistReferenciaDto checklist
+        List<ChecklistReferenciaDto> checklist
 ) {
 }

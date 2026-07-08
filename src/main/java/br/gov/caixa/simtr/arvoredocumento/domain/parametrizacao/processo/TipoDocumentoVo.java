@@ -4,6 +4,7 @@ public record TipoDocumentoVo(
         String codigoTipologia,
         String nome,
         Boolean permiteReuso,
+        Boolean permiteMultiplo,
         Boolean ativo,
         ChecklistReferenciaVo checklist
 ) {

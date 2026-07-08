@@ -18,6 +18,7 @@ public class ProcessoMapper {
                 dto.nome(),
                 dto.ativo(),
                 dto.ultimaAlteracao(),
+                dto.indicadorProdutoObrigatorio(),
                 toVo(dto.macroprocesso()),
                 map(dto.relacionamentos(), this::toVo),
                 map(dto.produtos(), this::toVo),
@@ -36,6 +37,7 @@ public class ProcessoMapper {
                 vo.nome(),
                 vo.ativo(),
                 vo.ultimaAlteracao(),
+                vo.indicadorProdutoObrigatorio(),
                 toDto(vo.macroprocesso()),
                 map(vo.relacionamentos(), this::toDto),
                 map(vo.produtos(), this::toDto),
@@ -138,7 +140,7 @@ public class ProcessoMapper {
                 map(dto.garantias(), this::toVo),
                 map(dto.camposFormulario(), this::toVo),
                 map(dto.documentos(), this::toVo),
-                toVo(dto.checklist())
+                map(dto.checklist(), this::toVo)
         );
     }
 
@@ -157,7 +159,7 @@ public class ProcessoMapper {
                 map(vo.garantias(), this::toDto),
                 map(vo.camposFormulario(), this::toDto),
                 map(vo.documentos(), this::toDto),
-                toDto(vo.checklist())
+                map(vo.checklist(), this::toDto)
         );
     }
 
@@ -281,14 +283,14 @@ public class ProcessoMapper {
         if (dto == null) {
             return null;
         }
-        return new TipoDocumentoVo(dto.codigoTipologia(), dto.nome(), dto.permiteReuso(), dto.ativo(), toVo(dto.checklist()));
+        return new TipoDocumentoVo(dto.codigoTipologia(), dto.nome(), dto.permiteReuso(), dto.permiteMultiplo(), dto.ativo(), toVo(dto.checklist()));
     }
 
     private TipoDocumentoDto toDto(TipoDocumentoVo vo) {
         if (vo == null) {
             return null;
         }
-        return new TipoDocumentoDto(vo.codigoTipologia(), vo.nome(), vo.permiteReuso(), vo.ativo(), toDto(vo.checklist()));
+        return new TipoDocumentoDto(vo.codigoTipologia(), vo.nome(), vo.permiteReuso(), vo.permiteMultiplo(), vo.ativo(), toDto(vo.checklist()));
     }
 
     private ChecklistReferenciaVo toVo(ChecklistReferenciaDto dto) {

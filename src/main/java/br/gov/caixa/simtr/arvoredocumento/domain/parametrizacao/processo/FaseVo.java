@@ -13,6 +13,6 @@ public record FaseVo(
         List<GarantiaVo> garantias,
         List<CampoFormularioVo> camposFormulario,
         List<DocumentoVo> documentos,
-        ChecklistReferenciaVo checklist
+        List<ChecklistReferenciaVo> checklist
 ) {
 }

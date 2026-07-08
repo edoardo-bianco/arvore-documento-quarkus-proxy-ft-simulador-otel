@@ -398,11 +398,16 @@ O mock atual representa o processo:
 |---|---|
 | `identificador_negocial` | `1000016487` |
 | `nome` | `Concessao Habitacional` |
+| `indicador_produto_obrigatorio` | `false` |
 | `relacionamentos` | `9` itens |
 | `produtos` | `16` itens |
 | `fases` | `3` itens |
 
-O JSON do Markdown pode conter campos que ainda nao fazem parte dos DTOs expostos pela API, por exemplo `indicador_produto_obrigatorio` ou `permite_multiplo`. Esses campos sao ignorados na desserializacao para manter o mock aderente ao retorno real do MTR sem obrigar a API a expor tudo imediatamente.
+O DTO/VO atual preserva os campos do contrato v2 usados nos mocks, incluindo `indicador_produto_obrigatorio` na raiz do processo e `permite_multiplo` nos objetos `tipo_documento` e em `funcao_documental.tipos_documento[]`.
+
+No swagger `simtr-parametrizacao-openapi-2.12.2.4`, o atributo `indicador_multiplos` aparece em outras respostas de tipo documento por id. Para o endpoint `GET /simtr-parametrizacao/v2/patriarca/processo/identificador-negocial/{identificador}`, o atributo correspondente exposto nos tipos de documento aninhados e `permite_multiplo`.
+
+O campo `checklist` dentro de `fases[]` segue o contrato de `ProcessoFaseDTO1`: pode vir `null`, como lista vazia `[]` ou como lista de objetos `ChecklistDTO`.
 
 ### Como adicionar outro mock
 
