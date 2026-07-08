@@ -1,17 +1,16 @@
 # Projeto Pré-validação - Integração com MTR
 
-
 ## Objetivo
 
-Este documento tem como objetivo consolidar as alterações necessárias para integrar o sistema de Pré-validação ao SIMTR/MTR, descrevendo os endpoints envolvidos, os contratos de entrada e saída das APIs, os módulos impactados e os diagramas arquiteturais que representam a solução proposta.
+Este documento tem como objetivo consolidar as alterações necessárias para integrar o sistema de Pré-validação ao SIMTR, descrevendo os endpoints envolvidos, os contratos de entrada e saída das APIs, os módulos impactados e os diagramas arquiteturais que representam a solução proposta.
 
-A integração cobre o fluxo de pré-validação documental antes da criação do Dossiê de Produto, a criação e complementação do dossiê no MTR, o envio dos resultados de validação negocial dos checklists analisados e o avanço do workflow do dossiê, incluindo a sinalização assíncrona ao SINDA por meio do Azure Service Bus. 
+A integração cobre o fluxo de pré-validação documental antes da criação do Dossiê de Produto, a criação e complementação do dossiê no MTR, o envio dos resultados de validação negocial dos checklists analisados e o avanço do workflow do dossiê.
 
 ---
 
-## Resumo Executivo
+## Resumo
 
-A solução proposta define a integração entre o sistema de Pré-validação e os módulos do SIMTR/MTR necessários para montar, validar e criar um Dossiê de Produto a partir de uma proposta previamente selecionada.
+A solução proposta define a integração entre o sistema de Pré-validação e os módulos do SIMTR necessários para montar, validar e criar um Dossiê de Produto a partir de uma proposta previamente selecionada.
 
 O fluxo inicia com a consulta da parametrização do processo no Módulo Parametrização, incluindo fases, produtos, garantias, vínculos documentais, campos de formulário e checklists vinculados. Em seguida, a Pré-validação consulta o espelho da proposta, cruza os dados da proposta com a parametrização do processo e monta a lista de documentos necessários para aquela operação específica.
 
@@ -19,56 +18,62 @@ Durante o upload documental, a Pré-validação utiliza o Módulo Gestão dos Do
 
 Quando não houver mais documentos pendentes, a Pré-validação cria o Dossiê de Produto no Módulo Dossiês de Produto, preenche os campos de formulário, vincula os documentos enviados, registra os resultados dos checklists analisados por meio do endpoint de validação negocial e aciona o avanço do workflow do dossiê.
 
-O documento também registra os ajustes necessários nas APIs do SIMTR/MTR: nova versão do endpoint de consulta de processo, novo endpoint de consulta de checklist, nova versão do endpoint de inclusão de documento no dossiê para retorno dos identificadores do documento e da instância documental, e novo endpoint PATCH para registrar os resultados da validação negocial.
+O documento também registra os ajustes necessários nas APIs do SIMTR: nova versão do endpoint de consulta de processo, novo endpoint de consulta de checklist, nova versão do endpoint de inclusão de documento no dossiê para retorno dos identificadores do documento e da instância documental, e novo endpoint PATCH para registrar os resultados da validação negocial.
 
-A parte arquitetural é representada por diagramas C4 de contexto, containers e componentes dos módulos envolvidos, além de diagramas de sequência que separam o fluxo de pré-validação antes da criação do dossiê e o fluxo de criação do Dossiê de Produto com avanço do workflow. O documento também inclui um diagrama de estado com as situações envolvidas no PATCH de Validação Negocial.
+A parte arquitetural é representada por diagramas C4 de contexto, containers e componentes dos módulos envolvidos, além de diagramas de sequência que separam o fluxo de pré-validação antes da criação do dossiê e o fluxo de criação do Dossiê de Produto com avanço do workflow. O documento também inclui um diagrama de estado com as situações do dossiê produto  decorrentes da pré-validação.
 
 ---
 
 ## Índice
 
-- [Projeto Pré-validação - Integração com MTR](#projeto-pré-validação---integração-com-mtr)
-  - [Objetivo](#objetivo)
-  - [Resumo Executivo](#resumo-executivo)
-  - [Índice](#índice)
-  - [Endpoints de Integração com o MTR](#endpoints-de-integração-com-o-mtr)
-    - [Alterações de endpoints necessárias para **Fluxo 1**](#alterações-de-endpoints-necessárias-para-fluxo-1)
-      - [Módulo Parametrização](#módulo-parametrização)
-      - [Módulo dossiês de produto](#módulo-dossiês-de-produto)
-      - [Módulo gestão dos documentos](#módulo-gestão-dos-documentos)
-  - [APIs do MTR](#apis-do-mtr)
-    - [Módulo Parametrização](#módulo-parametrização-1)
-      - [Criar nova versão v2 do endpoint GET  de Consulta do processo a partir de seu Identificador Negocial](#criar-nova-versão-v2-do-endpoint-get--de-consulta-do-processo-a-partir-de-seu-identificador-negocial)
-      - [Criar novo endpoint de consulta de cheklist](#criar-novo-endpoint-de-consulta-de-cheklist)
-    - [Módulo de Dossiê Produto](#módulo-de-dossiê-produto)
-      - [Criar nova versão v2 do endpoint POST de Inclusão de Documento no Dossiê de Produto](#criar-nova-versão-v2-do-endpoint-post-de-inclusão-de-documento-no-dossiê-de-produto)
-      - [Criar novo endpoint de PATCH de Validação Negocial para receber o Resultao dos Checklists analisados](#criar-novo-endpoint-de-patch-de-validação-negocial-para-receber-o-resultao-dos-checklists-analisados)
-      - [Manter inalterado o endpoint POST de Criação básica de Dossiê de Produto em modo rascunho](#manter-inalterado-o-endpoint-post-de-criação-básica-de-dossiê-de-produto-em-modo-rascunho)
-      - [Manter inalterado o endpoint PATCH de Inclusão ou edição de Respostas de Formulário no Dossiê de Produto.](#manter-inalterado-o-endpoint-patch-de-inclusão-ou-edição-de-respostas-de-formulário-no-dossiê-de-produto)
-      - [Manter inalterado o endpoint PATCH de Inclusão/Exclusão de Garantias no Dossiê de Produto.](#manter-inalterado-o-endpoint-patch-de-inclusãoexclusão-de-garantias-no-dossiê-de-produto)
-      - [Manter inalterado o endpoint PATCH de Inclusão/Exclusão de Produtos Contratados no Dossiê de Produto.](#manter-inalterado-o-endpoint-patch-de-inclusãoexclusão-de-produtos-contratados-no-dossiê-de-produto)
-      - [Manter inalterado o endpoint POST de Captura o dossiê de Produto para edição, alterando sua situação para Em Alimentação.](#manter-inalterado-o-endpoint-post-de-captura-o-dossiê-de-produto-para-edição-alterando-sua-situação-para-em-alimentação)
-      - [Manter inalterado o endpoint POST que Inicia ou avança o fluxo de um Dossiê de Produto que esteja na situação Rascunho, Em Alimentação ou Em Complementação.](#manter-inalterado-o-endpoint-post-que-inicia-ou-avança-o-fluxo-de-um-dossiê-de-produto-que-esteja-na-situação-rascunho-em-alimentação-ou-em-complementação)
-      - [Manter inalterado o endpoint POST que Realiza o cancelamento de um dossiê de produto.](#manter-inalterado-o-endpoint-post-que-realiza-o-cancelamento-de-um-dossiê-de-produto)
-      - [Manter inalterado o endpoint GET de Consulta de dossiê de produto pelo identificador.](#manter-inalterado-o-endpoint-get-de-consulta-de-dossiê-de-produto-pelo-identificador)
-    - [Módulo Gestão Documento](#módulo-gestão-documento)
-      - [Manter inalterado o endpoint POST que Gera uma nova credencial de acesso compartilhado (SAS) para um container de armazenamento de documentos no Storage.](#manter-inalterado-o-endpoint-post-que-gera-uma-nova-credencial-de-acesso-compartilhado-sas-para-um-container-de-armazenamento-de-documentos-no-storage)
-  - [Diagramas arquiteturais da Integração entre pré-valisação e SIMTR](#diagramas-arquiteturais-da-integração-entre-pré-valisação-e-simtr)
-  - [C4 - Contexto de Sistema - Pré-validação integrada ao SIMTR](#c4---contexto-de-sistema---pré-validação-integrada-ao-simtr)
-  - [C4 - Containers - Integração Pré-validação com SIMTR](#c4---containers---integração-pré-validação-com-simtr)
-  - [C4 - Componentes - Módulo Parametrização do SIMTR](#c4---componentes---módulo-parametrização-do-simtr)
-  - [C4 - Componentes - Módulo Dossiês de Produto do SIMTR](#c4---componentes---módulo-dossiês-de-produto-do-simtr)
-  - [C4 - Componentes - Módulo Gestão dos Documentos do SIMTR](#c4---componentes---módulo-gestão-dos-documentos-do-simtr)
-  - [Diagrama de Sequência da Integração com o MTR](#diagrama-de-sequência-da-integração-com-o-mtr)
-  - [Diagrama de Sequência — Pré-validação antes da criação do Dossiê de Produto](#diagrama-de-sequência--pré-validação-antes-da-criação-do-dossiê-de-produto)
-  - [Diagrama de Sequência — Criação do Dossiê de Produto e avanço do Workflow](#diagrama-de-sequência--criação-do-dossiê-de-produto-e-avanço-do-workflow)
-  - [Diagram de Stato — Situações envolvidas no PATCH de Validação Negocial de dossiê de produto](#diagram-de-stato--situações-envolvidas-no-patch-de-validação-negocial-de-dossiê-de-produto)
-  - [Anexos Diagramas arquiteturais da Integração entre pré-valisação e SIMTR](#anexos-diagramas-arquiteturais-da-integração-entre-pré-valisação-e-simtr)
-  - [1. C4 — Contexto de Sistema plantuml](#1-c4--contexto-de-sistema-plantuml)
-  - [2. C4 — Containers plantuml](#2-c4--containers-plantuml)
-  - [3. C4 — Componentes do Parametrização plantuml](#3-c4--componentes-do-parametrização-plantuml)
-  - [4. C4 — Componentes do Dossiês de Produto plantuml](#4-c4--componentes-do-dossiês-de-produto-plantuml)
-  - [5. C4 — Componentes do Gestão dos Documentos plantuml](#5-c4--componentes-do-gestão-dos-documentos-plantuml)
+* [Endpoints de Integração com o MTR](#endpoints-de-integração-com-o-mtr)
+
+  * [Alterações de endpoints necessárias para Fluxo 1](#alterações-de-endpoints-necessárias-para-fluxo-1)
+  * [Módulo Parametrização](#módulo-parametrização)
+  * [Módulo dossiês de produto](#módulo-dossiês-de-produto)
+  * [Módulo gestão dos documentos](#módulo-gestão-dos-documentos)
+
+* [APIs do MTR](#apis-do-mtr)
+
+  * [Módulo Parametrização](#módulo-parametrização)
+
+    * [Criar nova versão v2 do endpoint GET de Consulta do processo a partir de seu Identificador Negocial](#criar-nova-versão-v2-do-endpoint-get--de-consulta-do-processo-a-partir-de-seu-identificador-negocial)
+    * [Criar novo endpoint de consulta de checklist](#criar-novo-endpoint-de-consulta-de-cheklist)
+  * [Módulo de Dossiê Produto](#módulo-de-dossiê-produto)
+
+    * [Criar nova versão v2 do endpoint POST de Inclusão de Documento no Dossiê de Produto](#criar-nova-versão-v2-do-endpoint-post-de-inclusão-de-documento-no-dossiê-de-produto)
+    * [Criar novo endpoint de PATCH de Validação Negocial para receber o Resultado dos Checklists analisados](#criar-novo-endpoint-de-patch-de-validação-negocial-para-receber-o-resultao-dos-checklists-analisados)
+    * [Manter inalterado o endpoint POST de Criação básica de Dossiê de Produto em modo rascunho](#manter-inalterado-o-endpoint-post-de-criação-básica-de-dossiê-de-produto-em-modo-rascunho)
+    * [Manter inalterado o endpoint PATCH de Inclusão ou edição de Respostas de Formulário no Dossiê de Produto](#manter-inalterado-o-endpoint-patch-de-inclusão-ou-edição-de-respostas-de-formulário-no-dossiê-de-produto)
+    * [Manter inalterado o endpoint POST que Inicia ou avança o fluxo de um Dossiê de Produto](#manter-inalterado-o-endpoint-post-que-inicia-ou-avança-o-fluxo-de-um-dossiê-de-produto-que-esteja-na-situação-rascunho-em-alimentação-ou-em-complementação)
+    * [Manter inalterado o endpoint GET de Consulta de dossiê de produto pelo identificador](#manter-inalterado-o-endpoint-get-de-consulta-de-dossiê-de-produto-pelo-identificador)
+  * [Módulo Gestão Documento](#módulo-gestão-documento)
+
+    * [Manter inalterado o endpoint POST que Gera uma nova credencial de acesso compartilhado SAS](#manter-inalterado-o-endpoint-post-que-gera-uma-nova-credencial-de-acesso-compartilhado-sas-para-um-container-de-armazenamento-de-documentos-no-storage)
+
+* [Diagramas arquiteturais da Integração entre Pré-validação e SIMTR](#diagramas-arquiteturais-da-integração-entre-pré-validação-e-simtr)
+
+  * [C4 - Containers - Integração Pré-validação com SIMTR](#c4---containers---integração-pré-validação-com-simtr)
+  * [C4 - Componentes - Módulo Parametrização do SIMTR](#c4---componentes---módulo-parametrização-do-simtr)
+  * [C4 - Componentes - Módulo Dossiês de Produto do SIMTR](#c4---componentes---módulo-dossiês-de-produto-do-simtr)
+  * [C4 - Componentes - Módulo Gestão dos Documentos do SIMTR](#c4---componentes---módulo-gestão-dos-documentos-do-simtr)
+
+* [Diagrama de Sequência da Integração com o MTR](#diagrama-de-sequência-da-integração-com-o-mtr)
+
+  * [Diagrama de Sequência — Pré-validação antes da criação do Dossiê de Produto](#diagrama-de-sequência--pré-validação-antes-da-criação-do-dossiê-de-produto)
+  * [Diagrama de Sequência — Criação do Dossiê de Produto e avanço do Workflow](#diagrama-de-sequência--criação-do-dossiê-de-produto-e-avanço-do-workflow)
+
+* [Diagrama de Estado — Situações de Dossiê de Produto decorrentes da pré-validação](#diagrama-de-estado--situações-de-dossiê-de-produto-decorrentes-da-pré-validação)
+
+* [Anexos Diagramas arquiteturais da Integração entre Pré-validação e SIMTR](#anexos-diagramas-arquiteturais-da-integração-entre-pré-validação-e-simtr)
+
+  * [1. C4 — Contexto de Sistema plantuml](#1-c4--contexto-de-sistema-plantuml)
+  * [2. C4 — Containers plantuml](#2-c4--containers-plantuml)
+  * [3. C4 — Componentes do Parametrização plantuml](#3-c4--componentes-do-parametrização-plantuml)
+  * [4. C4 — Componentes do Dossiês de Produto plantuml](#4-c4--componentes-do-dossiês-de-produto-plantuml)
+  * [5. C4 — Componentes do Gestão dos Documentos plantuml](#5-c4--componentes-do-gestão-dos-documentos-plantuml)
+
+---
 
 ## Endpoints de Integração com o MTR
 
@@ -102,7 +107,7 @@ A parte arquitetural é representada por diagramas C4 de contexto, containers e 
 
 [/simtr-gestao-documento/openapi](https://simtr-gestao-documento-des.apps.nprd.caixa/simtr-gestao-documento/doc/)
 
-  - Manter a versão atual dos endpoints:
+  - Manter a versão atual do endpoint:
 
     - POST que Gera uma nova credencial de acesso compartilhado (SAS) para um container de armazenamento de documentos no Storage.
 
@@ -124,512 +129,524 @@ Captura o processo gerador a partir de seu Identificador Negocial
 
 Sem corpo da requisição
 
-Corpo resposta http 200
+Corpo da resposta http 200
 Processo gerador localizado com sucesso.
 
 ```json
 {
-  "identificador_negocial": 0,
-  "nome": "string",
-  "ativo": true,
-  "ultima_alteracao": "dd/MM/yyyy HH:mm:ss",
-  "macroprocesso": {
     "identificador_negocial": 0,
     "nome": "string",
     "ativo": true,
-    "ultima_alteracao": "dd/MM/yyyy HH:mm:ss"
-  },
-  "relacionamentos": [
-    {
-      "identificador_negocial": 0,
-      "nome": "string",
-      "tipo_pessoa": "F",
-      "principal": true,
-      "obrigatorio": true,
-      "relacionado": true,
-      "sequencia": true,
-      "campos_formulario": [
+    "ultima_alteracao": "dd/MM/yyyy HH:mm:ss",
+    "indicador_produto_obrigatorio": false,
+    "macroprocesso": {
+        "identificador_negocial": 0,
+        "nome": "string",
+        "ativo": true,
+        "ultima_alteracao": "dd/MM/yyyy HH:mm:ss"
+    },
+    "relacionamentos": [
         {
-          "identificador_negocial": 0,
-          "label": "string",
-          "obrigatorio": true,
-          "ativo": true,
-          "exibicao_condicional": "string",
-          "tamanho_apresentacao": 0,
-          "ordem_apresentacao": 0,
-          "tipo": "CEP",
-          "mascara": "string",
-          "placeholder": "string",
-          "tamanho_minimo": 0,
-          "tamanho_maximo": 0,
-          "orientacao_preenchimento": "string",
-          "bloquear_edicao": true,
-          "opcoes_disponiveis": [
-            {
-              "valor_opcao": "string",
-              "descricao_opcao": "string",
-              "ativo": true
-            }
-          ]
-        }
-      ],
-      "documentos": [
-        {
-          "funcao_documental": {
+            "identificador_negocial": 0,
             "nome": "string",
-            "tipos_documento": [
-              {
-                "codigo_tipologia": "string",
-                "nome": "string",
-                "permite_reuso": true,
-                "ativo": true
-              }
+            "tipo_pessoa": "F",
+            "principal": true,
+            "obrigatorio": true,
+            "relacionado": true,
+            "sequencia": true,
+            "campos_formulario": [
+                {
+                    "identificador_negocial": 0,
+                    "label": "string",
+                    "obrigatorio": true,
+                    "ativo": true,
+                    "exibicao_condicional": "string",
+                    "tamanho_apresentacao": 0,
+                    "ordem_apresentacao": 0,
+                    "tipo": "CEP",
+                    "mascara": "string",
+                    "placeholder": "string",
+                    "tamanho_minimo": 0,
+                    "tamanho_maximo": 0,
+                    "orientacao_preenchimento": "string",
+                    "bloquear_edicao": true,
+                    "opcoes_disponiveis": [
+                        {
+                            "valor_opcao": "string",
+                            "descricao_opcao": "string",
+                            "ativo": true
+                        }
+                    ]
+                }
             ],
-            "checklist": {
-                "identificador_checklist": 1000006317,
-                "versao_checklist": 1
-            }
-          },
-          "tipo_documento": {
-            "codigo_tipologia": "string",
-            "nome": "string",
-            "permite_reuso": true,
-            "ativo": true,
-            "checklist": {
-                "identificador_checklist": 1000006317,
-                "versao_checklist": 1
-            }
-          },
-          "obrigatorio": true
-        }
-      ]
-    }
-  ],
-  "produtos": [
-    {
-      "codigo_operacao": 0,
-      "codigo_modalidade": 0,
-      "nome": "string",
-      "campos_formulario": [
-        {
-          "identificador_negocial": 0,
-          "label": "string",
-          "obrigatorio": true,
-          "ativo": true,
-          "exibicao_condicional": "string",
-          "tamanho_apresentacao": 0,
-          "ordem_apresentacao": 0,
-          "tipo": "CEP",
-          "mascara": "string",
-          "placeholder": "string",
-          "tamanho_minimo": 0,
-          "tamanho_maximo": 0,
-          "orientacao_preenchimento": "string",
-          "bloquear_edicao": true,
-          "opcoes_disponiveis": [
-            {
-              "valor_opcao": "string",
-              "descricao_opcao": "string",
-              "ativo": true
-            }
-          ]
-        }
-      ],
-      "documentos": [
-        {
-          "funcao_documental": {
-            "nome": "string",
-            "tipos_documento": [
-              {
-                "codigo_tipologia": "string",
-                "nome": "string",
-                "permite_reuso": true,
-                "ativo": true
-              }
-            ],
-            "checklist": {
-                "identificador_checklist": 1000006317,
-                "versao_checklist": 1
-            }
-          },
-          "tipo_documento": {
-            "codigo_tipologia": "string",
-            "nome": "string",
-            "permite_reuso": true,
-            "ativo": true,
-            "checklist": {
-                "identificador_checklist": 1000006317,
-                "versao_checklist": 1
-            }
-          },
-          "obrigatorio": true
-        }
-      ],
-      "garantias": [
-        {
-          "codigo_bacen": 0,
-          "nome_garantia": "string",
-          "fidejussoria": true,
-          "campos_formulario": [
-            {
-              "identificador_negocial": 0,
-              "label": "string",
-              "obrigatorio": true,
-              "ativo": true,
-              "exibicao_condicional": "string",
-              "tamanho_apresentacao": 0,
-              "ordem_apresentacao": 0,
-              "tipo": "CEP",
-              "mascara": "string",
-              "placeholder": "string",
-              "tamanho_minimo": 0,
-              "tamanho_maximo": 0,
-              "orientacao_preenchimento": "string",
-              "bloquear_edicao": true,
-              "opcoes_disponiveis": [
+            "documentos": [
                 {
-                  "valor_opcao": "string",
-                  "descricao_opcao": "string",
-                  "ativo": true
-                }
-              ]
-            }
-          ],
-          "documentos": [
-            {
-              "funcao_documental": {
-                "nome": "string",
-                "tipos_documento": [
-                  {
-                    "codigo_tipologia": "string",
-                    "nome": "string",
-                    "permite_reuso": true,
-                    "ativo": true
-                  }
-                ],
-                "checklist": {
-                    "identificador_checklist": 1000006317,
-                    "versao_checklist": 1
-                }
-              },
-              "tipo_documento": {
-                "codigo_tipologia": "string",
-                "nome": "string",
-                "permite_reuso": true,
-                "ativo": true,
-                "checklist": {
-                    "identificador_checklist": 1000006317,
-                    "versao_checklist": 1
-                }  
-              },             
-              "obrigatorio": true
-            }
-          ]
-        }
-      ],
-      "checklist": {
-          "identificador_checklist": 1000006317,
-          "versao_checklist": 1
-      }
-    }
-  ],
-  "fases": [
-    {
-      "identificador_negocial": 0,
-      "nome": "string",
-      "ativo": true,
-      "ultima_alteracao": "dd/MM/yyyy HH:mm:ss",
-      "ordem": 0,
-      "orientacao_usuario": "string",
-      "produtos": [
-        {
-          "codigo_operacao": 0,
-          "codigo_modalidade": 0,
-          "nome": "string",
-          "campos_formulario": [
-            {
-              "identificador_negocial": 0,
-              "label": "string",
-              "obrigatorio": true,
-              "ativo": true,
-              "exibicao_condicional": "string",
-              "tamanho_apresentacao": 0,
-              "ordem_apresentacao": 0,
-              "tipo": "CEP",
-              "mascara": "string",
-              "placeholder": "string",
-              "tamanho_minimo": 0,
-              "tamanho_maximo": 0,
-              "orientacao_preenchimento": "string",
-              "bloquear_edicao": true,
-              "opcoes_disponiveis": [
-                {
-                  "valor_opcao": "string",
-                  "descricao_opcao": "string",
-                  "ativo": true
-                }
-              ]
-            }
-          ],
-          "documentos": [
-            {
-              "funcao_documental": {
-                "nome": "string",
-                "tipos_documento": [
-                  {
-                    "codigo_tipologia": "string",
-                    "nome": "string",
-                    "permite_reuso": true,
-                    "ativo": true
-                  }
-                ],
-                "checklist": {
-                    "identificador_checklist": 1000006317,
-                    "versao_checklist": 1
-                }
-              },
-              "tipo_documento": {
-                "codigo_tipologia": "string",
-                "nome": "string",
-                "permite_reuso": true,
-                "ativo": true,
-                "checklist": {
-                    "identificador_checklist": 1000006317,
-                    "versao_checklist": 1
-                }
-              },
-              "obrigatorio": true
-            }
-          ],
-          "garantias": [
-            {
-              "codigo_bacen": 0,
-              "nome_garantia": "string",
-              "fidejussoria": true,
-              "campos_formulario": [
-                {
-                  "identificador_negocial": 0,
-                  "label": "string",
-                  "obrigatorio": true,
-                  "ativo": true,
-                  "exibicao_condicional": "string",
-                  "tamanho_apresentacao": 0,
-                  "ordem_apresentacao": 0,
-                  "tipo": "CEP",
-                  "mascara": "string",
-                  "placeholder": "string",
-                  "tamanho_minimo": 0,
-                  "tamanho_maximo": 0,
-                  "orientacao_preenchimento": "string",
-                  "bloquear_edicao": true,
-                  "opcoes_disponiveis": [
-                    {
-                      "valor_opcao": "string",
-                      "descricao_opcao": "string",
-                      "ativo": true
-                    }
-                  ]
-                }
-              ],
-              "documentos": [
-                {
-                  "funcao_documental": {
-                    "nome": "string",
-                    "tipos_documento": [
-                      {
+                    "funcao_documental": {
+                        "nome": "string",
+                        "tipos_documento": [
+                            {
+                                "codigo_tipologia": "string",
+                                "nome": "string",
+                                "permite_reuso": true,
+                                "permite_multiplo": true,
+                                "ativo": true
+                            }
+                        ],
+                        "checklist": {
+                            "identificador_checklist": 1000010029,
+                            "versao_checklist": 1
+                        }
+                    },
+                    "tipo_documento": {
                         "codigo_tipologia": "string",
                         "nome": "string",
                         "permite_reuso": true,
-                        "ativo": true
-                      }
+                        "permite_multiplo": true,
+                        "ativo": true,
+                        "checklist": {
+                            "identificador_checklist": 1000006317,
+                            "versao_checklist": 1
+                        }
+                    },
+                    "obrigatorio": true
+                }
+            ]
+        }
+    ],
+    "produtos": [
+        {
+            "codigo_operacao": 0,
+            "codigo_modalidade": 0,
+            "nome": "string",
+            "campos_formulario": [
+                {
+                    "identificador_negocial": 0,
+                    "label": "string",
+                    "obrigatorio": true,
+                    "ativo": true,
+                    "exibicao_condicional": "string",
+                    "tamanho_apresentacao": 0,
+                    "ordem_apresentacao": 0,
+                    "tipo": "CEP",
+                    "mascara": "string",
+                    "placeholder": "string",
+                    "tamanho_minimo": 0,
+                    "tamanho_maximo": 0,
+                    "orientacao_preenchimento": "string",
+                    "bloquear_edicao": true,
+                    "opcoes_disponiveis": [
+                        {
+                            "valor_opcao": "string",
+                            "descricao_opcao": "string",
+                            "ativo": true
+                        }
+                    ]
+                }
+            ],
+            "documentos": [
+                {
+                    "funcao_documental": {
+                        "nome": "string",
+                        "tipos_documento": [
+                            {
+                                "codigo_tipologia": "string",
+                                "nome": "string",
+                                "permite_reuso": true,
+                                "ativo": true
+                            }
+                        ],
+                        "checklist": {
+                            "identificador_checklist": 1000006317,
+                            "versao_checklist": 1
+                        }
+                    },
+                    "tipo_documento": {
+                        "codigo_tipologia": "string",
+                        "nome": "string",
+                        "permite_reuso": true,
+                        "permite_multiplo": true,
+                        "ativo": true,
+                        "checklist": {
+                            "identificador_checklist": 1000006317,
+                            "versao_checklist": 1
+                        }
+                    },
+                    "obrigatorio": true
+                }
+            ],
+            "garantias": [
+                {
+                    "codigo_bacen": 0,
+                    "nome_garantia": "string",
+                    "fidejussoria": true,
+                    "campos_formulario": [
+                        {
+                            "identificador_negocial": 0,
+                            "label": "string",
+                            "obrigatorio": true,
+                            "ativo": true,
+                            "exibicao_condicional": "string",
+                            "tamanho_apresentacao": 0,
+                            "ordem_apresentacao": 0,
+                            "tipo": "CEP",
+                            "mascara": "string",
+                            "placeholder": "string",
+                            "tamanho_minimo": 0,
+                            "tamanho_maximo": 0,
+                            "orientacao_preenchimento": "string",
+                            "bloquear_edicao": true,
+                            "opcoes_disponiveis": [
+                                {
+                                    "valor_opcao": "string",
+                                    "descricao_opcao": "string",
+                                    "ativo": true
+                                }
+                            ]
+                        }
+                    ],
+                    "documentos": [
+                        {
+                            "funcao_documental": {
+                                "nome": "string",
+                                "tipos_documento": [
+                                    {
+                                        "codigo_tipologia": "string",
+                                        "nome": "string",
+                                        "permite_reuso": true,
+                                        "ativo": true
+                                    }
+                                ],
+                                "checklist": {
+                                    "identificador_checklist": 1000006317,
+                                    "versao_checklist": 1
+                                }
+                            },
+                            "tipo_documento": {
+                                "codigo_tipologia": "string",
+                                "nome": "string",
+                                "permite_reuso": true,
+                                "permite_multiplo": true,
+                                "ativo": true,
+                                "checklist": {
+                                    "identificador_checklist": 1000006317,
+                                    "versao_checklist": 1
+                                }
+                            },
+                            "obrigatorio": true
+                        }
+                    ]
+                }
+            ],
+            "checklist": {
+                "identificador_checklist": 1000006317,
+                "versao_checklist": 1
+            }
+        }
+    ],
+    "fases": [
+        {
+            "identificador_negocial": 0,
+            "nome": "string",
+            "ativo": true,
+            "ultima_alteracao": "dd/MM/yyyy HH:mm:ss",
+            "ordem": 0,
+            "orientacao_usuario": "string",
+            "produtos": [
+                {
+                    "codigo_operacao": 0,
+                    "codigo_modalidade": 0,
+                    "nome": "string",
+                    "campos_formulario": [
+                        {
+                            "identificador_negocial": 0,
+                            "label": "string",
+                            "obrigatorio": true,
+                            "ativo": true,
+                            "exibicao_condicional": "string",
+                            "tamanho_apresentacao": 0,
+                            "ordem_apresentacao": 0,
+                            "tipo": "CEP",
+                            "mascara": "string",
+                            "placeholder": "string",
+                            "tamanho_minimo": 0,
+                            "tamanho_maximo": 0,
+                            "orientacao_preenchimento": "string",
+                            "bloquear_edicao": true,
+                            "opcoes_disponiveis": [
+                                {
+                                    "valor_opcao": "string",
+                                    "descricao_opcao": "string",
+                                    "ativo": true
+                                }
+                            ]
+                        }
+                    ],
+                    "documentos": [
+                        {
+                            "funcao_documental": {
+                                "nome": "string",
+                                "tipos_documento": [
+                                    {
+                                        "codigo_tipologia": "string",
+                                        "nome": "string",
+                                        "permite_reuso": true,
+                                        "ativo": true
+                                    }
+                                ],
+                                "checklist": {
+                                    "identificador_checklist": 1000006317,
+                                    "versao_checklist": 1
+                                }
+                            },
+                            "tipo_documento": {
+                                "codigo_tipologia": "string",
+                                "nome": "string",
+                                "permite_reuso": true,
+                                "permite_multiplo": true,
+                                "ativo": true,
+                                "checklist": {
+                                    "identificador_checklist": 1000006317,
+                                    "versao_checklist": 1
+                                }
+                            },
+                            "obrigatorio": true
+                        }
+                    ],
+                    "garantias": [
+                        {
+                            "codigo_bacen": 0,
+                            "nome_garantia": "string",
+                            "fidejussoria": true,
+                            "campos_formulario": [
+                                {
+                                    "identificador_negocial": 0,
+                                    "label": "string",
+                                    "obrigatorio": true,
+                                    "ativo": true,
+                                    "exibicao_condicional": "string",
+                                    "tamanho_apresentacao": 0,
+                                    "ordem_apresentacao": 0,
+                                    "tipo": "CEP",
+                                    "mascara": "string",
+                                    "placeholder": "string",
+                                    "tamanho_minimo": 0,
+                                    "tamanho_maximo": 0,
+                                    "orientacao_preenchimento": "string",
+                                    "bloquear_edicao": true,
+                                    "opcoes_disponiveis": [
+                                        {
+                                            "valor_opcao": "string",
+                                            "descricao_opcao": "string",
+                                            "ativo": true
+                                        }
+                                    ]
+                                }
+                            ],
+                            "documentos": [
+                                {
+                                    "funcao_documental": {
+                                        "nome": "string",
+                                        "tipos_documento": [
+                                            {
+                                                "codigo_tipologia": "string",
+                                                "nome": "string",
+                                                "permite_reuso": true,
+                                                "ativo": true
+                                            }
+                                        ],
+                                        "checklist": {
+                                            "identificador_checklist": 1000006317,
+                                            "versao_checklist": 1
+                                        }
+                                    },
+                                    "tipo_documento": {
+                                        "codigo_tipologia": "string",
+                                        "nome": "string",
+                                        "permite_reuso": true,
+                                        "permite_multiplo": true,
+                                        "ativo": true,
+                                        "checklist": {
+                                            "identificador_checklist": 1000006317,
+                                            "versao_checklist": 1
+                                        }
+                                    },
+                                    "obrigatorio": true
+                                }
+                            ],
+                            "checklist": {
+                                "identificador_checklist": 1000006317,
+                                "versao_checklist": 1
+                            }
+                        }
+                    ]
+                }
+            ],
+            "garantias": [
+                {
+                    "codigo_bacen": 0,
+                    "nome_garantia": "string",
+                    "fidejussoria": true,
+                    "campos_formulario": [
+                        {
+                            "identificador_negocial": 0,
+                            "label": "string",
+                            "obrigatorio": true,
+                            "ativo": true,
+                            "exibicao_condicional": "string",
+                            "tamanho_apresentacao": 0,
+                            "ordem_apresentacao": 0,
+                            "tipo": "CEP",
+                            "mascara": "string",
+                            "placeholder": "string",
+                            "tamanho_minimo": 0,
+                            "tamanho_maximo": 0,
+                            "orientacao_preenchimento": "string",
+                            "bloquear_edicao": true,
+                            "opcoes_disponiveis": [
+                                {
+                                    "valor_opcao": "string",
+                                    "descricao_opcao": "string",
+                                    "ativo": true
+                                }
+                            ]
+                        }
+                    ],
+                    "documentos": [
+                        {
+                            "funcao_documental": {
+                                "nome": "string",
+                                "tipos_documento": [
+                                    {
+                                        "codigo_tipologia": "string",
+                                        "nome": "string",
+                                        "permite_reuso": true,
+                                        "ativo": true
+                                    }
+                                ],
+                                "checklist": {
+                                    "identificador_checklist": 1000006317,
+                                    "versao_checklist": 1
+                                }
+                            },
+                            "tipo_documento": {
+                                "codigo_tipologia": "string",
+                                "nome": "string",
+                                "permite_reuso": true,
+                                "permite_multiplo": true,
+                                "ativo": true,
+                                "checklist": {
+                                    "identificador_checklist": 1000006317,
+                                    "versao_checklist": 1
+                                }
+                            },
+                            "obrigatorio": true
+                        }
                     ],
                     "checklist": {
                         "identificador_checklist": 1000006317,
                         "versao_checklist": 1
                     }
-                  },
-                  "tipo_documento": {
-                    "codigo_tipologia": "string",
-                    "nome": "string",
-                    "permite_reuso": true,
-                    "ativo": true,
-                    "checklist": {
-                        "identificador_checklist": 1000006317,
-                        "versao_checklist": 1
-                    }
-                  },
-                  "obrigatorio": true
                 }
-              ],
-              "checklist": {
-                  "identificador_checklist": 1000006317,
-                  "versao_checklist": 1
-              }
-            }
-          ]
-        }
-      ],
-      "garantias": [
-        {
-          "codigo_bacen": 0,
-          "nome_garantia": "string",
-          "fidejussoria": true,
-          "campos_formulario": [
-            {
-              "identificador_negocial": 0,
-              "label": "string",
-              "obrigatorio": true,
-              "ativo": true,
-              "exibicao_condicional": "string",
-              "tamanho_apresentacao": 0,
-              "ordem_apresentacao": 0,
-              "tipo": "CEP",
-              "mascara": "string",
-              "placeholder": "string",
-              "tamanho_minimo": 0,
-              "tamanho_maximo": 0,
-              "orientacao_preenchimento": "string",
-              "bloquear_edicao": true,
-              "opcoes_disponiveis": [
+            ],
+            "campos_formulario": [
                 {
-                  "valor_opcao": "string",
-                  "descricao_opcao": "string",
-                  "ativo": true
+                    "identificador_negocial": 0,
+                    "label": "string",
+                    "obrigatorio": true,
+                    "ativo": true,
+                    "exibicao_condicional": "string",
+                    "tamanho_apresentacao": 0,
+                    "ordem_apresentacao": 0,
+                    "tipo": "CEP",
+                    "mascara": "string",
+                    "placeholder": "string",
+                    "tamanho_minimo": 0,
+                    "tamanho_maximo": 0,
+                    "orientacao_preenchimento": "string",
+                    "bloquear_edicao": true,
+                    "opcoes_disponiveis": [
+                        {
+                            "valor_opcao": "string",
+                            "descricao_opcao": "string",
+                            "ativo": true
+                        }
+                    ]
                 }
-              ]
-            }
-          ],
-          "documentos": [
-            {
-              "funcao_documental": {
+            ],
+            "documentos": [
+                {
+                    "funcao_documental": {
+                        "nome": "string",
+                        "tipos_documento": [
+                            {
+                                "codigo_tipologia": "string",
+                                "nome": "string",
+                                "permite_reuso": true,
+                                "ativo": true
+                            }
+                        ],
+                        "checklist": {
+                            "identificador_checklist": 1000006317,
+                            "versao_checklist": 1
+                        }
+                    },
+                    "tipo_documento": {
+                        "codigo_tipologia": "string",
+                        "nome": "string",
+                        "permite_reuso": true,
+                        "permite_multiplo": true,
+                        "ativo": true,
+                        "checklist": {
+                            "identificador_checklist": 1000006317,
+                            "versao_checklist": 1
+                        }
+                    },
+                    "obrigatorio": true
+                }
+            ],
+            "checklists": [
+                {
+                    "identificador_checklist": 1000006317,
+                    "versao_checklist": 1
+                }
+            ]
+        }
+    ],
+    "documentos": [
+        {
+            "funcao_documental": {
                 "nome": "string",
                 "tipos_documento": [
-                  {
-                    "codigo_tipologia": "string",
-                    "nome": "string",
-                    "permite_reuso": true,
-                    "ativo": true
-                  }
+                    {
+                        "codigo_tipologia": "string",
+                        "nome": "string",
+                        "permite_reuso": true,
+                        "ativo": true
+                    }
                 ],
                 "checklist": {
                     "identificador_checklist": 1000006317,
                     "versao_checklist": 1
-                }                
-              },
-              "tipo_documento": {
+                }
+            },
+            "tipo_documento": {
                 "codigo_tipologia": "string",
                 "nome": "string",
                 "permite_reuso": true,
+                "permite_multiplo": true,
                 "ativo": true,
                 "checklist": {
                     "identificador_checklist": 1000006317,
                     "versao_checklist": 1
-                } 
-              },
-              "obrigatorio": true
-            }
-          ],
-          "checklist": {
-              "identificador_checklist": 1000006317,
-              "versao_checklist": 1
-          } 
+                }
+            },
+            "obrigatorio": true
         }
-      ],
-      "campos_formulario": [
-        {
-          "identificador_negocial": 0,
-          "label": "string",
-          "obrigatorio": true,
-          "ativo": true,
-          "exibicao_condicional": "string",
-          "tamanho_apresentacao": 0,
-          "ordem_apresentacao": 0,
-          "tipo": "CEP",
-          "mascara": "string",
-          "placeholder": "string",
-          "tamanho_minimo": 0,
-          "tamanho_maximo": 0,
-          "orientacao_preenchimento": "string",
-          "bloquear_edicao": true,
-          "opcoes_disponiveis": [
-            {
-              "valor_opcao": "string",
-              "descricao_opcao": "string",
-              "ativo": true
-            }
-          ]
-        }
-      ],
-      "documentos": [
-        {
-          "funcao_documental": {
-            "nome": "string",
-            "tipos_documento": [
-              {
-                "codigo_tipologia": "string",
-                "nome": "string",
-                "permite_reuso": true,
-                "ativo": true
-              }
-            ],
-            "checklist": {
-                "identificador_checklist": 1000006317,
-                "versao_checklist": 1
-            } 
-          },
-          "tipo_documento": {
-            "codigo_tipologia": "string",
-            "nome": "string",
-            "permite_reuso": true,
-            "ativo": true,
-            "checklist": {
-                "identificador_checklist": 1000006317,
-                "versao_checklist": 1
-            }             
-          },
-          "obrigatorio": true
-        }
-      ],
-      "checklist": {
-          "identificador_checklist": 1000006317,
-          "versao_checklist": 1
-      }
+    ],
+    "checklist": {
+        "identificador_checklist": 1000006317,
+        "versao_checklist": 1
     }
-  ],
-  "documentos": [
-    {
-      "funcao_documental": {
-        "nome": "string",
-        "tipos_documento": [
-          {
-            "codigo_tipologia": "string",
-            "nome": "string",
-            "permite_reuso": true,
-            "ativo": true
-          }
-        ],
-        "checklist": {
-            "identificador_checklist": 1000006317,
-            "versao_checklist": 1
-        } 
-      },
-      "tipo_documento": {
-        "codigo_tipologia": "string",
-        "nome": "string",
-        "permite_reuso": true,
-        "ativo": true,
-        "checklist": {
-            "identificador_checklist": 1000006317,
-            "versao_checklist": 1
-        }         
-      },
-      "obrigatorio": true
-    }
-  ],
-  "checklist": {
-      "identificador_checklist": 1000006317,
-      "versao_checklist": 1
-  } 
 }
 ```
 
@@ -666,6 +683,19 @@ Exemplo de Corpo da resposta de erro:
 }
 ```
 
+##### Tipos de vínculos de checklists
+
+Tipos de vínculos de checklists e Regra de restrições de multiplicidade:
+
+* Processo + fase (pode ter mais de um checklist vinculado)
+* Processo + fase (pode ter  apenas um **checklist prévio** vinculado)
+* Processo + fase + produto (pode ter  apenas um checklist vinculado sendo ele **checklist prévio** ou não)
+* Processo + fase + garantia (pode ter  apenas um checklist vinculado)
+* Processo + fase + tipo documento (pode ter  apenas um checklist vinculado)
+* Processo + fase + função documental (pode ter  apenas um checklist vinculado)
+* Processo + fase + produto +  tipo documento (pode ter  apenas um checklist vinculado)
+* Processo + fase + garantia + função documental (pode ter  apenas um checklist vinculado)
+
 #### Criar novo endpoint de consulta de cheklist
 
 Módulo: simtr-parametrização
@@ -674,9 +704,10 @@ Cadastro - Checklist API de Apoio ao Cadastro de Checklists
 Criar novo endpoint de consulta de cheklist por identificador negocial de Checklist e versão:
 
 - GET /simtr-parametrizacao/v1/cadastro/checklist/identificador-negocial/{identificador}/versao/{versao}
+
 Consulta um checklist pelo seu identificador negoial e versão.
 
-Corpo resposta http 200
+Corpo da resposta http 200
 Checklist localizado com sucesso.
 
 ```json
@@ -781,7 +812,7 @@ Corpo requisição:
 }
 ```
 
-Corpo resposta http 201
+Corpo da resposta http 201
 Documento criado com sucesso.
 
 ```json
@@ -958,7 +989,7 @@ Corpo da requisição:
 }
 ```
 
-Corpo resposta http 201 retorna o id do dossiê produto.
+Corpo da resposta http 201 retorna o id do dossiê produto.
 Dossiê de Produto criado com sucesso.
 
 ```json
@@ -1046,7 +1077,7 @@ Corpo da requisição:
 ]
 ```
 
-Corpo resposta http 201 retorna o id do dossiê produto 	
+Corpo da resposta http 201 retorna o id do dossiê produto 	
 Inclusão ou edição de Respostas de Formulário no Dossiê de Produto feita com sucesso.
 
 ```json
@@ -1095,7 +1126,7 @@ Corpo da resposta de erro:
 ]
 ```
 
-Corpo resposta http 201 retorna o id do dossiê produto 	
+Corpo da resposta http 201 retorna o id do dossiê produto 	
 Inclusão ou edição de Garantia no Dossiê de Produto feita com sucesso.
 
 ```json
@@ -1136,7 +1167,7 @@ Corpo da resposta de erro:
 ]
 ```
 
-Corpo resposta http 200
+Corpo da resposta http 200
 Recurso criado/ alterado/ localizado ou excluído com sucesso.
 
 Corpo da resposta de erro:
@@ -1163,7 +1194,7 @@ Corpo da resposta de erro:
 
 Sem corpo de requisição.
 
-Corpo resposta http 200
+Corpo da resposta http 200
 Dossiê capturado com sucesso.
 
 ```json
@@ -1196,7 +1227,7 @@ Corpo da resposta de erro:
 
 Sem corpo de requisição.
 
-Corpo resposta http 200
+Corpo da resposta http 200
 Fluxo iniciado ou avançado com sucesso
 
 Corpo da resposta de erro:
@@ -1229,7 +1260,7 @@ Corpo da requisição.
 }
 ```
 
-Corpo resposta http 200
+Corpo da resposta http 200
 Dossiê de produto cancelado com sucesso.
 
 Corpo da resposta de erro:
@@ -1256,7 +1287,7 @@ Corpo da resposta de erro:
 
 Sem corpo de requisição.
 
-Corpo resposta http 200
+Corpo da resposta http 200
 Dossiê localizado com sucesso.
 
 ```json
@@ -1347,7 +1378,7 @@ Gera uma nova credencial de acesso compartilhado (SAS) para um container de arma
 sem Corpo da requisição
 
 
-Corpo resposta http 200
+Corpo da resposta http 200
 Credencial SAS gerado com sucesso.
 
 ```json
@@ -1379,45 +1410,37 @@ Corpo da resposta de erro:
 
 ---
 
-## Diagramas arquiteturais da Integração entre pré-valisação e SIMTR
+## Diagramas arquiteturais da Integração entre pré-validação e SIMTR
 
-## C4 - Contexto de Sistema - Pré-validação integrada ao SIMTR
-
-[C4_Contexto_Pre_Validacao_SIMTR.puml](#1-c4--contexto-de-sistema-plantuml)
-
-<img src="./_svg/C4_Contexto_Pre_Validacao_SIMTR.svg" alt="Diagrama de Contexto de Sistema - Pré-validação integrada ao SIMTR" style="max-width: 100%; height: auto;"/>
-
-
-## C4 - Containers - Integração Pré-validação com SIMTR
+### C4 - Containers - Integração Pré-validação com SIMTR
 
 [C4_Containers_Pre_Validacao_SIMTR](#2-c4--containers-plantuml)
 
 <img src="./_svg/C4_Containers_Pre_Validacao_SIMTR.svg" alt="Diagrama de Containers - Integração Pré-validação com SIMTR" style="max-width: 100%; height: auto;"/>
 
 
-## C4 - Componentes - Módulo Parametrização do SIMTR
+### C4 - Componentes - Módulo Parametrização do SIMTR
 
 [C4_Componentes_Modulo_Parametrizacao.puml](#3-c4--componentes-do-parametrização-plantuml)
 
 <img src="./_svg/C4_Componentes_Modulo_Parametrizacao.svg" alt="Diagrama de Componentes - Módulo Parametrização do SIMTR" style="max-width: 100%; height: auto;"/>
 
 
-## C4 - Componentes - Módulo Dossiês de Produto do SIMTR
+### C4 - Componentes - Módulo Dossiês de Produto do SIMTR
 
 [C4_Componentes_Modulo_Dossie_Produto.puml](#4-c4--componentes-do-dossiês-de-produto-plantuml)
 
 <img src="./_svg/C4_Componentes_Modulo_Dossie_Produto.svg" alt="Diagrama de Componentes - Módulo Dossiês de Produto do SIMTR" style="max-width: 100%; height: auto;"/>
 
-## C4 - Componentes - Módulo Gestão dos Documentos do SIMTR
+### C4 - Componentes - Módulo Gestão dos Documentos do SIMTR
 
 [C4_Componentes_Modulo_Gestao_Documentos.puml](#5-c4--componentes-do-gestão-dos-documentos-plantuml)
 
 <img src="./_svg/C4_Componentes_Modulo_Gestao_Documentos.svg" alt="Diagrama de Componentes - Módulo Gestão dos Documentos do SIMTR" style="max-width: 100%; height: auto;"/>
 
-
 ## Diagrama de Sequência da Integração com o MTR
 
-## Diagrama de Sequência — Pré-validação antes da criação do Dossiê de Produto
+### Diagrama de Sequência — Pré-validação antes da criação do Dossiê de Produto
 
 ```mermaid
 sequenceDiagram
@@ -1426,7 +1449,7 @@ sequenceDiagram
     actor Usuario as Usuário
     participant MFE as MFE Pré-validação
     participant PRE as API / Orquestrador Pré-validação
-    participant Espelho as Espelho da Proposta
+    participant Espelho as CosmoDB Espelho da Proposta
     participant Param as SIMTR - Módulo Parametrização
     participant Cache as Cache de Parametrização e Checklist do MTR
     participant GestDoc as SIMTR - Módulo Gestão dos Documentos
@@ -1485,7 +1508,9 @@ sequenceDiagram
     end
 ```
 
-## Diagrama de Sequência — Criação do Dossiê de Produto e avanço do Workflow
+---
+
+### Diagrama de Sequência — Criação do Dossiê de Produto e avanço do Workflow
 
 ```mermaid
 sequenceDiagram
@@ -1539,7 +1564,7 @@ sequenceDiagram
 
 ---
 
-## Diagram de Stato — Situações envolvidas no PATCH de Validação Negocial de dossiê de produto
+## Diagrama de Estado — Situações de Dossiê de Produto decorrentes da pré-validação
 
 ```mermaid
 flowchart TD
@@ -1584,54 +1609,12 @@ flowchart TD
 
 ---
 
-## Anexos Diagramas arquiteturais da Integração entre pré-valisação e SIMTR
+## Anexos Diagramas arquiteturais da Integração entre pré-validação e SIMTR
 
-## 1. C4 — Contexto de Sistema plantuml
-
-```md
-@startuml C4_Contexto_Pre_Validacao_SIMTR
-
-!include c:/desenvolvimento/plantuml/C4/C4_Container.puml
-
-title C4 - Contexto de Sistema - Pré-validação integrada ao SIMTR
-
-Person(usuario, "Usuário", "Usuário do módulo de Pré-validação")
-
-System_Boundary(preValidacaoBoundary, "Sistema de Pré-validação") {
-    Container(orquestradorPreValidacao, "Orquestrador de Pré-validação", "Sistema interno", "Consulta proposta, consulta processo parametrizado, solicita documentos, coordena upload, cria dossiê e integra com o SIMTR/MTR")
-    Container(agenteValidacao, "Agente Especialista de Validação Negocial", "Agente IA / Serviço", "Executa extração e validação de regras e consulta checklist para análise documental")
-}
-
-System_Boundary(simtr, "SIMTR / MTR") {
-    Container(parametrizacao, "Módulo Parametrização", "REST API", "Expõe consultas de processo e checklist")
-    ContainerDb(cacheMtr, "Cache do MTR", "Cache", "Disponibiliza processo parametrizado e checklists para consulta")
-    Container(dossieProduto, "Módulo Dossiês de Produto", "REST API", "Criação, atualização, vinculação documental, validação negocial e avanço de workflow do dossiê")
-    Container(gestaoDocumento, "Módulo Gestão dos Documentos", "REST API", "Geração de credencial SAS para upload no Storage")
-    Container(blobStorage, "Azure Blob Storage do MTR", "Storage", "Armazena documentos enviados pela Pré-validação")
-    ContainerQueue(serviceBus, "Azure Service Bus", "Fila", "Fila DOSSIE_PRODUTO_SINALIZACAO_WORKFLOW para sinalização assíncrona do workflow")
-    System_Ext(sinda, "SINDA", "Motor BPM corporativo que recebe sinais do workflow do Dossiê de Produto")
-}
-
-Rel(usuario, orquestradorPreValidacao, "Acessa, seleciona proposta e envia documentos", "HTTPS")
-Rel(orquestradorPreValidacao, agenteValidacao, "Aciona validação negocial dos documentos")
-Rel(orquestradorPreValidacao, parametrizacao, "Consulta processo parametrizado", "HTTP REST")
-Rel(agenteValidacao, parametrizacao, "Consulta checklist por identificador e versão", "HTTP REST")
-Rel(parametrizacao, cacheMtr, "Consulta processo e checklist no cache do MTR")
-
-Rel(orquestradorPreValidacao, gestaoDocumento, "Solicita credencial SAS para upload", "HTTP REST")
-Rel(orquestradorPreValidacao, blobStorage, "Envia documentos usando credencial SAS", "HTTPS/SAS")
-Rel(orquestradorPreValidacao, dossieProduto, "Cria dossiê, preenche formulário, vincula documentos, envia validação negocial e avança workflow", "HTTP REST")
-
-Rel(dossieProduto, serviceBus, "Publica mensagem de necessidade de sinalização do workflow", "Mensagem")
-Rel(serviceBus, dossieProduto, "Entrega mensagem para processamento assíncrono", "Mensagem")
-Rel(dossieProduto, sinda, "Envia sinal do workflow após consumo da fila", "HTTP REST")
-
-@enduml
-```
-
-## 2. C4 — Containers plantuml
+### C4 — Containers plantuml
 
 ```md
+```plantuml
 @startuml C4_Containers_Pre_Validacao_SIMTR
 
 !include c:/desenvolvimento/plantuml/C4/C4_Component.puml
@@ -1680,10 +1663,12 @@ Rel(dossieProduto, sinda, "Sinaliza workflow", "HTTP REST")
 
 @enduml
 ```
+```
 
-## 3. C4 — Componentes do Parametrização plantuml
+### C4 — Componentes do Parametrização plantuml
 
 ```md
+```plantuml
 @startuml C4_Componentes_Modulo_Parametrizacao
 
 !include c:/desenvolvimento/plantuml/C4/C4_Component.puml
@@ -1720,10 +1705,12 @@ Rel(checklistCacheRepository, cacheMtr, "Lê checklist, versão e apontamentos")
 
 @enduml
 ```
+```
 
-## 4. C4 — Componentes do Dossiês de Produto plantuml
+### C4 — Componentes do Dossiês de Produto plantuml
 
 ```md
+```plantuml
 @startuml C4_Componentes_Modulo_Dossie_Produto
 
 !include c:/desenvolvimento/plantuml/C4/C4_Component.puml
@@ -1785,10 +1772,12 @@ Rel(dossieRepository, oracleMtr, "Lê e grava dados")
 
 @enduml
 ```
+```
 
-## 5. C4 — Componentes do Gestão dos Documentos plantuml
+### C4 — Componentes do Gestão dos Documentos plantuml
 
 ```md
+```plantuml
 @startuml C4_Componentes_Modulo_Gestao_Documentos
 
 !include c:/desenvolvimento/plantuml/C4/C4_Component.puml
@@ -1812,4 +1801,5 @@ Rel(storageClient, blobStorage, "Gera SAS para acesso ao container")
 Rel(apiPreValidacao, blobStorage, "Realiza upload do documento usando SAS", "HTTPS/SAS")
 
 @enduml
+```
 ```
