@@ -8,7 +8,7 @@
 - [Arquitetura](#arquitetura)
 - [Pacotes](#pacotes)
 - [Configuracao atual](#configuracao-atual)
-- [Mock do processo](#mock-do-processo)
+- [Mock da parametrizacao](#mock-da-parametrizacao)
 - [Perfis de observabilidade](#perfis-de-observabilidade)
 - [Execucao local](#execucao-local)
 - [Tratamento de erro](#tratamento-de-erro)
@@ -82,6 +82,11 @@ GET http://localhost:8080/arvore-documento/v1/processo/identificador-negocial/1
 Accept: application/json
 ```
 
+```http
+GET http://localhost:8080/arvore-documento/v1/checklist/identificador-negocial/1000012583/versao/1
+Accept: application/json
+```
+
 Parametro:
 
 ```java
@@ -138,6 +143,18 @@ ProcessoResource
       -> ProcessoMapper.toVo(...)
   -> ProcessoMapper.toDto(...)
   -> ProcessoDto
+
+ChecklistResource
+  -> ChecklistService
+      -> se simulador=true
+          -> ChecklistMockFactory
+      -> se simulador=false
+          -> ParametrizacaoChecklistGateway
+              -> ParametrizacaoChecklistClient
+                  -> simtr-parametrizacao
+      -> ChecklistMapper.toVo(...)
+  -> ChecklistMapper.toDto(...)
+  -> ChecklistDto
 ```
 
 O fluxo `DTO -> VO -> DTO` e proposital. Mesmo que o contrato atual seja parecido com o retorno do MTR, o VO cria uma fronteira para regras futuras, enriquecimento e adaptacao de contrato.
@@ -150,6 +167,13 @@ HTTP GET /arvore-documento/v1/processo/identificador-negocial/{id}
   -> ProcessoService
   -> ProcessoMockFactory
   -> ProcessoMapper
+  -> resposta mockada
+
+HTTP GET /arvore-documento/v1/checklist/identificador-negocial/{id}/versao/{versao}
+  -> ChecklistResource
+  -> ChecklistService
+  -> ChecklistMockFactory
+  -> ChecklistMapper
   -> resposta mockada
 ```
 
@@ -164,6 +188,15 @@ HTTP GET /arvore-documento/v1/processo/identificador-negocial/{id}
   -> GET /simtr-parametrizacao/v2/patriarca/processo/identificador-negocial/{id}
   -> ProcessoMapper
   -> resposta do arvore-documento
+
+HTTP GET /arvore-documento/v1/checklist/identificador-negocial/{id}/versao/{versao}
+  -> ChecklistResource
+  -> ChecklistService
+  -> ParametrizacaoChecklistGateway
+  -> ParametrizacaoChecklistClient
+  -> GET /simtr-parametrizacao/v1/cadastro/checklist/identificador-negocial/{id}/versao/{versao}
+  -> ChecklistMapper
+  -> resposta do arvore-documento
 ```
 
 ## Pacotes
@@ -174,12 +207,14 @@ br.gov.caixa.simtr.arvoredocumento
 |   |-- dev
 |   |-- dto
 |   |   |-- erro
+|   |   |-- parametrizacao.checklist
 |   |   `-- parametrizacao.processo
 |   |-- exception
 |   `-- parametrizacao
 |-- application
 |   `-- parametrizacao
 |-- domain
+|   |-- parametrizacao.checklist
 |   `-- parametrizacao.processo
 |-- infrastructure
 |   `-- client.parametrizacao
@@ -226,8 +261,14 @@ quarkus.rest-client.parametrizacao-processo.url=http://localhost:8081
 quarkus.rest-client.parametrizacao-processo.connect-timeout=3000
 quarkus.rest-client.parametrizacao-processo.read-timeout=10000
 
+quarkus.rest-client.parametrizacao-checklist.url=http://localhost:8081
+quarkus.rest-client.parametrizacao-checklist.connect-timeout=3000
+quarkus.rest-client.parametrizacao-checklist.read-timeout=10000
+
 arvore-documento.simulador.parametrizacao-processo.habilitado=false
 %dev.arvore-documento.simulador.parametrizacao-processo.habilitado=true
+arvore-documento.simulador.parametrizacao-checklist.habilitado=false
+%dev.arvore-documento.simulador.parametrizacao-checklist.habilitado=true
 ```
 
 Configuracao de observabilidade atual:
@@ -284,9 +325,10 @@ Em ambiente real, configure a URL do MTR por variavel de ambiente:
 
 ```bash
 export QUARKUS_REST_CLIENT_PARAMETRIZACAO_PROCESSO_URL=https://simtr-parametrizacao-des.apps.nprd.caixa
+export QUARKUS_REST_CLIENT_PARAMETRIZACAO_CHECKLIST_URL=https://simtr-parametrizacao-des.apps.nprd.caixa
 ```
 
-## Mock do processo
+## Mock da parametrizacao
 
 O projeto possui um simulador local para permitir desenvolvimento sem chamar o MTR Parametrizacao real.
 
@@ -295,15 +337,18 @@ O simulador e controlado pela propriedade:
 ```properties
 arvore-documento.simulador.parametrizacao-processo.habilitado=false
 %dev.arvore-documento.simulador.parametrizacao-processo.habilitado=true
+arvore-documento.simulador.parametrizacao-checklist.habilitado=false
+%dev.arvore-documento.simulador.parametrizacao-checklist.habilitado=true
 ```
 
 Com isso:
 
 - fora do dev mode, o padrao e chamar o REST Client real do MTR;
 - em dev mode, o padrao e usar o mock local;
-- quando o mock esta ativo, o fluxo nao chama `ParametrizacaoProcessoClient`;
+- quando o mock esta ativo, o fluxo nao chama o REST Client correspondente;
 - o `ProcessoService` chama `ProcessoMockFactory`;
-- o retorno mockado continua passando por `ProcessoMapper`, mantendo o mesmo fluxo DTO -> VO -> DTO da API.
+- o `ChecklistService` chama `ChecklistMockFactory`;
+- o retorno mockado continua passando pelo mapper correspondente, mantendo o mesmo fluxo DTO -> VO -> DTO da API.
 
 ### Arquivos de mock
 
@@ -320,7 +365,7 @@ src/main/resources/mock/parametrizacao/1000016487-consulta-processo-parametrizac
 src/main/resources/mock/parametrizacao/1000009990-consulta-processo-parametrizacao-v2-identificador-negocial.md
 ```
 
-Existe tambem um mock de checklist documentado para uso futuro, ainda nao conectado a um endpoint do simulador:
+O arquivo de checklist usado pelo simulador atual e:
 
 ```text
 src/main/resources/mock/parametrizacao/1000012583-v1-checklist-parametrizacao-versao-1.md
@@ -332,7 +377,7 @@ Cada arquivo documenta a chamada original e contem o corpo JSON retornado pelo M
 ## dados do mock corpo do retorno json
 ```
 
-O factory de processo extrai o primeiro objeto JSON `{ ... }` depois dessa secao e converte para `ProcessoDto` usando Jackson.
+O leitor comum `MarkdownJsonMockReader` extrai o primeiro objeto JSON `{ ... }` depois dessa secao e converte para o DTO esperado pelo factory (`ProcessoDto` ou `ChecklistDto`) usando Jackson.
 
 ### Convencao de nomes
 
@@ -390,6 +435,18 @@ Se nao existir um arquivo especifico para o identificador consultado, o simulado
 
 Isso permite chamar outros ids em dev mode sem quebrar a execucao, mas o conteudo retornado sera o processo padrao do mock.
 
+Para checklist, o factory procura:
+
+```text
+mock/parametrizacao/{identificador}-v1-checklist-parametrizacao-versao-{versao}.md
+```
+
+Se nao encontrar, usa o fallback:
+
+```text
+mock/parametrizacao/1000012583-v1-checklist-parametrizacao-versao-1.md
+```
+
 ### Dados atuais do mock
 
 O mock atual representa o processo:
@@ -439,7 +496,7 @@ mvn quarkus:dev -Ddebug=false
 GET http://localhost:8080/arvore-documento/v1/processo/identificador-negocial/{identificador}
 ```
 
-Para preparar mock de checklist para a proxima implementacao:
+Para criar um novo cenario de mock de checklist:
 
 1. Crie um arquivo em `src/main/resources/mock/parametrizacao`.
 2. Use o padrao:
@@ -466,16 +523,24 @@ Se precisar testar a integracao real mesmo em dev mode, desabilite o simulador:
 mvn quarkus:dev -Ddebug=false "-Darvore-documento.simulador.parametrizacao-processo.habilitado=false"
 ```
 
+Para desabilitar apenas o simulador de checklist:
+
+```powershell
+mvn quarkus:dev -Ddebug=false "-Darvore-documento.simulador.parametrizacao-checklist.habilitado=false"
+```
+
 Ou configure por variavel de ambiente:
 
 ```powershell
 $env:ARVORE_DOCUMENTO_SIMULADOR_PARAMETRIZACAO_PROCESSO_HABILITADO="false"
+$env:ARVORE_DOCUMENTO_SIMULADOR_PARAMETRIZACAO_CHECKLIST_HABILITADO="false"
 ```
 
 Nesse caso, configure tambem a URL real do MTR:
 
 ```powershell
 $env:QUARKUS_REST_CLIENT_PARAMETRIZACAO_PROCESSO_URL="https://simtr-parametrizacao-des.apps.nprd.caixa"
+$env:QUARKUS_REST_CLIENT_PARAMETRIZACAO_CHECKLIST_URL="https://simtr-parametrizacao-des.apps.nprd.caixa"
 ```
 
 ## Perfis de observabilidade
@@ -686,6 +751,10 @@ mvn quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,jaeger"
 Invoke-WebRequest `
   -Uri "http://localhost:8080/arvore-documento/v1/processo/identificador-negocial/1" `
   -Headers @{ Accept = "application/json" }
+
+Invoke-WebRequest `
+  -Uri "http://localhost:8080/arvore-documento/v1/checklist/identificador-negocial/1000012583/versao/1" `
+  -Headers @{ Accept = "application/json" }
 ```
 
 ### Conferir log JSON local
@@ -702,7 +771,7 @@ Fluxo:
 
 ```text
 MTR retorna 4xx/5xx
-  -> ParametrizacaoProcessoClient.toException(...)
+  -> ParametrizacaoClientExceptionMapper.toException(...)
   -> ClientErrorBodyReader
   -> MtrClientErrorException ou MtrServerErrorException
   -> MtrRestClientExceptionMapper
@@ -750,6 +819,9 @@ A observabilidade atual tem duas saidas sempre ativas e duas saidas opcionais:
 | API | `arvore-documento.api.processo.consultar` |
 | Aplicacao | `arvore-documento.service.processo.consultar` |
 | Integracao MTR | `mtr.parametrizacao.processo.consultar` |
+| API | `arvore-documento.api.checklist.consultar` |
+| Aplicacao | `arvore-documento.service.checklist.consultar` |
+| Integracao MTR | `mtr.parametrizacao.checklist.consultar` |
 
 O span `mtr.parametrizacao.processo.consultar` aparece quando o simulador esta desabilitado.
 

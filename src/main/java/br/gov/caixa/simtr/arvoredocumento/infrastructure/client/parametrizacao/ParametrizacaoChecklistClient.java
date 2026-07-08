@@ -1,10 +1,11 @@
 package br.gov.caixa.simtr.arvoredocumento.infrastructure.client.parametrizacao;
 
-import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.ProcessoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.checklist.ChecklistDto;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.RequestHeaderFactory;
 import br.gov.caixa.simtr.arvoredocumento.shared.exception.MtrClientErrorException;
 import br.gov.caixa.simtr.arvoredocumento.shared.exception.MtrServerErrorException;
 import io.quarkus.oidc.client.reactive.filter.OidcClientRequestReactiveFilter;
+import io.quarkus.rest.client.reactive.ClientExceptionMapper;
 import io.smallrye.mutiny.Uni;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -20,19 +21,18 @@ import org.eclipse.microprofile.faulttolerance.exceptions.TimeoutException;
 import org.eclipse.microprofile.rest.client.annotation.RegisterClientHeaders;
 import org.eclipse.microprofile.rest.client.annotation.RegisterProvider;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
-import io.quarkus.rest.client.reactive.ClientExceptionMapper;
 
 import java.time.temporal.ChronoUnit;
 
-@RegisterRestClient(configKey = "parametrizacao-processo")
-@Path("/parametrizacao/v2/patriarca/processo")
+@RegisterRestClient(configKey = "parametrizacao-checklist")
+@Path("/parametrizacao/v1/cadastro/checklist")
 @RegisterClientHeaders(RequestHeaderFactory.class)
 @RegisterProvider(OidcClientRequestReactiveFilter.class)
 @Produces(MediaType.APPLICATION_JSON)
-public interface ParametrizacaoProcessoClient {
+public interface ParametrizacaoChecklistClient {
 
     @GET
-    @Path("/identificador-negocial/{identificador}")
+    @Path("/identificador-negocial/{identificador}/versao/{versao}")
     @Timeout(value = 2_000, unit = ChronoUnit.MILLIS)
     @Retry(
             maxRetries = 3,
@@ -64,7 +64,9 @@ public interface ParametrizacaoProcessoClient {
                     MtrClientErrorException.class
             }
     )
-    Uni<ProcessoDto> consultarPorIdentificadorNegocial(@PathParam("identificador") Long identificador);
+    Uni<ChecklistDto> consultarPorIdentificadorNegocialEVersao(
+            @PathParam("identificador") Long identificador,
+            @PathParam("versao") Integer versao);
 
     @ClientExceptionMapper
     static RuntimeException toException(Response response) {

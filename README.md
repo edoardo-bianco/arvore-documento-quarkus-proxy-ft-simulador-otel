@@ -8,12 +8,14 @@ Microsserviço Quarkus usado como proxy/adapter para a árvore de documento do M
 
 ```http
 GET /arvore-documento/v1/processo/identificador-negocial/{identificador}
+GET /arvore-documento/v1/checklist/identificador-negocial/{identificador}/versao/{versao}
 ```
 
 ### API consumida no MTR
 
 ```http
 GET /simtr-parametrizacao/v2/patriarca/processo/identificador-negocial/{identificador}
+GET /simtr-parametrizacao/v1/cadastro/checklist/identificador-negocial/{identificador}/versao/{versao}
 ```
 
 ## Decisão arquitetural
@@ -30,6 +32,14 @@ ProcessoResource
       -> ProcessoMapper.toVo(...)
   -> ProcessoMapper.toDto(...)
   -> ProcessoDto
+
+ChecklistResource
+  -> ChecklistService
+      -> ParametrizacaoChecklistClient
+          -> ChecklistDto
+      -> ChecklistMapper.toVo(...)
+  -> ChecklistMapper.toDto(...)
+  -> ChecklistDto
 ```
 
 ## Organização de pacotes
@@ -39,12 +49,14 @@ br.gov.caixa.simtr.arvoredocumento
 ├── api
 │   ├── dto
 │   │   ├── erro
+│   │   ├── parametrizacao.checklist
 │   │   └── parametrizacao.processo
 │   ├── exception
 │   └── parametrizacao
 ├── application
 │   └── parametrizacao
 ├── domain
+│   ├── parametrizacao.checklist
 │   └── parametrizacao.processo
 ├── infrastructure
 │   └── client.parametrizacao
@@ -68,12 +80,17 @@ br.gov.caixa.simtr.arvoredocumento
 quarkus.rest-client.parametrizacao-processo.url=http://localhost:8081
 quarkus.rest-client.parametrizacao-processo.connect-timeout=3000
 quarkus.rest-client.parametrizacao-processo.read-timeout=10000
+
+quarkus.rest-client.parametrizacao-checklist.url=http://localhost:8081
+quarkus.rest-client.parametrizacao-checklist.connect-timeout=3000
+quarkus.rest-client.parametrizacao-checklist.read-timeout=10000
 ```
 
 Em ambiente real, configurar por variável de ambiente:
 
 ```bash
 export QUARKUS_REST_CLIENT_PARAMETRIZACAO_PROCESSO_URL=https://simtr-parametrizacao-des.apps.nprd.caixa
+export QUARKUS_REST_CLIENT_PARAMETRIZACAO_CHECKLIST_URL=https://simtr-parametrizacao-des.apps.nprd.caixa
 ```
 
 ## Execução local
@@ -100,12 +117,16 @@ GET /arvore-documento/openai
 curl -X GET \
   'http://localhost:8080/arvore-documento/v1/processo/identificador-negocial/202114235' \
   -H 'Accept: application/json'
+
+curl -X GET \
+  'http://localhost:8080/arvore-documento/v1/checklist/identificador-negocial/1000012583/versao/1' \
+  -H 'Accept: application/json'
 ```
 
 
 ## Fault Tolerance e simulador
 
-A chamada para o MTR Parametrização é feita pelo `ParametrizacaoProcessoClient` com:
+A chamada para o MTR Parametrização é feita pelos REST Clients de parametrização (`ParametrizacaoProcessoClient` e `ParametrizacaoChecklistClient`) com:
 
 - `@Timeout` de 2 segundos;
 - `@Retry` com 3 retentativas para erro 5xx, timeout e falha de comunicação;
@@ -119,9 +140,11 @@ O simulador é controlado por propriedade:
 ```properties
 arvore-documento.simulador.parametrizacao-processo.habilitado=false
 %dev.arvore-documento.simulador.parametrizacao-processo.habilitado=true
+arvore-documento.simulador.parametrizacao-checklist.habilitado=false
+%dev.arvore-documento.simulador.parametrizacao-checklist.habilitado=true
 ```
 
-Quando habilitado, o `ProcessoService` não chama o REST Client do MTR e retorna um `ProcessoDto` mockado pelo `ProcessoMockFactory`.
+Quando habilitado, o service correspondente não chama o REST Client do MTR e retorna o DTO mockado pelo factory do domínio (`ProcessoMockFactory` ou `ChecklistMockFactory`).
 
 ## Observabilidade
 
@@ -130,13 +153,18 @@ O projeto inclui observabilidade no fluxo do endpoint de processo:
 1. `ProcessoResource` registra o recebimento da requisição e o retorno da resposta.
 2. `ProcessoService` registra a execução do caso de uso e a decisão entre simulador e MTR real.
 3. `ParametrizacaoProcessoGateway` registra a chamada externa ao `simtr-parametrizacao`.
-4. O `ParametrizacaoProcessoClient` mantém `@Timeout`, `@Retry` e `@CircuitBreaker`.
+4. Os REST Clients mantêm `@Timeout`, `@Retry` e `@CircuitBreaker`.
+
+O endpoint de checklist segue o mesmo padrão com `ChecklistResource`, `ChecklistService`, `ParametrizacaoChecklistGateway` e `ParametrizacaoChecklistClient`.
 
 Spans explícitos criados:
 
 - `arvore-documento.api.processo.consultar`
 - `arvore-documento.service.processo.consultar`
 - `mtr.parametrizacao.processo.consultar`
+- `arvore-documento.api.checklist.consultar`
+- `arvore-documento.service.checklist.consultar`
+- `mtr.parametrizacao.checklist.consultar`
 
 Logs estruturados JSON ficam habilitados no console e no arquivo `target/logs/arvore-documento.json` com MDC achatado, incluindo campos como:
 
