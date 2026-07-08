@@ -1,6 +1,7 @@
 package br.gov.caixa.simtr.arvoredocumento.infrastructure.client.parametrizacao.mock;
 
 import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.checklist.ChecklistDto;
+import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.mock.MarkdownJsonMockReader;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 

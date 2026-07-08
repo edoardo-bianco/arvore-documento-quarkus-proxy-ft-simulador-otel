@@ -1,4 +1,4 @@
-package br.gov.caixa.simtr.arvoredocumento.infrastructure.client.parametrizacao.mock;
+package br.gov.caixa.simtr.arvoredocumento.infrastructure.client.mock;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;

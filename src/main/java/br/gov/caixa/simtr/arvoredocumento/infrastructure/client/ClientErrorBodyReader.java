@@ -1,4 +1,4 @@
-package br.gov.caixa.simtr.arvoredocumento.infrastructure.client.parametrizacao;
+package br.gov.caixa.simtr.arvoredocumento.infrastructure.client;
 
 import br.gov.caixa.simtr.arvoredocumento.api.dto.erro.ErroMensagemDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.erro.ErroPadraoDto;
@@ -6,12 +6,12 @@ import jakarta.ws.rs.core.Response;
 import java.util.List;
 import java.util.UUID;
 
-final class ClientErrorBodyReader {
+public final class ClientErrorBodyReader {
 
     private ClientErrorBodyReader() {
     }
 
-    static ErroPadraoDto read(Response response, String recurso) {
+    public static ErroPadraoDto read(Response response, String recurso) {
         try {
             if (response.hasEntity()) {
                 ErroPadraoDto erro = response.readEntity(ErroPadraoDto.class);

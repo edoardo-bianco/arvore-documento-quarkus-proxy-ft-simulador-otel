@@ -9,6 +9,8 @@
 - [Pacotes](#pacotes)
 - [Configuracao atual](#configuracao-atual)
 - [Mock da parametrizacao](#mock-da-parametrizacao)
+- [Mock do dossie produto](#mock-do-dossie-produto)
+- [Como chamar o MTR real em dev mode](#como-chamar-o-mtr-real-em-dev-mode)
 - [Perfis de observabilidade](#perfis-de-observabilidade)
 - [Execucao local](#execucao-local)
 - [Tratamento de erro](#tratamento-de-erro)
@@ -23,7 +25,7 @@
 
 ## Objetivo
 
-O `arvore-documento` e um microsservico Quarkus criado para atuar como proxy/adapter entre consumidores internos e o servico MTR de parametrizacao.
+O `arvore-documento` e um microsservico Quarkus criado para atuar como proxy/adapter entre consumidores internos e servicos MTR, iniciando por parametrizacao e dossie produto.
 
 O projeto nao faz apenas repasse HTTP. Ele cria uma fronteira controlada para:
 
@@ -86,6 +88,46 @@ Accept: application/json
 ```http
 GET http://localhost:8080/arvore-documento/v1/checklist/identificador-negocial/1000012583/versao/1
 Accept: application/json
+```
+
+```http
+POST http://localhost:8080/arvore-documento/v1/dossie-produto
+Content-Type: application/json
+Accept: application/json
+```
+
+Corpo para criacao basica de dossie produto em modo rascunho:
+
+```json
+{
+  "processo": 0,
+  "chave_correlacao_canal": 0,
+  "numero_negocio": 0,
+  "clientes": [
+    {
+      "cpf": "string",
+      "cnpj": "string",
+      "tipo_vinculo": 0,
+      "cliente_relacionado": {
+        "cpf": "string",
+        "cnpj": "string"
+      },
+      "sequencia_titularidade": 0
+    }
+  ]
+}
+```
+
+Resposta de sucesso:
+
+```http
+HTTP/1.1 201 Created
+```
+
+```json
+{
+  "id": 0
+}
 ```
 
 Parametro:
@@ -156,6 +198,18 @@ ChecklistResource
       -> ChecklistMapper.toVo(...)
   -> ChecklistMapper.toDto(...)
   -> ChecklistDto
+
+DossieProdutoResource
+  -> DossieProdutoService
+      -> se simulador=true
+          -> DossieProdutoMockFactory
+      -> se simulador=false
+          -> DossieProdutoGateway
+              -> DossieProdutoClient
+                  -> simtr-dossie-produto
+      -> DossieProdutoMapper.toVo(...)
+  -> DossieProdutoMapper.toDto(...)
+  -> DossieProdutoCriadoDto
 ```
 
 O fluxo `DTO -> VO -> DTO` e proposital. Mesmo que o contrato atual seja parecido com o retorno do MTR, o VO cria uma fronteira para regras futuras, enriquecimento e adaptacao de contrato.
@@ -176,6 +230,13 @@ HTTP GET /arvore-documento/v1/checklist/identificador-negocial/{id}/versao/{vers
   -> ChecklistMockFactory
   -> ChecklistMapper
   -> resposta mockada
+
+HTTP POST /arvore-documento/v1/dossie-produto
+  -> DossieProdutoResource
+  -> DossieProdutoService
+  -> DossieProdutoMockFactory
+  -> DossieProdutoMapper
+  -> resposta mockada com id do dossie produto
 ```
 
 ### Fluxo com MTR real
@@ -198,6 +259,15 @@ HTTP GET /arvore-documento/v1/checklist/identificador-negocial/{id}/versao/{vers
   -> GET /simtr-parametrizacao/v1/cadastro/checklist/identificador-negocial/{id}/versao/{versao}
   -> ChecklistMapper
   -> resposta do arvore-documento
+
+HTTP POST /arvore-documento/v1/dossie-produto
+  -> DossieProdutoResource
+  -> DossieProdutoService
+  -> DossieProdutoGateway
+  -> DossieProdutoClient
+  -> POST /simtr/dossie-produto/v1/dossie-produto
+  -> DossieProdutoMapper
+  -> resposta do arvore-documento com HTTP 201
 ```
 
 ## Pacotes
@@ -208,18 +278,26 @@ br.gov.caixa.simtr.arvoredocumento
 |   |-- dev
 |   |-- dto
 |   |   |-- erro
+|   |   |-- dossieproduto
 |   |   |-- parametrizacao.checklist
 |   |   `-- parametrizacao.processo
 |   |-- exception
+|   |-- dossieproduto
 |   `-- parametrizacao
 |-- application
+|   |-- dossieproduto
 |   `-- parametrizacao
 |-- domain
+|   |-- dossieproduto
 |   |-- parametrizacao.checklist
 |   `-- parametrizacao.processo
 |-- infrastructure
-|   `-- client.parametrizacao
+|   `-- client
+|       |-- dossieproduto
+|       |-- mock
+|       `-- parametrizacao
 |-- mapper
+|   |-- dossieproduto
 |   `-- parametrizacao
 `-- shared
     |-- exception
@@ -229,13 +307,19 @@ br.gov.caixa.simtr.arvoredocumento
 | Pacote | Responsabilidade |
 |---|---|
 | `api.parametrizacao` | Endpoint REST exposto pelo `arvore-documento` |
+| `api.dossieproduto` | Endpoint REST de negocio para dossies produto |
 | `api.dev` | Redirect de `/` para Dev UI em dev mode |
 | `api.dto` | Contratos REST de sucesso e erro |
 | `api.exception` | Conversao de excecoes para resposta HTTP |
 | `application.parametrizacao` | Caso de uso e escolha entre simulador e MTR |
+| `application.dossieproduto` | Caso de uso de dossie produto e escolha entre simulador e MTR |
 | `domain.parametrizacao.processo` | Modelo interno em VOs |
+| `domain.dossieproduto` | Modelo interno em VOs para dossie produto |
 | `infrastructure.client.parametrizacao` | Gateway e REST Client do MTR |
+| `infrastructure.client.dossieproduto` | Gateway e REST Client do `simtr-dossie-produto` |
+| `infrastructure.client.mock` | Leitor comum de mocks em Markdown com corpo JSON |
 | `mapper.parametrizacao` | Conversao DTO/VO |
+| `mapper.dossieproduto` | Conversao DTO/VO de dossie produto |
 | `shared.observability` | Logs estruturados com contexto de trace |
 
 ## Configuracao atual
@@ -266,10 +350,16 @@ quarkus.rest-client.parametrizacao-checklist.url=http://localhost:8081
 quarkus.rest-client.parametrizacao-checklist.connect-timeout=3000
 quarkus.rest-client.parametrizacao-checklist.read-timeout=10000
 
+quarkus.rest-client.dossie-produto.url=https://api.des.caixa:8443/simtr
+quarkus.rest-client.dossie-produto.connect-timeout=3000
+quarkus.rest-client.dossie-produto.read-timeout=10000
+
 arvore-documento.simulador.parametrizacao-processo.habilitado=false
 %dev.arvore-documento.simulador.parametrizacao-processo.habilitado=true
 arvore-documento.simulador.parametrizacao-checklist.habilitado=false
 %dev.arvore-documento.simulador.parametrizacao-checklist.habilitado=true
+arvore-documento.simulador.dossie-produto.habilitado=false
+%dev.arvore-documento.simulador.dossie-produto.habilitado=true
 ```
 
 Configuracao de observabilidade atual:
@@ -331,6 +421,7 @@ Em ambiente real, configure a URL do MTR por variavel de ambiente:
 ```bash
 export QUARKUS_REST_CLIENT_PARAMETRIZACAO_PROCESSO_URL=https://simtr-parametrizacao-des.apps.nprd.caixa
 export QUARKUS_REST_CLIENT_PARAMETRIZACAO_CHECKLIST_URL=https://simtr-parametrizacao-des.apps.nprd.caixa
+export QUARKUS_REST_CLIENT_DOSSIE_PRODUTO_URL=https://api.des.caixa:8443/simtr
 ```
 
 ## Mock da parametrizacao
@@ -520,7 +611,56 @@ Exemplo ja versionado:
 1000012583-v1-checklist-parametrizacao-versao-1.md
 ```
 
-### Como chamar o MTR real em dev mode
+## Mock do dossie produto
+
+O simulador de dossie produto permite desenvolver o endpoint de criacao basica sem chamar o MTR real.
+
+O simulador e controlado pela propriedade:
+
+```properties
+arvore-documento.simulador.dossie-produto.habilitado=false
+%dev.arvore-documento.simulador.dossie-produto.habilitado=true
+```
+
+Com isso:
+
+- fora do dev mode, o padrao e chamar o REST Client real do `simtr-dossie-produto`;
+- em dev mode, o padrao e usar o mock local;
+- quando o mock esta ativo, o fluxo nao chama o REST Client de dossie produto;
+- o `DossieProdutoService` chama `DossieProdutoMockFactory`;
+- o retorno mockado continua passando pelo mapper correspondente, mantendo o fluxo DTO -> VO -> DTO da API.
+
+### Arquivos de mock do dossie produto
+
+O arquivo usado em runtime fica em:
+
+```text
+src/main/resources/mock/dossieproduto/criacao-basica-dossie-produto.md
+```
+
+A copia documental fica em:
+
+```text
+doc/mock/dossie-produto/criacao-basica-dossie-produto.md
+```
+
+O arquivo documenta a chamada original e contem o corpo JSON retornado pelo MTR na secao:
+
+```markdown
+## dados do mock corpo do retorno json
+```
+
+Resposta mockada atual:
+
+```json
+{
+  "id": 1
+}
+```
+
+Para adicionar outro cenario de mock de criacao de dossie produto, crie um novo arquivo Markdown em `src/main/resources/mock/dossieproduto`, mantenha a secao `## dados do mock corpo do retorno json` e coloque abaixo dela o JSON de resposta esperado.
+
+## Como chamar o MTR real em dev mode
 
 Se precisar testar a integracao real mesmo em dev mode, desabilite o simulador:
 
@@ -534,11 +674,18 @@ Para desabilitar apenas o simulador de checklist:
 mvn quarkus:dev -Ddebug=false "-Darvore-documento.simulador.parametrizacao-checklist.habilitado=false"
 ```
 
+Para desabilitar apenas o simulador de dossie produto:
+
+```powershell
+mvn quarkus:dev -Ddebug=false "-Darvore-documento.simulador.dossie-produto.habilitado=false"
+```
+
 Ou configure por variavel de ambiente:
 
 ```powershell
 $env:ARVORE_DOCUMENTO_SIMULADOR_PARAMETRIZACAO_PROCESSO_HABILITADO="false"
 $env:ARVORE_DOCUMENTO_SIMULADOR_PARAMETRIZACAO_CHECKLIST_HABILITADO="false"
+$env:ARVORE_DOCUMENTO_SIMULADOR_DOSSIE_PRODUTO_HABILITADO="false"
 ```
 
 Nesse caso, configure tambem a URL real do MTR:
@@ -546,6 +693,7 @@ Nesse caso, configure tambem a URL real do MTR:
 ```powershell
 $env:QUARKUS_REST_CLIENT_PARAMETRIZACAO_PROCESSO_URL="https://simtr-parametrizacao-des.apps.nprd.caixa"
 $env:QUARKUS_REST_CLIENT_PARAMETRIZACAO_CHECKLIST_URL="https://simtr-parametrizacao-des.apps.nprd.caixa"
+$env:QUARKUS_REST_CLIENT_DOSSIE_PRODUTO_URL="https://api.des.caixa:8443/simtr"
 ```
 
 ## Perfis de observabilidade
@@ -760,6 +908,31 @@ Invoke-WebRequest `
 Invoke-WebRequest `
   -Uri "http://localhost:8080/arvore-documento/v1/checklist/identificador-negocial/1000012583/versao/1" `
   -Headers @{ Accept = "application/json" }
+
+$body = @{
+  processo = 0
+  chave_correlacao_canal = 0
+  numero_negocio = 0
+  clientes = @(
+    @{
+      cpf = "string"
+      cnpj = "string"
+      tipo_vinculo = 0
+      cliente_relacionado = @{
+        cpf = "string"
+        cnpj = "string"
+      }
+      sequencia_titularidade = 0
+    }
+  )
+} | ConvertTo-Json -Depth 5
+
+Invoke-WebRequest `
+  -Uri "http://localhost:8080/arvore-documento/v1/dossie-produto" `
+  -Method POST `
+  -ContentType "application/json" `
+  -Headers @{ Accept = "application/json" } `
+  -Body $body
 ```
 
 ### Conferir log JSON local
@@ -776,7 +949,7 @@ Fluxo:
 
 ```text
 MTR retorna 4xx/5xx
-  -> ParametrizacaoClientExceptionMapper.toException(...)
+  -> ParametrizacaoClientExceptionMapper.toException(...) ou DossieProdutoClientExceptionMapper.toException(...)
   -> ClientErrorBodyReader
   -> MtrBusinessErrorException, MtrClientTechnicalException ou MtrServerErrorException
   -> MtrRestClientExceptionMapper
@@ -811,7 +984,7 @@ Erros de negocio (`400`, `404`, `409`, `422`) abortam retry e sao ignorados pelo
 
 ## Logs de REST Client
 
-As chamadas dos REST Clients de parametrizacao passam pelo `RestClientObservabilityFilter`. O filtro registra dois eventos por chamada:
+As chamadas dos REST Clients de parametrizacao e dossie produto passam pelo `RestClientObservabilityFilter`. O filtro registra dois eventos por chamada:
 
 - `mtr.rest-client.request.enviada`
 - `mtr.rest-client.response.recebida`
@@ -849,8 +1022,11 @@ A observabilidade atual tem duas saidas sempre ativas e duas saidas opcionais:
 | API | `arvore-documento.api.checklist.consultar` |
 | Aplicacao | `arvore-documento.service.checklist.consultar` |
 | Integracao MTR | `mtr.parametrizacao.checklist.consultar` |
+| API | `arvore-documento.api.dossie-produto.criar` |
+| Aplicacao | `arvore-documento.service.dossie-produto.criar` |
+| Integracao MTR | `mtr.dossie-produto.criar` |
 
-O span `mtr.parametrizacao.processo.consultar` aparece quando o simulador esta desabilitado.
+Os spans de integracao MTR aparecem quando o simulador correspondente esta desabilitado.
 
 ### Campos de log
 
@@ -868,6 +1044,7 @@ identificador_negocial
 resultado
 erro_tipo
 processo_nome
+dossie_produto_id
 ```
 
 Exemplo de linha JSON:
@@ -1408,4 +1585,5 @@ Get-Content -Tail 20 target/logs/arvore-documento.json
 3. Adicionar configuracao versionada de OpenTelemetry Collector para enviar traces ao Tempo e logs ao Loki.
 4. Adicionar testes unitarios para `ProcessoService` cobrindo simulador e MTR real.
 5. Adicionar stub/WireMock para respostas `200`, `404`, `500` e timeout do `simtr-parametrizacao`.
-6. Criar dashboard Grafana com latencia, erro, volume e correlacao por `traceId`.
+6. Adicionar stub/WireMock para respostas `201`, `400`, `403`, `404`, `409`, `500` e timeout do `simtr-dossie-produto`.
+7. Criar dashboard Grafana com latencia, erro, volume e correlacao por `traceId`.

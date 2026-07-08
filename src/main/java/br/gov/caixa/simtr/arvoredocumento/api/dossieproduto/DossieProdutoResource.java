@@ -1,0 +1,191 @@
+package br.gov.caixa.simtr.arvoredocumento.api.dossieproduto;
+
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriacaoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriadoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.erro.ErroPadraoDto;
+import br.gov.caixa.simtr.arvoredocumento.application.dossieproduto.DossieProdutoService;
+import br.gov.caixa.simtr.arvoredocumento.mapper.dossieproduto.DossieProdutoMapper;
+import br.gov.caixa.simtr.arvoredocumento.shared.observability.ObservabilityLog;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
+import io.smallrye.mutiny.Uni;
+import jakarta.inject.Inject;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.jboss.logging.Logger;
+
+@Path("/arvore-documento/v1/dossie-produto")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+@Tag(name = "Negócio - Dossiê Produto", description = "Proxy da API de Apoio ao Negócio de Dossiês Produto do SIMTR")
+public class DossieProdutoResource {
+
+    private static final Logger LOG = Logger.getLogger(DossieProdutoResource.class);
+
+    private final DossieProdutoService dossieProdutoService;
+    private final DossieProdutoMapper dossieProdutoMapper;
+
+    @Inject
+    public DossieProdutoResource(DossieProdutoService dossieProdutoService,
+                                 DossieProdutoMapper dossieProdutoMapper) {
+        this.dossieProdutoService = dossieProdutoService;
+        this.dossieProdutoMapper = dossieProdutoMapper;
+    }
+
+    @POST
+    @WithSpan(value = "arvore-documento.api.dossie-produto.criar", kind = SpanKind.SERVER)
+    @Operation(
+            summary = "Cria dossiê de produto em modo rascunho",
+            description = "Recebe a chamada no contrato do arvore-documento, aciona o serviço de aplicação e cria o dossiê de produto no simtr-dossie-produto."
+    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "201",
+                    description = "Dossiê de Produto criado com sucesso.",
+                    content = @Content(schema = @Schema(implementation = DossieProdutoCriadoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "400",
+                    description = "Requisição inválida.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "401",
+                    description = "Não autorizado.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "403",
+                    description = "Canal ou usuário sem permissão para criar o Dossiê de Produto.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "404",
+                    description = "Parâmetro não localizado para a criação do Dossiê de Produto.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "409",
+                    description = "Conflito ao processar a requisição.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "500",
+                    description = "Erro interno.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            )
+    })
+    public Uni<Response> criarDossieProduto(
+            @NotNull(message = "O corpo da requisicao deve ser informado.")
+            @Valid DossieProdutoCriacaoDto requisicao) {
+
+        Long processo = processo(requisicao);
+        Long chaveCorrelacaoCanal = chaveCorrelacaoCanal(requisicao);
+        Integer quantidadeClientes = quantidadeClientes(requisicao);
+
+        Span span = Span.current();
+        span.setAttribute("http.route", "/arvore-documento/v1/dossie-produto");
+        span.setAttribute("arvore_documento.api", "dossie-produto-v1");
+        setLongAttribute(span, "dossie_produto.processo", processo);
+        setLongAttribute(span, "dossie_produto.chave_correlacao_canal", chaveCorrelacaoCanal);
+        setIntAttribute(span, "dossie_produto.clientes.quantidade", quantidadeClientes);
+
+        ObservabilityLog.info(
+                LOG,
+                "arvore-documento.dossie-produto.requisicao.recebida",
+                ObservabilityLog.fields(
+                        "camada", "api",
+                        "componente", "DossieProdutoResource",
+                        "operacao", "criar-dossie-produto",
+                        "processo", processo,
+                        "chave_correlacao_canal", chaveCorrelacaoCanal,
+                        "clientes_quantidade", quantidadeClientes
+                )
+        );
+
+        return dossieProdutoService.criarDossieProduto(dossieProdutoMapper.toVo(requisicao))
+                .map(dossieProdutoMapper::toDto)
+                .invoke(resposta -> {
+                    if (resposta != null && resposta.id() != null) {
+                        span.setAttribute("dossie_produto.id", resposta.id());
+                    }
+
+                    ObservabilityLog.info(
+                            LOG,
+                            "arvore-documento.dossie-produto.resposta.enviada",
+                            ObservabilityLog.fields(
+                                    "camada", "api",
+                                    "componente", "DossieProdutoResource",
+                                    "operacao", "criar-dossie-produto",
+                                    "processo", processo,
+                                    "chave_correlacao_canal", chaveCorrelacaoCanal,
+                                    "dossie_produto_id", resposta != null ? resposta.id() : null,
+                                    "resultado", "sucesso"
+                            )
+                    );
+                })
+                .map(resposta -> Response.status(Response.Status.CREATED)
+                        .entity(resposta)
+                        .build())
+                .onFailure().invoke(erro -> {
+                    span.recordException(erro);
+                    span.setStatus(StatusCode.ERROR, String.valueOf(erro.getMessage()));
+
+                    ObservabilityLog.error(
+                            LOG,
+                            "arvore-documento.dossie-produto.requisicao.falhou",
+                            erro,
+                            ObservabilityLog.fields(
+                                    "camada", "api",
+                                    "componente", "DossieProdutoResource",
+                                    "operacao", "criar-dossie-produto",
+                                    "processo", processo,
+                                    "chave_correlacao_canal", chaveCorrelacaoCanal,
+                                    "erro_tipo", erro.getClass().getSimpleName(),
+                                    "resultado", "erro"
+                            )
+                    );
+                });
+    }
+
+    private static Long processo(DossieProdutoCriacaoDto requisicao) {
+        return requisicao != null ? requisicao.processo() : null;
+    }
+
+    private static Long chaveCorrelacaoCanal(DossieProdutoCriacaoDto requisicao) {
+        return requisicao != null ? requisicao.chaveCorrelacaoCanal() : null;
+    }
+
+    private static Integer quantidadeClientes(DossieProdutoCriacaoDto requisicao) {
+        if (requisicao == null || requisicao.clientes() == null) {
+            return null;
+        }
+        return requisicao.clientes().size();
+    }
+
+    private static void setLongAttribute(Span span, String nome, Long valor) {
+        if (valor != null) {
+            span.setAttribute(nome, valor);
+        }
+    }
+
+    private static void setIntAttribute(Span span, String nome, Integer valor) {
+        if (valor != null) {
+            span.setAttribute(nome, valor);
+        }
+    }
+}

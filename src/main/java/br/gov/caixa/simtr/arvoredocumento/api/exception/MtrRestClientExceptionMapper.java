@@ -32,7 +32,7 @@ public class MtrRestClientExceptionMapper implements ExceptionMapper<MtrRestClie
         Map<String, Object> campos = ObservabilityLog.fields(
                 "camada", "api",
                 "componente", "MtrRestClientExceptionMapper",
-                "dependencia", "simtr-parametrizacao",
+                "dependencia", erro != null && erro.recurso() != null ? erro.recurso() : "mtr",
                 "status_http", exception.status(),
                 "tipo_erro_mtr", exception.tipoErro().codigo(),
                 "classe_exception", exception.getClass().getName(),

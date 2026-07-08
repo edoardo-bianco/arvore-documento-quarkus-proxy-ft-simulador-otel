@@ -1,4 +1,4 @@
-package br.gov.caixa.simtr.arvoredocumento.infrastructure.client.parametrizacao;
+package br.gov.caixa.simtr.arvoredocumento.infrastructure.client.dossieproduto;
 
 import br.gov.caixa.simtr.arvoredocumento.api.dto.erro.ErroPadraoDto;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.ClientErrorBodyReader;
@@ -7,11 +7,11 @@ import br.gov.caixa.simtr.arvoredocumento.shared.exception.MtrClientTechnicalExc
 import br.gov.caixa.simtr.arvoredocumento.shared.exception.MtrServerErrorException;
 import jakarta.ws.rs.core.Response;
 
-final class ParametrizacaoClientExceptionMapper {
+final class DossieProdutoClientExceptionMapper {
 
-    private static final String RECURSO = "simtr-parametrizacao";
+    private static final String RECURSO = "simtr-dossie-produto";
 
-    private ParametrizacaoClientExceptionMapper() {
+    private DossieProdutoClientExceptionMapper() {
     }
 
     static RuntimeException toException(Response response) {
