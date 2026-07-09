@@ -1,102 +1,186 @@
 # arvore-documento
 
-Microsserviço Quarkus usado como proxy/adapter para a árvore de documento do MTR.
+Microsservico Quarkus usado como proxy/adapter entre consumidores internos e APIs MTR relacionadas a arvore documental, parametrizacao e dossie produto.
 
-## Endpoint implementado
+O projeto nao faz apenas repasse HTTP. Ele cria uma fronteira com DTOs, VOs, mappers, service, gateway, tratamento de erro, resiliencia, simulador e observabilidade.
+
+## Endpoints implementados
 
 ### API exposta pelo `arvore-documento`
 
 ```http
 GET /arvore-documento/v1/processo/identificador-negocial/{identificador}
 GET /arvore-documento/v1/checklist/identificador-negocial/{identificador}/versao/{versao}
+POST /arvore-documento/v1/dossie-produto
 ```
 
-### API consumida no MTR
+### APIs consumidas no MTR
 
 ```http
-GET /simtr-parametrizacao/v2/patriarca/processo/identificador-negocial/{identificador}
-GET /simtr-parametrizacao/v1/cadastro/checklist/identificador-negocial/{identificador}/versao/{versao}
+GET /simtr/parametrizacao/v2/patriarca/processo/identificador-negocial/{identificador}
+GET /simtr/parametrizacao/v1/cadastro/checklist/identificador-negocial/{identificador}/versao/{versao}
+POST /simtr/dossie-produto/v1/dossie-produto
 ```
 
-## Decisão arquitetural
+O endpoint de dossie produto implementa a criacao basica em modo rascunho e retorna HTTP `201` com o id criado:
 
-Este projeto implementa um proxy com camada de serviço e mapeamento explícito, não um repasse direto de HTTP.
+```json
+{
+  "id": 1
+}
+```
 
-Fluxo:
+## Decisao arquitetural
+
+Fluxo padrao:
+
+```text
+Resource
+  -> Service
+      -> se simulador=true
+          -> MockFactory
+      -> se simulador=false
+          -> Gateway
+              -> REST Client MTR
+      -> Mapper.toVo(...)
+  -> Mapper.toDto(...)
+  -> DTO de resposta
+```
+
+Fluxos implementados:
 
 ```text
 ProcessoResource
   -> ProcessoService
-      -> ParametrizacaoProcessoClient
-          -> ProcessoDto
-      -> ProcessoMapper.toVo(...)
-  -> ProcessoMapper.toDto(...)
-  -> ProcessoDto
+  -> ParametrizacaoProcessoGateway ou ProcessoMockFactory
+  -> ProcessoMapper
 
 ChecklistResource
   -> ChecklistService
-      -> ParametrizacaoChecklistClient
-          -> ChecklistDto
-      -> ChecklistMapper.toVo(...)
-  -> ChecklistMapper.toDto(...)
-  -> ChecklistDto
+  -> ParametrizacaoChecklistGateway ou ChecklistMockFactory
+  -> ChecklistMapper
+
+DossieProdutoResource
+  -> DossieProdutoService
+  -> DossieProdutoGateway ou DossieProdutoMockFactory
+  -> DossieProdutoMapper
 ```
 
-## Organização de pacotes
+O ciclo `DTO -> VO -> DTO` e intencional: o VO cria uma fronteira para regras futuras, enriquecimento e adaptacao de contrato sem acoplar a API externa diretamente ao contrato MTR.
+
+## Organizacao de pacotes
 
 ```text
 br.gov.caixa.simtr.arvoredocumento
-├── api
-│   ├── dto
-│   │   ├── erro
-│   │   ├── parametrizacao.checklist
-│   │   └── parametrizacao.processo
-│   ├── exception
-│   └── parametrizacao
-├── application
-│   └── parametrizacao
-├── domain
-│   ├── parametrizacao.checklist
-│   └── parametrizacao.processo
-├── infrastructure
-│   └── client.parametrizacao
-├── mapper
-│   └── parametrizacao
-└── shared
-    └── exception
+|-- api
+|   |-- dossieproduto
+|   |-- dto
+|   |   |-- dossieproduto
+|   |   |-- erro
+|   |   |-- parametrizacao.checklist
+|   |   `-- parametrizacao.processo
+|   |-- exception
+|   `-- parametrizacao
+|-- application
+|   |-- dossieproduto
+|   `-- parametrizacao
+|-- domain
+|   |-- dossieproduto
+|   |-- parametrizacao.checklist
+|   `-- parametrizacao.processo
+|-- infrastructure
+|   `-- client
+|       |-- dossieproduto
+|       |-- mock
+|       `-- parametrizacao
+|-- mapper
+|   |-- dossieproduto
+|   `-- parametrizacao
+`-- shared
+    |-- exception
+    `-- observability
 ```
 
-## Tratamento de erro
+Utilitarios compartilhados:
 
-1. O REST Client chama o `simtr-parametrizacao`.
-2. Para respostas HTTP `4xx` ou `5xx`, o método anotado com `@ClientExceptionMapper` lê o corpo de erro no padrão do MTR.
-3. O client lança `MtrRestClientException` contendo status HTTP e `ErroPadraoDto`.
-4. O `MtrRestClientExceptionMapper` da API REST do `arvore-documento` transforma a exceção novamente no objeto de erro padrão.
-5. Se o MTR retornar erro fora do contrato esperado, a API gera um erro padronizado `ARVDOCP0002`.
+- `ClientErrorBodyReader`: leitura e normalizacao do corpo de erro retornado pelo MTR.
+- `MarkdownJsonMockReader`: leitura de mocks Markdown com secao `## dados do mock corpo do retorno json`.
+- `RestClientObservabilityFilter`: log e atributos de trace para chamadas REST Client.
+- `RequestHeaderFactory`: propagacao do header `apikey`.
 
-## Configuração
+## Configuracao
+
+As URLs atuais usam `https://api.des.caixa:8443/simtr` como base:
 
 ```properties
-quarkus.rest-client.parametrizacao-processo.url=http://localhost:8081
+quarkus.rest-client.parametrizacao-processo.url=https://api.des.caixa:8443/simtr
 quarkus.rest-client.parametrizacao-processo.connect-timeout=3000
 quarkus.rest-client.parametrizacao-processo.read-timeout=10000
 
-quarkus.rest-client.parametrizacao-checklist.url=http://localhost:8081
+quarkus.rest-client.parametrizacao-checklist.url=https://api.des.caixa:8443/simtr
 quarkus.rest-client.parametrizacao-checklist.connect-timeout=3000
 quarkus.rest-client.parametrizacao-checklist.read-timeout=10000
+
+quarkus.rest-client.dossie-produto.url=https://api.des.caixa:8443/simtr
+quarkus.rest-client.dossie-produto.connect-timeout=3000
+quarkus.rest-client.dossie-produto.read-timeout=10000
 ```
 
-Em ambiente real, configurar por variável de ambiente:
+Em ambiente real, as URLs podem ser sobrescritas por variaveis de ambiente:
 
 ```bash
-export QUARKUS_REST_CLIENT_PARAMETRIZACAO_PROCESSO_URL=https://simtr-parametrizacao-des.apps.nprd.caixa
-export QUARKUS_REST_CLIENT_PARAMETRIZACAO_CHECKLIST_URL=https://simtr-parametrizacao-des.apps.nprd.caixa
+export QUARKUS_REST_CLIENT_PARAMETRIZACAO_PROCESSO_URL=https://api.des.caixa:8443/simtr
+export QUARKUS_REST_CLIENT_PARAMETRIZACAO_CHECKLIST_URL=https://api.des.caixa:8443/simtr
+export QUARKUS_REST_CLIENT_DOSSIE_PRODUTO_URL=https://api.des.caixa:8443/simtr
 ```
 
-## Execução local
+Credenciais e apikey:
+
+```properties
+simtr.apikey=${SIMTR_API_KEY}
+%dev.quarkus.oidc.credentials.secret=${SIMTR_OIDC_CLIENT_SECRET}
+%dev.quarkus.oidc.internet.credentials.secret=${SIMTR_OIDC_INTERNET_CLIENT_SECRET}
+```
+
+## Simulador e mocks
+
+Propriedades atuais:
+
+```properties
+arvore-documento.simulador.parametrizacao-processo.habilitado=false
+%dev.arvore-documento.simulador.parametrizacao-processo.habilitado=true
+arvore-documento.simulador.parametrizacao-checklist.habilitado=false
+%dev.arvore-documento.simulador.parametrizacao-checklist.habilitado=true
+arvore-documento.simulador.dossie-produto.habilitado=false
+%dev.arvore-documento.simulador.dossie-produto.habilitado=false
+```
+
+Com isso, processo e checklist usam mock por padrao em dev mode. Dossie produto esta configurado para chamada real tambem em dev mode; para usar o mock de dossie produto, habilite explicitamente:
 
 ```bash
-mvn quarkus:dev
+mvn quarkus:dev -Ddebug=false "-Darvore-documento.simulador.dossie-produto.habilitado=true"
+```
+
+Mocks em runtime:
+
+```text
+src/main/resources/mock/parametrizacao/1000016487-consulta-processo-parametrizacao-v2-identificador-negocial.md
+src/main/resources/mock/parametrizacao/1000009990-consulta-processo-parametrizacao-v2-identificador-negocial.md
+src/main/resources/mock/parametrizacao/1000012583-v1-checklist-parametrizacao-versao-1.md
+src/main/resources/mock/dossieproduto/criacao-basica-dossie-produto.md
+```
+
+Copias documentais:
+
+```text
+doc/mock/parametrizacao
+doc/mock/dossie-produto/criacao-basica-dossie-produto.md
+```
+
+## Execucao local
+
+```bash
+mvn quarkus:dev -Ddebug=false
 ```
 
 Swagger UI:
@@ -111,7 +195,7 @@ OpenAPI:
 GET /arvore-documento/openai
 ```
 
-## Chamada de exemplo
+## Chamadas de exemplo
 
 ```bash
 curl -X GET \
@@ -121,44 +205,54 @@ curl -X GET \
 curl -X GET \
   'http://localhost:8080/arvore-documento/v1/checklist/identificador-negocial/1000012583/versao/1' \
   -H 'Accept: application/json'
+
+curl -X POST \
+  'http://localhost:8080/arvore-documento/v1/dossie-produto' \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "processo": 0,
+    "chave_correlacao_canal": 0,
+    "numero_negocio": 0,
+    "clientes": [
+      {
+        "cpf": "string",
+        "cnpj": "string",
+        "tipo_vinculo": 0,
+        "cliente_relacionado": {
+          "cpf": "string",
+          "cnpj": "string"
+        },
+        "sequencia_titularidade": 0
+      }
+    ]
+  }'
 ```
 
+## Tratamento de erro
 
-## Fault Tolerance e simulador
+1. O REST Client chama o MTR.
+2. Para respostas HTTP `4xx` ou `5xx`, o metodo anotado com `@ClientExceptionMapper` le o corpo de erro no padrao MTR.
+3. O client lanca `MtrRestClientException` contendo status HTTP e `ErroPadraoDto`.
+4. O `MtrRestClientExceptionMapper` da API REST do `arvore-documento` transforma a excecao novamente no objeto de erro padrao.
+5. Se o MTR retornar erro fora do contrato esperado, a API gera um erro padronizado `ARVDOCP0002`.
 
-A chamada para o MTR Parametrização é feita pelos REST Clients de parametrização (`ParametrizacaoProcessoClient` e `ParametrizacaoChecklistClient`) com:
+Erros de negocio (`400`, `404`, `409`, `422`) nao entram em retry nem contam como falha do circuito. Demais `4xx` sao tratados como erro tecnico de cliente. Erros `5xx`, timeout e falha de comunicacao sao tratados como falhas potencialmente transitorias.
+
+## Fault tolerance
+
+Os REST Clients usam:
 
 - `@Timeout` de 2 segundos;
-- `@Retry` com 3 retentativas para erro 5xx, timeout e falha de comunicação;
-- `@CircuitBreaker` para abertura do circuito quando houver falhas recorrentes na integração;
-- `@ClientExceptionMapper` para classificar erro de negócio, erro técnico de cliente e erro técnico de servidor.
-
-Erros de negócio (`400`, `404`, `409`, `422`) não entram em retry nem contam como falha do circuito. Erros técnicos `5xx`, timeout e falha de comunicação são tratados como falhas potencialmente transitórias.
-
-O simulador é controlado por propriedade:
-
-```properties
-arvore-documento.simulador.parametrizacao-processo.habilitado=false
-%dev.arvore-documento.simulador.parametrizacao-processo.habilitado=true
-arvore-documento.simulador.parametrizacao-checklist.habilitado=false
-%dev.arvore-documento.simulador.parametrizacao-checklist.habilitado=true
-```
-
-Quando habilitado, o service correspondente não chama o REST Client do MTR e retorna o DTO mockado pelo factory do domínio (`ProcessoMockFactory` ou `ChecklistMockFactory`).
+- `@Retry` com 3 retentativas para erro 5xx, timeout e falha de comunicacao;
+- `@CircuitBreaker` para abertura do circuito quando houver falhas recorrentes;
+- `@ClientExceptionMapper` para classificar erro de negocio, erro tecnico de cliente e erro tecnico de servidor.
 
 ## Observabilidade
 
-O projeto inclui observabilidade no fluxo do endpoint de processo:
+O projeto registra logs estruturados JSON no console e em `target/logs/arvore-documento.json`.
 
-1. `ProcessoResource` registra o recebimento da requisição e o retorno da resposta.
-2. `ProcessoService` registra a execução do caso de uso e a decisão entre simulador e MTR real.
-3. `ParametrizacaoProcessoGateway` registra a chamada externa ao `simtr-parametrizacao`.
-4. Os REST Clients mantêm `@Timeout`, `@Retry` e `@CircuitBreaker`.
-5. `RestClientObservabilityFilter` registra URL real, método, operação, status, duração e payload truncado das chamadas REST Client.
-
-O endpoint de checklist segue o mesmo padrão com `ChecklistResource`, `ChecklistService`, `ParametrizacaoChecklistGateway` e `ParametrizacaoChecklistClient`.
-
-Spans explícitos criados:
+Spans explicitos:
 
 - `arvore-documento.api.processo.consultar`
 - `arvore-documento.service.processo.consultar`
@@ -166,8 +260,11 @@ Spans explícitos criados:
 - `arvore-documento.api.checklist.consultar`
 - `arvore-documento.service.checklist.consultar`
 - `mtr.parametrizacao.checklist.consultar`
+- `arvore-documento.api.dossie-produto.criar`
+- `arvore-documento.service.dossie-produto.criar`
+- `mtr.dossie-produto.criar`
 
-Logs estruturados JSON ficam habilitados no console e no arquivo `target/logs/arvore-documento.json` com MDC achatado, incluindo campos como:
+Campos comuns nos logs:
 
 - `evento`
 - `traceId`
@@ -176,6 +273,9 @@ Logs estruturados JSON ficam habilitados no console e no arquivo `target/logs/ar
 - `componente`
 - `operacao`
 - `identificador_negocial`
+- `processo`
+- `chave_correlacao_canal`
+- `dossie_produto_id`
 - `resultado`
 - `erro_tipo`
 - `url`
@@ -185,9 +285,9 @@ Logs estruturados JSON ficam habilitados no console e no arquivo `target/logs/ar
 - `response_body`
 - `response_body_truncado`
 
-Por padrão, o projeto não exporta OpenTelemetry para fora. Isso evita erro ou ruído em máquinas sem Docker, Jaeger ou OpenTelemetry Collector. Nesse modo, a observabilidade fica disponível nos logs JSON locais.
+Por padrao, o projeto nao exporta OpenTelemetry para fora. Isso evita erro ou ruido em maquinas sem Docker, Jaeger ou OpenTelemetry Collector.
 
-Configuração padrão:
+Configuracao padrao:
 
 ```properties
 arvore-documento.observabilidade.rest-client.payload.habilitado=true
@@ -209,8 +309,22 @@ quarkus.log.file.path=target/logs/arvore-documento.json
 quarkus.log.file.json.enabled=true
 ```
 
-Para enviar traces e logs OpenTelemetry ao Jaeger, suba o Jaeger/OTLP em `localhost:4317` e rode com o profile opcional:
+Para enviar traces e logs OpenTelemetry ao Jaeger, suba Jaeger/OTLP em `localhost:4317` e rode com o profile opcional:
 
 ```bash
 mvn quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,jaeger"
+```
+
+Para usar Grafana/Tempo/Loki via OpenTelemetry Collector em `localhost:4317`:
+
+```bash
+mvn quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,grafana"
+```
+
+## Documentacao complementar
+
+Detalhes completos de arquitetura, mock, observabilidade e troubleshooting ficam em:
+
+```text
+doc/documentacao-arvore-documento-quarkus-proxy-observabilidade.md
 ```
