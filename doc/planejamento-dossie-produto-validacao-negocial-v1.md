@@ -9,7 +9,7 @@ Status: revisado, aprovado pelo usuario e implementado em 2026-07-10. Implementa
 Implementar no SIMTR Hub o proxy do endpoint de validacao negocial do Dossie Produto:
 
 ```http
-PATCH /arvore-documento/v1/dossie-produto/{id}/validacao-negocial
+PATCH /hub/v1/dossie-produto/{id}/validacao-negocial
 ```
 
 Esse endpoint deve chamar o MTR:
@@ -41,12 +41,12 @@ Nao deve duplicar `/simtr` e nao deve usar diretamente o prefixo bruto `/simtr-d
 - `pom.xml`
 - `src/main/resources/application.properties`
 - `src/test/resources/application.properties`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dossieproduto/DossieProdutoResource.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/application/dossieproduto/DossieProdutoService.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoClient.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoGateway.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/mock/DossieProdutoMockFactory.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/dossieproduto/DossieProdutoMapper.java`
+- `src/main/java/br/gov/caixa/simtr/hub/api/dossieproduto/DossieProdutoResource.java`
+- `src/main/java/br/gov/caixa/simtr/hub/application/dossieproduto/DossieProdutoService.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/DossieProdutoClient.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/DossieProdutoGateway.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/mock/DossieProdutoMockFactory.java`
+- `src/main/java/br/gov/caixa/simtr/hub/mapper/dossieproduto/DossieProdutoMapper.java`
 - Testes existentes de resource, service, gateway, mock factory, mapper e fixtures.
 
 ## Contexto funcional
@@ -199,7 +199,7 @@ Status relevantes no OpenAPI:
 Manter o padrao externo atual do Hub:
 
 ```http
-PATCH /arvore-documento/v1/dossie-produto/{id}/validacao-negocial
+PATCH /hub/v1/dossie-produto/{id}/validacao-negocial
 ```
 
 Retornar `200 OK` sem corpo.
@@ -209,7 +209,7 @@ Retornar `200 OK` sem corpo.
 1. Manter o endpoint no resource existente:
 
 ```text
-src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dossieproduto/DossieProdutoResource.java
+src/main/java/br/gov/caixa/simtr/hub/api/dossieproduto/DossieProdutoResource.java
 ```
 
 2. Criar DTOs especificos para validacao negocial, sem reaproveitar DTOs de formulario/documento, porque o contrato tem estrutura propria e resposta sem corpo.
@@ -287,7 +287,7 @@ Se o MTR rejeitar algum desses casos em homologacao, ajustar com evidencia e reg
 
 ### Criar DTOs
 
-Em `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dto/dossieproduto`:
+Em `src/main/java/br/gov/caixa/simtr/hub/api/dto/dossieproduto`:
 
 - `DossieProdutoValidacaoNegocialDto.java`
 - `DossieProdutoValidacaoNegocialVerificacaoDto.java`
@@ -299,7 +299,7 @@ Em `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dto/dossieproduto`:
 
 ### Criar VOs
 
-Em `src/main/java/br/gov/caixa/simtr/arvoredocumento/domain/dossieproduto`:
+Em `src/main/java/br/gov/caixa/simtr/hub/domain/dossieproduto`:
 
 - `DossieProdutoValidacaoNegocialVo.java`
 - `DossieProdutoValidacaoNegocialVerificacaoVo.java`
@@ -311,19 +311,19 @@ Em `src/main/java/br/gov/caixa/simtr/arvoredocumento/domain/dossieproduto`:
 
 ### Alterar classes existentes
 
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dossieproduto/DossieProdutoResource.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/application/dossieproduto/DossieProdutoService.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoClient.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoGateway.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/mock/DossieProdutoMockFactory.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/dossieproduto/DossieProdutoMapper.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/TestFixtures.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceEndpointTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceBeanCoverageTest.java`, se a cobertura/instanciacao exigir.
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/application/dossieproduto/DossieProdutoServiceTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/GatewayTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/mock/MockFactoryTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/mapper/dossieproduto/DossieProdutoMapperTest.java`
+- `src/main/java/br/gov/caixa/simtr/hub/api/dossieproduto/DossieProdutoResource.java`
+- `src/main/java/br/gov/caixa/simtr/hub/application/dossieproduto/DossieProdutoService.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/DossieProdutoClient.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/DossieProdutoGateway.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/mock/DossieProdutoMockFactory.java`
+- `src/main/java/br/gov/caixa/simtr/hub/mapper/dossieproduto/DossieProdutoMapper.java`
+- `src/test/java/br/gov/caixa/simtr/hub/TestFixtures.java`
+- `src/test/java/br/gov/caixa/simtr/hub/api/ResourceEndpointTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/api/ResourceBeanCoverageTest.java`, se a cobertura/instanciacao exigir.
+- `src/test/java/br/gov/caixa/simtr/hub/application/dossieproduto/DossieProdutoServiceTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/infrastructure/client/GatewayTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/infrastructure/client/mock/MockFactoryTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/mapper/dossieproduto/DossieProdutoMapperTest.java`
 - `doc/espaco-colaborativo-de-desenvolvimento.md`
 - `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`, se a implementacao consolidar informacao de contrato ou observabilidade que deva entrar na documentacao principal.
 
@@ -357,14 +357,14 @@ mvn -q test
 
 Resource:
 
-- Span: `arvore-documento.api.dossie-produto.validacao-negocial.registrar`.
-- `http.route`: `/arvore-documento/v1/dossie-produto/{id}/validacao-negocial`.
+- Span: `simtr-hub.api.dossie-produto.validacao-negocial.registrar`.
+- `http.route`: `/hub/v1/dossie-produto/{id}/validacao-negocial`.
 - Atributos: `dossie_produto.id`, `dossie_produto.validacao.verificacoes.quantidade`, `dossie_produto.validacao.respostas_formulario.quantidade`.
 - Logs de recebimento, sucesso e falha com `camada=api`.
 
 Service:
 
-- Span: `arvore-documento.service.dossie-produto.validacao-negocial.registrar`.
+- Span: `simtr-hub.service.dossie-produto.validacao-negocial.registrar`.
 - Registrar `simulador_habilitado`, origem `mock` ou `mtr`, id do dossie, quantidade de verificacoes e quantidade de respostas de formulario.
 
 Gateway:
@@ -375,7 +375,7 @@ Gateway:
 
 ## Testes previstos
 
-1. `ResourceEndpointTest`: `PATCH /arvore-documento/v1/dossie-produto/{id}/validacao-negocial` retorna `200` sem corpo relevante.
+1. `ResourceEndpointTest`: `PATCH /hub/v1/dossie-produto/{id}/validacao-negocial` retorna `200` sem corpo relevante.
 2. `ResourceEndpointTest`: `id=0` retorna `400` com erro padronizado `ARVDOCP0001`.
 3. `ResourceEndpointTest`: body ausente retorna `400` com erro padronizado.
 4. `DossieProdutoServiceTest`: com simulador habilitado usa `DossieProdutoMockFactory`.
@@ -402,7 +402,7 @@ Gateway:
 
 ## Criterios de aceite
 
-- Endpoint do Hub disponivel em `PATCH /arvore-documento/v1/dossie-produto/{id}/validacao-negocial`.
+- Endpoint do Hub disponivel em `PATCH /hub/v1/dossie-produto/{id}/validacao-negocial`.
 - Chamada MTR montada como `/simtr/dossie-produto/v1/dossie-produto/{id}/validacao-negocial` via configuracao atual.
 - Request serializa/deserializa campos snake_case do contrato canonico.
 - Aliases documentais `verificacoes_realizadas` e `resposta_formulario` nao sao modelados; o contrato aceito segue o OpenAPI implementado no MTR.

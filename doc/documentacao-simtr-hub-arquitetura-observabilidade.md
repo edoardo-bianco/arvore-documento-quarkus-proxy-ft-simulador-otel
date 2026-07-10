@@ -44,9 +44,19 @@ O projeto nao faz apenas repasse HTTP. Ele cria uma fronteira controlada para:
 
 O nome funcional da solucao e `SIMTR Hub`.
 
-Alguns exemplos, paths, propriedades, span names, arquivos de log e packages ainda usam o identificador tecnico legado `arvore-documento`, porque a aplicacao ainda nao passou pela migracao completa de nomenclatura no codigo. Esses identificadores devem ser tratados como legado tecnico temporario.
+A identidade tecnica consolidada da aplicacao e `simtr-hub`.
 
-A migracao futura deve substituir o root tecnico `br.gov.caixa.simtr.arvoredocumento` por um root coerente com `simtr-hub`, em momento proprio e com testes de regressao completos.
+Identificadores principais:
+
+```text
+root Java: br.gov.caixa.simtr.hub
+artifactId/name: simtr-hub
+quarkus.application.name: simtr-hub
+paths externos: /hub/...
+propriedades: simtr-hub.*
+logs locais: target/logs/simtr-hub.json
+spans/eventos: simtr-hub.*
+```
 
 Tecnologias principais:
 
@@ -73,7 +83,7 @@ GET /simtr-parametrizacao/v2/patriarca/processo/identificador-negocial/{identifi
 Com o `SIMTR Hub`, o consumidor passa a chamar uma API de dominio:
 
 ```http
-GET /arvore-documento/v1/processo/identificador-negocial/{identificador}
+GET /hub/v1/processo/identificador-negocial/{identificador}
 ```
 
 Beneficios praticos:
@@ -113,17 +123,17 @@ Status: revisado, aprovado e implementado em 2026-07-10.
 ### API de negocio
 
 ```http
-GET http://localhost:8080/arvore-documento/v1/processo/identificador-negocial/1
+GET http://localhost:8080/hub/v1/processo/identificador-negocial/1
 Accept: application/json
 ```
 
 ```http
-GET http://localhost:8080/arvore-documento/v1/checklist/identificador-negocial/1000012583/versao/1
+GET http://localhost:8080/hub/v1/checklist/identificador-negocial/1000012583/versao/1
 Accept: application/json
 ```
 
 ```http
-POST http://localhost:8080/arvore-documento/v1/dossie-produto
+POST http://localhost:8080/hub/v1/dossie-produto
 Content-Type: application/json
 Accept: application/json
 ```
@@ -165,7 +175,7 @@ HTTP/1.1 201 Created
 ```
 
 ```http
-PATCH http://localhost:8080/arvore-documento/v1/dossie-produto/{id}/formulario
+PATCH http://localhost:8080/hub/v1/dossie-produto/{id}/formulario
 Content-Type: application/json
 Accept: application/json
 ```
@@ -225,7 +235,7 @@ HTTP/1.1 201 Created
 ```
 
 ```http
-POST http://localhost:8080/arvore-documento/v1/dossie-produto/{id}/documento
+POST http://localhost:8080/hub/v1/dossie-produto/{id}/documento
 Content-Type: application/json
 Accept: application/json
 ```
@@ -292,7 +302,7 @@ HTTP/1.1 201 Created
 ```
 
 ```http
-PATCH http://localhost:8080/arvore-documento/v1/dossie-produto/{id}/validacao-negocial
+PATCH http://localhost:8080/hub/v1/dossie-produto/{id}/validacao-negocial
 Content-Type: application/json
 Accept: application/json
 ```
@@ -355,7 +365,7 @@ HTTP/1.1 200 OK
 Sem corpo de resposta.
 
 ```http
-POST http://localhost:8080/arvore-documento/v1/dossie-produto/{id}/workflow
+POST http://localhost:8080/hub/v1/dossie-produto/{id}/workflow
 Accept: application/json
 ```
 
@@ -382,7 +392,7 @@ Parametro:
 ### Gestao de Documentos - credencial de container
 
 ```http
-POST http://localhost:8080/arvore-documento/v1/storage/container/credencial
+POST http://localhost:8080/hub/v1/storage/container/credencial
 Accept: application/json
 ```
 
@@ -405,7 +415,7 @@ O campo `sas` e credencial sensivel e nao deve ser exposto em logs de aplicacao.
 ### Swagger UI
 
 ```http
-GET http://localhost:8080/arvore-documento/doc/
+GET http://localhost:8080/hub/doc/
 ```
 
 ### OpenAPI
@@ -413,7 +423,7 @@ GET http://localhost:8080/arvore-documento/doc/
 O projeto esta configurado com o path abaixo:
 
 ```http
-GET http://localhost:8080/arvore-documento/openapi
+GET http://localhost:8080/hub/openapi
 ```
 
 ### Health check
@@ -440,6 +450,7 @@ Fluxo principal:
 
 ```text
 ProcessoResource
+  -> ParametrizacaoFachada
   -> ProcessoService
       -> se simulador=true
           -> ProcessoMockFactory
@@ -452,6 +463,7 @@ ProcessoResource
   -> ProcessoDto
 
 ChecklistResource
+  -> ParametrizacaoFachada
   -> ChecklistService
       -> se simulador=true
           -> ChecklistMockFactory
@@ -464,6 +476,7 @@ ChecklistResource
   -> ChecklistDto
 
 DossieProdutoResource
+  -> DossieProdutoFachada
   -> DossieProdutoService
       -> se simulador=true
           -> DossieProdutoMockFactory
@@ -476,6 +489,7 @@ DossieProdutoResource
   -> DossieProdutoCriadoDto, DossieProdutoDocumentoCriadoDto ou resposta sem corpo
 
 GestaoDocumentoResource
+  -> GestaoDocumentoFachada
   -> GestaoDocumentoService
       -> se simulador=true
           -> GestaoDocumentoMockFactory
@@ -490,59 +504,61 @@ GestaoDocumentoResource
 
 O fluxo `DTO -> VO -> DTO` e proposital. Mesmo que o contrato atual seja parecido com o retorno do MTR, o VO cria uma fronteira para regras futuras, enriquecimento e adaptacao de contrato.
 
+As fachadas (`ParametrizacaoFachada`, `DossieProdutoFachada` e `GestaoDocumentoFachada`) sao a fronteira interna dos dominios. Elas mantem o resource desacoplado do service e facilitam uma futura troca de chamada local por chamada HTTP, mensageria ou extracao do dominio como microservico independente.
+
 ### Fluxo com simulador
 
 ```text
-HTTP GET /arvore-documento/v1/processo/identificador-negocial/{id}
+HTTP GET /hub/v1/processo/identificador-negocial/{id}
   -> ProcessoResource
   -> ProcessoService
   -> ProcessoMockFactory
   -> ProcessoMapper
   -> resposta mockada
 
-HTTP GET /arvore-documento/v1/checklist/identificador-negocial/{id}/versao/{versao}
+HTTP GET /hub/v1/checklist/identificador-negocial/{id}/versao/{versao}
   -> ChecklistResource
   -> ChecklistService
   -> ChecklistMockFactory
   -> ChecklistMapper
   -> resposta mockada
 
-HTTP POST /arvore-documento/v1/dossie-produto
+HTTP POST /hub/v1/dossie-produto
   -> DossieProdutoResource
   -> DossieProdutoService
   -> DossieProdutoMockFactory
   -> DossieProdutoMapper
   -> resposta mockada com id do dossie produto
 
-HTTP PATCH /arvore-documento/v1/dossie-produto/{id}/formulario
+HTTP PATCH /hub/v1/dossie-produto/{id}/formulario
   -> DossieProdutoResource
   -> DossieProdutoService
   -> DossieProdutoMockFactory
   -> DossieProdutoMapper
   -> resposta mockada com id do dossie produto
 
-HTTP POST /arvore-documento/v1/dossie-produto/{id}/documento
+HTTP POST /hub/v1/dossie-produto/{id}/documento
   -> DossieProdutoResource
   -> DossieProdutoService
   -> DossieProdutoMockFactory
   -> DossieProdutoMapper
   -> resposta mockada com id_documento e id_instancia_documento
 
-HTTP PATCH /arvore-documento/v1/dossie-produto/{id}/validacao-negocial
+HTTP PATCH /hub/v1/dossie-produto/{id}/validacao-negocial
   -> DossieProdutoResource
   -> DossieProdutoService
   -> DossieProdutoMockFactory
   -> DossieProdutoMapper
   -> resposta 200 OK sem corpo
 
-HTTP POST /arvore-documento/v1/dossie-produto/{id}/workflow
+HTTP POST /hub/v1/dossie-produto/{id}/workflow
   -> DossieProdutoResource
   -> DossieProdutoService
   -> DossieProdutoMockFactory
   -> DossieProdutoMapper
   -> resposta mockada com id do dossie produto
 
-HTTP POST /arvore-documento/v1/storage/container/credencial
+HTTP POST /hub/v1/storage/container/credencial
   -> GestaoDocumentoResource
   -> GestaoDocumentoService
   -> GestaoDocumentoMockFactory
@@ -553,7 +569,7 @@ HTTP POST /arvore-documento/v1/storage/container/credencial
 ### Fluxo com MTR real
 
 ```text
-HTTP GET /arvore-documento/v1/processo/identificador-negocial/{id}
+HTTP GET /hub/v1/processo/identificador-negocial/{id}
   -> ProcessoResource
   -> ProcessoService
   -> ParametrizacaoProcessoGateway
@@ -562,7 +578,7 @@ HTTP GET /arvore-documento/v1/processo/identificador-negocial/{id}
   -> ProcessoMapper
   -> resposta do SIMTR Hub
 
-HTTP GET /arvore-documento/v1/checklist/identificador-negocial/{id}/versao/{versao}
+HTTP GET /hub/v1/checklist/identificador-negocial/{id}/versao/{versao}
   -> ChecklistResource
   -> ChecklistService
   -> ParametrizacaoChecklistGateway
@@ -571,7 +587,7 @@ HTTP GET /arvore-documento/v1/checklist/identificador-negocial/{id}/versao/{vers
   -> ChecklistMapper
   -> resposta do SIMTR Hub
 
-HTTP POST /arvore-documento/v1/dossie-produto
+HTTP POST /hub/v1/dossie-produto
   -> DossieProdutoResource
   -> DossieProdutoService
   -> DossieProdutoGateway
@@ -580,7 +596,7 @@ HTTP POST /arvore-documento/v1/dossie-produto
   -> DossieProdutoMapper
   -> resposta do SIMTR Hub com HTTP 201
 
-HTTP PATCH /arvore-documento/v1/dossie-produto/{id}/formulario
+HTTP PATCH /hub/v1/dossie-produto/{id}/formulario
   -> DossieProdutoResource
   -> DossieProdutoService
   -> DossieProdutoGateway
@@ -589,7 +605,7 @@ HTTP PATCH /arvore-documento/v1/dossie-produto/{id}/formulario
   -> DossieProdutoMapper
   -> resposta do SIMTR Hub com HTTP 201
 
-HTTP POST /arvore-documento/v1/dossie-produto/{id}/documento
+HTTP POST /hub/v1/dossie-produto/{id}/documento
   -> DossieProdutoResource
   -> DossieProdutoService
   -> DossieProdutoGateway
@@ -598,7 +614,7 @@ HTTP POST /arvore-documento/v1/dossie-produto/{id}/documento
   -> DossieProdutoMapper
   -> resposta do SIMTR Hub com HTTP 201
 
-HTTP PATCH /arvore-documento/v1/dossie-produto/{id}/validacao-negocial
+HTTP PATCH /hub/v1/dossie-produto/{id}/validacao-negocial
   -> DossieProdutoResource
   -> DossieProdutoService
   -> DossieProdutoGateway
@@ -606,7 +622,7 @@ HTTP PATCH /arvore-documento/v1/dossie-produto/{id}/validacao-negocial
   -> PATCH /simtr/dossie-produto/v1/dossie-produto/{id}/validacao-negocial
   -> resposta do SIMTR Hub com HTTP 200 sem corpo
 
-HTTP POST /arvore-documento/v1/dossie-produto/{id}/workflow
+HTTP POST /hub/v1/dossie-produto/{id}/workflow
   -> DossieProdutoResource
   -> DossieProdutoService
   -> DossieProdutoGateway
@@ -615,7 +631,7 @@ HTTP POST /arvore-documento/v1/dossie-produto/{id}/workflow
   -> DossieProdutoMapper
   -> resposta do SIMTR Hub com HTTP 200
 
-HTTP POST /arvore-documento/v1/storage/container/credencial
+HTTP POST /hub/v1/storage/container/credencial
   -> GestaoDocumentoResource
   -> GestaoDocumentoService
   -> GestaoDocumentoGateway
@@ -628,65 +644,49 @@ HTTP POST /arvore-documento/v1/storage/container/credencial
 ## Pacotes
 
 ```text
-br.gov.caixa.simtr.arvoredocumento
-|-- api
-|   |-- dev
-|   |-- dto
-|   |   |-- erro
-|   |   |-- dossieproduto
-|   |   |-- gestaodocumento
-|   |   |-- parametrizacao.checklist
-|   |   `-- parametrizacao.processo
-|   |-- exception
-|   |-- dossieproduto
-|   |-- gestaodocumento
-|   `-- parametrizacao
-|-- application
-|   |-- dossieproduto
-|   |-- gestaodocumento
-|   `-- parametrizacao
-|-- domain
-|   |-- dossieproduto
-|   |-- gestaodocumento
-|   |-- parametrizacao.checklist
-|   `-- parametrizacao.processo
-|-- infrastructure
-|   `-- client
-|       |-- dossieproduto
-|       |-- gestaodocumento
-|       |-- mock
-|       `-- parametrizacao
-|-- mapper
-|   |-- dossieproduto
-|   |-- gestaodocumento
-|   `-- parametrizacao
-`-- shared
-    |-- exception
-    `-- observability
+br.gov.caixa.simtr.hub
+|-- parametrizacao
+|   |-- fachada
+|   |-- recurso/rest/v1
+|   |-- servico
+|   |-- dominio
+|   |-- integracao
+|   `-- mapeamento
+|-- dossieproduto
+|   |-- fachada
+|   |-- recurso/rest/v1
+|   |-- servico
+|   |-- dominio
+|   |-- integracao
+|   `-- mapeamento
+|-- gestaodocumento
+|   |-- fachada
+|   |-- recurso/rest/v1
+|   |-- servico
+|   |-- dominio
+|   |-- integracao
+|   `-- mapeamento
+`-- arquitetura
+    |-- configuracao/mock
+    |-- seguranca
+    |-- observabilidade
+    `-- excecao
 ```
 
 | Pacote | Responsabilidade |
 |---|---|
-| `api.parametrizacao` | Endpoint REST exposto pelo `SIMTR Hub` |
-| `api.dossieproduto` | Endpoint REST de negocio para dossies produto |
-| `api.gestaodocumento` | Endpoint REST para credencial de storage do Modulo Gestao de Documentos |
-| `api.dev` | Redirect de `/` para Dev UI em dev mode |
-| `api.dto` | Contratos REST de sucesso e erro |
-| `api.exception` | Conversao de excecoes para resposta HTTP |
-| `application.parametrizacao` | Caso de uso e escolha entre simulador e MTR |
-| `application.dossieproduto` | Caso de uso de dossie produto e escolha entre simulador e MTR |
-| `application.gestaodocumento` | Caso de uso de Gestao de Documentos e escolha entre simulador e MTR |
-| `domain.parametrizacao.processo` | Modelo interno em VOs |
-| `domain.dossieproduto` | Modelo interno em VOs para dossie produto |
-| `domain.gestaodocumento` | Modelo interno em VOs para Gestao de Documentos |
-| `infrastructure.client.parametrizacao` | Gateway e REST Client do MTR |
-| `infrastructure.client.dossieproduto` | Gateway e REST Client do `simtr-dossie-produto` |
-| `infrastructure.client.gestaodocumento` | Gateway e REST Client do `simtr-gestao-documento` |
-| `infrastructure.client.mock` | Leitor comum de mocks em Markdown com corpo JSON |
-| `mapper.parametrizacao` | Conversao DTO/VO |
-| `mapper.dossieproduto` | Conversao DTO/VO de dossie produto |
-| `mapper.gestaodocumento` | Conversao DTO/VO de Gestao de Documentos |
-| `shared.observability` | Logs estruturados com contexto de trace |
+| `<dominio>.fachada` | Fronteira interna do dominio para recursos REST e futura extracao como microservico |
+| `<dominio>.recurso.rest.v1` | Resources JAX-RS e DTOs do contrato REST versionado |
+| `<dominio>.servico` | Regras de aplicacao, orquestracao e decisao entre simulador e MTR |
+| `<dominio>.dominio` | VOs e modelos internos do dominio |
+| `<dominio>.integracao` | REST Clients, gateways, exception mappers de client e mock factories especificos do dominio |
+| `<dominio>.mapeamento` | Conversao DTO/VO via MapStruct |
+| `arquitetura.excecao` | DTOs e mappers de erro globais, excecoes compartilhadas e leitura de erro MTR |
+| `arquitetura.observabilidade` | Logs estruturados, contexto de trace e filtro de REST Client |
+| `arquitetura.seguranca` | Propagacao de headers tecnicos, como `apikey` |
+| `arquitetura.configuracao.mock` | Leitor comum de mocks Markdown com corpo JSON |
+
+Pacotes vazios como `repositorio`, `resiliencia`, `mensageria` e `excecao` de dominio nao sao criados ate haver classe real ou decisao explicita para `package-info.java`.
 
 ## Configuracao atual
 
@@ -699,14 +699,14 @@ src/main/resources/application.properties
 Conteudo funcional relevante:
 
 ```properties
-quarkus.application.name=arvore-documento
+quarkus.application.name=simtr-hub
 quarkus.http.port=8080
 
-quarkus.smallrye-openapi.path=/arvore-documento/openapi
+quarkus.smallrye-openapi.path=/hub/openapi
 quarkus.swagger-ui.always-include=true
-quarkus.swagger-ui.path=/arvore-documento/doc
-%dev.quarkus.smallrye-openapi.path=/arvore-documento/openapi
-%dev.quarkus.swagger-ui.path=/arvore-documento/doc
+quarkus.swagger-ui.path=/hub/doc
+%dev.quarkus.smallrye-openapi.path=/hub/openapi
+%dev.quarkus.swagger-ui.path=/hub/doc
 
 quarkus.rest-client.parametrizacao-processo.url=https://api.des.caixa:8443/simtr
 quarkus.rest-client.parametrizacao-processo.connect-timeout=3000
@@ -724,14 +724,14 @@ quarkus.rest-client.gestao-documento.url=https://api.des.caixa:8443/simtr
 quarkus.rest-client.gestao-documento.connect-timeout=3000
 quarkus.rest-client.gestao-documento.read-timeout=10000
 
-arvore-documento.simulador.parametrizacao-processo.habilitado=false
-%dev.arvore-documento.simulador.parametrizacao-processo.habilitado=true
-arvore-documento.simulador.parametrizacao-checklist.habilitado=false
-%dev.arvore-documento.simulador.parametrizacao-checklist.habilitado=true
-arvore-documento.simulador.dossie-produto.habilitado=false
-%dev.arvore-documento.simulador.dossie-produto.habilitado=true
-arvore-documento.simulador.gestao-documento.habilitado=false
-%dev.arvore-documento.simulador.gestao-documento.habilitado=true
+simtr-hub.simulador.parametrizacao-processo.habilitado=false
+%dev.simtr-hub.simulador.parametrizacao-processo.habilitado=true
+simtr-hub.simulador.parametrizacao-checklist.habilitado=false
+%dev.simtr-hub.simulador.parametrizacao-checklist.habilitado=true
+simtr-hub.simulador.dossie-produto.habilitado=false
+%dev.simtr-hub.simulador.dossie-produto.habilitado=true
+simtr-hub.simulador.gestao-documento.habilitado=false
+%dev.simtr-hub.simulador.gestao-documento.habilitado=true
 ```
 
 O REST Client de dossie produto usa base versionavel `@Path("/dossie-produto")`. As versoes ficam nos metodos (`/v1/dossie-produto...` e `/v2/dossie-produto...`) para manter um unico client do servico e permitir endpoints v1 e v2 sem duplicar `/simtr`. A validacao negocial usa `PATCH /v1/dossie-produto/{id}/validacao-negocial` e retorna sucesso sem corpo. O workflow usa `POST /v1/dossie-produto/{id}/workflow` e nao recebe request body.
@@ -741,9 +741,9 @@ O REST Client de Gestao de Documentos usa `@Path("/gestao-documento")` e URL bas
 Configuracao de observabilidade atual:
 
 ```properties
-arvore-documento.observabilidade.rest-client.payload.habilitado=true
-arvore-documento.observabilidade.rest-client.payload.input.max-length=2000
-arvore-documento.observabilidade.rest-client.payload.output.max-length=4000
+simtr-hub.observabilidade.rest-client.payload.habilitado=true
+simtr-hub.observabilidade.rest-client.payload.input.max-length=2000
+simtr-hub.observabilidade.rest-client.payload.output.max-length=4000
 
 quarkus.otel.traces.sampler=always_on
 quarkus.otel.traces.sampler.arg=1.0
@@ -772,7 +772,7 @@ quarkus.log.console.json.additional-field."service.name".value=${quarkus.applica
 quarkus.log.console.json.additional-field."service.name".type=string
 
 quarkus.log.file.enabled=true
-quarkus.log.file.path=target/logs/arvore-documento.json
+quarkus.log.file.path=target/logs/simtr-hub.json
 quarkus.log.file.json.enabled=true
 quarkus.log.file.json.pretty-print=false
 quarkus.log.file.json.exception-output-type=formatted
@@ -786,10 +786,10 @@ Pontos importantes:
 - O modo padrao nao tenta conectar em Jaeger, Grafana ou OpenTelemetry Collector.
 - `quarkus.otel.traces.exporter=none` evita exportacao de traces quando nao ha backend local.
 - `quarkus.otel.logs.enabled=false` e `quarkus.otel.logs.handler.enabled=false` evitam exportacao de logs OpenTelemetry quando nao ha backend local.
-- Os logs JSON continuam sendo escritos no console e em `target/logs/arvore-documento.json`.
+- Os logs JSON continuam sendo escritos no console e em `target/logs/simtr-hub.json`.
 - O profile `jaeger` habilita a exportacao OTLP para Jaeger em `localhost:4317`.
 - O profile `grafana` habilita a exportacao OTLP para um OpenTelemetry Collector em `localhost:4317`.
-- `target/logs/arvore-documento.json` recebe uma copia local dos logs JSON.
+- `target/logs/simtr-hub.json` recebe uma copia local dos logs JSON.
 - Jaeger e bom para traces; para consultar logs em UI, use Grafana/Loki ou outro backend de logs.
 
 Em ambiente real, configure a URL do MTR por variavel de ambiente:
@@ -808,10 +808,10 @@ O projeto possui um simulador local para permitir desenvolvimento sem chamar o M
 O simulador e controlado pela propriedade:
 
 ```properties
-arvore-documento.simulador.parametrizacao-processo.habilitado=false
-%dev.arvore-documento.simulador.parametrizacao-processo.habilitado=true
-arvore-documento.simulador.parametrizacao-checklist.habilitado=false
-%dev.arvore-documento.simulador.parametrizacao-checklist.habilitado=true
+simtr-hub.simulador.parametrizacao-processo.habilitado=false
+%dev.simtr-hub.simulador.parametrizacao-processo.habilitado=true
+simtr-hub.simulador.parametrizacao-checklist.habilitado=false
+%dev.simtr-hub.simulador.parametrizacao-checklist.habilitado=true
 ```
 
 Com isso:
@@ -895,7 +895,7 @@ Quando a API e chamada com um identificador, o factory procura primeiro o arquiv
 Exemplo:
 
 ```http
-GET /arvore-documento/v1/processo/identificador-negocial/1000016487
+GET /hub/v1/processo/identificador-negocial/1000016487
 ```
 
 Procura:
@@ -966,7 +966,7 @@ mvn quarkus:dev -Ddebug=false
 ```
 
 ```http
-GET http://localhost:8080/arvore-documento/v1/processo/identificador-negocial/{identificador}
+GET http://localhost:8080/hub/v1/processo/identificador-negocial/{identificador}
 ```
 
 Para criar um novo cenario de mock de checklist:
@@ -995,8 +995,8 @@ O simulador de dossie produto permite desenvolver os endpoints de criacao basica
 O simulador e controlado pela propriedade:
 
 ```properties
-arvore-documento.simulador.dossie-produto.habilitado=false
-%dev.arvore-documento.simulador.dossie-produto.habilitado=true
+simtr-hub.simulador.dossie-produto.habilitado=false
+%dev.simtr-hub.simulador.dossie-produto.habilitado=true
 ```
 
 Com isso:
@@ -1063,8 +1063,8 @@ O simulador de Gestao de Documentos permite desenvolver a geracao de credencial 
 O simulador e controlado pela propriedade:
 
 ```properties
-arvore-documento.simulador.gestao-documento.habilitado=false
-%dev.arvore-documento.simulador.gestao-documento.habilitado=true
+simtr-hub.simulador.gestao-documento.habilitado=false
+%dev.simtr-hub.simulador.gestao-documento.habilitado=true
 ```
 
 Com isso:
@@ -1105,25 +1105,25 @@ O valor de `sas` existe no mock para representar o contrato, mas deve ser tratad
 Se precisar testar a integracao real mesmo em dev mode, desabilite o simulador:
 
 ```powershell
-mvn quarkus:dev -Ddebug=false "-Darvore-documento.simulador.parametrizacao-processo.habilitado=false"
+mvn quarkus:dev -Ddebug=false "-Dsimtr-hub.simulador.parametrizacao-processo.habilitado=false"
 ```
 
 Para desabilitar apenas o simulador de checklist:
 
 ```powershell
-mvn quarkus:dev -Ddebug=false "-Darvore-documento.simulador.parametrizacao-checklist.habilitado=false"
+mvn quarkus:dev -Ddebug=false "-Dsimtr-hub.simulador.parametrizacao-checklist.habilitado=false"
 ```
 
 Para desabilitar apenas o simulador de dossie produto:
 
 ```powershell
-mvn quarkus:dev -Ddebug=false "-Darvore-documento.simulador.dossie-produto.habilitado=false"
+mvn quarkus:dev -Ddebug=false "-Dsimtr-hub.simulador.dossie-produto.habilitado=false"
 ```
 
 Para desabilitar apenas o simulador de Gestao de Documentos:
 
 ```powershell
-mvn quarkus:dev -Ddebug=false "-Darvore-documento.simulador.gestao-documento.habilitado=false"
+mvn quarkus:dev -Ddebug=false "-Dsimtr-hub.simulador.gestao-documento.habilitado=false"
 ```
 
 Ou configure por variavel de ambiente:
@@ -1172,7 +1172,7 @@ Nesse modo:
 
 - nao existe tentativa de conexao em `localhost:4317`;
 - os logs JSON aparecem no console;
-- os logs JSON tambem sao gravados em `target/logs/arvore-documento.json`;
+- os logs JSON tambem sao gravados em `target/logs/simtr-hub.json`;
 - os campos `traceId` e `spanId` podem aparecer quando houver contexto de span local, mas nenhum trace e enviado para fora.
 
 ### Jaeger local
@@ -1297,7 +1297,7 @@ Para rodar sem backend externo:
 
 | Campo | Valor |
 |---|---|
-| `Name` | `arvore-documento [dev]` |
+| `Name` | `simtr-hub [dev]` |
 | `Run` | `quarkus:dev -Ddebug=false` |
 | `Working directory` | raiz do projeto, onde esta o `pom.xml` |
 | `Profiles` | vazio |
@@ -1306,7 +1306,7 @@ Para rodar com Jaeger local:
 
 | Campo | Valor |
 |---|---|
-| `Name` | `arvore-documento [dev jaeger]` |
+| `Name` | `simtr-hub [dev jaeger]` |
 | `Run` | `quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,jaeger"` |
 | `Working directory` | raiz do projeto, onde esta o `pom.xml` |
 | `Profiles` | vazio |
@@ -1315,7 +1315,7 @@ Para rodar com Grafana/Collector local:
 
 | Campo | Valor |
 |---|---|
-| `Name` | `arvore-documento [dev grafana]` |
+| `Name` | `simtr-hub [dev grafana]` |
 | `Run` | `quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,grafana"` |
 | `Working directory` | raiz do projeto, onde esta o `pom.xml` |
 | `Profiles` | vazio |
@@ -1332,7 +1332,7 @@ mvn -q -DskipTests compile
 
 ### Rodar em dev mode sem Docker/Jaeger
 
-Este e o modo recomendado para maquina de trabalho sem Docker. A aplicacao nao tenta exportar OpenTelemetry para `localhost:4317`; os logs ficam no console e em `target/logs/arvore-documento.json`.
+Este e o modo recomendado para maquina de trabalho sem Docker. A aplicacao nao tenta exportar OpenTelemetry para `localhost:4317`; os logs ficam no console e em `target/logs/simtr-hub.json`.
 
 ```powershell
 mvn quarkus:dev -Ddebug=false
@@ -1350,11 +1350,11 @@ mvn quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,jaeger"
 
 ```powershell
 Invoke-WebRequest `
-  -Uri "http://localhost:8080/arvore-documento/v1/processo/identificador-negocial/1" `
+  -Uri "http://localhost:8080/hub/v1/processo/identificador-negocial/1" `
   -Headers @{ Accept = "application/json" }
 
 Invoke-WebRequest `
-  -Uri "http://localhost:8080/arvore-documento/v1/checklist/identificador-negocial/1000012583/versao/1" `
+  -Uri "http://localhost:8080/hub/v1/checklist/identificador-negocial/1000012583/versao/1" `
   -Headers @{ Accept = "application/json" }
 
 $body = @{
@@ -1376,7 +1376,7 @@ $body = @{
 } | ConvertTo-Json -Depth 5
 
 Invoke-WebRequest `
-  -Uri "http://localhost:8080/arvore-documento/v1/dossie-produto" `
+  -Uri "http://localhost:8080/hub/v1/dossie-produto" `
   -Method POST `
   -ContentType "application/json" `
   -Headers @{ Accept = "application/json" } `
@@ -1419,7 +1419,7 @@ $formularioBody = @(
 ) | ConvertTo-Json -Depth 8
 
 Invoke-WebRequest `
-  -Uri "http://localhost:8080/arvore-documento/v1/dossie-produto/1/formulario" `
+  -Uri "http://localhost:8080/hub/v1/dossie-produto/1/formulario" `
   -Method PATCH `
   -ContentType "application/json" `
   -Headers @{ Accept = "application/json" } `
@@ -1429,7 +1429,7 @@ Invoke-WebRequest `
 ### Conferir log JSON local
 
 ```powershell
-Get-Content -Tail 20 target/logs/arvore-documento.json
+Get-Content -Tail 20 target/logs/simtr-hub.json
 ```
 
 ### Testes, Mockito e JaCoCo
@@ -1526,9 +1526,9 @@ As mesmas informacoes principais tambem sao adicionadas ao span corrente como at
 Controle por propriedade:
 
 ```properties
-arvore-documento.observabilidade.rest-client.payload.habilitado=true
-arvore-documento.observabilidade.rest-client.payload.input.max-length=2000
-arvore-documento.observabilidade.rest-client.payload.output.max-length=4000
+simtr-hub.observabilidade.rest-client.payload.habilitado=true
+simtr-hub.observabilidade.rest-client.payload.input.max-length=2000
+simtr-hub.observabilidade.rest-client.payload.output.max-length=4000
 ```
 
 Se `payload.habilitado=false`, o filtro continua registrando URL, metodo, operacao, status e duracao, mas omite os corpos de entrada e saida.
@@ -1546,29 +1546,29 @@ A observabilidade atual tem duas saidas sempre ativas e duas saidas opcionais:
 
 | Camada | Span |
 |---|---|
-| API | `arvore-documento.api.processo.consultar` |
-| Aplicacao | `arvore-documento.service.processo.consultar` |
+| API | `simtr-hub.api.processo.consultar` |
+| Aplicacao | `simtr-hub.service.processo.consultar` |
 | Integracao MTR | `mtr.parametrizacao.processo.consultar` |
-| API | `arvore-documento.api.checklist.consultar` |
-| Aplicacao | `arvore-documento.service.checklist.consultar` |
+| API | `simtr-hub.api.checklist.consultar` |
+| Aplicacao | `simtr-hub.service.checklist.consultar` |
 | Integracao MTR | `mtr.parametrizacao.checklist.consultar` |
-| API | `arvore-documento.api.dossie-produto.criar` |
-| Aplicacao | `arvore-documento.service.dossie-produto.criar` |
+| API | `simtr-hub.api.dossie-produto.criar` |
+| Aplicacao | `simtr-hub.service.dossie-produto.criar` |
 | Integracao MTR | `mtr.dossie-produto.criar` |
-| API | `arvore-documento.api.dossie-produto.formulario.atualizar` |
-| Aplicacao | `arvore-documento.service.dossie-produto.formulario.atualizar` |
+| API | `simtr-hub.api.dossie-produto.formulario.atualizar` |
+| Aplicacao | `simtr-hub.service.dossie-produto.formulario.atualizar` |
 | Integracao MTR | `mtr.dossie-produto.formulario.atualizar` |
-| API | `arvore-documento.api.dossie-produto.documento.incluir` |
-| Aplicacao | `arvore-documento.service.dossie-produto.documento.incluir` |
+| API | `simtr-hub.api.dossie-produto.documento.incluir` |
+| Aplicacao | `simtr-hub.service.dossie-produto.documento.incluir` |
 | Integracao MTR | `mtr.dossie-produto.documento.incluir` |
-| API | `arvore-documento.api.dossie-produto.validacao-negocial.registrar` |
-| Aplicacao | `arvore-documento.service.dossie-produto.validacao-negocial.registrar` |
+| API | `simtr-hub.api.dossie-produto.validacao-negocial.registrar` |
+| Aplicacao | `simtr-hub.service.dossie-produto.validacao-negocial.registrar` |
 | Integracao MTR | `mtr.dossie-produto.validacao-negocial.registrar` |
-| API | `arvore-documento.api.dossie-produto.workflow.avancar` |
-| Aplicacao | `arvore-documento.service.dossie-produto.workflow.avancar` |
+| API | `simtr-hub.api.dossie-produto.workflow.avancar` |
+| Aplicacao | `simtr-hub.service.dossie-produto.workflow.avancar` |
 | Integracao MTR | `mtr.dossie-produto.workflow.avancar` |
-| API | `arvore-documento.api.gestao-documento.credencial-container.gerar` |
-| Aplicacao | `arvore-documento.service.gestao-documento.credencial-container.gerar` |
+| API | `simtr-hub.api.gestao-documento.credencial-container.gerar` |
+| Aplicacao | `simtr-hub.service.gestao-documento.credencial-container.gerar` |
 | Integracao MTR | `mtr.gestao-documento.credencial-container.gerar` |
 
 Os spans de integracao MTR aparecem quando o simulador correspondente esta desabilitado.
@@ -1596,14 +1596,14 @@ Exemplo de linha JSON:
 
 ```json
 {
-  "message": "arvore-documento.processo.requisicao.recebida",
+  "message": "simtr-hub.processo.requisicao.recebida",
   "traceId": "b45622a44293cf8847972f2553cad319",
   "spanId": "f4204827a0a232af",
-  "evento": "arvore-documento.processo.requisicao.recebida",
+  "evento": "simtr-hub.processo.requisicao.recebida",
   "camada": "api",
   "componente": "ProcessoResource",
   "identificador_negocial": "2",
-  "service.name": "arvore-documento"
+  "service.name": "simtr-hub"
 }
 ```
 
@@ -1650,7 +1650,7 @@ mvn quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,jaeger"
 
 ```powershell
 Invoke-WebRequest `
-  -Uri "http://localhost:8080/arvore-documento/v1/processo/identificador-negocial/1" `
+  -Uri "http://localhost:8080/hub/v1/processo/identificador-negocial/1" `
   -Headers @{ Accept = "application/json" }
 ```
 
@@ -1664,7 +1664,7 @@ http://localhost:16686
 
 Na tela:
 
-1. Em `Service`, selecione `arvore-documento`.
+1. Em `Service`, selecione `simtr-hub`.
 2. Clique em `Find Traces`.
 3. Abra o trace mais recente.
 
@@ -1682,7 +1682,7 @@ Resultado esperado:
 {
   "data": [
     "jaeger-all-in-one",
-    "arvore-documento"
+    "simtr-hub"
   ]
 }
 ```
@@ -1690,7 +1690,7 @@ Resultado esperado:
 Listar traces:
 
 ```powershell
-Invoke-WebRequest "http://localhost:16686/api/traces?service=arvore-documento&limit=20"
+Invoke-WebRequest "http://localhost:16686/api/traces?service=simtr-hub&limit=20"
 ```
 
 ### O que deve aparecer no Jaeger
@@ -1698,17 +1698,17 @@ Invoke-WebRequest "http://localhost:16686/api/traces?service=arvore-documento&li
 Com simulador habilitado:
 
 ```text
-HTTP GET /arvore-documento/v1/processo/identificador-negocial/{id}
-  -> arvore-documento.api.processo.consultar
-    -> arvore-documento.service.processo.consultar
+HTTP GET /hub/v1/processo/identificador-negocial/{id}
+  -> simtr-hub.api.processo.consultar
+    -> simtr-hub.service.processo.consultar
 ```
 
 Com simulador desabilitado:
 
 ```text
-HTTP GET /arvore-documento/v1/processo/identificador-negocial/{id}
-  -> arvore-documento.api.processo.consultar
-    -> arvore-documento.service.processo.consultar
+HTTP GET /hub/v1/processo/identificador-negocial/{id}
+  -> simtr-hub.api.processo.consultar
+    -> simtr-hub.service.processo.consultar
       -> mtr.parametrizacao.processo.consultar
         -> GET /simtr-parametrizacao/v2/patriarca/processo/identificador-negocial/{id}
 ```
@@ -1790,7 +1790,7 @@ mvn quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,grafana"
 Fluxo recomendado:
 
 ```text
-arvore-documento
+simtr-hub
   -> OTLP gRPC :4317
   -> OpenTelemetry Collector
       -> traces para Tempo
@@ -1803,7 +1803,7 @@ arvore-documento
 No Grafana:
 
 1. Abra a datasource `Tempo` para consultar traces.
-2. Filtre pelo service `arvore-documento`.
+2. Filtre pelo service `simtr-hub`.
 3. Abra o trace desejado.
 4. Copie o `traceId`.
 5. Abra a datasource `Loki`.
@@ -1812,13 +1812,13 @@ No Grafana:
 Consulta LogQL tipica, dependendo dos labels configurados no Loki:
 
 ```logql
-{service_name="arvore-documento"} |= "traceId"
+{service_name="simtr-hub"} |= "traceId"
 ```
 
 Se os logs forem indexados com `traceId` como label:
 
 ```logql
-{service_name="arvore-documento", traceId="b45622a44293cf8847972f2553cad319"}
+{service_name="simtr-hub", traceId="b45622a44293cf8847972f2553cad319"}
 ```
 
 ## Como correlacionar logs e traces
@@ -1827,7 +1827,7 @@ Se os logs forem indexados com `traceId` como label:
 
 ```powershell
 Invoke-WebRequest `
-  -Uri "http://localhost:8080/arvore-documento/v1/processo/identificador-negocial/2" `
+  -Uri "http://localhost:8080/hub/v1/processo/identificador-negocial/2" `
   -Headers @{ Accept = "application/json" }
 ```
 
@@ -1839,7 +1839,7 @@ Invoke-WebRequest `
 
 ```powershell
 Select-String `
-  -Path target/logs/arvore-documento.json `
+  -Path target/logs/simtr-hub.json `
   -Pattern "b45622a44293cf8847972f2553cad319"
 ```
 
@@ -1874,7 +1874,7 @@ Quando a API retorna erro `500`, a resposta HTTP fica propositalmente generica p
 ```json
 {
   "codigo_http": 500,
-  "recurso": "arvore-documento",
+  "recurso": "simtr-hub",
   "id_erro": "cbcc0f91-0f3d-4d7c-8c8d-fdfeb6c14049",
   "codigo_erro": "ARVDOCP9999",
   "erros": [
@@ -1891,20 +1891,20 @@ Use o `id_erro` retornado na resposta para localizar a linha correspondente no a
 
 ```powershell
 Select-String `
-  -Path target/logs/arvore-documento.json `
+  -Path target/logs/simtr-hub.json `
   -Pattern "cbcc0f91-0f3d-4d7c-8c8d-fdfeb6c14049"
 ```
 
 Para acompanhar os erros em tempo real:
 
 ```powershell
-Get-Content -Tail 50 -Wait target/logs/arvore-documento.json
+Get-Content -Tail 50 -Wait target/logs/simtr-hub.json
 ```
 
 O log de erro nao tratado e emitido pelo `GenericExceptionMapper` com o evento:
 
 ```text
-arvore-documento.erro.nao-tratado
+simtr-hub.erro.nao-tratado
 ```
 
 Campos importantes para diagnostico:
@@ -1943,7 +1943,7 @@ mvn quarkus:dev -Ddebug=false
 Nesse modo, o projeto nao tenta conectar em `localhost:4317`. A execucao fica observavel pelo console JSON e pelo arquivo:
 
 ```powershell
-Get-Content -Tail 20 target/logs/arvore-documento.json
+Get-Content -Tail 20 target/logs/simtr-hub.json
 ```
 
 ### API retorna sempre o processo `1000016487` no dev mode
@@ -1979,7 +1979,7 @@ O primeiro `{` depois dessa secao deve ser o inicio do corpo JSON. Evite colocar
 Desabilite o simulador:
 
 ```powershell
-mvn quarkus:dev -Ddebug=false "-Darvore-documento.simulador.parametrizacao-processo.habilitado=false"
+mvn quarkus:dev -Ddebug=false "-Dsimtr-hub.simulador.parametrizacao-processo.habilitado=false"
 ```
 
 E configure a URL real:
@@ -2031,15 +2031,15 @@ O Swagger deste projeto nao esta no path padrao do Quarkus.
 Use:
 
 ```text
-http://localhost:8080/arvore-documento/doc/
+http://localhost:8080/hub/doc/
 ```
 
-### `/arvore-documento/openai` retorna 404
+### `/hub/openai` retorna 404
 
 O path OpenAPI configurado e:
 
 ```text
-http://localhost:8080/arvore-documento/openapi
+http://localhost:8080/hub/openapi
 ```
 
 ### `/q/health/live` retorna 404
@@ -2055,7 +2055,7 @@ Confirme se existe no `pom.xml`:
 
 Depois reinicie o dev mode.
 
-### Jaeger nao mostra `arvore-documento`
+### Jaeger nao mostra `simtr-hub`
 
 Confirme primeiro se a aplicacao foi iniciada com o profile `jaeger`:
 
@@ -2079,7 +2079,7 @@ Gere uma chamada real:
 
 ```powershell
 Invoke-WebRequest `
-  -Uri "http://localhost:8080/arvore-documento/v1/processo/identificador-negocial/1" `
+  -Uri "http://localhost:8080/hub/v1/processo/identificador-negocial/1" `
   -Headers @{ Accept = "application/json" }
 ```
 
@@ -2090,7 +2090,7 @@ Aguarde alguns segundos, porque o exporter envia dados em lote.
 Isso e esperado. Jaeger e uma ferramenta de traces. Mesmo com o profile `jaeger`, a consulta principal na UI do Jaeger e para traces. Para logs, use:
 
 - console JSON;
-- `target/logs/arvore-documento.json`;
+- `target/logs/simtr-hub.json`;
 - Grafana/Loki;
 - outro backend compativel com logs OpenTelemetry.
 
@@ -2124,14 +2124,14 @@ Confirme:
 
 ```properties
 quarkus.log.file.enabled=true
-quarkus.log.file.path=target/logs/arvore-documento.json
+quarkus.log.file.path=target/logs/simtr-hub.json
 quarkus.log.file.json.enabled=true
 ```
 
 Gere uma requisicao e leia:
 
 ```powershell
-Get-Content -Tail 20 target/logs/arvore-documento.json
+Get-Content -Tail 20 target/logs/simtr-hub.json
 ```
 
 ## Proximos passos

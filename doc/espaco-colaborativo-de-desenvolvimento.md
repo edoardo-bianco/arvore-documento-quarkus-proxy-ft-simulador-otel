@@ -70,14 +70,14 @@ POST /simtr-gestao-documento/v1/storage/container/credencial
 Nesta etapa, estao implementados e consolidados no `SIMTR Hub`:
 
 ```http
-GET /arvore-documento/v1/processo/identificador-negocial/{identificador}
-GET /arvore-documento/v1/checklist/identificador-negocial/{identificador}/versao/{versao}
-POST /arvore-documento/v1/dossie-produto
-PATCH /arvore-documento/v1/dossie-produto/{id}/formulario
-POST /arvore-documento/v1/dossie-produto/{id}/documento
-POST /arvore-documento/v1/dossie-produto/{id}/workflow
-PATCH /arvore-documento/v1/dossie-produto/{id}/validacao-negocial
-POST /arvore-documento/v1/storage/container/credencial
+GET /hub/v1/processo/identificador-negocial/{identificador}
+GET /hub/v1/checklist/identificador-negocial/{identificador}/versao/{versao}
+POST /hub/v1/dossie-produto
+PATCH /hub/v1/dossie-produto/{id}/formulario
+POST /hub/v1/dossie-produto/{id}/documento
+POST /hub/v1/dossie-produto/{id}/workflow
+PATCH /hub/v1/dossie-produto/{id}/validacao-negocial
+POST /hub/v1/storage/container/credencial
 ```
 
 Esses endpoints cobrem:
@@ -94,10 +94,10 @@ Esses endpoints cobrem:
 Tambem foi consolidada a migracao dos mappers para MapStruct:
 
 ```text
-src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/parametrizacao/ChecklistMapper.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/parametrizacao/ProcessoMapper.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/dossieproduto/DossieProdutoMapper.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/gestaodocumento/GestaoDocumentoMapper.java
+src/main/java/br/gov/caixa/simtr/hub/parametrizacao/mapeamento/ChecklistMapper.java
+src/main/java/br/gov/caixa/simtr/hub/parametrizacao/mapeamento/ProcessoMapper.java
+src/main/java/br/gov/caixa/simtr/hub/dossieproduto/mapeamento/DossieProdutoMapper.java
+src/main/java/br/gov/caixa/simtr/hub/gestaodocumento/mapeamento/GestaoDocumentoMapper.java
 ```
 
 Implementacoes MapStruct geradas e validadas:
@@ -121,19 +121,19 @@ Resultado: suite passou apos a migracao de `DossieProdutoMapper`, passou novamen
 
 | Modulo | Endpoint MTR | Endpoint SIMTR Hub | Status | Observacao |
 | --- | --- | --- | --- | --- |
-| Parametrizacao | `GET /simtr-parametrizacao/v2/patriarca/processo/identificador-negocial/{identificador}` | `GET /arvore-documento/v1/processo/identificador-negocial/{identificador}` | Implementado | Preservar fluxo atual. |
-| Parametrizacao | `GET /simtr-parametrizacao/v1/cadastro/checklist/identificador-negocial/{identificador}/versao/{versao}` | `GET /arvore-documento/v1/checklist/identificador-negocial/{identificador}/versao/{versao}` | Implementado | Preservar fluxo atual. |
-| Dossie Produto | `POST /simtr-dossie-produto/v1/dossie-produto` | `POST /arvore-documento/v1/dossie-produto` | Implementado | Criacao basica em modo rascunho. |
-| Dossie Produto | `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/formulario` | `PATCH /arvore-documento/v1/dossie-produto/{id}/formulario` | Implementado | Ja existe no codigo; deve ser preservado. |
-| Dossie Produto | `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/garantia` | `PATCH /arvore-documento/v1/dossie-produto/{id}/garantia` | Pendente | Proximo endpoint candidato. |
-| Dossie Produto | `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/produto` | `PATCH /arvore-documento/v1/dossie-produto/{id}/produto` | Pendente | Implementar em passo separado. |
-| Dossie Produto | `POST /simtr-dossie-produto/v1/dossie-produto/{id}/capturar` | `POST /arvore-documento/v1/dossie-produto/{id}/capturar` | Pendente | Implementar em passo separado. |
-| Dossie Produto | `POST /simtr-dossie-produto/v1/dossie-produto/{id}/workflow` | `POST /arvore-documento/v1/dossie-produto/{id}/workflow` | Implementado | Sem corpo de requisicao; retorna `200 OK` com `{ "id": ... }`. |
-| Dossie Produto | `POST /simtr-dossie-produto/v1/dossie-produto/{id}/cancelar` | `POST /arvore-documento/v1/dossie-produto/{id}/cancelar` | Pendente | Implementar em passo separado. |
-| Dossie Produto | `GET /simtr-dossie-produto/v2/dossie-produto/{id}` | `GET /arvore-documento/v1/dossie-produto/{id}` | Pendente | Confirmar contrato externo do hub antes de implementar. |
-| Dossie Produto | `POST /simtr-dossie-produto/v2/dossie-produto/{id}/documento` | `POST /arvore-documento/v1/dossie-produto/{id}/documento` | Implementado | Vincula documento ja armazenado ao Dossie Produto e retorna `id_documento` e `id_instancia_documento`. |
-| Dossie Produto | `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/validacao-negocial` | `PATCH /arvore-documento/v1/dossie-produto/{id}/validacao-negocial` | Implementado | Retorna `200 OK` sem corpo; contrato tecnico segue OpenAPI com `verificacoes` e `respostas_formulario`. |
-| Gestao de Documentos | `POST /simtr-gestao-documento/v1/storage/container/credencial` | `POST /arvore-documento/v1/storage/container/credencial` | Implementado | Sem body e sem `Content-Type`; retorna `200 OK` com `sas`, `validade`, `url_storage` e `nome_container`; usa obrigatoriamente `doc/swagger-mtr/simtr-gestao-documento-openapi-2.23.1.0` e mascara `sas` em payloads logados. |
+| Parametrizacao | `GET /simtr-parametrizacao/v2/patriarca/processo/identificador-negocial/{identificador}` | `GET /hub/v1/processo/identificador-negocial/{identificador}` | Implementado | Preservar fluxo atual. |
+| Parametrizacao | `GET /simtr-parametrizacao/v1/cadastro/checklist/identificador-negocial/{identificador}/versao/{versao}` | `GET /hub/v1/checklist/identificador-negocial/{identificador}/versao/{versao}` | Implementado | Preservar fluxo atual. |
+| Dossie Produto | `POST /simtr-dossie-produto/v1/dossie-produto` | `POST /hub/v1/dossie-produto` | Implementado | Criacao basica em modo rascunho. |
+| Dossie Produto | `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/formulario` | `PATCH /hub/v1/dossie-produto/{id}/formulario` | Implementado | Ja existe no codigo; deve ser preservado. |
+| Dossie Produto | `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/garantia` | `PATCH /hub/v1/dossie-produto/{id}/garantia` | Pendente | Proximo endpoint candidato. |
+| Dossie Produto | `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/produto` | `PATCH /hub/v1/dossie-produto/{id}/produto` | Pendente | Implementar em passo separado. |
+| Dossie Produto | `POST /simtr-dossie-produto/v1/dossie-produto/{id}/capturar` | `POST /hub/v1/dossie-produto/{id}/capturar` | Pendente | Implementar em passo separado. |
+| Dossie Produto | `POST /simtr-dossie-produto/v1/dossie-produto/{id}/workflow` | `POST /hub/v1/dossie-produto/{id}/workflow` | Implementado | Sem corpo de requisicao; retorna `200 OK` com `{ "id": ... }`. |
+| Dossie Produto | `POST /simtr-dossie-produto/v1/dossie-produto/{id}/cancelar` | `POST /hub/v1/dossie-produto/{id}/cancelar` | Pendente | Implementar em passo separado. |
+| Dossie Produto | `GET /simtr-dossie-produto/v2/dossie-produto/{id}` | `GET /hub/v1/dossie-produto/{id}` | Pendente | Confirmar contrato externo do hub antes de implementar. |
+| Dossie Produto | `POST /simtr-dossie-produto/v2/dossie-produto/{id}/documento` | `POST /hub/v1/dossie-produto/{id}/documento` | Implementado | Vincula documento ja armazenado ao Dossie Produto e retorna `id_documento` e `id_instancia_documento`. |
+| Dossie Produto | `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/validacao-negocial` | `PATCH /hub/v1/dossie-produto/{id}/validacao-negocial` | Implementado | Retorna `200 OK` sem corpo; contrato tecnico segue OpenAPI com `verificacoes` e `respostas_formulario`. |
+| Gestao de Documentos | `POST /simtr-gestao-documento/v1/storage/container/credencial` | `POST /hub/v1/storage/container/credencial` | Implementado | Sem body e sem `Content-Type`; retorna `200 OK` com `sas`, `validade`, `url_storage` e `nome_container`; usa obrigatoriamente `doc/swagger-mtr/simtr-gestao-documento-openapi-2.23.1.0` e mascara `sas` em payloads logados. |
 
 ## Fontes obrigatorias para novos endpoints
 
@@ -213,35 +213,77 @@ Se payloads reais, evidencias de homologacao ou comportamento observado no MTR m
 
 ## Decisoes arquiteturais consolidadas
 
-### Nomenclatura e package root futuro
+### Nomenclatura, package root e organizacao por dominio
 
 O nome funcional consolidado da solucao e `SIMTR Hub`.
 
-Ainda existem identificadores tecnicos legados com `arvore-documento`, incluindo paths externos atuais, propriedades, nomes de span/log e o package root Java:
+O root Java consolidado e:
 
 ```text
-br.gov.caixa.simtr.arvoredocumento
+br.gov.caixa.simtr.hub
 ```
 
-A estrutura de packages devera ser alterada no futuro para um root coerente com `simtr-hub`, mas essa migracao sera feita no seu tempo, em passo separado, com regressao completa e sem misturar com a migracao dos endpoints restantes.
-
-Enquanto essa migracao nao ocorrer:
-
-- preservar os packages atuais;
-- nao renomear classes, packages ou paths tecnicos incidentalmente;
-- registrar novas decisoes usando o nome funcional `SIMTR Hub`;
-- manter compatibilidade com os endpoints ja implementados.
-
-### Camadas
-
-Manter a separacao atual:
+A identidade tecnica consolidada usa:
 
 ```text
-api
-  -> application
-      -> infrastructure/client ou mock
-  -> mapper DTO/VO
-domain
+artifactId/name: simtr-hub
+quarkus.application.name: simtr-hub
+paths externos: /hub/...
+propriedades: simtr-hub.*
+logs locais: target/logs/simtr-hub.json
+spans/eventos: simtr-hub.*
+```
+
+A organizacao atual e por dominio de negocio:
+
+```text
+br.gov.caixa.simtr.hub
+|-- parametrizacao
+|   |-- fachada
+|   |-- recurso/rest/v1
+|   |-- servico
+|   |-- dominio
+|   |-- integracao
+|   `-- mapeamento
+|-- dossieproduto
+|   |-- fachada
+|   |-- recurso/rest/v1
+|   |-- servico
+|   |-- dominio
+|   |-- integracao
+|   `-- mapeamento
+|-- gestaodocumento
+|   |-- fachada
+|   |-- recurso/rest/v1
+|   |-- servico
+|   |-- dominio
+|   |-- integracao
+|   `-- mapeamento
+`-- arquitetura
+    |-- configuracao/mock
+    |-- seguranca
+    |-- observabilidade
+    `-- excecao
+```
+
+Pacotes vazios como `repositorio`, `resiliencia`, `mensageria` e `excecao` de dominio nao devem ser criados ate haver classe real ou `package-info.java` aprovado.
+
+### Fluxo por dominio
+
+Fluxo padrao:
+
+```text
+Resource
+  -> Mapper DTO/VO
+  -> Fachada
+      -> Service
+          -> se simulador=true
+              -> MockFactory
+          -> se simulador=false
+              -> Gateway
+                  -> REST Client MTR
+          -> Mapper.toVo(...)
+  -> Mapper.toDto(...)
 ```
 
 Para Dossie Produto, o fluxo padrao e:
@@ -249,6 +291,7 @@ Para Dossie Produto, o fluxo padrao e:
 ```text
 DossieProdutoResource
   -> DossieProdutoMapper.toVo(...)
+  -> DossieProdutoFachada
   -> DossieProdutoService
       -> se simulador=true
           -> DossieProdutoMockFactory
@@ -286,13 +329,13 @@ Regras:
 Todos os proximos endpoints de Dossie Produto devem continuar no mesmo resource:
 
 ```text
-src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dossieproduto/DossieProdutoResource.java
+src/main/java/br/gov/caixa/simtr/hub/dossieproduto/recurso/rest/v1/DossieProdutoResource.java
 ```
 
 Path externo base do proxy:
 
 ```java
-@Path("/arvore-documento/v1/dossie-produto")
+@Path("/hub/v1/dossie-produto")
 ```
 
 Nao criar um resource separado por endpoint sem decisao explicita.
@@ -300,7 +343,7 @@ Nao criar um resource separado por endpoint sem decisao explicita.
 Manter o REST Client existente:
 
 ```text
-src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoClient.java
+src/main/java/br/gov/caixa/simtr/hub/dossieproduto/integracao/DossieProdutoClient.java
 ```
 
 Configuracao atual:
@@ -343,8 +386,8 @@ Importante:
 O simulador de Dossie Produto e controlado por:
 
 ```properties
-arvore-documento.simulador.dossie-produto.habilitado=false
-%dev.arvore-documento.simulador.dossie-produto.habilitado=true
+simtr-hub.simulador.dossie-produto.habilitado=false
+%dev.simtr-hub.simulador.dossie-produto.habilitado=true
 ```
 
 Quando `true`, o service usa `DossieProdutoMockFactory` e nao chama o REST Client real.
@@ -364,7 +407,7 @@ Nao trocar mocks Markdown por implementacao hardcoded sem decisao explicita.
 Para o endpoint:
 
 ```http
-POST /arvore-documento/v1/dossie-produto/{id}/documento
+POST /hub/v1/dossie-produto/{id}/documento
 ```
 
 Foi validado com payload real que:
@@ -385,8 +428,8 @@ A experiencia que motivou esta regra:
 Se essa mensagem voltar a aparecer, conferir primeiro:
 
 ```text
-src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dto/dossieproduto/DossieProdutoDocumentoAtributoDto.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dto/dossieproduto/DossieProdutoDocumentoPropriedadeDto.java
+src/main/java/br/gov/caixa/simtr/hub/dossieproduto/recurso/rest/v1/dto/DossieProdutoDocumentoAtributoDto.java
+src/main/java/br/gov/caixa/simtr/hub/dossieproduto/recurso/rest/v1/dto/DossieProdutoDocumentoPropriedadeDto.java
 ```
 
 Tambem confirmar se a instancia em execucao foi reiniciada ou rebuildada. Se o codigo local nao tiver `@NotNull` em `objeto`, mas a API ainda retornar essa mensagem, a chamada provavelmente esta chegando em artefato antigo.
@@ -456,6 +499,7 @@ Regra operacional obrigatoria:
 
 Planejamentos registrados:
 
+- `doc/planejamento-reorganizacao-packages-dominio-v1.md` - reorganizacao do root Java para `br.gov.caixa.simtr.hub` e migracao de estrutura por camada para estrutura por dominio de negocio (`parametrizacao`, `dossieproduto`, `gestaodocumento` e `arquitetura`). Revisado e aprovado pelo usuario em 2026-07-10; implementacao autorizada em etapas com checkpoints.
 - `doc/planejamento-gestao-documento-credencial-container-v1.md` - `POST /simtr-gestao-documento/v1/storage/container/credencial` para gerar credencial SAS de container no Modulo Gestao de Documentos. Revisado, aprovado e implementado em 2026-07-10.
 - `doc/planejamento-dossie-produto-validacao-negocial-v1.md` - `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/validacao-negocial` para registrar resultados de validacao negocial dos checklists analisados no Dossie Produto. Revisado, aprovado e implementado em 2026-07-10.
 - `doc/planejamento-dossie-produto-documento-v2.md` - `POST /simtr-dossie-produto/v2/dossie-produto/{id}/documento` para vincular documento ao Dossie Produto e retornar `id_documento` e `id_instancia_documento`. Revisado, aprovado e implementado em 2026-07-10.
@@ -469,13 +513,13 @@ Para cada novo endpoint:
 1. Criar DTOs em:
 
 ```text
-src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dto/dossieproduto
+src/main/java/br/gov/caixa/simtr/hub/dossieproduto/recurso/rest/v1/dto
 ```
 
 2. Criar VOs equivalentes em:
 
 ```text
-src/main/java/br/gov/caixa/simtr/arvoredocumento/domain/dossieproduto
+src/main/java/br/gov/caixa/simtr/hub/dossieproduto/dominio
 ```
 
 3. Adicionar metodos no `DossieProdutoMapper`, mantendo interface MapStruct e CDI.
@@ -504,10 +548,11 @@ mesmo @ClientExceptionMapper ja existente
 7. Adicionar metodo no `DossieProdutoMockFactory`.
 8. Criar mock em `src/main/resources/mock/dossieproduto`.
 9. Adicionar metodo no `DossieProdutoService`, mantendo decisao simulador vs MTR.
-10. Adicionar endpoint no `DossieProdutoResource`.
-11. Adicionar ou ajustar testes.
-12. Rodar `mvn -q test`.
-13. Atualizar este documento.
+10. Adicionar metodo na `DossieProdutoFachada`.
+11. Adicionar endpoint no `DossieProdutoResource`.
+12. Adicionar ou ajustar testes.
+13. Rodar `mvn -q test`.
+14. Atualizar este documento.
 
 ## Padrao para adicionar novo endpoint de Gestao de Documentos
 
@@ -526,32 +571,33 @@ doc/swagger-mtr/simtr-gestao-documento-openapi-2.23.1.0
 6. Criar DTOs em:
 
 ```text
-src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dto/gestaodocumento
+src/main/java/br/gov/caixa/simtr/hub/gestaodocumento/recurso/rest/v1/dto
 ```
 
 7. Criar VOs equivalentes em:
 
 ```text
-src/main/java/br/gov/caixa/simtr/arvoredocumento/domain/gestaodocumento
+src/main/java/br/gov/caixa/simtr/hub/gestaodocumento/dominio
 ```
 
 8. Criar mapper MapStruct em:
 
 ```text
-src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/gestaodocumento/GestaoDocumentoMapper.java
+src/main/java/br/gov/caixa/simtr/hub/gestaodocumento/mapeamento/GestaoDocumentoMapper.java
 ```
 
 9. Criar resource e service proprios do modulo:
 
 ```text
-src/main/java/br/gov/caixa/simtr/arvoredocumento/api/gestaodocumento
-src/main/java/br/gov/caixa/simtr/arvoredocumento/application/gestaodocumento
+src/main/java/br/gov/caixa/simtr/hub/gestaodocumento/recurso/rest/v1
+src/main/java/br/gov/caixa/simtr/hub/gestaodocumento/fachada
+src/main/java/br/gov/caixa/simtr/hub/gestaodocumento/servico
 ```
 
 10. Criar REST Client, Gateway, exception mapper e mock factory proprios:
 
 ```text
-src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/gestaodocumento
+src/main/java/br/gov/caixa/simtr/hub/gestaodocumento/integracao
 ```
 
 11. Manter DTO -> VO -> DTO como fronteira arquitetural.
@@ -652,7 +698,7 @@ Configuracao em `src/test/resources/application.properties`:
 quarkus.http.test-port=8082
 quarkus.jacoco.report=true
 quarkus.jacoco.report-location=target/jacoco-report
-quarkus.jacoco.title=arvore-documento
+quarkus.jacoco.title=simtr-hub
 ```
 
 O profile de testes deve usar a porta HTTP `8082`, evitando a porta padrao `8081` do Quarkus em execucoes locais e de pipeline.
@@ -692,7 +738,7 @@ Pendencias:
 ### 2026-07-10 - Codex - POST credencial container Gestao de Documentos v1
 
 Objetivo:
-- Implementar `POST /arvore-documento/v1/storage/container/credencial` como proxy do `POST /simtr-gestao-documento/v1/storage/container/credencial`.
+- Implementar `POST /hub/v1/storage/container/credencial` como proxy do `POST /simtr-gestao-documento/v1/storage/container/credencial`.
 
 Planejamento:
 - `doc/planejamento-gestao-documento-credencial-container-v1.md` criado, revisado e aprovado pelo usuario antes da implementacao.
@@ -701,7 +747,7 @@ Planejamento:
 Feito:
 - Criados DTO, VO e mapper MapStruct especificos para credencial de container.
 - Criado `GestaoDocumentoResource` com endpoint sem body e `@Consumes(MediaType.WILDCARD)` para aceitar chamada sem `Content-Type`.
-- Criado `GestaoDocumentoService` com escolha entre simulador e MTR real por `arvore-documento.simulador.gestao-documento.habilitado`.
+- Criado `GestaoDocumentoService` com escolha entre simulador e MTR real por `simtr-hub.simulador.gestao-documento.habilitado`.
 - Criados `GestaoDocumentoClient`, `GestaoDocumentoGateway` e `GestaoDocumentoClientExceptionMapper`.
 - Criado mock runtime e copia documental para `credencial-container.md`.
 - Adicionadas propriedades `quarkus.rest-client.gestao-documento.*` e simulador de Gestao de Documentos nas configuracoes runtime, teste e documentais.
@@ -709,26 +755,26 @@ Feito:
 - Atualizados README, documentacao consolidada e este espaco colaborativo.
 
 Arquivos alterados:
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/gestaodocumento/GestaoDocumentoResource.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dto/gestaodocumento/GestaoDocumentoCredencialContainerDto.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/application/gestaodocumento/GestaoDocumentoService.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/domain/gestaodocumento/GestaoDocumentoCredencialContainerVo.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/gestaodocumento/*`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/gestaodocumento/mock/GestaoDocumentoMockFactory.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/gestaodocumento/GestaoDocumentoMapper.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/RestClientObservabilityFilter.java`
+- `src/main/java/br/gov/caixa/simtr/hub/api/gestaodocumento/GestaoDocumentoResource.java`
+- `src/main/java/br/gov/caixa/simtr/hub/api/dto/gestaodocumento/GestaoDocumentoCredencialContainerDto.java`
+- `src/main/java/br/gov/caixa/simtr/hub/application/gestaodocumento/GestaoDocumentoService.java`
+- `src/main/java/br/gov/caixa/simtr/hub/domain/gestaodocumento/GestaoDocumentoCredencialContainerVo.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/gestaodocumento/*`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/gestaodocumento/mock/GestaoDocumentoMockFactory.java`
+- `src/main/java/br/gov/caixa/simtr/hub/mapper/gestaodocumento/GestaoDocumentoMapper.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/RestClientObservabilityFilter.java`
 - `src/main/resources/mock/gestaodocumento/credencial-container.md`
 - `doc/mock/gestao-documento/credencial-container.md`
 - `src/main/resources/application.properties`
 - `src/test/resources/application.properties`
 - `doc/properties/application*.properties`
 - `doc/properties/application*.yml`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/**/*GestaoDocumento*Test.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceEndpointTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceBeanCoverageTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/GatewayTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/mock/MockFactoryTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/RestClientObservabilityFilterTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/**/*GestaoDocumento*Test.java`
+- `src/test/java/br/gov/caixa/simtr/hub/api/ResourceEndpointTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/api/ResourceBeanCoverageTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/infrastructure/client/GatewayTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/infrastructure/client/mock/MockFactoryTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/infrastructure/client/RestClientObservabilityFilterTest.java`
 - `doc/planejamento-gestao-documento-credencial-container-v1.md`
 - `doc/espaco-colaborativo-de-desenvolvimento.md`
 - `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`
@@ -750,7 +796,7 @@ Resultado dos testes:
 - Suite passou.
 
 Decisoes:
-- O endpoint externo oficial do Hub e `POST /arvore-documento/v1/storage/container/credencial`.
+- O endpoint externo oficial do Hub e `POST /hub/v1/storage/container/credencial`.
 - Gestao de Documentos usa modulo tecnico proprio `gestaodocumento`.
 - O REST Client usa `@Path("/gestao-documento")` e URL base `https://api.des.caixa:8443/simtr`, resultando em `/simtr/gestao-documento/v1/storage/container/credencial` no API Manager, sem duplicar `/simtr`.
 - `validade` permanece como `Object` no DTO/VO para preservar string ou objeto `Calendar` retornado pelo MTR.
@@ -789,7 +835,7 @@ Pendencias:
 ### 2026-07-10 - Codex - POST documento Dossie Produto v2
 
 Objetivo:
-- Implementar `POST /arvore-documento/v1/dossie-produto/{id}/documento` como proxy do `POST /simtr-dossie-produto/v2/dossie-produto/{id}/documento`.
+- Implementar `POST /hub/v1/dossie-produto/{id}/documento` como proxy do `POST /simtr-dossie-produto/v2/dossie-produto/{id}/documento`.
 
 Planejamento:
 - `doc/planejamento-dossie-produto-documento-v2.md` criado, revisado e aprovado pelo usuario antes da implementacao.
@@ -804,23 +850,23 @@ Feito:
 - Corrigida validacao local indevida que rejeitava `atributos[].objeto` ausente no payload real de documento.
 
 Arquivos alterados:
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dossieproduto/DossieProdutoResource.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/application/dossieproduto/DossieProdutoService.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoClient.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoGateway.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/mock/DossieProdutoMockFactory.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/dossieproduto/DossieProdutoMapper.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dto/dossieproduto/*Documento*.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/domain/dossieproduto/*Documento*.java`
+- `src/main/java/br/gov/caixa/simtr/hub/api/dossieproduto/DossieProdutoResource.java`
+- `src/main/java/br/gov/caixa/simtr/hub/application/dossieproduto/DossieProdutoService.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/DossieProdutoClient.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/DossieProdutoGateway.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/mock/DossieProdutoMockFactory.java`
+- `src/main/java/br/gov/caixa/simtr/hub/mapper/dossieproduto/DossieProdutoMapper.java`
+- `src/main/java/br/gov/caixa/simtr/hub/api/dto/dossieproduto/*Documento*.java`
+- `src/main/java/br/gov/caixa/simtr/hub/domain/dossieproduto/*Documento*.java`
 - `src/main/resources/mock/dossieproduto/documento-dossie-produto.md`
 - `doc/mock/dossie-produto/documento-dossie-produto.md`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/TestFixtures.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceEndpointTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceBeanCoverageTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/application/dossieproduto/DossieProdutoServiceTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/GatewayTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/mock/MockFactoryTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/mapper/dossieproduto/DossieProdutoMapperTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/TestFixtures.java`
+- `src/test/java/br/gov/caixa/simtr/hub/api/ResourceEndpointTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/api/ResourceBeanCoverageTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/application/dossieproduto/DossieProdutoServiceTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/infrastructure/client/GatewayTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/infrastructure/client/mock/MockFactoryTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/mapper/dossieproduto/DossieProdutoMapperTest.java`
 - `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`
 - `doc/planejamento-dossie-produto-documento-v2.md`
 
@@ -854,7 +900,7 @@ Pendencias:
 ### 2026-07-10 - Codex - POST workflow Dossie Produto v1
 
 Objetivo:
-- Implementar `POST /arvore-documento/v1/dossie-produto/{id}/workflow` como proxy do `POST /simtr-dossie-produto/v1/dossie-produto/{id}/workflow`.
+- Implementar `POST /hub/v1/dossie-produto/{id}/workflow` como proxy do `POST /simtr-dossie-produto/v1/dossie-produto/{id}/workflow`.
 
 Planejamento:
 - `doc/planejamento-dossie-produto-workflow-v1.md` criado, revisado e aprovado pelo usuario antes da implementacao.
@@ -862,7 +908,7 @@ Planejamento:
 - Usuario confirmou retorno `200 OK` com corpo `{ "id": ... }`, seguindo o OpenAPI.
 
 Feito:
-- Adicionado endpoint HTTP `POST /arvore-documento/v1/dossie-produto/{id}/workflow`.
+- Adicionado endpoint HTTP `POST /hub/v1/dossie-produto/{id}/workflow`.
 - Adicionado metodo v1 no `DossieProdutoClient` para chamar `/dossie-produto/v1/dossie-produto/{id}/workflow`.
 - `DossieProdutoGateway`, `DossieProdutoService` e `DossieProdutoResource` atualizados com fluxo vertical completo.
 - `DossieProdutoMockFactory` atualizado para retornar workflow mockado.
@@ -871,18 +917,18 @@ Feito:
 - Testes de resource, service, gateway, mock factory e bean coverage adicionados/ajustados.
 
 Arquivos alterados:
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dossieproduto/DossieProdutoResource.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/application/dossieproduto/DossieProdutoService.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoClient.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoGateway.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/mock/DossieProdutoMockFactory.java`
+- `src/main/java/br/gov/caixa/simtr/hub/api/dossieproduto/DossieProdutoResource.java`
+- `src/main/java/br/gov/caixa/simtr/hub/application/dossieproduto/DossieProdutoService.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/DossieProdutoClient.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/DossieProdutoGateway.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/mock/DossieProdutoMockFactory.java`
 - `src/main/resources/mock/dossieproduto/workflow-dossie-produto.md`
 - `doc/mock/dossie-produto/workflow-dossie-produto.md`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceEndpointTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceBeanCoverageTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/application/dossieproduto/DossieProdutoServiceTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/GatewayTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/mock/MockFactoryTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/api/ResourceEndpointTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/api/ResourceBeanCoverageTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/application/dossieproduto/DossieProdutoServiceTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/infrastructure/client/GatewayTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/infrastructure/client/mock/MockFactoryTest.java`
 - `doc/planejamento-dossie-produto-workflow-v1.md`
 - `doc/espaco-colaborativo-de-desenvolvimento.md`
 - `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`
@@ -959,7 +1005,7 @@ Pendencias:
 ### 2026-07-10 - Codex - PATCH validacao negocial Dossie Produto v1
 
 Objetivo:
-- Implementar `PATCH /arvore-documento/v1/dossie-produto/{id}/validacao-negocial` como proxy do `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/validacao-negocial`.
+- Implementar `PATCH /hub/v1/dossie-produto/{id}/validacao-negocial` como proxy do `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/validacao-negocial`.
 
 Planejamento:
 - `doc/planejamento-dossie-produto-validacao-negocial-v1.md` criado, revisado e aprovado pelo usuario antes da implementacao.
@@ -974,23 +1020,23 @@ Feito:
 - Testes de resource, service, gateway, mock factory e mapper adicionados/ajustados.
 
 Arquivos alterados:
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dossieproduto/DossieProdutoResource.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/application/dossieproduto/DossieProdutoService.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoClient.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoGateway.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/mock/DossieProdutoMockFactory.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/dossieproduto/DossieProdutoMapper.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dto/dossieproduto/*ValidacaoNegocial*.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/domain/dossieproduto/*ValidacaoNegocial*.java`
+- `src/main/java/br/gov/caixa/simtr/hub/api/dossieproduto/DossieProdutoResource.java`
+- `src/main/java/br/gov/caixa/simtr/hub/application/dossieproduto/DossieProdutoService.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/DossieProdutoClient.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/DossieProdutoGateway.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/mock/DossieProdutoMockFactory.java`
+- `src/main/java/br/gov/caixa/simtr/hub/mapper/dossieproduto/DossieProdutoMapper.java`
+- `src/main/java/br/gov/caixa/simtr/hub/api/dto/dossieproduto/*ValidacaoNegocial*.java`
+- `src/main/java/br/gov/caixa/simtr/hub/domain/dossieproduto/*ValidacaoNegocial*.java`
 - `src/main/resources/mock/dossieproduto/validacao-negocial-dossie-produto.md`
 - `doc/mock/dossie-produto/validacao-negocial-dossie-produto.md`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/TestFixtures.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceEndpointTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceBeanCoverageTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/application/dossieproduto/DossieProdutoServiceTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/GatewayTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/mock/MockFactoryTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/mapper/dossieproduto/DossieProdutoMapperTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/TestFixtures.java`
+- `src/test/java/br/gov/caixa/simtr/hub/api/ResourceEndpointTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/api/ResourceBeanCoverageTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/application/dossieproduto/DossieProdutoServiceTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/infrastructure/client/GatewayTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/infrastructure/client/mock/MockFactoryTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/mapper/dossieproduto/DossieProdutoMapperTest.java`
 - `doc/planejamento-dossie-produto-validacao-negocial-v1.md`
 - `doc/espaco-colaborativo-de-desenvolvimento.md`
 - `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`
@@ -1026,19 +1072,19 @@ Pendencias:
 ### 2026-07-10 - Codex - Ajuste path OpenAPI
 
 Objetivo:
-- Alterar o path do documento OpenAPI gerado pelo Quarkus de `/arvore-documento/openai` para `/arvore-documento/openapi`.
+- Alterar o path do documento OpenAPI gerado pelo Quarkus de `/hub/openai` para `/hub/openapi`.
 
 Feito:
 - Atualizada a configuracao `quarkus.smallrye-openapi.path` e `%dev.quarkus.smallrye-openapi.path`.
 - Atualizadas a documentacao principal, o README e a copia documental de properties.
-- Adicionado teste HTTP para validar `GET /arvore-documento/openapi`.
+- Adicionado teste HTTP para validar `GET /hub/openapi`.
 
 Arquivos alterados:
 - `src/main/resources/application.properties`
 - `doc/properties/application.properties`
 - `README.md`
 - `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceEndpointTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/api/ResourceEndpointTest.java`
 - `doc/espaco-colaborativo-de-desenvolvimento.md`
 
 Testes criados/ajustados:
@@ -1054,8 +1100,8 @@ Cobertura:
 - Relatorio gerado pelo `quarkus-jacoco` em `target/jacoco-report/index.html`.
 
 Decisoes:
-- O path oficial do OpenAPI do SIMTR Hub e `/arvore-documento/openapi`.
-- O path antigo `/arvore-documento/openai` deixa de ser documentado como endpoint valido.
+- O path oficial do OpenAPI do SIMTR Hub e `/hub/openapi`.
+- O path antigo `/hub/openai` deixa de ser documentado como endpoint valido.
 
 Pendencias:
 - Nenhuma.
@@ -1067,14 +1113,14 @@ Objetivo:
 
 Feito:
 - Removida a obrigatoriedade local de `previo` em `DossieProdutoValidacaoNegocialVerificacaoDto`.
-- Adicionado teste HTTP com JSON sem `previo` para `PATCH /arvore-documento/v1/dossie-produto/{id}/validacao-negocial`.
+- Adicionado teste HTTP com JSON sem `previo` para `PATCH /hub/v1/dossie-produto/{id}/validacao-negocial`.
 - Ajustado teste de mapper para preservar `previo` nulo.
 - Atualizados planejamento e documentacao consolidada com a decisao.
 
 Arquivos alterados:
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dto/dossieproduto/DossieProdutoValidacaoNegocialVerificacaoDto.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceEndpointTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/mapper/dossieproduto/DossieProdutoMapperTest.java`
+- `src/main/java/br/gov/caixa/simtr/hub/api/dto/dossieproduto/DossieProdutoValidacaoNegocialVerificacaoDto.java`
+- `src/test/java/br/gov/caixa/simtr/hub/api/ResourceEndpointTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/mapper/dossieproduto/DossieProdutoMapperTest.java`
 - `doc/planejamento-dossie-produto-validacao-negocial-v1.md`
 - `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`
 - `doc/espaco-colaborativo-de-desenvolvimento.md`
@@ -1099,6 +1145,59 @@ Decisoes:
 
 Pendencias:
 - Nenhuma.
+
+### 2026-07-10 - Codex - Reorganizacao por dominio SIMTR Hub
+
+Objetivo:
+- Reorganizar o projeto sob `br.gov.caixa.simtr.hub` por dominio de negocio, remover os pacotes globais por layer e preparar cada dominio para futura extracao como microservico.
+
+Planejamento:
+- `doc/planejamento-reorganizacao-packages-dominio-v1.md` revisado e aprovado pelo usuario.
+- Usuario aprovou estrutura por dominio, fachadas por dominio, identidade tecnica `simtr-hub` e mudanca dos paths externos para `/hub/...`.
+
+Feito:
+- Migrada a identidade tecnica para `simtr-hub` em `pom.xml`, `quarkus.application.name`, propriedades, spans/eventos e logs.
+- Ajustado o arquivo de log local para `target/logs/simtr-hub.json`.
+- Verticalizados os dominios `parametrizacao`, `dossieproduto` e `gestaodocumento`.
+- Criadas `ParametrizacaoFachada`, `DossieProdutoFachada` e `GestaoDocumentoFachada`.
+- Resources passaram a depender das fachadas, nao diretamente dos services.
+- DTOs REST ficaram em `recurso/rest/v1/dto`, VOs em `dominio`, services em `servico`, clients/gateways/mocks em `integracao` e mappers em `mapeamento`.
+- Classes compartilhadas foram consolidadas em `arquitetura.excecao`, `arquitetura.observabilidade`, `arquitetura.seguranca` e `arquitetura.configuracao.mock`.
+- Testes foram movidos para pacotes coerentes com a nova organizacao.
+
+Arquivos/pacotes principais alterados:
+- `src/main/java/br/gov/caixa/simtr/hub/parametrizacao`
+- `src/main/java/br/gov/caixa/simtr/hub/dossieproduto`
+- `src/main/java/br/gov/caixa/simtr/hub/gestaodocumento`
+- `src/main/java/br/gov/caixa/simtr/hub/arquitetura`
+- `src/test/java/br/gov/caixa/simtr/hub`
+- `pom.xml`
+- `src/main/resources/application.properties`
+- `src/test/resources/application.properties`
+- `README.md`
+- `doc/planejamento-reorganizacao-packages-dominio-v1.md`
+- `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`
+
+Comandos executados:
+- `mvn -q test`
+- `rg -n "br\\.gov\\.caixa\\.simtr\\.hub\\.(api|application|domain|infrastructure|mapper|shared)" src/main/java src/test/java`
+- `rg -n "<padroes-legados-de-identidade>" pom.xml README.md doc src`
+
+Resultado dos testes:
+- Suite passou apos a migracao de identidade.
+- Suite passou apos a verticalizacao de `parametrizacao`.
+- Suite passou apos a verticalizacao de `gestaodocumento`.
+- Suite passou apos a verticalizacao de `dossieproduto`.
+- Suite passou apos a consolidacao de `arquitetura`.
+
+Decisoes:
+- Pacotes vazios nao foram criados apenas para reservar estrutura.
+- `arquitetura` fica restrita a codigo transversal e nao deve importar dominios.
+- Fachadas sao a fronteira interna oficial dos dominios para futuras extracoes.
+- Os endpoints externos oficiais ficam sob `/hub/...`.
+
+Pendencias:
+- Os planejamentos historicos de endpoints anteriores ainda podem citar caminhos antigos porque registram o contexto da epoca. Para novo desenvolvimento, usar os caminhos deste registro e da secao de arquivos de leitura atualizada.
 
 ### Template para proximos registros
 
@@ -1150,17 +1249,31 @@ Para Dossie Produto, ler tambem:
 
 ```text
 doc/swagger-mtr/simtr-dossie-produto-openapi- 2.20.0.8
-src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dossieproduto/DossieProdutoResource.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/application/dossieproduto/DossieProdutoService.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoClient.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoGateway.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoClientExceptionMapper.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/mock/DossieProdutoMockFactory.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/dossieproduto/DossieProdutoMapper.java
-src/test/java/br/gov/caixa/simtr/arvoredocumento/mapper/dossieproduto/DossieProdutoMapperTest.java
-src/test/java/br/gov/caixa/simtr/arvoredocumento/application/dossieproduto/DossieProdutoServiceTest.java
-src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceEndpointTest.java
-src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceBeanCoverageTest.java
+src/main/java/br/gov/caixa/simtr/hub/dossieproduto/fachada/DossieProdutoFachada.java
+src/main/java/br/gov/caixa/simtr/hub/dossieproduto/recurso/rest/v1/DossieProdutoResource.java
+src/main/java/br/gov/caixa/simtr/hub/dossieproduto/servico/DossieProdutoService.java
+src/main/java/br/gov/caixa/simtr/hub/dossieproduto/integracao/DossieProdutoClient.java
+src/main/java/br/gov/caixa/simtr/hub/dossieproduto/integracao/DossieProdutoGateway.java
+src/main/java/br/gov/caixa/simtr/hub/dossieproduto/integracao/DossieProdutoClientExceptionMapper.java
+src/main/java/br/gov/caixa/simtr/hub/dossieproduto/integracao/mock/DossieProdutoMockFactory.java
+src/main/java/br/gov/caixa/simtr/hub/dossieproduto/mapeamento/DossieProdutoMapper.java
+src/test/java/br/gov/caixa/simtr/hub/dossieproduto/mapeamento/DossieProdutoMapperTest.java
+src/test/java/br/gov/caixa/simtr/hub/dossieproduto/servico/DossieProdutoServiceTest.java
+src/test/java/br/gov/caixa/simtr/hub/recurso/ResourceEndpointTest.java
+src/test/java/br/gov/caixa/simtr/hub/recurso/ResourceBeanCoverageTest.java
+```
+
+Para Parametrizacao, ler tambem:
+
+```text
+src/main/java/br/gov/caixa/simtr/hub/parametrizacao/fachada/ParametrizacaoFachada.java
+src/main/java/br/gov/caixa/simtr/hub/parametrizacao/recurso/rest/v1/ProcessoResource.java
+src/main/java/br/gov/caixa/simtr/hub/parametrizacao/recurso/rest/v1/ChecklistResource.java
+src/main/java/br/gov/caixa/simtr/hub/parametrizacao/servico/ProcessoService.java
+src/main/java/br/gov/caixa/simtr/hub/parametrizacao/servico/ChecklistService.java
+src/main/java/br/gov/caixa/simtr/hub/parametrizacao/integracao
+src/main/java/br/gov/caixa/simtr/hub/parametrizacao/mapeamento
+src/test/java/br/gov/caixa/simtr/hub/parametrizacao
 ```
 
 Para Gestao de Documentos, ler tambem:
@@ -1168,18 +1281,14 @@ Para Gestao de Documentos, ler tambem:
 ```text
 doc/swagger-mtr/simtr-gestao-documento-openapi-2.23.1.0
 doc/planejamento-gestao-documento-credencial-container-v1.md
-```
-
-Como a implementacao de Gestao de Documentos ja existe, ler tambem os arquivos do fluxo vertical correspondente:
-
-```text
-src/main/java/br/gov/caixa/simtr/arvoredocumento/api/gestaodocumento/GestaoDocumentoResource.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/application/gestaodocumento/GestaoDocumentoService.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/gestaodocumento/GestaoDocumentoClient.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/gestaodocumento/GestaoDocumentoGateway.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/gestaodocumento/GestaoDocumentoClientExceptionMapper.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/gestaodocumento/mock/GestaoDocumentoMockFactory.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/gestaodocumento/GestaoDocumentoMapper.java
+src/main/java/br/gov/caixa/simtr/hub/gestaodocumento/fachada/GestaoDocumentoFachada.java
+src/main/java/br/gov/caixa/simtr/hub/gestaodocumento/recurso/rest/v1/GestaoDocumentoResource.java
+src/main/java/br/gov/caixa/simtr/hub/gestaodocumento/servico/GestaoDocumentoService.java
+src/main/java/br/gov/caixa/simtr/hub/gestaodocumento/integracao/GestaoDocumentoClient.java
+src/main/java/br/gov/caixa/simtr/hub/gestaodocumento/integracao/GestaoDocumentoGateway.java
+src/main/java/br/gov/caixa/simtr/hub/gestaodocumento/integracao/GestaoDocumentoClientExceptionMapper.java
+src/main/java/br/gov/caixa/simtr/hub/gestaodocumento/integracao/mock/GestaoDocumentoMockFactory.java
+src/main/java/br/gov/caixa/simtr/hub/gestaodocumento/mapeamento/GestaoDocumentoMapper.java
 ```
 
 ## Regras de continuidade
@@ -1222,7 +1331,7 @@ OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader clas
 Se texto com acento aparecer quebrado no console, validar primeiro o arquivo:
 
 ```text
-target/logs/arvore-documento.json
+target/logs/simtr-hub.json
 ```
 
 Nao alterar encoding do build sem evidencia no arquivo JSON.

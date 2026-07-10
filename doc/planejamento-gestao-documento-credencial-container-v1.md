@@ -17,10 +17,10 @@ POST /simtr-gestao-documento/v1/storage/container/credencial
 Endpoint externo proposto para o `SIMTR Hub`, sujeito a aprovacao neste planejamento:
 
 ```http
-POST /arvore-documento/v1/storage/container/credencial
+POST /hub/v1/storage/container/credencial
 ```
 
-A proposta mantem a convencao atual do Hub: o consumidor chama paths sob `/arvore-documento/v1/...`, e o detalhe interno do MTR fica encapsulado pelo REST Client.
+A proposta mantem a convencao atual do Hub: o consumidor chama paths sob `/hub/v1/...`, e o detalhe interno do MTR fica encapsulado pelo REST Client.
 
 ## Fontes consultadas
 
@@ -115,7 +115,7 @@ O endpoint sera usado no fluxo de upload documental da pre-validacao:
 - Obter URL de acesso de documento por id.
 - Vincular documento ao Dossie Produto.
 - Alterar endpoints ja implementados de Parametrizacao ou Dossie Produto.
-- Renomear packages, paths tecnicos ou o root `arvore-documento`.
+- Renomear packages, paths tecnicos ou o root `simtr-hub`.
 
 ## Decisoes tecnicas propostas
 
@@ -150,15 +150,15 @@ resultado: https://api.des.caixa:8443/simtr/gestao-documento/v1/storage/containe
 Arquivos novos de codigo:
 
 ```text
-src/main/java/br/gov/caixa/simtr/arvoredocumento/api/gestaodocumento/GestaoDocumentoResource.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dto/gestaodocumento/GestaoDocumentoCredencialContainerDto.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/application/gestaodocumento/GestaoDocumentoService.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/domain/gestaodocumento/GestaoDocumentoCredencialContainerVo.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/gestaodocumento/GestaoDocumentoClient.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/gestaodocumento/GestaoDocumentoGateway.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/gestaodocumento/GestaoDocumentoClientExceptionMapper.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/gestaodocumento/mock/GestaoDocumentoMockFactory.java
-src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/gestaodocumento/GestaoDocumentoMapper.java
+src/main/java/br/gov/caixa/simtr/hub/api/gestaodocumento/GestaoDocumentoResource.java
+src/main/java/br/gov/caixa/simtr/hub/api/dto/gestaodocumento/GestaoDocumentoCredencialContainerDto.java
+src/main/java/br/gov/caixa/simtr/hub/application/gestaodocumento/GestaoDocumentoService.java
+src/main/java/br/gov/caixa/simtr/hub/domain/gestaodocumento/GestaoDocumentoCredencialContainerVo.java
+src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/gestaodocumento/GestaoDocumentoClient.java
+src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/gestaodocumento/GestaoDocumentoGateway.java
+src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/gestaodocumento/GestaoDocumentoClientExceptionMapper.java
+src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/gestaodocumento/mock/GestaoDocumentoMockFactory.java
+src/main/java/br/gov/caixa/simtr/hub/mapper/gestaodocumento/GestaoDocumentoMapper.java
 ```
 
 Arquivos novos de mock:
@@ -187,20 +187,20 @@ quarkus.rest-client.gestao-documento.url=https://api.des.caixa:8443/simtr
 quarkus.rest-client.gestao-documento.connect-timeout=3000
 quarkus.rest-client.gestao-documento.read-timeout=10000
 
-arvore-documento.simulador.gestao-documento.habilitado=false
-%dev.arvore-documento.simulador.gestao-documento.habilitado=true
+simtr-hub.simulador.gestao-documento.habilitado=false
+%dev.simtr-hub.simulador.gestao-documento.habilitado=true
 ```
 
 Arquivos de teste previstos:
 
 ```text
-src/test/java/br/gov/caixa/simtr/arvoredocumento/TestFixtures.java
-src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceEndpointTest.java
-src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceBeanCoverageTest.java
-src/test/java/br/gov/caixa/simtr/arvoredocumento/application/gestaodocumento/GestaoDocumentoServiceTest.java
-src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/GatewayTest.java
-src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/mock/MockFactoryTest.java
-src/test/java/br/gov/caixa/simtr/arvoredocumento/mapper/gestaodocumento/GestaoDocumentoMapperTest.java
+src/test/java/br/gov/caixa/simtr/hub/TestFixtures.java
+src/test/java/br/gov/caixa/simtr/hub/api/ResourceEndpointTest.java
+src/test/java/br/gov/caixa/simtr/hub/api/ResourceBeanCoverageTest.java
+src/test/java/br/gov/caixa/simtr/hub/application/gestaodocumento/GestaoDocumentoServiceTest.java
+src/test/java/br/gov/caixa/simtr/hub/infrastructure/client/GatewayTest.java
+src/test/java/br/gov/caixa/simtr/hub/infrastructure/client/mock/MockFactoryTest.java
+src/test/java/br/gov/caixa/simtr/hub/mapper/gestaodocumento/GestaoDocumentoMapperTest.java
 ```
 
 Arquivos de documentacao a atualizar apos implementacao:
@@ -215,13 +215,13 @@ README.md
 
 Resource:
 
-- `POST /arvore-documento/v1/storage/container/credencial` retorna `200 OK` com `sas`, `validade`, `url_storage` e `nome_container` quando simulador esta habilitado.
+- `POST /hub/v1/storage/container/credencial` retorna `200 OK` com `sas`, `validade`, `url_storage` e `nome_container` quando simulador esta habilitado.
 - Chamada sem corpo e sem `Content-Type` nao retorna `415`.
 - Falha propagada pelo service e convertida pelo mapper global conforme padrao existente.
 
 Service:
 
-- Quando `arvore-documento.simulador.gestao-documento.habilitado=true`, usa `GestaoDocumentoMockFactory`.
+- Quando `simtr-hub.simulador.gestao-documento.habilitado=true`, usa `GestaoDocumentoMockFactory`.
 - Quando `false`, usa `GestaoDocumentoGateway`.
 - Propaga falhas de mock/gateway.
 
@@ -258,20 +258,20 @@ mvn -q test
 Spans:
 
 ```text
-arvore-documento.api.gestao-documento.credencial-container.gerar
-arvore-documento.service.gestao-documento.credencial-container.gerar
+simtr-hub.api.gestao-documento.credencial-container.gerar
+simtr-hub.service.gestao-documento.credencial-container.gerar
 mtr.gestao-documento.credencial-container.gerar
 ```
 
 Eventos de log sugeridos:
 
 ```text
-arvore-documento.gestao-documento.credencial-container.requisicao.recebida
-arvore-documento.gestao-documento.credencial-container.resposta.enviada
-arvore-documento.gestao-documento.credencial-container.requisicao.falhou
-arvore-documento.gestao-documento.credencial-container.service.iniciado
-arvore-documento.gestao-documento.credencial-container.service.concluido
-arvore-documento.gestao-documento.credencial-container.service.falhou
+simtr-hub.gestao-documento.credencial-container.requisicao.recebida
+simtr-hub.gestao-documento.credencial-container.resposta.enviada
+simtr-hub.gestao-documento.credencial-container.requisicao.falhou
+simtr-hub.gestao-documento.credencial-container.service.iniciado
+simtr-hub.gestao-documento.credencial-container.service.concluido
+simtr-hub.gestao-documento.credencial-container.service.falhou
 mtr.gestao-documento.credencial-container.chamada.iniciada
 mtr.gestao-documento.credencial-container.chamada.concluida
 mtr.gestao-documento.credencial-container.chamada.falhou
@@ -300,7 +300,7 @@ Nao registrar o valor de `sas` em logs de aplicacao por ser credencial sensivel.
 - Planejamento revisado e aprovado pelo usuario antes da implementacao.
 - Endpoint externo aprovado ou ajustado no plano.
 - Implementacao vertical completa com resource, service, gateway, client, mapper, DTO/VO e simulador.
-- `POST /arvore-documento/v1/storage/container/credencial` retorna `200 OK` no simulador.
+- `POST /hub/v1/storage/container/credencial` retorna `200 OK` no simulador.
 - Chamada sem body e sem `Content-Type` funciona.
 - MTR real e chamado em modo nao simulado pelo caminho versionado correto, sem duplicar `/simtr`.
 - Campo `sas` nao fica exposto em logs de aplicacao.
@@ -312,7 +312,7 @@ Nao registrar o valor de `sas` em logs de aplicacao por ser credencial sensivel.
 
 Decisoes aprovadas pelo usuario em 2026-07-10:
 
-1. Expor no Hub o path `POST /arvore-documento/v1/storage/container/credencial`.
+1. Expor no Hub o path `POST /hub/v1/storage/container/credencial`.
 2. Criar modulo tecnico separado `gestaodocumento`.
 3. Tratar `validade` de forma flexivel para acomodar string e objeto `Calendar`.
 4. Nao registrar `sas` em logs de payload.
@@ -323,7 +323,7 @@ Implementacao realizada:
 - Criados DTO, VO e mapper MapStruct especificos para credencial de container.
 - Criado REST Client `gestao-documento` com base `@Path("/gestao-documento")` e metodo `POST /v1/storage/container/credencial`.
 - Criado simulador Markdown em `src/main/resources/mock/gestaodocumento/credencial-container.md` e copia documental em `doc/mock/gestao-documento/credencial-container.md`.
-- Adicionadas propriedades `quarkus.rest-client.gestao-documento.*` e `arvore-documento.simulador.gestao-documento.habilitado`.
+- Adicionadas propriedades `quarkus.rest-client.gestao-documento.*` e `simtr-hub.simulador.gestao-documento.habilitado`.
 - `RestClientObservabilityFilter` passou a mascarar campos sensiveis como `sas`, `token`, `client_secret`, `apikey` e `password` antes de registrar payloads.
 - Testes adicionados para endpoint HTTP sem body/sem `Content-Type`, resource CDI, service, gateway, mock factory, mapper e mascaramento de payload.
 
@@ -337,7 +337,7 @@ Resultado: suite passou.
 
 ## Perguntas respondidas na revisao
 
-1. Aprova expor no Hub o path `POST /arvore-documento/v1/storage/container/credencial`?
+1. Aprova expor no Hub o path `POST /hub/v1/storage/container/credencial`?
 2. Aprova criar modulo tecnico separado `gestaodocumento`, em vez de reaproveitar classes de Dossie Produto?
 3. Aprova tratar `validade` de forma flexivel inicialmente para acomodar tanto string quanto objeto `Calendar`?
 4. Aprova incluir no escopo da implementacao o cuidado para nao registrar `sas` em logs de payload?

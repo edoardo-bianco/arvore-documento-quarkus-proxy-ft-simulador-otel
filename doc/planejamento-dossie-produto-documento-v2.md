@@ -9,7 +9,7 @@ Status: revisado, aprovado pelo usuario e implementado em 2026-07-10.
 Implementar no SIMTR Hub o proxy do endpoint de inclusao de documento no Dossie Produto:
 
 ```http
-POST /arvore-documento/v1/dossie-produto/{id}/documento
+POST /hub/v1/dossie-produto/{id}/documento
 ```
 
 Esse endpoint deve chamar o MTR:
@@ -37,12 +37,12 @@ Nao deve duplicar `/simtr` e nao deve usar diretamente o prefixo bruto `/simtr-d
 - `doc/espaco-colaborativo-de-desenvolvimento.md`
 - `doc/api-integracao-mtr-pre-validacao-v1.md`
 - `doc/swagger-mtr/simtr-dossie-produto-openapi- 2.20.0.8`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dossieproduto/DossieProdutoResource.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/application/dossieproduto/DossieProdutoService.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoClient.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoGateway.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/mock/DossieProdutoMockFactory.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/dossieproduto/DossieProdutoMapper.java`
+- `src/main/java/br/gov/caixa/simtr/hub/api/dossieproduto/DossieProdutoResource.java`
+- `src/main/java/br/gov/caixa/simtr/hub/application/dossieproduto/DossieProdutoService.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/DossieProdutoClient.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/DossieProdutoGateway.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/mock/DossieProdutoMockFactory.java`
+- `src/main/java/br/gov/caixa/simtr/hub/mapper/dossieproduto/DossieProdutoMapper.java`
 - Testes existentes de resource, service, gateway, mock factory e mapper.
 
 ## Contexto funcional
@@ -152,7 +152,7 @@ Status relevantes no OpenAPI:
 1. Manter o endpoint externo do Hub em `DossieProdutoResource`, com base atual:
 
 ```java
-@Path("/arvore-documento/v1/dossie-produto")
+@Path("/hub/v1/dossie-produto")
 ```
 
 2. Adicionar o metodo:
@@ -208,7 +208,7 @@ src/main/resources/mock/dossieproduto/documento-dossie-produto.md
 
 ### Criar DTOs
 
-Em `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dto/dossieproduto`:
+Em `src/main/java/br/gov/caixa/simtr/hub/api/dto/dossieproduto`:
 
 - `DossieProdutoDocumentoInclusaoDto.java`
 - `DossieProdutoDocumentoCriadoDto.java`
@@ -220,7 +220,7 @@ Em `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dto/dossieproduto`:
 
 ### Criar VOs
 
-Em `src/main/java/br/gov/caixa/simtr/arvoredocumento/domain/dossieproduto`:
+Em `src/main/java/br/gov/caixa/simtr/hub/domain/dossieproduto`:
 
 - `DossieProdutoDocumentoInclusaoVo.java`
 - `DossieProdutoDocumentoCriadoVo.java`
@@ -275,14 +275,14 @@ DossieProdutoDocumentoCriadoDto toDto(DossieProdutoDocumentoCriadoVo vo);
 
 Resource:
 
-- Span: `arvore-documento.api.dossie-produto.documento.incluir`.
-- `http.route`: `/arvore-documento/v1/dossie-produto/{id}/documento`.
+- Span: `simtr-hub.api.dossie-produto.documento.incluir`.
+- `http.route`: `/hub/v1/dossie-produto/{id}/documento`.
 - Atributos: `dossie_produto.id`, `dossie_produto.documento.id`, `dossie_produto.documento.instancia.id`, quantidades de atributos/propriedades quando disponiveis.
 - Logs de recebimento, sucesso e falha com `camada=api`.
 
 Service:
 
-- Span: `arvore-documento.service.dossie-produto.documento.incluir`.
+- Span: `simtr-hub.service.dossie-produto.documento.incluir`.
 - Registrar `simulador_habilitado`, origem `mock` ou `mtr`, id do dossie e ids retornados.
 
 Gateway:
@@ -293,7 +293,7 @@ Gateway:
 
 ## Testes previstos
 
-1. `ResourceEndpointTest`: `POST /arvore-documento/v1/dossie-produto/{id}/documento` retorna `201` e body com `id_documento` e `id_instancia_documento`.
+1. `ResourceEndpointTest`: `POST /hub/v1/dossie-produto/{id}/documento` retorna `201` e body com `id_documento` e `id_instancia_documento`.
 2. `ResourceEndpointTest`: `id=0` retorna `400` com erro padronizado.
 3. `DossieProdutoServiceTest`: com simulador habilitado usa `DossieProdutoMockFactory`.
 4. `DossieProdutoServiceTest`: com simulador desabilitado usa `DossieProdutoGateway`.
@@ -315,7 +315,7 @@ Gateway:
 
 ## Criterios de aceite
 
-- Endpoint do Hub disponivel em `POST /arvore-documento/v1/dossie-produto/{id}/documento`.
+- Endpoint do Hub disponivel em `POST /hub/v1/dossie-produto/{id}/documento`.
 - Chamada MTR montada como `/simtr/dossie-produto/v2/dossie-produto/{id}/documento` via configuracao atual.
 - Request serializa/deserializa campos snake_case do contrato.
 - Response retorna `201` com `id_documento` e `id_instancia_documento`.

@@ -9,7 +9,7 @@ Status: revisado, aprovado pelo usuario e implementado em 2026-07-10.
 Implementar no SIMTR Hub o proxy do endpoint de workflow do Dossie Produto:
 
 ```http
-POST /arvore-documento/v1/dossie-produto/{id}/workflow
+POST /hub/v1/dossie-produto/{id}/workflow
 ```
 
 Esse endpoint deve chamar o MTR:
@@ -38,12 +38,12 @@ Nao deve duplicar `/simtr` e nao deve usar diretamente o prefixo bruto `/simtr-d
 - `doc/api-integracao-mtr-pre-validacao-v1.md`
 - `doc/swagger-mtr/simtr-dossie-produto-openapi- 2.20.0.8`
 - `doc/planejamento-dossie-produto-documento-v2.md`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dossieproduto/DossieProdutoResource.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/application/dossieproduto/DossieProdutoService.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoClient.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoGateway.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/mock/DossieProdutoMockFactory.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/dossieproduto/DossieProdutoMapper.java`
+- `src/main/java/br/gov/caixa/simtr/hub/api/dossieproduto/DossieProdutoResource.java`
+- `src/main/java/br/gov/caixa/simtr/hub/application/dossieproduto/DossieProdutoService.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/DossieProdutoClient.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/DossieProdutoGateway.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/mock/DossieProdutoMockFactory.java`
+- `src/main/java/br/gov/caixa/simtr/hub/mapper/dossieproduto/DossieProdutoMapper.java`
 - Testes existentes de resource, service, gateway, mock factory e mapper.
 
 ## Contexto funcional
@@ -103,7 +103,7 @@ Status relevantes no OpenAPI:
 Manter o padrao externo atual do Hub:
 
 ```http
-POST /arvore-documento/v1/dossie-produto/{id}/workflow
+POST /hub/v1/dossie-produto/{id}/workflow
 ```
 
 Retornar `200 OK`, nao `201 Created`, porque o contrato do MTR para workflow indica avanco de fluxo, nao criacao de recurso.
@@ -113,7 +113,7 @@ Retornar `200 OK`, nao `201 Created`, porque o contrato do MTR para workflow ind
 1. Manter o endpoint no resource existente:
 
 ```text
-src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dossieproduto/DossieProdutoResource.java
+src/main/java/br/gov/caixa/simtr/hub/api/dossieproduto/DossieProdutoResource.java
 ```
 
 2. Nao criar DTO de request, porque o endpoint nao recebe body.
@@ -164,17 +164,17 @@ doc/mock/dossie-produto/workflow-dossie-produto.md
 
 ### Alterar classes existentes
 
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dossieproduto/DossieProdutoResource.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/application/dossieproduto/DossieProdutoService.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoClient.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoGateway.java`
-- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/mock/DossieProdutoMockFactory.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceEndpointTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceBeanCoverageTest.java`, se a cobertura/instanciacao exigir.
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/application/dossieproduto/DossieProdutoServiceTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/GatewayTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/mock/MockFactoryTest.java`
-- `src/test/java/br/gov/caixa/simtr/arvoredocumento/mapper/dossieproduto/DossieProdutoMapperTest.java`, se for util reforcar o reaproveitamento de `DossieProdutoCriadoDto/Vo`.
+- `src/main/java/br/gov/caixa/simtr/hub/api/dossieproduto/DossieProdutoResource.java`
+- `src/main/java/br/gov/caixa/simtr/hub/application/dossieproduto/DossieProdutoService.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/DossieProdutoClient.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/DossieProdutoGateway.java`
+- `src/main/java/br/gov/caixa/simtr/hub/infrastructure/client/dossieproduto/mock/DossieProdutoMockFactory.java`
+- `src/test/java/br/gov/caixa/simtr/hub/api/ResourceEndpointTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/api/ResourceBeanCoverageTest.java`, se a cobertura/instanciacao exigir.
+- `src/test/java/br/gov/caixa/simtr/hub/application/dossieproduto/DossieProdutoServiceTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/infrastructure/client/GatewayTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/infrastructure/client/mock/MockFactoryTest.java`
+- `src/test/java/br/gov/caixa/simtr/hub/mapper/dossieproduto/DossieProdutoMapperTest.java`, se for util reforcar o reaproveitamento de `DossieProdutoCriadoDto/Vo`.
 - `doc/espaco-colaborativo-de-desenvolvimento.md`
 - `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`, se houver decisao consolidada relevante apos a implementacao.
 
@@ -206,7 +206,7 @@ doc/mock/dossie-produto/workflow-dossie-produto.md
 
 4. Atualizar `DossieProdutoGateway` para chamar o client, registrar inicio/sucesso/falha e propagar excecoes sem mascarar.
 
-5. Atualizar `DossieProdutoService` para escolher mock ou gateway conforme `arvore-documento.simulador.dossie-produto.habilitado`, mapear DTO -> VO na resposta e registrar observabilidade.
+5. Atualizar `DossieProdutoService` para escolher mock ou gateway conforme `simtr-hub.simulador.dossie-produto.habilitado`, mapear DTO -> VO na resposta e registrar observabilidade.
 
 6. Atualizar `DossieProdutoResource` para expor `POST /{id}/workflow`, validar `id > 0`, nao exigir corpo, converter resposta VO -> DTO e retornar `200 OK`.
 
@@ -228,14 +228,14 @@ mvn -q test
 
 Resource:
 
-- Span: `arvore-documento.api.dossie-produto.workflow.avancar`.
-- `http.route`: `/arvore-documento/v1/dossie-produto/{id}/workflow`.
+- Span: `simtr-hub.api.dossie-produto.workflow.avancar`.
+- `http.route`: `/hub/v1/dossie-produto/{id}/workflow`.
 - Atributos: `dossie_produto.id`, `dossie_produto.workflow.id_resposta`.
 - Logs de recebimento, sucesso e falha com `camada=api`.
 
 Service:
 
-- Span: `arvore-documento.service.dossie-produto.workflow.avancar`.
+- Span: `simtr-hub.service.dossie-produto.workflow.avancar`.
 - Registrar `simulador_habilitado`, origem `mock` ou `mtr`, id do dossie e id retornado.
 
 Gateway:
@@ -246,7 +246,7 @@ Gateway:
 
 ## Testes previstos
 
-1. `ResourceEndpointTest`: `POST /arvore-documento/v1/dossie-produto/{id}/workflow` retorna `200` e body com `id`.
+1. `ResourceEndpointTest`: `POST /hub/v1/dossie-produto/{id}/workflow` retorna `200` e body com `id`.
 2. `ResourceEndpointTest`: `id=0` retorna `400` com erro padronizado `ARVDOCP0001`.
 3. `DossieProdutoServiceTest`: com simulador habilitado usa `DossieProdutoMockFactory`.
 4. `DossieProdutoServiceTest`: com simulador desabilitado usa `DossieProdutoGateway`.
@@ -272,7 +272,7 @@ Gateway:
 
 ## Criterios de aceite
 
-- Endpoint do Hub disponivel em `POST /arvore-documento/v1/dossie-produto/{id}/workflow`.
+- Endpoint do Hub disponivel em `POST /hub/v1/dossie-produto/{id}/workflow`.
 - Chamada MTR montada como `/simtr/dossie-produto/v1/dossie-produto/{id}/workflow` via configuracao atual.
 - Endpoint nao exige request body.
 - Response retorna `200 OK` com `{ "id": ... }`.

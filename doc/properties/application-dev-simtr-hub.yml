@@ -350,7 +350,7 @@ simtr:
       identidade-fiscal: true
     client-res[0]: binario
 
-arvore-documento:
+simtr-hub:
   simulador:
     gestao-documento:
       habilitado: true

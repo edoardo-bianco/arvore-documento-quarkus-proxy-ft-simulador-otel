@@ -24,13 +24,13 @@
               }
             },
             "url": {
-              "raw": "localhost:8080/arvore-documento/v1/dossie-produto",
+              "raw": "localhost:8080/hub/v1/dossie-produto",
               "host": [
                 "localhost"
               ],
               "port": "8080",
               "path": [
-                "arvore-documento",
+                "hub",
                 "v1",
                 "dossie-produto"
               ]
@@ -53,13 +53,13 @@
               }
             },
             "url": {
-              "raw": "localhost:8080/arvore-documento/v1/dossie-produto/1/formulario",
+              "raw": "localhost:8080/hub/v1/dossie-produto/1/formulario",
               "host": [
                 "localhost"
               ],
               "port": "8080",
               "path": [
-                "arvore-documento",
+                "hub",
                 "v1",
                 "dossie-produto",
                 "1",
@@ -84,13 +84,13 @@
               }
             },
             "url": {
-              "raw": "localhost:8080/arvore-documento/v1/dossie-produto/1/documento",
+              "raw": "localhost:8080/hub/v1/dossie-produto/1/documento",
               "host": [
                 "localhost"
               ],
               "port": "8080",
               "path": [
-                "arvore-documento",
+                "hub",
                 "v1",
                 "dossie-produto",
                 "1",
@@ -115,13 +115,13 @@
               }
             },
             "url": {
-              "raw": "localhost:8080/arvore-documento/v1/dossie-produto/1/validacao-negocial",
+              "raw": "localhost:8080/hub/v1/dossie-produto/1/validacao-negocial",
               "host": [
                 "localhost"
               ],
               "port": "8080",
               "path": [
-                "arvore-documento",
+                "hub",
                 "v1",
                 "dossie-produto",
                 "1",
@@ -132,7 +132,7 @@
           "response": []
         },
         {
-          "name": "/arvore-documento/v1/dossie-produto/{id}/workflow",
+          "name": "/hub/v1/dossie-produto/{id}/workflow",
           "request": {
             "method": "POST",
             "header": [],
@@ -146,13 +146,13 @@
               }
             },
             "url": {
-              "raw": "localhost:8080/arvore-documento/v1/dossie-produto/1/workflow",
+              "raw": "localhost:8080/hub/v1/dossie-produto/1/workflow",
               "host": [
                 "localhost"
               ],
               "port": "8080",
               "path": [
-                "arvore-documento",
+                "hub",
                 "v1",
                 "dossie-produto",
                 "1",
@@ -168,20 +168,19 @@
       "name": "parametrizacao",
       "item": [
         {
-          "name": "/arvore-documento/v1/processo/identificador-negocial/{identificador}",
+          "name": "/hub/v1/processo/identificador-negocial/{identificador}",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:8080//arvore-documento/v1/processo/identificador-negocial/1000016487",
+              "raw": "http://localhost:8080/hub/v1/processo/identificador-negocial/1000016487",
               "protocol": "http",
               "host": [
                 "localhost"
               ],
               "port": "8080",
               "path": [
-                "",
-                "arvore-documento",
+                "hub",
                 "v1",
                 "processo",
                 "identificador-negocial",
@@ -192,19 +191,19 @@
           "response": []
         },
         {
-          "name": "/arvore-documento/v1/checklist/identificador-negocial/{identificador}/versao/{versao}",
+          "name": "/hub/v1/checklist/identificador-negocial/{identificador}/versao/{versao}",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:8080/arvore-documento/v1/checklist/identificador-negocial/1000012583/versao/1",
+              "raw": "http://localhost:8080/hub/v1/checklist/identificador-negocial/1000012583/versao/1",
               "protocol": "http",
               "host": [
                 "localhost"
               ],
               "port": "8080",
               "path": [
-                "arvore-documento",
+                "hub",
                 "v1",
                 "checklist",
                 "identificador-negocial",
@@ -222,21 +221,20 @@
       "name": "gestao-documento",
       "item": [
         {
-          "name": "/v1/gestao-documento/storage/container/credencial",
+          "name": "/hub/v1/storage/container/credencial",
           "request": {
-            "method": "GET",
+            "method": "POST",
             "header": [],
             "url": {
-              "raw": "http://localhost:8080/arvore-documento/v1/gestao-documento/storage/container/credencial",
+              "raw": "http://localhost:8080/hub/v1/storage/container/credencial",
               "protocol": "http",
               "host": [
                 "localhost"
               ],
               "port": "8080",
               "path": [
-                "arvore-documento",
+                "hub",
                 "v1",
-                "gestao-documento",
                 "storage",
                 "container",
                 "credencial"

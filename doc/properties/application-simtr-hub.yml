@@ -7,9 +7,9 @@ quarkus:
   http:
     cors: true
     # HTTP root path. All web content will be served relative to this root path.
-    root-path: /simtr-hub-outsourcing
+    root-path: /hub
     # A common root path for non-application endpoints. Various extension-provided endpoints such as metrics, health, and openapi are deployed under this path by default.
-    non-application-root-path: /simtr-hub-outsourcing
+    non-application-root-path: /hub
     port: 8090
     test-port: 8082
     test-ssl-port: 8446
@@ -61,7 +61,7 @@ quarkus:
 #Swagger UI
   swagger-ui:
     always-include: true
-    path: /simtr-hub-outsourcing/doc
+    path: /hub/doc
     default-models-expand-depth: -1
 
 #SmallRye OpenAPI
@@ -314,7 +314,7 @@ simtr:
     usa-novos-campos:
       identidade-fiscal: true
 
-arvore-documento:
+simtr-hub:
   simulador:
     gestao-documento:
       habilitado: false

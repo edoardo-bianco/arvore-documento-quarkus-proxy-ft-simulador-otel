@@ -1,22 +1,22 @@
-# arvore-documento
+# simtr-hub
 
-Microsservico Quarkus usado como proxy/adapter entre consumidores internos e APIs MTR relacionadas a arvore documental, parametrizacao, dossie produto e gestao de documentos.
+Microsservico Quarkus usado como proxy/adapter entre consumidores internos e APIs MTR relacionadas a parametrizacao, dossie produto e gestao de documentos.
 
-O projeto nao faz apenas repasse HTTP. Ele cria uma fronteira com DTOs, VOs, mappers, service, gateway, tratamento de erro, resiliencia, simulador e observabilidade.
+O projeto nao faz apenas repasse HTTP. Ele cria uma fronteira com DTOs, VOs, mappers, fachadas, services, gateways, tratamento de erro, resiliencia, simulador e observabilidade.
 
 ## Endpoints implementados
 
-### API exposta pelo `arvore-documento`
+### API exposta pelo `simtr-hub`
 
 ```http
-GET /arvore-documento/v1/processo/identificador-negocial/{identificador}
-GET /arvore-documento/v1/checklist/identificador-negocial/{identificador}/versao/{versao}
-POST /arvore-documento/v1/dossie-produto
-PATCH /arvore-documento/v1/dossie-produto/{id}/formulario
-POST /arvore-documento/v1/dossie-produto/{id}/documento
-PATCH /arvore-documento/v1/dossie-produto/{id}/validacao-negocial
-POST /arvore-documento/v1/dossie-produto/{id}/workflow
-POST /arvore-documento/v1/storage/container/credencial
+GET /hub/v1/processo/identificador-negocial/{identificador}
+GET /hub/v1/checklist/identificador-negocial/{identificador}/versao/{versao}
+POST /hub/v1/dossie-produto
+PATCH /hub/v1/dossie-produto/{id}/formulario
+POST /hub/v1/dossie-produto/{id}/documento
+PATCH /hub/v1/dossie-produto/{id}/validacao-negocial
+POST /hub/v1/dossie-produto/{id}/workflow
+POST /hub/v1/storage/container/credencial
 ```
 
 ### APIs consumidas no MTR
@@ -44,11 +44,13 @@ Criacao basica e formulario retornam HTTP `201` com o id do dossie:
 
 ## Decisao arquitetural
 
-Fluxo padrao:
+Fluxo padrao por dominio:
 
 ```text
 Resource
-  -> Service
+  -> Mapper DTO/VO
+  -> Fachada
+      -> Service
       -> se simulador=true
           -> MockFactory
       -> se simulador=false
@@ -63,73 +65,70 @@ Fluxos implementados:
 
 ```text
 ProcessoResource
+  -> ParametrizacaoFachada
   -> ProcessoService
   -> ParametrizacaoProcessoGateway ou ProcessoMockFactory
   -> ProcessoMapper
 
 ChecklistResource
+  -> ParametrizacaoFachada
   -> ChecklistService
   -> ParametrizacaoChecklistGateway ou ChecklistMockFactory
   -> ChecklistMapper
 
 DossieProdutoResource
+  -> DossieProdutoFachada
   -> DossieProdutoService
   -> DossieProdutoGateway ou DossieProdutoMockFactory
   -> DossieProdutoMapper
 
 GestaoDocumentoResource
+  -> GestaoDocumentoFachada
   -> GestaoDocumentoService
   -> GestaoDocumentoGateway ou GestaoDocumentoMockFactory
   -> GestaoDocumentoMapper
 ```
 
-O ciclo `DTO -> VO -> DTO` e intencional: o VO cria uma fronteira para regras futuras, enriquecimento e adaptacao de contrato sem acoplar a API externa diretamente ao contrato MTR.
+O ciclo `DTO -> VO -> DTO` e intencional: o VO cria uma fronteira para regras futuras, enriquecimento e adaptacao de contrato sem acoplar a API externa diretamente ao contrato MTR. A fachada e a fronteira interna de cada dominio, preparada para futura substituicao por chamada HTTP, mensageria ou extracao como microservico.
 
 ## Organizacao de pacotes
 
 ```text
-br.gov.caixa.simtr.arvoredocumento
-|-- api
-|   |-- dossieproduto
-|   |-- dto
-|   |   |-- dossieproduto
-|   |   |-- erro
-|   |   |-- gestaodocumento
-|   |   |-- parametrizacao.checklist
-|   |   `-- parametrizacao.processo
-|   |-- exception
-|   |-- gestaodocumento
-|   `-- parametrizacao
-|-- application
-|   |-- dossieproduto
-|   |-- gestaodocumento
-|   `-- parametrizacao
-|-- domain
-|   |-- dossieproduto
-|   |-- gestaodocumento
-|   |-- parametrizacao.checklist
-|   `-- parametrizacao.processo
-|-- infrastructure
-|   `-- client
-|       |-- dossieproduto
-|       |-- gestaodocumento
-|       |-- mock
-|       `-- parametrizacao
-|-- mapper
-|   |-- dossieproduto
-|   |-- gestaodocumento
-|   `-- parametrizacao
-`-- shared
-    |-- exception
-    `-- observability
+br.gov.caixa.simtr.hub
+|-- parametrizacao
+|   |-- fachada
+|   |-- recurso/rest/v1
+|   |-- servico
+|   |-- dominio
+|   |-- integracao
+|   `-- mapeamento
+|-- dossieproduto
+|   |-- fachada
+|   |-- recurso/rest/v1
+|   |-- servico
+|   |-- dominio
+|   |-- integracao
+|   `-- mapeamento
+|-- gestaodocumento
+|   |-- fachada
+|   |-- recurso/rest/v1
+|   |-- servico
+|   |-- dominio
+|   |-- integracao
+|   `-- mapeamento
+`-- arquitetura
+    |-- configuracao/mock
+    |-- seguranca
+    |-- observabilidade
+    `-- excecao
 ```
 
 Utilitarios compartilhados:
 
-- `ClientErrorBodyReader`: leitura e normalizacao do corpo de erro retornado pelo MTR.
-- `MarkdownJsonMockReader`: leitura de mocks Markdown com secao `## dados do mock corpo do retorno json`.
-- `RestClientObservabilityFilter`: log e atributos de trace para chamadas REST Client.
-- `RequestHeaderFactory`: propagacao do header `apikey`.
+- `arquitetura.excecao.ClientErrorBodyReader`: leitura e normalizacao do corpo de erro retornado pelo MTR.
+- `arquitetura.configuracao.mock.MarkdownJsonMockReader`: leitura de mocks Markdown com secao `## dados do mock corpo do retorno json`.
+- `arquitetura.observabilidade.RestClientObservabilityFilter`: log e atributos de trace para chamadas REST Client.
+- `arquitetura.seguranca.RequestHeaderFactory`: propagacao do header `apikey`.
 
 ## Configuracao
 
@@ -175,26 +174,26 @@ simtr.apikey=${SIMTR_API_KEY}
 Propriedades atuais:
 
 ```properties
-arvore-documento.simulador.parametrizacao-processo.habilitado=false
-%dev.arvore-documento.simulador.parametrizacao-processo.habilitado=true
-arvore-documento.simulador.parametrizacao-checklist.habilitado=false
-%dev.arvore-documento.simulador.parametrizacao-checklist.habilitado=true
-arvore-documento.simulador.dossie-produto.habilitado=false
-%dev.arvore-documento.simulador.dossie-produto.habilitado=true
-arvore-documento.simulador.gestao-documento.habilitado=false
-%dev.arvore-documento.simulador.gestao-documento.habilitado=true
+simtr-hub.simulador.parametrizacao-processo.habilitado=false
+%dev.simtr-hub.simulador.parametrizacao-processo.habilitado=true
+simtr-hub.simulador.parametrizacao-checklist.habilitado=false
+%dev.simtr-hub.simulador.parametrizacao-checklist.habilitado=true
+simtr-hub.simulador.dossie-produto.habilitado=false
+%dev.simtr-hub.simulador.dossie-produto.habilitado=true
+simtr-hub.simulador.gestao-documento.habilitado=false
+%dev.simtr-hub.simulador.gestao-documento.habilitado=true
 ```
 
 Com isso, processo, checklist, dossie produto e gestao de documentos usam mock por padrao em dev mode. Para chamar o MTR real de dossie produto em dev mode, desabilite explicitamente o simulador:
 
 ```bash
-mvn quarkus:dev -Ddebug=false "-Darvore-documento.simulador.dossie-produto.habilitado=false"
+mvn quarkus:dev -Ddebug=false "-Dsimtr-hub.simulador.dossie-produto.habilitado=false"
 ```
 
 Para chamar o MTR real de Gestao de Documentos em dev mode:
 
 ```bash
-mvn quarkus:dev -Ddebug=false "-Darvore-documento.simulador.gestao-documento.habilitado=false"
+mvn quarkus:dev -Ddebug=false "-Dsimtr-hub.simulador.gestao-documento.habilitado=false"
 ```
 
 Mocks em runtime:
@@ -232,28 +231,28 @@ mvn quarkus:dev -Ddebug=false
 Swagger UI:
 
 ```http
-GET /arvore-documento/doc
+GET /hub/doc
 ```
 
 OpenAPI:
 
 ```http
-GET /arvore-documento/openapi
+GET /hub/openapi
 ```
 
 ## Chamadas de exemplo
 
 ```bash
 curl -X GET \
-  'http://localhost:8080/arvore-documento/v1/processo/identificador-negocial/202114235' \
+  'http://localhost:8080/hub/v1/processo/identificador-negocial/202114235' \
   -H 'Accept: application/json'
 
 curl -X GET \
-  'http://localhost:8080/arvore-documento/v1/checklist/identificador-negocial/1000012583/versao/1' \
+  'http://localhost:8080/hub/v1/checklist/identificador-negocial/1000012583/versao/1' \
   -H 'Accept: application/json'
 
 curl -X POST \
-  'http://localhost:8080/arvore-documento/v1/dossie-produto' \
+  'http://localhost:8080/hub/v1/dossie-produto' \
   -H 'Accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -275,7 +274,7 @@ curl -X POST \
   }'
 
 curl -X POST \
-  'http://localhost:8080/arvore-documento/v1/storage/container/credencial' \
+  'http://localhost:8080/hub/v1/storage/container/credencial' \
   -H 'Accept: application/json'
 ```
 
@@ -284,7 +283,7 @@ curl -X POST \
 1. O REST Client chama o MTR.
 2. Para respostas HTTP `4xx` ou `5xx`, o metodo anotado com `@ClientExceptionMapper` le o corpo de erro no padrao MTR.
 3. O client lanca `MtrRestClientException` contendo status HTTP e `ErroPadraoDto`.
-4. O `MtrRestClientExceptionMapper` da API REST do `arvore-documento` transforma a excecao novamente no objeto de erro padrao.
+4. O `MtrRestClientExceptionMapper` da API REST do `simtr-hub` transforma a excecao novamente no objeto de erro padrao.
 5. Se o MTR retornar erro fora do contrato esperado, a API gera um erro padronizado `ARVDOCP0002`.
 
 Erros de negocio (`400`, `404`, `409`, `422`) nao entram em retry nem contam como falha do circuito. Demais `4xx` sao tratados como erro tecnico de cliente. Erros `5xx`, timeout e falha de comunicacao sao tratados como falhas potencialmente transitorias.
@@ -300,33 +299,33 @@ Os REST Clients usam:
 
 ## Observabilidade
 
-O projeto registra logs estruturados JSON no console e em `target/logs/arvore-documento.json`.
+O projeto registra logs estruturados JSON no console e em `target/logs/simtr-hub.json`.
 
 Spans explicitos:
 
-- `arvore-documento.api.processo.consultar`
-- `arvore-documento.service.processo.consultar`
+- `simtr-hub.api.processo.consultar`
+- `simtr-hub.service.processo.consultar`
 - `mtr.parametrizacao.processo.consultar`
-- `arvore-documento.api.checklist.consultar`
-- `arvore-documento.service.checklist.consultar`
+- `simtr-hub.api.checklist.consultar`
+- `simtr-hub.service.checklist.consultar`
 - `mtr.parametrizacao.checklist.consultar`
-- `arvore-documento.api.dossie-produto.criar`
-- `arvore-documento.service.dossie-produto.criar`
+- `simtr-hub.api.dossie-produto.criar`
+- `simtr-hub.service.dossie-produto.criar`
 - `mtr.dossie-produto.criar`
-- `arvore-documento.api.dossie-produto.formulario.atualizar`
-- `arvore-documento.service.dossie-produto.formulario.atualizar`
+- `simtr-hub.api.dossie-produto.formulario.atualizar`
+- `simtr-hub.service.dossie-produto.formulario.atualizar`
 - `mtr.dossie-produto.formulario.atualizar`
-- `arvore-documento.api.dossie-produto.documento.incluir`
-- `arvore-documento.service.dossie-produto.documento.incluir`
+- `simtr-hub.api.dossie-produto.documento.incluir`
+- `simtr-hub.service.dossie-produto.documento.incluir`
 - `mtr.dossie-produto.documento.incluir`
-- `arvore-documento.api.dossie-produto.validacao-negocial.registrar`
-- `arvore-documento.service.dossie-produto.validacao-negocial.registrar`
+- `simtr-hub.api.dossie-produto.validacao-negocial.registrar`
+- `simtr-hub.service.dossie-produto.validacao-negocial.registrar`
 - `mtr.dossie-produto.validacao-negocial.registrar`
-- `arvore-documento.api.dossie-produto.workflow.avancar`
-- `arvore-documento.service.dossie-produto.workflow.avancar`
+- `simtr-hub.api.dossie-produto.workflow.avancar`
+- `simtr-hub.service.dossie-produto.workflow.avancar`
 - `mtr.dossie-produto.workflow.avancar`
-- `arvore-documento.api.gestao-documento.credencial-container.gerar`
-- `arvore-documento.service.gestao-documento.credencial-container.gerar`
+- `simtr-hub.api.gestao-documento.credencial-container.gerar`
+- `simtr-hub.service.gestao-documento.credencial-container.gerar`
 - `mtr.gestao-documento.credencial-container.gerar`
 
 Campos comuns nos logs:
@@ -358,9 +357,9 @@ Por padrao, o projeto nao exporta OpenTelemetry para fora. Isso evita erro ou ru
 Configuracao padrao:
 
 ```properties
-arvore-documento.observabilidade.rest-client.payload.habilitado=true
-arvore-documento.observabilidade.rest-client.payload.input.max-length=2000
-arvore-documento.observabilidade.rest-client.payload.output.max-length=4000
+simtr-hub.observabilidade.rest-client.payload.habilitado=true
+simtr-hub.observabilidade.rest-client.payload.input.max-length=2000
+simtr-hub.observabilidade.rest-client.payload.output.max-length=4000
 
 quarkus.otel.traces.sampler=always_on
 quarkus.otel.traces.sampler.arg=1.0
@@ -373,7 +372,7 @@ quarkus.log.console.json.enabled=true
 quarkus.log.console.json.mdc.flat-fields=true
 quarkus.log.console.json.exception-output-type=formatted
 quarkus.log.file.enabled=true
-quarkus.log.file.path=target/logs/arvore-documento.json
+quarkus.log.file.path=target/logs/simtr-hub.json
 quarkus.log.file.json.enabled=true
 ```
 
