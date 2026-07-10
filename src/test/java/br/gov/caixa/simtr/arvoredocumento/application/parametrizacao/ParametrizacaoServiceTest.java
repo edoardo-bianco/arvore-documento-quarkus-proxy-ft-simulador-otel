@@ -11,6 +11,7 @@ import br.gov.caixa.simtr.arvoredocumento.mapper.parametrizacao.ChecklistMapper;
 import br.gov.caixa.simtr.arvoredocumento.mapper.parametrizacao.ProcessoMapper;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Uni;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -19,6 +20,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 class ParametrizacaoServiceTest {
+
+    @Inject
+    ChecklistMapper checklistMapper;
 
     @Test
     void processoComSimuladorHabilitadoUsaMockFactory() {
@@ -50,7 +54,7 @@ class ParametrizacaoServiceTest {
     void checklistComSimuladorHabilitadoUsaMockFactory() {
         FakeChecklistGateway gateway = new FakeChecklistGateway();
         FakeChecklistMockFactory mockFactory = new FakeChecklistMockFactory();
-        ChecklistService service = new ChecklistService(gateway, mockFactory, new ChecklistMapper(), true);
+        ChecklistService service = new ChecklistService(gateway, mockFactory, checklistMapper, true);
 
         var resposta = service.consultarPorIdentificadorNegocialEVersao(100L, 1).await().indefinitely();
 
@@ -63,7 +67,7 @@ class ParametrizacaoServiceTest {
     void checklistComSimuladorDesabilitadoUsaGateway() {
         FakeChecklistGateway gateway = new FakeChecklistGateway();
         FakeChecklistMockFactory mockFactory = new FakeChecklistMockFactory();
-        ChecklistService service = new ChecklistService(gateway, mockFactory, new ChecklistMapper(), false);
+        ChecklistService service = new ChecklistService(gateway, mockFactory, checklistMapper, false);
 
         var resposta = service.consultarPorIdentificadorNegocialEVersao(100L, 1).await().indefinitely();
 
