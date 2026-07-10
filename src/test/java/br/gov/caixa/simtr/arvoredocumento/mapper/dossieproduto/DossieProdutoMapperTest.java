@@ -4,11 +4,15 @@ import br.gov.caixa.simtr.arvoredocumento.TestFixtures;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoClienteDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriacaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriadoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoCriadoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoInclusaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoFormularioDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoVinculoDossieDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoVinculoGarantiaDto;
 import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoCriacaoVo;
 import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoCriadoVo;
+import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoDocumentoCriadoVo;
+import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoDocumentoInclusaoVo;
 import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoFormularioVo;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -59,6 +63,17 @@ class DossieProdutoMapperTest {
     }
 
     @Test
+    void devePreservarDocumentoCriado() {
+        DossieProdutoDocumentoCriadoDto dto = new DossieProdutoDocumentoCriadoDto(456L, 789L);
+
+        DossieProdutoDocumentoCriadoVo vo = mapper.toVo(dto);
+        DossieProdutoDocumentoCriadoDto dtoFinal = mapper.toDto(vo);
+
+        assertEquals(dto.idDocumento(), dtoFinal.idDocumento());
+        assertEquals(dto.idInstanciaDocumento(), dtoFinal.idInstanciaDocumento());
+    }
+
+    @Test
     void devePreservarVinculoCompletoDoFormulario() {
         List<DossieProdutoFormularioDto> dto = TestFixtures.formularioDto();
 
@@ -77,6 +92,26 @@ class DossieProdutoMapperTest {
     }
 
     @Test
+    void devePreservarDocumentoInclusaoCompleto() {
+        DossieProdutoDocumentoInclusaoDto dto = TestFixtures.documentoInclusaoDto();
+
+        DossieProdutoDocumentoInclusaoVo vo = mapper.toVo(dto);
+        DossieProdutoDocumentoInclusaoDto dtoFinal = mapper.toDto(vo);
+
+        assertEquals(dto.pathStorage(), dtoFinal.pathStorage());
+        assertEquals(dto.codigoGed(), dtoFinal.codigoGed());
+        assertEquals(dto.objectStoreGed(), dtoFinal.objectStoreGed());
+        assertEquals(dto.tipoDocumento(), dtoFinal.tipoDocumento());
+        assertEquals(700L, dtoFinal.vinculoDossie().elementoConteudo());
+        assertEquals("12345678901", dtoFinal.vinculoDossie().cliente().cpf());
+        assertEquals(300, dtoFinal.vinculoDossie().garantia().codigoBacen());
+        assertEquals("12345678000190", dtoFinal.vinculoDossie().garantia().clienteAvalista().getFirst().cnpj());
+        assertEquals("numero", dtoFinal.atributos().getFirst().chave());
+        assertEquals(List.of("opcao-1"), dtoFinal.atributos().getFirst().opcoesSelecionadas());
+        assertEquals("origem", dtoFinal.propriedades().getFirst().chave());
+    }
+
+    @Test
     void deveRetornarNullParaContratosNulos() {
         assertNull(mapper.toVo((DossieProdutoCriacaoDto) null));
         assertNull(mapper.toDto((DossieProdutoCriacaoVo) null));
@@ -84,6 +119,10 @@ class DossieProdutoMapperTest {
         assertNull(mapper.toDto((DossieProdutoCriadoVo) null));
         assertNull(mapper.toFormularioVo(null));
         assertNull(mapper.toFormularioDto(null));
+        assertNull(mapper.toVo((DossieProdutoDocumentoInclusaoDto) null));
+        assertNull(mapper.toDto((DossieProdutoDocumentoInclusaoVo) null));
+        assertNull(mapper.toVo((DossieProdutoDocumentoCriadoDto) null));
+        assertNull(mapper.toDto((DossieProdutoDocumentoCriadoVo) null));
     }
 
     @Test
@@ -99,9 +138,25 @@ class DossieProdutoMapperTest {
         );
 
         DossieProdutoCriacaoDto dtoFinal = mapper.toDto(mapper.toVo(dto));
+        DossieProdutoDocumentoInclusaoDto documentoFinal = mapper.toDto(mapper.toVo(
+                new DossieProdutoDocumentoInclusaoDto(
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        Collections.singletonList(null),
+                        Collections.singletonList(null)
+                )
+        ));
 
         assertEquals(1, dtoFinal.clientes().size());
         assertNull(dtoFinal.clientes().getFirst());
+        assertEquals(1, documentoFinal.atributos().size());
+        assertNull(documentoFinal.atributos().getFirst());
+        assertEquals(1, documentoFinal.propriedades().size());
+        assertNull(documentoFinal.propriedades().getFirst());
     }
 
     @Test
@@ -138,5 +193,21 @@ class DossieProdutoMapperTest {
         assertNull(formularioFinal.getFirst().vinculoDossie().garantia());
         assertNull(formularioFinal.getFirst().vinculoDossie().respostasFormulario());
         assertNull(formularioFinal.get(1).vinculoDossie().garantia().clientesAvalistas());
+
+        DossieProdutoDocumentoInclusaoDto documento = new DossieProdutoDocumentoInclusaoDto(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+        DossieProdutoDocumentoInclusaoDto documentoFinal = mapper.toDto(mapper.toVo(documento));
+
+        assertNull(documentoFinal.vinculoDossie());
+        assertNull(documentoFinal.atributos());
+        assertNull(documentoFinal.propriedades());
     }
 }

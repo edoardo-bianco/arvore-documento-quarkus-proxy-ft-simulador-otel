@@ -126,6 +126,8 @@ Corpo para criacao basica de dossie produto em modo rascunho:
 }
 ```
 
+Para inclusao de documento, `objeto` em `atributos` e `propriedades` e opcional no contrato aceito pelo SIMTR Hub. O Hub valida `id` do path e corpo informado, mas nao deve rejeitar documento apenas pela ausencia desse campo.
+
 Resposta de sucesso:
 
 ```http
@@ -195,6 +197,73 @@ HTTP/1.1 201 Created
 ```json
 {
   "id": 0
+}
+```
+
+```http
+POST http://localhost:8080/arvore-documento/v1/dossie-produto/{id}/documento
+Content-Type: application/json
+Accept: application/json
+```
+
+Corpo para inclusao de documento no dossie produto:
+
+```json
+{
+  "id": 0,
+  "path_storage": "{{nome_container}}/{{nome_arquivo}}.{{extensao}}",
+  "codigo_ged": "string",
+  "object_store_ged": "string",
+  "tipo_documento": "string",
+  "vinculo_dossie": {
+    "cliente": {
+      "cpf": "string",
+      "cnpj": "string",
+      "tipo_vinculo": 0
+    },
+    "elemento_conteudo": 0,
+    "garantia": {
+      "codigo_bacen": 0,
+      "produto_operacao": 0,
+      "produto_modalidade": 0,
+      "cliente_avalista": [
+        {
+          "cpf": "string",
+          "cnpj": "string"
+        }
+      ]
+    }
+  },
+  "atributos": [
+    {
+      "chave": "string",
+      "valor": "string",
+      "objeto": "string",
+      "opcoes_selecionadas": [
+        "string"
+      ]
+    }
+  ],
+  "propriedades": [
+    {
+      "chave": "string",
+      "valor": "string",
+      "objeto": "string"
+    }
+  ]
+}
+```
+
+Resposta de sucesso:
+
+```http
+HTTP/1.1 201 Created
+```
+
+```json
+{
+  "id_documento": 0,
+  "id_instancia_documento": 0
 }
 ```
 
@@ -277,7 +346,7 @@ DossieProdutoResource
                   -> simtr-dossie-produto
       -> DossieProdutoMapper.toVo(...)
   -> DossieProdutoMapper.toDto(...)
-  -> DossieProdutoCriadoDto
+  -> DossieProdutoCriadoDto ou DossieProdutoDocumentoCriadoDto
 ```
 
 O fluxo `DTO -> VO -> DTO` e proposital. Mesmo que o contrato atual seja parecido com o retorno do MTR, o VO cria uma fronteira para regras futuras, enriquecimento e adaptacao de contrato.
@@ -312,6 +381,13 @@ HTTP PATCH /arvore-documento/v1/dossie-produto/{id}/formulario
   -> DossieProdutoMockFactory
   -> DossieProdutoMapper
   -> resposta mockada com id do dossie produto
+
+HTTP POST /arvore-documento/v1/dossie-produto/{id}/documento
+  -> DossieProdutoResource
+  -> DossieProdutoService
+  -> DossieProdutoMockFactory
+  -> DossieProdutoMapper
+  -> resposta mockada com id_documento e id_instancia_documento
 ```
 
 ### Fluxo com MTR real
@@ -350,6 +426,15 @@ HTTP PATCH /arvore-documento/v1/dossie-produto/{id}/formulario
   -> DossieProdutoGateway
   -> DossieProdutoClient
   -> PATCH /simtr/dossie-produto/v1/dossie-produto/{id}/formulario
+  -> DossieProdutoMapper
+  -> resposta do SIMTR Hub com HTTP 201
+
+HTTP POST /arvore-documento/v1/dossie-produto/{id}/documento
+  -> DossieProdutoResource
+  -> DossieProdutoService
+  -> DossieProdutoGateway
+  -> DossieProdutoClient
+  -> POST /simtr/dossie-produto/v2/dossie-produto/{id}/documento
   -> DossieProdutoMapper
   -> resposta do SIMTR Hub com HTTP 201
 ```
@@ -445,6 +530,8 @@ arvore-documento.simulador.parametrizacao-checklist.habilitado=false
 arvore-documento.simulador.dossie-produto.habilitado=false
 %dev.arvore-documento.simulador.dossie-produto.habilitado=true
 ```
+
+O REST Client de dossie produto usa base versionavel `@Path("/dossie-produto")`. As versoes ficam nos metodos (`/v1/dossie-produto...` e `/v2/dossie-produto...`) para manter um unico client do servico e permitir endpoints v1 e v2 sem duplicar `/simtr`.
 
 Configuracao de observabilidade atual:
 
@@ -697,7 +784,7 @@ Exemplo ja versionado:
 
 ## Mock do dossie produto
 
-O simulador de dossie produto permite desenvolver os endpoints de criacao basica e de inclusao ou edicao de respostas de formulario sem chamar o MTR real.
+O simulador de dossie produto permite desenvolver os endpoints de criacao basica, inclusao ou edicao de respostas de formulario e inclusao de documento sem chamar o MTR real.
 
 O simulador e controlado pela propriedade:
 
@@ -721,6 +808,7 @@ Os arquivos usados em runtime ficam em:
 ```text
 src/main/resources/mock/dossieproduto/criacao-basica-dossie-produto.md
 src/main/resources/mock/dossieproduto/formulario-dossie-produto.md
+src/main/resources/mock/dossieproduto/documento-dossie-produto.md
 ```
 
 As copias documentais ficam em:
@@ -728,6 +816,7 @@ As copias documentais ficam em:
 ```text
 doc/mock/dossie-produto/criacao-basica-dossie-produto.md
 doc/mock/dossie-produto/formulario-dossie-produto.md
+doc/mock/dossie-produto/documento-dossie-produto.md
 ```
 
 Cada arquivo documenta a chamada original e contem o corpo JSON retornado pelo MTR na secao:
@@ -741,6 +830,15 @@ Resposta mockada atual para criacao e formulario:
 ```json
 {
   "id": 1
+}
+```
+
+Resposta mockada atual para inclusao de documento:
+
+```json
+{
+  "id_documento": 456,
+  "id_instancia_documento": 789
 }
 ```
 
@@ -1157,6 +1255,9 @@ A observabilidade atual tem duas saidas sempre ativas e duas saidas opcionais:
 | API | `arvore-documento.api.dossie-produto.formulario.atualizar` |
 | Aplicacao | `arvore-documento.service.dossie-produto.formulario.atualizar` |
 | Integracao MTR | `mtr.dossie-produto.formulario.atualizar` |
+| API | `arvore-documento.api.dossie-produto.documento.incluir` |
+| Aplicacao | `arvore-documento.service.dossie-produto.documento.incluir` |
+| Integracao MTR | `mtr.dossie-produto.documento.incluir` |
 
 Os spans de integracao MTR aparecem quando o simulador correspondente esta desabilitado.
 

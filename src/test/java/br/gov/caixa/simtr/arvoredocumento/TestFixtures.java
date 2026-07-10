@@ -4,6 +4,12 @@ import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCli
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoClienteDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoClienteRelacionadoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriacaoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoAtributoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoClienteDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoGarantiaDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoInclusaoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoPropriedadeDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoVinculoDossieDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoFormularioDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoRespostaFormularioDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoVinculoClienteDto;
@@ -178,5 +184,57 @@ public final class TestFixtures {
                         ))
                 )
         ));
+    }
+
+    public static DossieProdutoDocumentoInclusaoDto documentoInclusaoDto() {
+        return new DossieProdutoDocumentoInclusaoDto(
+                null,
+                "container/documento.pdf",
+                "GED123",
+                "OBJECT_STORE",
+                "RG",
+                new DossieProdutoDocumentoVinculoDossieDto(
+                        new DossieProdutoDocumentoClienteDto("12345678901", null, 1L),
+                        700L,
+                        new DossieProdutoDocumentoGarantiaDto(
+                                300,
+                                400,
+                                500,
+                                List.of(new DossieProdutoDocumentoClienteDto(null, "12345678000190", null))
+                        )
+                ),
+                List.of(new DossieProdutoDocumentoAtributoDto(
+                        "numero",
+                        "12345",
+                        "documento",
+                        List.of("opcao-1")
+                )),
+                List.of(new DossieProdutoDocumentoPropriedadeDto(
+                        "origem",
+                        "pre-validacao",
+                        "documento"
+                ))
+        );
+    }
+
+    public static DossieProdutoDocumentoInclusaoDto documentoInclusaoSemObjetoAtributoDto() {
+        return new DossieProdutoDocumentoInclusaoDto(
+                null,
+                "cli-web-mtr/TESTE_DEFENDER_01_20251104.pdf",
+                null,
+                null,
+                "0001000100030024",
+                new DossieProdutoDocumentoVinculoDossieDto(
+                        new DossieProdutoDocumentoClienteDto("51081563672", null, 1000009995L),
+                        null,
+                        null
+                ),
+                List.of(
+                        new DossieProdutoDocumentoAtributoDto("numero_recibo", "0012", null, null),
+                        new DossieProdutoDocumentoAtributoDto("nome", "MARIANA RODRIGO FERREIRA GOMES", null, null),
+                        new DossieProdutoDocumentoAtributoDto("cpf", "00072169125", null, null)
+                ),
+                null
+        );
     }
 }

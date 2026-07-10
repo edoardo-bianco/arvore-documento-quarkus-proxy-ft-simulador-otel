@@ -3,6 +3,8 @@ package br.gov.caixa.simtr.arvoredocumento.infrastructure.client;
 import br.gov.caixa.simtr.arvoredocumento.TestFixtures;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriacaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriadoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoCriadoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoInclusaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoFormularioDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.checklist.ChecklistDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.ProcessoDto;
@@ -29,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class GatewayTest {
 
     @Test
-    void dossieGatewayEncaminhaCriacaoEFormularioParaClient() {
+    void dossieGatewayEncaminhaCriacaoFormularioEDocumentoParaClient() {
         FakeDossieProdutoClient client = new FakeDossieProdutoClient();
         DossieProdutoGateway gateway = new DossieProdutoGateway(client);
 
@@ -40,12 +42,21 @@ class GatewayTest {
                         formularioComItensNulos()
                 )
                 .await().indefinitely();
+        DossieProdutoDocumentoCriadoDto documento = gateway.incluirDocumentoDossieProduto(
+                        321L,
+                        TestFixtures.documentoInclusaoDto()
+                )
+                .await().indefinitely();
 
         assertEquals(99L, criacao.id());
         assertEquals(123L, formulario.id());
+        assertEquals(456L, documento.idDocumento());
+        assertEquals(789L, documento.idInstanciaDocumento());
         assertEquals(TestFixtures.dossieCriacaoDto().processo(), client.criacaoRecebida.processo());
         assertEquals(123L, client.idFormularioRecebido);
         assertEquals(3, client.formularioRecebido.size());
+        assertEquals(321L, client.idDocumentoRecebido);
+        assertEquals("RG", client.documentoRecebido.tipoDocumento());
     }
 
     @Test
@@ -58,6 +69,8 @@ class GatewayTest {
                 () -> gateway.criarDossieProduto(null).await().indefinitely()));
         assertSame(client.falha, assertThrows(IllegalStateException.class,
                 () -> gateway.atualizarFormularioDossieProduto(123L, null).await().indefinitely()));
+        assertSame(client.falha, assertThrows(IllegalStateException.class,
+                () -> gateway.incluirDocumentoDossieProduto(123L, null).await().indefinitely()));
     }
 
     @Test
@@ -117,6 +130,8 @@ class GatewayTest {
         private DossieProdutoCriacaoDto criacaoRecebida;
         private Long idFormularioRecebido;
         private List<DossieProdutoFormularioDto> formularioRecebido;
+        private Long idDocumentoRecebido;
+        private DossieProdutoDocumentoInclusaoDto documentoRecebido;
         private RuntimeException falha;
 
         @Override
@@ -139,6 +154,19 @@ class GatewayTest {
                 return Uni.createFrom().failure(falha);
             }
             return Uni.createFrom().item(new DossieProdutoCriadoDto(id));
+        }
+
+        @Override
+        public Uni<DossieProdutoDocumentoCriadoDto> incluirDocumentoDossieProduto(
+                Long id,
+                DossieProdutoDocumentoInclusaoDto requisicao
+        ) {
+            idDocumentoRecebido = id;
+            documentoRecebido = requisicao;
+            if (falha != null) {
+                return Uni.createFrom().failure(falha);
+            }
+            return Uni.createFrom().item(new DossieProdutoDocumentoCriadoDto(456L, 789L));
         }
     }
 

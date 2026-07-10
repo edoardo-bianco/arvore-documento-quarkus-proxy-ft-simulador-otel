@@ -2,6 +2,8 @@ package br.gov.caixa.simtr.arvoredocumento.infrastructure.client.dossieproduto;
 
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriacaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriadoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoCriadoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoInclusaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoFormularioDto;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.RequestHeaderFactory;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.RestClientObservabilityFilter;
@@ -32,7 +34,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @RegisterRestClient(configKey = "dossie-produto")
-@Path("/dossie-produto/v1/dossie-produto")
+@Path("/dossie-produto")
 @RegisterClientHeaders(RequestHeaderFactory.class)
 @RegisterProvider(OidcClientRequestReactiveFilter.class)
 @RegisterProvider(RestClientObservabilityFilter.class)
@@ -41,6 +43,7 @@ import java.util.List;
 public interface DossieProdutoClient {
 
     @POST
+    @Path("/v1/dossie-produto")
     @Timeout(value = 2_000, unit = ChronoUnit.MILLIS)
     @Retry(
             maxRetries = 3,
@@ -77,7 +80,7 @@ public interface DossieProdutoClient {
     Uni<DossieProdutoCriadoDto> criarDossieProduto(DossieProdutoCriacaoDto requisicao);
 
     @PATCH
-    @Path("/{id}/formulario")
+    @Path("/v1/dossie-produto/{id}/formulario")
     @Timeout(value = 2_000, unit = ChronoUnit.MILLIS)
     @Retry(
             maxRetries = 3,
@@ -114,6 +117,46 @@ public interface DossieProdutoClient {
     Uni<DossieProdutoCriadoDto> atualizarFormularioDossieProduto(
             @PathParam("id") Long id,
             List<DossieProdutoFormularioDto> requisicao
+    );
+
+    @POST
+    @Path("/v2/dossie-produto/{id}/documento")
+    @Timeout(value = 2_000, unit = ChronoUnit.MILLIS)
+    @Retry(
+            maxRetries = 3,
+            delay = 300,
+            delayUnit = ChronoUnit.MILLIS,
+            jitter = 100,
+            jitterDelayUnit = ChronoUnit.MILLIS,
+            retryOn = {
+                    MtrServerErrorException.class,
+                    ProcessingException.class,
+                    TimeoutException.class
+            },
+            abortOn = {
+                    MtrBusinessErrorException.class,
+                    MtrClientTechnicalException.class
+            }
+    )
+    @CircuitBreaker(
+            requestVolumeThreshold = 10,
+            failureRatio = 0.5,
+            delay = 10_000,
+            delayUnit = ChronoUnit.MILLIS,
+            successThreshold = 2,
+            failOn = {
+                    MtrServerErrorException.class,
+                    ProcessingException.class,
+                    TimeoutException.class
+            },
+            skipOn = {
+                    MtrBusinessErrorException.class,
+                    MtrClientTechnicalException.class
+            }
+    )
+    Uni<DossieProdutoDocumentoCriadoDto> incluirDocumentoDossieProduto(
+            @PathParam("id") Long id,
+            DossieProdutoDocumentoInclusaoDto requisicao
     );
 
     @ClientExceptionMapper

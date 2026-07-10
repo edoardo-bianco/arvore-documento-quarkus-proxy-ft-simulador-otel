@@ -3,12 +3,14 @@ package br.gov.caixa.simtr.arvoredocumento.api;
 import br.gov.caixa.simtr.arvoredocumento.TestFixtures;
 import br.gov.caixa.simtr.arvoredocumento.api.dossieproduto.DossieProdutoResource;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriadoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoCriadoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.parametrizacao.ChecklistResource;
 import br.gov.caixa.simtr.arvoredocumento.api.parametrizacao.ProcessoResource;
 import br.gov.caixa.simtr.arvoredocumento.application.dossieproduto.DossieProdutoService;
 import br.gov.caixa.simtr.arvoredocumento.application.parametrizacao.ChecklistService;
 import br.gov.caixa.simtr.arvoredocumento.application.parametrizacao.ProcessoService;
 import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoCriadoVo;
+import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoDocumentoCriadoVo;
 import br.gov.caixa.simtr.arvoredocumento.mapper.dossieproduto.DossieProdutoMapper;
 import br.gov.caixa.simtr.arvoredocumento.mapper.parametrizacao.ChecklistMapper;
 import br.gov.caixa.simtr.arvoredocumento.mapper.parametrizacao.ProcessoMapper;
@@ -114,6 +116,24 @@ class ResourceBeanCoverageTest {
         assertEquals(123L, ((DossieProdutoCriadoDto) response.getEntity()).id());
         assertThrows(IllegalStateException.class,
                 () -> dossieProdutoResource.atualizarFormularioDossieProduto(124L, TestFixtures.formularioDto())
+                        .await().indefinitely());
+    }
+
+    @Test
+    void dossieProdutoResourceCobreDocumentoSucessoEFalhaDoBeanCdi() {
+        when(dossieProdutoService.incluirDocumentoDossieProduto(eq(123L), any()))
+                .thenReturn(Uni.createFrom().item(new DossieProdutoDocumentoCriadoVo(456L, 789L)));
+        when(dossieProdutoService.incluirDocumentoDossieProduto(eq(124L), any()))
+                .thenReturn(Uni.createFrom().failure(new IllegalStateException("falha documento")));
+
+        Response response = dossieProdutoResource.incluirDocumentoDossieProduto(123L, TestFixtures.documentoInclusaoDto())
+                .await().indefinitely();
+
+        assertEquals(Response.Status.CREATED.getStatusCode(), response.getStatus());
+        assertEquals(456L, ((DossieProdutoDocumentoCriadoDto) response.getEntity()).idDocumento());
+        assertEquals(789L, ((DossieProdutoDocumentoCriadoDto) response.getEntity()).idInstanciaDocumento());
+        assertThrows(IllegalStateException.class,
+                () -> dossieProdutoResource.incluirDocumentoDossieProduto(124L, TestFixtures.documentoInclusaoDto())
                         .await().indefinitely());
     }
 }

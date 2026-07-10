@@ -2,9 +2,13 @@ package br.gov.caixa.simtr.arvoredocumento.application.dossieproduto;
 
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriacaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriadoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoCriadoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoInclusaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoFormularioDto;
 import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoCriacaoVo;
 import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoCriadoVo;
+import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoDocumentoCriadoVo;
+import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoDocumentoInclusaoVo;
 import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoFormularioVo;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.dossieproduto.DossieProdutoGateway;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.dossieproduto.mock.DossieProdutoMockFactory;
@@ -234,6 +238,110 @@ public class DossieProdutoService {
         return dossieProdutoGateway.atualizarFormularioDossieProduto(id, requisicaoDto);
     }
 
+    @WithSpan("arvore-documento.service.dossie-produto.documento.incluir")
+    public Uni<DossieProdutoDocumentoCriadoVo> incluirDocumentoDossieProduto(
+            Long id,
+            DossieProdutoDocumentoInclusaoVo requisicao
+    ) {
+        Integer quantidadeAtributos = quantidadeAtributosDocumento(requisicao);
+        Integer quantidadePropriedades = quantidadePropriedadesDocumento(requisicao);
+        String tipoDocumento = tipoDocumento(requisicao);
+
+        Span span = Span.current();
+        span.setAttribute("arvore_documento.simulador_dossie_produto_habilitado", simuladorDossieProdutoHabilitado);
+        setLongAttribute(span, "dossie_produto.id", id);
+        setStringAttribute(span, "dossie_produto.documento.tipo", tipoDocumento);
+        setIntAttribute(span, "dossie_produto.documento.atributos.quantidade", quantidadeAtributos);
+        setIntAttribute(span, "dossie_produto.documento.propriedades.quantidade", quantidadePropriedades);
+
+        ObservabilityLog.info(
+                LOG,
+                "arvore-documento.dossie-produto.documento.service.iniciado",
+                ObservabilityLog.fields(
+                        "camada", "application",
+                        "componente", "DossieProdutoService",
+                        "operacao", "incluir-documento-dossie-produto",
+                        "dossie_produto_id", id,
+                        "tipo_documento", tipoDocumento,
+                        "documento_atributos_quantidade", quantidadeAtributos,
+                        "documento_propriedades_quantidade", quantidadePropriedades,
+                        "simulador_habilitado", simuladorDossieProdutoHabilitado
+                )
+        );
+
+        return incluirDocumentoDossieProdutoNoMtrOuSimulador(id, requisicao)
+                .map(dossieProdutoMapper::toVo)
+                .invoke(resposta -> {
+                    if (resposta != null && resposta.idDocumento() != null) {
+                        span.setAttribute("dossie_produto.documento.id", resposta.idDocumento());
+                    }
+                    if (resposta != null && resposta.idInstanciaDocumento() != null) {
+                        span.setAttribute("dossie_produto.documento.instancia.id", resposta.idInstanciaDocumento());
+                    }
+
+                    ObservabilityLog.info(
+                            LOG,
+                            "arvore-documento.dossie-produto.documento.service.concluido",
+                            ObservabilityLog.fields(
+                                    "camada", "application",
+                                    "componente", "DossieProdutoService",
+                                    "operacao", "incluir-documento-dossie-produto",
+                                    "dossie_produto_id", id,
+                                    "id_documento", resposta != null ? resposta.idDocumento() : null,
+                                    "id_instancia_documento", resposta != null ? resposta.idInstanciaDocumento() : null,
+                                    "resultado", "sucesso"
+                            )
+                    );
+                })
+                .onFailure().invoke(erro -> {
+                    span.recordException(erro);
+                    span.setStatus(StatusCode.ERROR, String.valueOf(erro.getMessage()));
+
+                    ObservabilityLog.error(
+                            LOG,
+                            "arvore-documento.dossie-produto.documento.service.falhou",
+                            erro,
+                            ObservabilityLog.fields(
+                                    "camada", "application",
+                                    "componente", "DossieProdutoService",
+                                    "operacao", "incluir-documento-dossie-produto",
+                                    "dossie_produto_id", id,
+                                    "tipo_documento", tipoDocumento,
+                                    "erro_tipo", erro.getClass().getSimpleName(),
+                                    "resultado", "erro"
+                            )
+                    );
+                });
+    }
+
+    private Uni<DossieProdutoDocumentoCriadoDto> incluirDocumentoDossieProdutoNoMtrOuSimulador(
+            Long id,
+            DossieProdutoDocumentoInclusaoVo requisicao
+    ) {
+        DossieProdutoDocumentoInclusaoDto requisicaoDto = dossieProdutoMapper.toDto(requisicao);
+
+        if (simuladorDossieProdutoHabilitado) {
+            ObservabilityLog.info(
+                    LOG,
+                    "arvore-documento.dossie-produto.documento.simulador.usado",
+                    ObservabilityLog.fields(
+                            "camada", "application",
+                            "componente", "DossieProdutoService",
+                            "operacao", "incluir-documento-dossie-produto",
+                            "dossie_produto_id", id,
+                            "tipo_documento", tipoDocumento(requisicao),
+                            "origem", "mock"
+                    )
+            );
+
+            Span.current().setAttribute("arvore_documento.origem_dados", "mock");
+            return Uni.createFrom().item(dossieProdutoMockFactory.incluirDocumentoDossieProdutoMock(id, requisicaoDto));
+        }
+
+        Span.current().setAttribute("arvore_documento.origem_dados", "mtr");
+        return dossieProdutoGateway.incluirDocumentoDossieProduto(id, requisicaoDto);
+    }
+
     private static Long processo(DossieProdutoCriacaoVo requisicao) {
         return requisicao != null ? requisicao.processo() : null;
     }
@@ -270,6 +378,24 @@ public class DossieProdutoService {
                 .sum();
     }
 
+    private static String tipoDocumento(DossieProdutoDocumentoInclusaoVo requisicao) {
+        return requisicao != null ? requisicao.tipoDocumento() : null;
+    }
+
+    private static Integer quantidadeAtributosDocumento(DossieProdutoDocumentoInclusaoVo requisicao) {
+        if (requisicao == null || requisicao.atributos() == null) {
+            return null;
+        }
+        return requisicao.atributos().size();
+    }
+
+    private static Integer quantidadePropriedadesDocumento(DossieProdutoDocumentoInclusaoVo requisicao) {
+        if (requisicao == null || requisicao.propriedades() == null) {
+            return null;
+        }
+        return requisicao.propriedades().size();
+    }
+
     private static void setLongAttribute(Span span, String nome, Long valor) {
         if (valor != null) {
             span.setAttribute(nome, valor);
@@ -277,6 +403,12 @@ public class DossieProdutoService {
     }
 
     private static void setIntAttribute(Span span, String nome, Integer valor) {
+        if (valor != null) {
+            span.setAttribute(nome, valor);
+        }
+    }
+
+    private static void setStringAttribute(Span span, String nome, String valor) {
         if (valor != null) {
             span.setAttribute(nome, valor);
         }

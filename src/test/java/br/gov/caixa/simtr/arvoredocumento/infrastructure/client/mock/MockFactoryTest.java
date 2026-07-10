@@ -1,6 +1,7 @@
 package br.gov.caixa.simtr.arvoredocumento.infrastructure.client.mock;
 
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriadoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoCriadoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.checklist.ChecklistDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.ProcessoDto;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.dossieproduto.mock.DossieProdutoMockFactory;
@@ -55,5 +56,15 @@ class MockFactoryTest {
         DossieProdutoCriadoDto resposta = factory.atualizarFormularioDossieProdutoMock(123L, null);
 
         assertEquals(123L, resposta.id());
+    }
+
+    @Test
+    void deveLerMockDeDocumentoDossieProduto() {
+        DossieProdutoMockFactory factory = new DossieProdutoMockFactory(reader);
+
+        DossieProdutoDocumentoCriadoDto resposta = factory.incluirDocumentoDossieProdutoMock(123L, null);
+
+        assertEquals(456L, resposta.idDocumento());
+        assertEquals(789L, resposta.idInstanciaDocumento());
     }
 }

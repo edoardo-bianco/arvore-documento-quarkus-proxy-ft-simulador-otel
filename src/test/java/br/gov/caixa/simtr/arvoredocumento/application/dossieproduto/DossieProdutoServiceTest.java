@@ -3,6 +3,8 @@ package br.gov.caixa.simtr.arvoredocumento.application.dossieproduto;
 import br.gov.caixa.simtr.arvoredocumento.TestFixtures;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriacaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriadoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoCriadoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoInclusaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoFormularioDto;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.dossieproduto.DossieProdutoGateway;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.dossieproduto.mock.DossieProdutoMockFactory;
@@ -86,9 +88,46 @@ class DossieProdutoServiceTest {
         assertFalse(mockFactory.formularioChamada);
     }
 
+    @Test
+    void documentoComSimuladorHabilitadoUsaMockFactory() {
+        FakeDossieGateway gateway = new FakeDossieGateway();
+        FakeDossieMockFactory mockFactory = new FakeDossieMockFactory();
+        DossieProdutoService service = new DossieProdutoService(gateway, mockFactory, mapper, true);
+
+        var resposta = service.incluirDocumentoDossieProduto(
+                        123L,
+                        mapper.toVo(TestFixtures.documentoInclusaoDto())
+                )
+                .await().indefinitely();
+
+        assertEquals(5L, resposta.idDocumento());
+        assertEquals(6L, resposta.idInstanciaDocumento());
+        assertTrue(mockFactory.documentoChamada);
+        assertFalse(gateway.documentoChamada);
+    }
+
+    @Test
+    void documentoComSimuladorDesabilitadoUsaGateway() {
+        FakeDossieGateway gateway = new FakeDossieGateway();
+        FakeDossieMockFactory mockFactory = new FakeDossieMockFactory();
+        DossieProdutoService service = new DossieProdutoService(gateway, mockFactory, mapper, false);
+
+        var resposta = service.incluirDocumentoDossieProduto(
+                        123L,
+                        mapper.toVo(TestFixtures.documentoInclusaoDto())
+                )
+                .await().indefinitely();
+
+        assertEquals(7L, resposta.idDocumento());
+        assertEquals(8L, resposta.idInstanciaDocumento());
+        assertTrue(gateway.documentoChamada);
+        assertFalse(mockFactory.documentoChamada);
+    }
+
     private static class FakeDossieGateway extends DossieProdutoGateway {
         private boolean criacaoChamada;
         private boolean formularioChamada;
+        private boolean documentoChamada;
 
         private FakeDossieGateway() {
             super(null);
@@ -108,11 +147,21 @@ class DossieProdutoServiceTest {
             formularioChamada = true;
             return Uni.createFrom().item(new DossieProdutoCriadoDto(4L));
         }
+
+        @Override
+        public Uni<DossieProdutoDocumentoCriadoDto> incluirDocumentoDossieProduto(
+                Long id,
+                DossieProdutoDocumentoInclusaoDto requisicao
+        ) {
+            documentoChamada = true;
+            return Uni.createFrom().item(new DossieProdutoDocumentoCriadoDto(7L, 8L));
+        }
     }
 
     private static class FakeDossieMockFactory extends DossieProdutoMockFactory {
         private boolean criacaoChamada;
         private boolean formularioChamada;
+        private boolean documentoChamada;
 
         private FakeDossieMockFactory() {
             super(null);
@@ -131,6 +180,15 @@ class DossieProdutoServiceTest {
         ) {
             formularioChamada = true;
             return new DossieProdutoCriadoDto(id);
+        }
+
+        @Override
+        public DossieProdutoDocumentoCriadoDto incluirDocumentoDossieProdutoMock(
+                Long id,
+                DossieProdutoDocumentoInclusaoDto requisicao
+        ) {
+            documentoChamada = true;
+            return new DossieProdutoDocumentoCriadoDto(5L, 6L);
         }
     }
 }

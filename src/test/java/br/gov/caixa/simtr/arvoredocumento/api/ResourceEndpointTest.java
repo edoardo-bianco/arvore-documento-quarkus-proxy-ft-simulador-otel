@@ -66,6 +66,34 @@ class ResourceEndpointTest {
     }
 
     @Test
+    void dossieProdutoPostDocumentoRetorna201ComIdsDoMock() {
+        given()
+                .contentType(ContentType.JSON)
+                .accept(ContentType.JSON)
+                .body(TestFixtures.documentoInclusaoDto())
+                .when()
+                .post("/arvore-documento/v1/dossie-produto/{id}/documento", 123L)
+                .then()
+                .statusCode(201)
+                .body("id_documento", equalTo(456))
+                .body("id_instancia_documento", equalTo(789));
+    }
+
+    @Test
+    void dossieProdutoPostDocumentoAceitaAtributoSemObjeto() {
+        given()
+                .contentType(ContentType.JSON)
+                .accept(ContentType.JSON)
+                .body(TestFixtures.documentoInclusaoSemObjetoAtributoDto())
+                .when()
+                .post("/arvore-documento/v1/dossie-produto/{id}/documento", 123L)
+                .then()
+                .statusCode(201)
+                .body("id_documento", equalTo(456))
+                .body("id_instancia_documento", equalTo(789));
+    }
+
+    @Test
     void processoEndpointRetorna400ParaIdentificadorInvalido() {
         given()
                 .accept(ContentType.JSON)
@@ -84,6 +112,19 @@ class ResourceEndpointTest {
                 .body(TestFixtures.formularioDto())
                 .when()
                 .patch("/arvore-documento/v1/dossie-produto/{id}/formulario", 0)
+                .then()
+                .statusCode(400)
+                .body("codigo_erro", equalTo("ARVDOCP0001"));
+    }
+
+    @Test
+    void dossieProdutoPostDocumentoRetorna400ParaIdInvalido() {
+        given()
+                .contentType(ContentType.JSON)
+                .accept(ContentType.JSON)
+                .body(TestFixtures.documentoInclusaoDto())
+                .when()
+                .post("/arvore-documento/v1/dossie-produto/{id}/documento", 0)
                 .then()
                 .statusCode(400)
                 .body("codigo_erro", equalTo("ARVDOCP0001"));

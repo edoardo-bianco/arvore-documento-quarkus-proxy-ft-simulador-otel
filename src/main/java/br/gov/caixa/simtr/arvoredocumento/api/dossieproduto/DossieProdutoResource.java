@@ -2,6 +2,8 @@ package br.gov.caixa.simtr.arvoredocumento.api.dossieproduto;
 
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriacaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriadoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoCriadoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoInclusaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoFormularioDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.erro.ErroPadraoDto;
 import br.gov.caixa.simtr.arvoredocumento.application.dossieproduto.DossieProdutoService;
@@ -290,6 +292,135 @@ public class DossieProdutoResource {
                 });
     }
 
+    @POST
+    @Path("/{id}/documento")
+    @WithSpan(value = "arvore-documento.api.dossie-produto.documento.incluir", kind = SpanKind.SERVER)
+    @Operation(
+            summary = "Inclui documento no dossiê de produto",
+            description = "Recebe a chamada no contrato do arvore-documento, aciona o serviço de aplicação e vincula documento ao dossiê de produto no simtr-dossie-produto v2."
+    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "201",
+                    description = "Documento criado com sucesso.",
+                    content = @Content(schema = @Schema(implementation = DossieProdutoDocumentoCriadoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "400",
+                    description = "Requisição inválida.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "401",
+                    description = "Não autorizado.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "403",
+                    description = "Canal ou usuário sem permissão para criar Documentos em Dossiê.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "404",
+                    description = "Parâmetro não localizado para a criação de Documento.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "409",
+                    description = "Conflito ao processar a requisição.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "500",
+                    description = "Erro interno.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            )
+    })
+    public Uni<Response> incluirDocumentoDossieProduto(
+            @PathParam("id")
+            @NotNull(message = "O identificador do dossie produto deve ser informado.")
+            @Min(value = 1, message = "O identificador do dossie produto deve ser maior que zero.")
+            Long id,
+            @NotNull(message = "O corpo da requisicao deve ser informado.")
+            @Valid DossieProdutoDocumentoInclusaoDto requisicao) {
+
+        Integer quantidadeAtributos = quantidadeAtributosDocumento(requisicao);
+        Integer quantidadePropriedades = quantidadePropriedadesDocumento(requisicao);
+        String tipoDocumento = tipoDocumento(requisicao);
+
+        Span span = Span.current();
+        span.setAttribute("http.route", "/arvore-documento/v1/dossie-produto/{id}/documento");
+        span.setAttribute("arvore_documento.api", "dossie-produto-v2");
+        setLongAttribute(span, "dossie_produto.id", id);
+        setStringAttribute(span, "dossie_produto.documento.tipo", tipoDocumento);
+        setIntAttribute(span, "dossie_produto.documento.atributos.quantidade", quantidadeAtributos);
+        setIntAttribute(span, "dossie_produto.documento.propriedades.quantidade", quantidadePropriedades);
+
+        ObservabilityLog.info(
+                LOG,
+                "arvore-documento.dossie-produto.documento.requisicao.recebida",
+                ObservabilityLog.fields(
+                        "camada", "api",
+                        "componente", "DossieProdutoResource",
+                        "operacao", "incluir-documento-dossie-produto",
+                        "dossie_produto_id", id,
+                        "tipo_documento", tipoDocumento,
+                        "documento_atributos_quantidade", quantidadeAtributos,
+                        "documento_propriedades_quantidade", quantidadePropriedades
+                )
+        );
+
+        return dossieProdutoService.incluirDocumentoDossieProduto(
+                        id,
+                        dossieProdutoMapper.toVo(requisicao)
+                )
+                .map(resposta -> dossieProdutoMapper.toDto(resposta))
+                .invoke(resposta -> {
+                    if (resposta != null && resposta.idDocumento() != null) {
+                        span.setAttribute("dossie_produto.documento.id", resposta.idDocumento());
+                    }
+                    if (resposta != null && resposta.idInstanciaDocumento() != null) {
+                        span.setAttribute("dossie_produto.documento.instancia.id", resposta.idInstanciaDocumento());
+                    }
+
+                    ObservabilityLog.info(
+                            LOG,
+                            "arvore-documento.dossie-produto.documento.resposta.enviada",
+                            ObservabilityLog.fields(
+                                    "camada", "api",
+                                    "componente", "DossieProdutoResource",
+                                    "operacao", "incluir-documento-dossie-produto",
+                                    "dossie_produto_id", id,
+                                    "id_documento", resposta != null ? resposta.idDocumento() : null,
+                                    "id_instancia_documento", resposta != null ? resposta.idInstanciaDocumento() : null,
+                                    "resultado", "sucesso"
+                            )
+                    );
+                })
+                .map(resposta -> Response.status(Response.Status.CREATED)
+                        .entity(resposta)
+                        .build())
+                .onFailure().invoke(erro -> {
+                    span.recordException(erro);
+                    span.setStatus(StatusCode.ERROR, String.valueOf(erro.getMessage()));
+
+                    ObservabilityLog.error(
+                            LOG,
+                            "arvore-documento.dossie-produto.documento.requisicao.falhou",
+                            erro,
+                            ObservabilityLog.fields(
+                                    "camada", "api",
+                                    "componente", "DossieProdutoResource",
+                                    "operacao", "incluir-documento-dossie-produto",
+                                    "dossie_produto_id", id,
+                                    "tipo_documento", tipoDocumento,
+                                    "erro_tipo", erro.getClass().getSimpleName(),
+                                    "resultado", "erro"
+                            )
+                    );
+                });
+    }
+
     private static Long processo(DossieProdutoCriacaoDto requisicao) {
         return requisicao != null ? requisicao.processo() : null;
     }
@@ -326,6 +457,24 @@ public class DossieProdutoResource {
                 .sum();
     }
 
+    private static String tipoDocumento(DossieProdutoDocumentoInclusaoDto requisicao) {
+        return requisicao != null ? requisicao.tipoDocumento() : null;
+    }
+
+    private static Integer quantidadeAtributosDocumento(DossieProdutoDocumentoInclusaoDto requisicao) {
+        if (requisicao == null || requisicao.atributos() == null) {
+            return null;
+        }
+        return requisicao.atributos().size();
+    }
+
+    private static Integer quantidadePropriedadesDocumento(DossieProdutoDocumentoInclusaoDto requisicao) {
+        if (requisicao == null || requisicao.propriedades() == null) {
+            return null;
+        }
+        return requisicao.propriedades().size();
+    }
+
     private static void setLongAttribute(Span span, String nome, Long valor) {
         if (valor != null) {
             span.setAttribute(nome, valor);
@@ -333,6 +482,12 @@ public class DossieProdutoResource {
     }
 
     private static void setIntAttribute(Span span, String nome, Integer valor) {
+        if (valor != null) {
+            span.setAttribute(nome, valor);
+        }
+    }
+
+    private static void setStringAttribute(Span span, String nome, String valor) {
         if (valor != null) {
             span.setAttribute(nome, valor);
         }

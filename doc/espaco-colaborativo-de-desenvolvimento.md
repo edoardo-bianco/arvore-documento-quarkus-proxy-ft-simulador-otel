@@ -74,6 +74,7 @@ GET /arvore-documento/v1/processo/identificador-negocial/{identificador}
 GET /arvore-documento/v1/checklist/identificador-negocial/{identificador}/versao/{versao}
 POST /arvore-documento/v1/dossie-produto
 PATCH /arvore-documento/v1/dossie-produto/{id}/formulario
+POST /arvore-documento/v1/dossie-produto/{id}/documento
 ```
 
 Esses endpoints cobrem:
@@ -82,6 +83,7 @@ Esses endpoints cobrem:
 - consulta de checklist por identificador e versao;
 - criacao basica de Dossie Produto em modo rascunho;
 - inclusao ou edicao de respostas de formulario no Dossie Produto.
+- inclusao de documento no Dossie Produto com retorno de `id_documento` e `id_instancia_documento`.
 
 Tambem foi consolidada a migracao dos mappers para MapStruct:
 
@@ -121,7 +123,7 @@ Resultado: suite passou apos a migracao de `DossieProdutoMapper` e passou novame
 | Dossie Produto | `POST /simtr-dossie-produto/v1/dossie-produto/{id}/workflow` | `POST /arvore-documento/v1/dossie-produto/{id}/workflow` | Pendente | Implementar em passo separado. |
 | Dossie Produto | `POST /simtr-dossie-produto/v1/dossie-produto/{id}/cancelar` | `POST /arvore-documento/v1/dossie-produto/{id}/cancelar` | Pendente | Implementar em passo separado. |
 | Dossie Produto | `GET /simtr-dossie-produto/v2/dossie-produto/{id}` | `GET /arvore-documento/v1/dossie-produto/{id}` | Pendente | Confirmar contrato externo do hub antes de implementar. |
-| Dossie Produto | `POST /simtr-dossie-produto/v2/dossie-produto/{id}/documento` | `POST /arvore-documento/v1/dossie-produto/{id}/documento` | Pendente | Confirmar integracao com Gestao de Documentos e payload. |
+| Dossie Produto | `POST /simtr-dossie-produto/v2/dossie-produto/{id}/documento` | `POST /arvore-documento/v1/dossie-produto/{id}/documento` | Implementado | Vincula documento ja armazenado ao Dossie Produto e retorna `id_documento` e `id_instancia_documento`. |
 | Dossie Produto | `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/validacao-negocial` | `PATCH /arvore-documento/v1/dossie-produto/{id}/validacao-negocial` | Pendente | Ler secao funcional antes de modelar DTOs. |
 | Gestao de Documentos | `POST /simtr-gestao-documento/v1/storage/container/credencial` | A definir | Pendente | Definir resource/client mantendo padrao do projeto. |
 
@@ -166,6 +168,14 @@ Se a documentacao funcional e o OpenAPI parecerem divergentes:
 - usar o OpenAPI para modelar contrato tecnico, DTOs e status codes;
 - preservar a convencao de roteamento ja implementada no API Manager;
 - registrar a decisao neste documento antes de seguir para o proximo endpoint.
+
+Se payloads reais, evidencias de homologacao ou comportamento observado no MTR mostrarem que o OpenAPI bruto esta mais restritivo que o contrato aceito:
+
+- nao aplicar validacao local mais restritiva que o MTR;
+- preferir aceitar o payload real no SIMTR Hub e deixar validacoes negociais especificas para o MTR, salvo regra explicita do Hub;
+- remover `@NotNull`/validacoes locais de campos opcionais ou divergentes;
+- criar teste de regressao com o payload real ou com o menor payload valido conhecido;
+- registrar a divergencia e a decisao neste documento e na documentacao consolidada.
 
 ## Decisoes arquiteturais consolidadas
 
@@ -263,7 +273,15 @@ Configuracao atual:
 
 ```java
 @RegisterRestClient(configKey = "dossie-produto")
-@Path("/dossie-produto/v1/dossie-produto")
+@Path("/dossie-produto")
+```
+
+As versoes do servico ficam nos paths dos metodos do client:
+
+```text
+POST /v1/dossie-produto
+PATCH /v1/dossie-produto/{id}/formulario
+POST /v2/dossie-produto/{id}/documento
 ```
 
 No `application.properties`, a URL ja inclui `/simtr`:
@@ -306,6 +324,38 @@ src/main/resources/mock/dossieproduto
 
 Nao trocar mocks Markdown por implementacao hardcoded sem decisao explicita.
 
+### Contrato de inclusao de documento v2
+
+Para o endpoint:
+
+```http
+POST /arvore-documento/v1/dossie-produto/{id}/documento
+```
+
+Foi validado com payload real que:
+
+- `atributos` pode conter itens com apenas `chave` e `valor`;
+- `atributos[].objeto` e opcional no contrato aceito pelo fluxo real;
+- `propriedades` e opcional no corpo da requisicao;
+- quando `propriedades` vier informado, `propriedades[].objeto` tambem deve ser tratado como opcional pelo Hub;
+- o Hub nao deve retornar `ARVDOCP0001` por ausencia de `objeto` em atributos ou propriedades de documento.
+
+A experiencia que motivou esta regra:
+
+- a primeira implementacao seguiu o `required` do OpenAPI bruto e colocou `@NotNull` em `DossieProdutoDocumentoAtributoDto.objeto`;
+- payload real com dezenas de atributos sem `objeto` foi rejeitado localmente antes de chamar o MTR;
+- o erro retornado repetia `O objeto do atributo do documento deve ser informado.`;
+- a correcao foi remover a obrigatoriedade local de `objeto` em atributos e propriedades e adicionar teste de regressao com atributo sem `objeto`.
+
+Se essa mensagem voltar a aparecer, conferir primeiro:
+
+```text
+src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dto/dossieproduto/DossieProdutoDocumentoAtributoDto.java
+src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dto/dossieproduto/DossieProdutoDocumentoPropriedadeDto.java
+```
+
+Tambem confirmar se a instancia em execucao foi reiniciada ou rebuildada. Se o codigo local nao tiver `@NotNull` em `objeto`, mas a API ainda retornar essa mensagem, a chamada provavelmente esta chegando em artefato antigo.
+
 ## Rotina obrigatoria para o proximo agente
 
 Para cada endpoint ou incremento funcional:
@@ -315,22 +365,27 @@ Para cada endpoint ou incremento funcional:
 3. Ler `doc/api-integracao-mtr-pre-validacao-v1.md` na secao exata do endpoint.
 4. Ler `doc/swagger-mtr/simtr-dossie-produto-openapi- 2.20.0.8` no path exato do endpoint quando for Dossie Produto.
 5. Conferir a implementacao existente antes de criar qualquer classe nova.
-6. Implementar o fluxo vertical completo, respeitando o padrao ja desenvolvido.
-7. Criar ou ajustar testes unitarios para o novo desenvolvimento.
-8. Manter cobertura minima de 80% de linhas para o novo desenvolvimento e nao reduzir a cobertura global abaixo da meta vigente.
-9. Rodar a suite a cada implementacao:
+6. Antes de implementar, criar um arquivo Markdown de planejamento em `doc/`, com nome descritivo do endpoint ou incremento.
+7. O planejamento deve conter objetivo, fontes consultadas, contrato externo, endpoint exposto pelo SIMTR Hub, decisoes tecnicas propostas, arquivos previstos, testes previstos, riscos, pendencias e criterios de aceite.
+8. Depois de criar o planejamento, perguntar explicitamente ao usuario se ele revisou e aprova seguir para implementacao.
+9. Nao iniciar alteracoes de codigo de implementacao antes da aprovacao do usuario.
+10. Implementar o fluxo vertical completo, respeitando o padrao ja desenvolvido, somente apos aprovacao do planejamento.
+11. Criar ou ajustar testes unitarios para o novo desenvolvimento.
+12. Manter cobertura minima de 80% de linhas para o novo desenvolvimento e nao reduzir a cobertura global abaixo da meta vigente.
+13. Rodar a suite a cada implementacao:
 
 ```powershell
 mvn -q test
 ```
 
-10. Se a suite falhar, corrigir antes de iniciar outro endpoint.
-11. Atualizar este documento com:
+14. Se a suite falhar, corrigir antes de iniciar outro endpoint.
+15. Atualizar este documento com:
 
 ```text
 data
 endpoint
 objetivo
+planejamento revisado/aprovado
 arquivos alterados
 testes criados/ajustados
 resultado dos testes
@@ -339,9 +394,17 @@ decisoes tomadas
 pendencias restantes
 ```
 
-12. Atualizar `doc/documentacao-simtr-hub-arquitetura-observabilidade.md` sempre que houver decisao consolidada ou mudanca de padrao que outras pessoas precisem conhecer.
+16. Atualizar `doc/documentacao-simtr-hub-arquitetura-observabilidade.md` sempre que houver decisao consolidada ou mudanca de padrao que outras pessoas precisem conhecer.
 
-Nao deixar implementacao sem teste, sem atualizacao deste espaco colaborativo e sem consolidar na documentacao principal as decisoes que deixaram de ser apenas contexto de trabalho.
+Nao deixar implementacao sem planejamento aprovado, sem teste, sem atualizacao deste espaco colaborativo e sem consolidar na documentacao principal as decisoes que deixaram de ser apenas contexto de trabalho.
+
+## Planejamentos de implementacao
+
+Antes de qualquer nova implementacao, registrar o plano em um Markdown proprio e aguardar revisao do usuario.
+
+Planejamentos registrados:
+
+- `doc/planejamento-dossie-produto-documento-v2.md` - `POST /simtr-dossie-produto/v2/dossie-produto/{id}/documento` para vincular documento ao Dossie Produto e retornar `id_documento` e `id_instancia_documento`. Revisado, aprovado e implementado em 2026-07-10.
 
 ## Padrao para adicionar novo endpoint de Dossie Produto
 
@@ -360,7 +423,16 @@ src/main/java/br/gov/caixa/simtr/arvoredocumento/domain/dossieproduto
 ```
 
 3. Adicionar metodos no `DossieProdutoMapper`, mantendo interface MapStruct e CDI.
-4. Adicionar metodo no `DossieProdutoClient` com:
+4. Modelar validacoes locais de DTO com cautela:
+
+```text
+validar path params obrigatorios do Hub
+validar body obrigatorio quando o endpoint exigir corpo
+validar campos internos somente quando houver regra confirmada do Hub ou contrato real inequívoco
+nao transformar campos divergentes/opcionais do MTR em @NotNull apenas porque o OpenAPI bruto marcou required
+```
+
+5. Adicionar metodo no `DossieProdutoClient` com:
 
 ```text
 metodo HTTP correto
@@ -372,14 +444,14 @@ metodo HTTP correto
 mesmo @ClientExceptionMapper ja existente
 ```
 
-5. Adicionar metodo no `DossieProdutoGateway`, mantendo logs de dependencia, span e propagacao de erro.
-6. Adicionar metodo no `DossieProdutoMockFactory`.
-7. Criar mock em `src/main/resources/mock/dossieproduto`.
-8. Adicionar metodo no `DossieProdutoService`, mantendo decisao simulador vs MTR.
-9. Adicionar endpoint no `DossieProdutoResource`.
-10. Adicionar ou ajustar testes.
-11. Rodar `mvn -q test`.
-12. Atualizar este documento.
+6. Adicionar metodo no `DossieProdutoGateway`, mantendo logs de dependencia, span e propagacao de erro.
+7. Adicionar metodo no `DossieProdutoMockFactory`.
+8. Criar mock em `src/main/resources/mock/dossieproduto`.
+9. Adicionar metodo no `DossieProdutoService`, mantendo decisao simulador vs MTR.
+10. Adicionar endpoint no `DossieProdutoResource`.
+11. Adicionar ou ajustar testes.
+12. Rodar `mvn -q test`.
+13. Atualizar este documento.
 
 ## Observabilidade obrigatoria para novos endpoints
 
@@ -436,6 +508,7 @@ Sempre cobrir, conforme aplicavel:
 - mock funciona com o arquivo em `src/main/resources/mock`;
 - mapper preserva DTO -> VO -> DTO;
 - listas nulas e objetos aninhados nulos quando o contrato permitir;
+- payload real ou payload minimo valido com campos opcionais omitidos, especialmente quando o OpenAPI bruto tiver indicado obrigatoriedade duvidosa;
 - exception mapper continua padronizando erros;
 - endpoints existentes continuam passando.
 
@@ -499,6 +572,71 @@ Pendencias:
 
 - Migrar endpoints restantes da matriz de endpoints, um por vez.
 - Atualizar este historico a cada endpoint implementado.
+
+### 2026-07-10 - Codex - POST documento Dossie Produto v2
+
+Objetivo:
+- Implementar `POST /arvore-documento/v1/dossie-produto/{id}/documento` como proxy do `POST /simtr-dossie-produto/v2/dossie-produto/{id}/documento`.
+
+Planejamento:
+- `doc/planejamento-dossie-produto-documento-v2.md` criado, revisado e aprovado pelo usuario antes da implementacao.
+
+Feito:
+- Criados DTOs e VOs especificos para inclusao de documento e resposta v2.
+- `DossieProdutoMapper` atualizado para mapear request/response de documento.
+- `DossieProdutoClient` ajustado para base versionavel `@Path("/dossie-produto")`, mantendo endpoints v1 e adicionando endpoint v2 no mesmo REST Client.
+- `DossieProdutoGateway`, `DossieProdutoService` e `DossieProdutoResource` atualizados com fluxo vertical completo.
+- Mock runtime e copia documental adicionados para o endpoint de documento.
+- Testes de resource, service, gateway, mock factory e mapper adicionados/ajustados.
+- Corrigida validacao local indevida que rejeitava `atributos[].objeto` ausente no payload real de documento.
+
+Arquivos alterados:
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dossieproduto/DossieProdutoResource.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/application/dossieproduto/DossieProdutoService.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoClient.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoGateway.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/mock/DossieProdutoMockFactory.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/dossieproduto/DossieProdutoMapper.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dto/dossieproduto/*Documento*.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/domain/dossieproduto/*Documento*.java`
+- `src/main/resources/mock/dossieproduto/documento-dossie-produto.md`
+- `doc/mock/dossie-produto/documento-dossie-produto.md`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/TestFixtures.java`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceEndpointTest.java`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceBeanCoverageTest.java`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/application/dossieproduto/DossieProdutoServiceTest.java`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/GatewayTest.java`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/mock/MockFactoryTest.java`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/mapper/dossieproduto/DossieProdutoMapperTest.java`
+- `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`
+- `doc/planejamento-dossie-produto-documento-v2.md`
+
+Testes criados/ajustados:
+- Endpoint HTTP 201 para documento e 400 para id invalido.
+- Endpoint HTTP 201 para documento com atributos sem `objeto`.
+- Service selecionando mock ou gateway conforme simulador.
+- Gateway encaminhando id/request e propagando falhas.
+- Mock factory lendo `documento-dossie-produto.md`.
+- Mapper preservando DTO -> VO -> DTO para documento e resposta v2.
+
+Comandos executados:
+- `mvn -q test`
+
+Resultado dos testes:
+- Suite passou.
+
+Cobertura:
+- Relatorio gerado pelo `quarkus-jacoco` em `target/jacoco-report/index.html`.
+
+Decisoes:
+- O endpoint de documento usa DTOs/VOs proprios porque o `vinculo_dossie` difere do contrato de formulario.
+- O REST Client de Dossie Produto fica com base versionavel e paths versionados por metodo para suportar v1 e v2 no mesmo servico.
+- A integracao com Gestao Documento nao foi embutida neste endpoint; o endpoint apenas vincula o documento ja armazenado.
+- Em 2026-07-10, apos teste com payload real, `objeto` em `atributos` e `propriedades` de documento deixou de ser validado como obrigatorio pelo SIMTR Hub, apesar da indicacao do OpenAPI bruto. O Hub deve evitar validacao local mais restritiva que o MTR.
+- Se a mensagem `O objeto do atributo do documento deve ser informado.` reaparecer, a primeira suspeita deve ser DTO antigo em execucao ou `@NotNull` reintroduzido em `DossieProdutoDocumentoAtributoDto.objeto`.
+
+Pendencias:
+- Implementar os demais endpoints pendentes da matriz em ciclos separados.
 
 ### Template para proximos registros
 
