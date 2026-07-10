@@ -2,7 +2,15 @@ package br.gov.caixa.simtr.arvoredocumento.mapper.parametrizacao;
 
 import br.gov.caixa.simtr.arvoredocumento.TestFixtures;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.checklist.ChecklistDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.CampoFormularioDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.DocumentoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.FaseDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.FuncaoDocumentalDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.GarantiaDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.ProcessoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.ProdutoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.RelacionamentoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.TipoDocumentoDto;
 import br.gov.caixa.simtr.arvoredocumento.domain.parametrizacao.checklist.ChecklistVo;
 import br.gov.caixa.simtr.arvoredocumento.domain.parametrizacao.processo.ProcessoVo;
 import io.quarkus.test.junit.QuarkusTest;
@@ -10,8 +18,10 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 @QuarkusTest
@@ -22,6 +32,12 @@ class ParametrizacaoMapperTest {
 
     @Inject
     ChecklistMapper checklistMapper;
+
+    @Test
+    void deveInjetarMappersGeradosPeloCdi() {
+        assertNotNull(processoMapper);
+        assertNotNull(checklistMapper);
+    }
 
     @Test
     void devePreservarCamposPrincipaisDoProcesso() {
@@ -73,12 +89,30 @@ class ParametrizacaoMapperTest {
         assertEquals(dto.macroprocesso().nome(), dtoFinal.macroprocesso().nome());
         assertEquals(dto.relacionamentos().getFirst().camposFormulario().getFirst().label(),
                 dtoFinal.relacionamentos().getFirst().camposFormulario().getFirst().label());
+        assertEquals(dto.relacionamentos().getFirst().documentos().getFirst().obrigatorio(),
+                dtoFinal.relacionamentos().getFirst().documentos().getFirst().obrigatorio());
+        assertEquals(dto.produtos().getFirst().camposFormulario().getFirst().opcoesDisponiveis().getFirst().valorOpcao(),
+                dtoFinal.produtos().getFirst().camposFormulario().getFirst().opcoesDisponiveis().getFirst().valorOpcao());
+        assertEquals(dto.produtos().getFirst().documentos().getFirst().tipoDocumento().nome(),
+                dtoFinal.produtos().getFirst().documentos().getFirst().tipoDocumento().nome());
         assertEquals(dto.produtos().getFirst().garantias().getFirst().codigoBacen(),
                 dtoFinal.produtos().getFirst().garantias().getFirst().codigoBacen());
+        assertEquals(dto.produtos().getFirst().checklist().versaoChecklist(),
+                dtoFinal.produtos().getFirst().checklist().versaoChecklist());
         assertEquals(dto.fases().getFirst().produtos().getFirst().codigoOperacao(),
                 dtoFinal.fases().getFirst().produtos().getFirst().codigoOperacao());
+        assertEquals(dto.fases().getFirst().garantias().getFirst().nomeGarantia(),
+                dtoFinal.fases().getFirst().garantias().getFirst().nomeGarantia());
+        assertEquals(dto.fases().getFirst().camposFormulario().getFirst().tipo(),
+                dtoFinal.fases().getFirst().camposFormulario().getFirst().tipo());
+        assertEquals(dto.fases().getFirst().documentos().getFirst().funcaoDocumental().nome(),
+                dtoFinal.fases().getFirst().documentos().getFirst().funcaoDocumental().nome());
+        assertEquals(dto.fases().getFirst().checklist().getFirst().identificadorChecklist(),
+                dtoFinal.fases().getFirst().checklist().getFirst().identificadorChecklist());
         assertEquals(dto.documentos().getFirst().funcaoDocumental().tiposDocumento().getFirst().codigoTipologia(),
                 dtoFinal.documentos().getFirst().funcaoDocumental().tiposDocumento().getFirst().codigoTipologia());
+        assertEquals(dto.documentos().getFirst().tipoDocumento().checklist().identificadorChecklist(),
+                dtoFinal.documentos().getFirst().tipoDocumento().checklist().identificadorChecklist());
         assertEquals(dto.checklist().identificadorChecklist(), dtoFinal.checklist().identificadorChecklist());
     }
 
@@ -114,6 +148,87 @@ class ParametrizacaoMapperTest {
         assertNull(dtoFinal.fases().getFirst());
         assertNull(dtoFinal.documentos().getFirst());
         assertNull(dtoFinal.checklist());
+    }
+
+    @Test
+    void devePreservarListasEObjetosAninhadosNulosDoProcesso() {
+        CampoFormularioDto campo = new CampoFormularioDto(
+                10L,
+                "Campo minimo",
+                true,
+                true,
+                null,
+                null,
+                null,
+                "TEXTO",
+                null,
+                null,
+                null,
+                null,
+                null,
+                false,
+                null
+        );
+        DocumentoDto documento = new DocumentoDto(
+                new FuncaoDocumentalDto("Funcao", null, null),
+                new TipoDocumentoDto("RG", "Registro Geral", true, false, true, null),
+                null
+        );
+        GarantiaDto garantia = new GarantiaDto(1L, "Garantia", false, null, null, null);
+        ProdutoDto produto = new ProdutoDto(2L, 3L, "Produto", null, null, List.of(garantia), null);
+        RelacionamentoDto relacionamento = new RelacionamentoDto(
+                4L,
+                "Relacionamento",
+                "PF",
+                true,
+                true,
+                false,
+                false,
+                List.of(campo),
+                List.of(documento)
+        );
+        FaseDto fase = new FaseDto(
+                5L,
+                "Fase",
+                true,
+                "01/01/2026",
+                1,
+                "Orientacao",
+                List.of(produto),
+                List.of(garantia),
+                List.of(campo),
+                List.of(documento),
+                null
+        );
+        ProcessoDto dto = new ProcessoDto(
+                6L,
+                "Processo com nulos internos",
+                true,
+                "01/01/2026",
+                false,
+                null,
+                List.of(relacionamento),
+                List.of(produto),
+                List.of(fase),
+                List.of(documento),
+                null
+        );
+
+        ProcessoDto dtoFinal = processoMapper.toDto(processoMapper.toVo(dto));
+
+        assertNull(dtoFinal.macroprocesso());
+        assertNull(dtoFinal.checklist());
+        assertNull(dtoFinal.relacionamentos().getFirst().camposFormulario().getFirst().opcoesDisponiveis());
+        assertNull(dtoFinal.documentos().getFirst().funcaoDocumental().tiposDocumento());
+        assertNull(dtoFinal.documentos().getFirst().funcaoDocumental().checklist());
+        assertNull(dtoFinal.documentos().getFirst().tipoDocumento().checklist());
+        assertNull(dtoFinal.produtos().getFirst().camposFormulario());
+        assertNull(dtoFinal.produtos().getFirst().documentos());
+        assertNull(dtoFinal.produtos().getFirst().checklist());
+        assertNull(dtoFinal.produtos().getFirst().garantias().getFirst().camposFormulario());
+        assertNull(dtoFinal.produtos().getFirst().garantias().getFirst().documentos());
+        assertNull(dtoFinal.produtos().getFirst().garantias().getFirst().checklist());
+        assertNull(dtoFinal.fases().getFirst().checklist());
     }
 
     @Test

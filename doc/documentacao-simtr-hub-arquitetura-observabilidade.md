@@ -1,4 +1,4 @@
-# arvore-documento - Proxy Quarkus com observabilidade
+# SIMTR Hub - Arquitetura e observabilidade
 
 ## Indice
 
@@ -25,11 +25,11 @@
 
 ## Objetivo
 
-O `arvore-documento` e um microsservico Quarkus criado para atuar como proxy/adapter entre consumidores internos e servicos MTR, iniciando por parametrizacao e dossie produto.
+O `SIMTR Hub` e um microsservico Quarkus criado para atuar como proxy/adapter entre consumidores internos e servicos MTR, iniciando por parametrizacao e dossie produto.
 
 O projeto nao faz apenas repasse HTTP. Ele cria uma fronteira controlada para:
 
-- expor um contrato proprio do `arvore-documento`;
+- expor um contrato proprio do `SIMTR Hub`;
 - encapsular o endpoint interno do `simtr-parametrizacao`;
 - padronizar erros;
 - aplicar timeout, retry e circuit breaker;
@@ -37,6 +37,14 @@ O projeto nao faz apenas repasse HTTP. Ele cria uma fronteira controlada para:
 - registrar logs JSON estruturados;
 - exportar traces e logs por OpenTelemetry quando um backend for ativado;
 - visualizar a execucao em Jaeger ou, como alternativa mais completa, Grafana.
+
+### Nomenclatura
+
+O nome funcional da solucao e `SIMTR Hub`.
+
+Alguns exemplos, paths, propriedades, span names, arquivos de log e packages ainda usam o identificador tecnico legado `arvore-documento`, porque a aplicacao ainda nao passou pela migracao completa de nomenclatura no codigo. Esses identificadores devem ser tratados como legado tecnico temporario.
+
+A migracao futura deve substituir o root tecnico `br.gov.caixa.simtr.arvoredocumento` por um root coerente com `simtr-hub`, em momento proprio e com testes de regressao completos.
 
 Tecnologias principais:
 
@@ -52,7 +60,7 @@ Tecnologias principais:
 
 ## Cenario de uso
 
-O consumidor precisa consultar a arvore de documentos vinculada a um processo negocial.
+O consumidor precisa consultar documentos e parametros MTR vinculados a um processo negocial.
 
 Sem este proxy, o consumidor chamaria diretamente o MTR:
 
@@ -60,7 +68,7 @@ Sem este proxy, o consumidor chamaria diretamente o MTR:
 GET /simtr-parametrizacao/v2/patriarca/processo/identificador-negocial/{identificador}
 ```
 
-Com o `arvore-documento`, o consumidor passa a chamar uma API de dominio:
+Com o `SIMTR Hub`, o consumidor passa a chamar uma API de dominio:
 
 ```http
 GET /arvore-documento/v1/processo/identificador-negocial/{identificador}
@@ -70,7 +78,7 @@ Beneficios praticos:
 
 - o endpoint do MTR fica isolado;
 - o contrato externo pode evoluir sem expor detalhes do MTR;
-- erros do MTR sao convertidos para o padrao esperado pelo `arvore-documento`;
+- erros do MTR sao convertidos para o padrao esperado pelo `SIMTR Hub`;
 - falhas transitorias recebem retry controlado;
 - falhas recorrentes podem abrir circuit breaker;
 - chamadas locais podem usar mock em dev mode;
@@ -316,7 +324,7 @@ HTTP GET /arvore-documento/v1/processo/identificador-negocial/{id}
   -> ParametrizacaoProcessoClient
   -> GET /simtr-parametrizacao/v2/patriarca/processo/identificador-negocial/{id}
   -> ProcessoMapper
-  -> resposta do arvore-documento
+  -> resposta do SIMTR Hub
 
 HTTP GET /arvore-documento/v1/checklist/identificador-negocial/{id}/versao/{versao}
   -> ChecklistResource
@@ -325,7 +333,7 @@ HTTP GET /arvore-documento/v1/checklist/identificador-negocial/{id}/versao/{vers
   -> ParametrizacaoChecklistClient
   -> GET /simtr-parametrizacao/v1/cadastro/checklist/identificador-negocial/{id}/versao/{versao}
   -> ChecklistMapper
-  -> resposta do arvore-documento
+  -> resposta do SIMTR Hub
 
 HTTP POST /arvore-documento/v1/dossie-produto
   -> DossieProdutoResource
@@ -334,7 +342,7 @@ HTTP POST /arvore-documento/v1/dossie-produto
   -> DossieProdutoClient
   -> POST /simtr/dossie-produto/v1/dossie-produto
   -> DossieProdutoMapper
-  -> resposta do arvore-documento com HTTP 201
+  -> resposta do SIMTR Hub com HTTP 201
 
 HTTP PATCH /arvore-documento/v1/dossie-produto/{id}/formulario
   -> DossieProdutoResource
@@ -343,7 +351,7 @@ HTTP PATCH /arvore-documento/v1/dossie-produto/{id}/formulario
   -> DossieProdutoClient
   -> PATCH /simtr/dossie-produto/v1/dossie-produto/{id}/formulario
   -> DossieProdutoMapper
-  -> resposta do arvore-documento com HTTP 201
+  -> resposta do SIMTR Hub com HTTP 201
 ```
 
 ## Pacotes
@@ -382,7 +390,7 @@ br.gov.caixa.simtr.arvoredocumento
 
 | Pacote | Responsabilidade |
 |---|---|
-| `api.parametrizacao` | Endpoint REST exposto pelo `arvore-documento` |
+| `api.parametrizacao` | Endpoint REST exposto pelo `SIMTR Hub` |
 | `api.dossieproduto` | Endpoint REST de negocio para dossies produto |
 | `api.dev` | Redirect de `/` para Dev UI em dev mode |
 | `api.dto` | Contratos REST de sucesso e erro |

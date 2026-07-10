@@ -22,13 +22,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ParametrizacaoServiceTest {
 
     @Inject
+    ProcessoMapper processoMapper;
+
+    @Inject
     ChecklistMapper checklistMapper;
 
     @Test
     void processoComSimuladorHabilitadoUsaMockFactory() {
         FakeProcessoGateway gateway = new FakeProcessoGateway();
         FakeProcessoMockFactory mockFactory = new FakeProcessoMockFactory();
-        ProcessoService service = new ProcessoService(gateway, mockFactory, new ProcessoMapper(), true);
+        ProcessoService service = new ProcessoService(gateway, mockFactory, processoMapper, true);
 
         var resposta = service.consultarPorIdentificadorNegocial(100L).await().indefinitely();
 
@@ -41,7 +44,7 @@ class ParametrizacaoServiceTest {
     void processoComSimuladorDesabilitadoUsaGateway() {
         FakeProcessoGateway gateway = new FakeProcessoGateway();
         FakeProcessoMockFactory mockFactory = new FakeProcessoMockFactory();
-        ProcessoService service = new ProcessoService(gateway, mockFactory, new ProcessoMapper(), false);
+        ProcessoService service = new ProcessoService(gateway, mockFactory, processoMapper, false);
 
         var resposta = service.consultarPorIdentificadorNegocial(100L).await().indefinitely();
 
