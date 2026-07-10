@@ -1530,7 +1530,7 @@ sequenceDiagram
     Dossie-->>PRE: 201 Created - id do Dossiê de Produto
 
     PRE->>Dossie: PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/formulario
-    Dossie-->>PRE: 200 OK - formulário atualizado
+    Dossie-->>PRE: 201 Created - formulário atualizado
 
     loop Para cada documento validado na Pré-validação
         PRE->>Dossie: POST /simtr-dossie-produto/v2/dossie-produto/{id}/documento

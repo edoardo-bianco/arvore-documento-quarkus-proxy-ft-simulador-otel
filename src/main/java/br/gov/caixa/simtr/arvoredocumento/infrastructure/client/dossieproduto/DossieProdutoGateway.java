@@ -2,6 +2,7 @@ package br.gov.caixa.simtr.arvoredocumento.infrastructure.client.dossieproduto;
 
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriacaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriadoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoFormularioDto;
 import br.gov.caixa.simtr.arvoredocumento.shared.observability.ObservabilityLog;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
@@ -12,6 +13,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.logging.Logger;
+
+import java.util.List;
+import java.util.Objects;
 
 @ApplicationScoped
 public class DossieProdutoGateway {
@@ -100,6 +104,81 @@ public class DossieProdutoGateway {
                 });
     }
 
+    @WithSpan(value = "mtr.dossie-produto.formulario.atualizar", kind = SpanKind.CLIENT)
+    public Uni<DossieProdutoCriadoDto> atualizarFormularioDossieProduto(
+            Long id,
+            List<DossieProdutoFormularioDto> requisicao
+    ) {
+        Integer quantidadeVinculos = quantidadeVinculosFormulario(requisicao);
+        Integer quantidadeRespostas = quantidadeRespostasFormulario(requisicao);
+
+        Span span = Span.current();
+        span.setAttribute("mtr.servico", "simtr-dossie-produto");
+        span.setAttribute("mtr.api", "dossie-produto-v1");
+        span.setAttribute("http.request.method", "PATCH");
+        span.setAttribute("url.path", "/simtr/dossie-produto/v1/dossie-produto/" + id + "/formulario");
+        setLongAttribute(span, "dossie_produto.id", id);
+        setIntAttribute(span, "dossie_produto.formulario.vinculos.quantidade", quantidadeVinculos);
+        setIntAttribute(span, "dossie_produto.formulario.respostas.quantidade", quantidadeRespostas);
+
+        ObservabilityLog.info(
+                LOG,
+                "mtr.dossie-produto.formulario.chamada.iniciada",
+                ObservabilityLog.fields(
+                        "camada", "infrastructure",
+                        "componente", "DossieProdutoGateway",
+                        "dependencia", "simtr-dossie-produto",
+                        "operacao", "atualizar-formulario-dossie-produto-v1",
+                        "dossie_produto_id", id,
+                        "formulario_vinculos_quantidade", quantidadeVinculos,
+                        "formulario_respostas_quantidade", quantidadeRespostas
+                )
+        );
+
+        return dossieProdutoClient.atualizarFormularioDossieProduto(id, requisicao)
+                .invoke(resposta -> {
+                    span.setAttribute("mtr.resposta.sucesso", true);
+                    if (resposta != null && resposta.id() != null) {
+                        span.setAttribute("dossie_produto.id_resposta", resposta.id());
+                    }
+
+                    ObservabilityLog.info(
+                            LOG,
+                            "mtr.dossie-produto.formulario.chamada.concluida",
+                            ObservabilityLog.fields(
+                                    "camada", "infrastructure",
+                                    "componente", "DossieProdutoGateway",
+                                    "dependencia", "simtr-dossie-produto",
+                                    "operacao", "atualizar-formulario-dossie-produto-v1",
+                                    "dossie_produto_id", id,
+                                    "dossie_produto_id_resposta", resposta != null ? resposta.id() : null,
+                                    "resultado", "sucesso"
+                            )
+                    );
+                })
+                .onFailure().invoke(erro -> {
+                    span.recordException(erro);
+                    span.setStatus(StatusCode.ERROR, String.valueOf(erro.getMessage()));
+                    span.setAttribute("mtr.resposta.sucesso", false);
+                    span.setAttribute("erro.tipo", erro.getClass().getName());
+
+                    ObservabilityLog.error(
+                            LOG,
+                            "mtr.dossie-produto.formulario.chamada.falhou",
+                            erro,
+                            ObservabilityLog.fields(
+                                    "camada", "infrastructure",
+                                    "componente", "DossieProdutoGateway",
+                                    "dependencia", "simtr-dossie-produto",
+                                    "operacao", "atualizar-formulario-dossie-produto-v1",
+                                    "dossie_produto_id", id,
+                                    "erro_tipo", erro.getClass().getSimpleName(),
+                                    "resultado", "erro"
+                            )
+                    );
+                });
+    }
+
     private static Long processo(DossieProdutoCriacaoDto requisicao) {
         return requisicao != null ? requisicao.processo() : null;
     }
@@ -113,6 +192,27 @@ public class DossieProdutoGateway {
             return null;
         }
         return requisicao.clientes().size();
+    }
+
+    private static Integer quantidadeVinculosFormulario(List<DossieProdutoFormularioDto> requisicao) {
+        if (requisicao == null) {
+            return null;
+        }
+        return requisicao.size();
+    }
+
+    private static Integer quantidadeRespostasFormulario(List<DossieProdutoFormularioDto> requisicao) {
+        if (requisicao == null) {
+            return null;
+        }
+        return requisicao.stream()
+                .filter(Objects::nonNull)
+                .map(DossieProdutoFormularioDto::vinculoDossie)
+                .filter(Objects::nonNull)
+                .map(vinculo -> vinculo.respostasFormulario())
+                .filter(Objects::nonNull)
+                .mapToInt(List::size)
+                .sum();
     }
 
     private static void setLongAttribute(Span span, String nome, Long valor) {

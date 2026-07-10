@@ -12,6 +12,7 @@ O projeto nao faz apenas repasse HTTP. Ele cria uma fronteira com DTOs, VOs, map
 GET /arvore-documento/v1/processo/identificador-negocial/{identificador}
 GET /arvore-documento/v1/checklist/identificador-negocial/{identificador}/versao/{versao}
 POST /arvore-documento/v1/dossie-produto
+PATCH /arvore-documento/v1/dossie-produto/{id}/formulario
 ```
 
 ### APIs consumidas no MTR
@@ -20,9 +21,10 @@ POST /arvore-documento/v1/dossie-produto
 GET /simtr/parametrizacao/v2/patriarca/processo/identificador-negocial/{identificador}
 GET /simtr/parametrizacao/v1/cadastro/checklist/identificador-negocial/{identificador}/versao/{versao}
 POST /simtr/dossie-produto/v1/dossie-produto
+PATCH /simtr/dossie-produto/v1/dossie-produto/{id}/formulario
 ```
 
-O endpoint de dossie produto implementa a criacao basica em modo rascunho e retorna HTTP `201` com o id criado:
+Os endpoints de dossie produto implementam a criacao basica em modo rascunho e a inclusao ou edicao de respostas de formulario. Ambos retornam HTTP `201` com o id do dossie:
 
 ```json
 {
@@ -152,13 +154,13 @@ arvore-documento.simulador.parametrizacao-processo.habilitado=false
 arvore-documento.simulador.parametrizacao-checklist.habilitado=false
 %dev.arvore-documento.simulador.parametrizacao-checklist.habilitado=true
 arvore-documento.simulador.dossie-produto.habilitado=false
-%dev.arvore-documento.simulador.dossie-produto.habilitado=false
+%dev.arvore-documento.simulador.dossie-produto.habilitado=true
 ```
 
-Com isso, processo e checklist usam mock por padrao em dev mode. Dossie produto esta configurado para chamada real tambem em dev mode; para usar o mock de dossie produto, habilite explicitamente:
+Com isso, processo, checklist e dossie produto usam mock por padrao em dev mode. Para chamar o MTR real de dossie produto em dev mode, desabilite explicitamente o simulador:
 
 ```bash
-mvn quarkus:dev -Ddebug=false "-Darvore-documento.simulador.dossie-produto.habilitado=true"
+mvn quarkus:dev -Ddebug=false "-Darvore-documento.simulador.dossie-produto.habilitado=false"
 ```
 
 Mocks em runtime:
@@ -168,6 +170,7 @@ src/main/resources/mock/parametrizacao/1000016487-consulta-processo-parametrizac
 src/main/resources/mock/parametrizacao/1000009990-consulta-processo-parametrizacao-v2-identificador-negocial.md
 src/main/resources/mock/parametrizacao/1000012583-v1-checklist-parametrizacao-versao-1.md
 src/main/resources/mock/dossieproduto/criacao-basica-dossie-produto.md
+src/main/resources/mock/dossieproduto/formulario-dossie-produto.md
 ```
 
 Copias documentais:

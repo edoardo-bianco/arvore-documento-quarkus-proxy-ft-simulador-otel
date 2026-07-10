@@ -2,6 +2,7 @@ package br.gov.caixa.simtr.arvoredocumento.infrastructure.client.dossieproduto;
 
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriacaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriadoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoFormularioDto;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.RequestHeaderFactory;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.RestClientObservabilityFilter;
 import br.gov.caixa.simtr.arvoredocumento.shared.exception.MtrBusinessErrorException;
@@ -11,8 +12,10 @@ import io.quarkus.oidc.client.reactive.filter.OidcClientRequestReactiveFilter;
 import io.quarkus.rest.client.reactive.ClientExceptionMapper;
 import io.smallrye.mutiny.Uni;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.PATCH;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
@@ -26,6 +29,7 @@ import org.eclipse.microprofile.rest.client.annotation.RegisterProvider;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 @RegisterRestClient(configKey = "dossie-produto")
 @Path("/dossie-produto/v1/dossie-produto")
@@ -71,6 +75,46 @@ public interface DossieProdutoClient {
             }
     )
     Uni<DossieProdutoCriadoDto> criarDossieProduto(DossieProdutoCriacaoDto requisicao);
+
+    @PATCH
+    @Path("/{id}/formulario")
+    @Timeout(value = 2_000, unit = ChronoUnit.MILLIS)
+    @Retry(
+            maxRetries = 3,
+            delay = 300,
+            delayUnit = ChronoUnit.MILLIS,
+            jitter = 100,
+            jitterDelayUnit = ChronoUnit.MILLIS,
+            retryOn = {
+                    MtrServerErrorException.class,
+                    ProcessingException.class,
+                    TimeoutException.class
+            },
+            abortOn = {
+                    MtrBusinessErrorException.class,
+                    MtrClientTechnicalException.class
+            }
+    )
+    @CircuitBreaker(
+            requestVolumeThreshold = 10,
+            failureRatio = 0.5,
+            delay = 10_000,
+            delayUnit = ChronoUnit.MILLIS,
+            successThreshold = 2,
+            failOn = {
+                    MtrServerErrorException.class,
+                    ProcessingException.class,
+                    TimeoutException.class
+            },
+            skipOn = {
+                    MtrBusinessErrorException.class,
+                    MtrClientTechnicalException.class
+            }
+    )
+    Uni<DossieProdutoCriadoDto> atualizarFormularioDossieProduto(
+            @PathParam("id") Long id,
+            List<DossieProdutoFormularioDto> requisicao
+    );
 
     @ClientExceptionMapper
     static RuntimeException toException(Response response) {

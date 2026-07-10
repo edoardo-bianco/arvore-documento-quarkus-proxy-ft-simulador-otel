@@ -2,6 +2,7 @@ package br.gov.caixa.simtr.arvoredocumento.api.dossieproduto;
 
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriacaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriadoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoFormularioDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.erro.ErroPadraoDto;
 import br.gov.caixa.simtr.arvoredocumento.application.dossieproduto.DossieProdutoService;
 import br.gov.caixa.simtr.arvoredocumento.mapper.dossieproduto.DossieProdutoMapper;
@@ -13,10 +14,13 @@ import io.opentelemetry.instrumentation.annotations.WithSpan;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.PATCH;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -27,6 +31,9 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.jboss.logging.Logger;
+
+import java.util.List;
+import java.util.Objects;
 
 @Path("/arvore-documento/v1/dossie-produto")
 @Produces(MediaType.APPLICATION_JSON)
@@ -162,6 +169,127 @@ public class DossieProdutoResource {
                 });
     }
 
+    @PATCH
+    @Path("/{id}/formulario")
+    @WithSpan(value = "arvore-documento.api.dossie-produto.formulario.atualizar", kind = SpanKind.SERVER)
+    @Operation(
+            summary = "Inclui ou edita respostas de formulário no dossiê de produto",
+            description = "Recebe a chamada no contrato do arvore-documento, aciona o serviço de aplicação e atualiza respostas de formulário no simtr-dossie-produto."
+    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "201",
+                    description = "Inclusão ou edição de Respostas de Formulário no Dossiê de Produto feita com sucesso.",
+                    content = @Content(schema = @Schema(implementation = DossieProdutoCriadoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "400",
+                    description = "Requisição inválida.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "401",
+                    description = "Não autorizado.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "403",
+                    description = "Canal ou usuário sem permissão para atualizar o formulário do Dossiê de Produto.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "404",
+                    description = "Dossiê de Produto não localizado.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "409",
+                    description = "Conflito ao processar a requisição.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "500",
+                    description = "Erro interno.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            )
+    })
+    public Uni<Response> atualizarFormularioDossieProduto(
+            @PathParam("id")
+            @NotNull(message = "O identificador do dossie produto deve ser informado.")
+            @Min(value = 1, message = "O identificador do dossie produto deve ser maior que zero.")
+            Long id,
+            @NotNull(message = "O corpo da requisicao deve ser informado.")
+            @Valid List<DossieProdutoFormularioDto> requisicao) {
+
+        Integer quantidadeVinculos = quantidadeVinculosFormulario(requisicao);
+        Integer quantidadeRespostas = quantidadeRespostasFormulario(requisicao);
+
+        Span span = Span.current();
+        span.setAttribute("http.route", "/arvore-documento/v1/dossie-produto/{id}/formulario");
+        span.setAttribute("arvore_documento.api", "dossie-produto-v1");
+        setLongAttribute(span, "dossie_produto.id", id);
+        setIntAttribute(span, "dossie_produto.formulario.vinculos.quantidade", quantidadeVinculos);
+        setIntAttribute(span, "dossie_produto.formulario.respostas.quantidade", quantidadeRespostas);
+
+        ObservabilityLog.info(
+                LOG,
+                "arvore-documento.dossie-produto.formulario.requisicao.recebida",
+                ObservabilityLog.fields(
+                        "camada", "api",
+                        "componente", "DossieProdutoResource",
+                        "operacao", "atualizar-formulario-dossie-produto",
+                        "dossie_produto_id", id,
+                        "formulario_vinculos_quantidade", quantidadeVinculos,
+                        "formulario_respostas_quantidade", quantidadeRespostas
+                )
+        );
+
+        return dossieProdutoService.atualizarFormularioDossieProduto(
+                        id,
+                        dossieProdutoMapper.toFormularioVo(requisicao)
+                )
+                .map(dossieProdutoMapper::toDto)
+                .invoke(resposta -> {
+                    if (resposta != null && resposta.id() != null) {
+                        span.setAttribute("dossie_produto.id_resposta", resposta.id());
+                    }
+
+                    ObservabilityLog.info(
+                            LOG,
+                            "arvore-documento.dossie-produto.formulario.resposta.enviada",
+                            ObservabilityLog.fields(
+                                    "camada", "api",
+                                    "componente", "DossieProdutoResource",
+                                    "operacao", "atualizar-formulario-dossie-produto",
+                                    "dossie_produto_id", id,
+                                    "dossie_produto_id_resposta", resposta != null ? resposta.id() : null,
+                                    "resultado", "sucesso"
+                            )
+                    );
+                })
+                .map(resposta -> Response.status(Response.Status.CREATED)
+                        .entity(resposta)
+                        .build())
+                .onFailure().invoke(erro -> {
+                    span.recordException(erro);
+                    span.setStatus(StatusCode.ERROR, String.valueOf(erro.getMessage()));
+
+                    ObservabilityLog.error(
+                            LOG,
+                            "arvore-documento.dossie-produto.formulario.requisicao.falhou",
+                            erro,
+                            ObservabilityLog.fields(
+                                    "camada", "api",
+                                    "componente", "DossieProdutoResource",
+                                    "operacao", "atualizar-formulario-dossie-produto",
+                                    "dossie_produto_id", id,
+                                    "erro_tipo", erro.getClass().getSimpleName(),
+                                    "resultado", "erro"
+                            )
+                    );
+                });
+    }
+
     private static Long processo(DossieProdutoCriacaoDto requisicao) {
         return requisicao != null ? requisicao.processo() : null;
     }
@@ -175,6 +303,27 @@ public class DossieProdutoResource {
             return null;
         }
         return requisicao.clientes().size();
+    }
+
+    private static Integer quantidadeVinculosFormulario(List<DossieProdutoFormularioDto> requisicao) {
+        if (requisicao == null) {
+            return null;
+        }
+        return requisicao.size();
+    }
+
+    private static Integer quantidadeRespostasFormulario(List<DossieProdutoFormularioDto> requisicao) {
+        if (requisicao == null) {
+            return null;
+        }
+        return requisicao.stream()
+                .filter(Objects::nonNull)
+                .map(DossieProdutoFormularioDto::vinculoDossie)
+                .filter(Objects::nonNull)
+                .map(vinculo -> vinculo.respostasFormulario())
+                .filter(Objects::nonNull)
+                .mapToInt(List::size)
+                .sum();
     }
 
     private static void setLongAttribute(Span span, String nome, Long valor) {

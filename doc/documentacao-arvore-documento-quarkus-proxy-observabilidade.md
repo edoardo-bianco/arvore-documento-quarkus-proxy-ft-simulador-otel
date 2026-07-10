@@ -41,7 +41,7 @@ O projeto nao faz apenas repasse HTTP. Ele cria uma fronteira controlada para:
 Tecnologias principais:
 
 - Quarkus `3.33.2.1`;
-- Java `17`;
+- Java `25`, conforme `maven.compiler.release` configurado no `pom.xml`;
 - `quarkus-rest-jackson`;
 - `quarkus-rest-client-jackson`;
 - `quarkus-smallrye-openapi`;
@@ -116,6 +116,66 @@ Corpo para criacao basica de dossie produto em modo rascunho:
     }
   ]
 }
+```
+
+Resposta de sucesso:
+
+```http
+HTTP/1.1 201 Created
+```
+
+```json
+{
+  "id": 0
+}
+```
+
+```http
+PATCH http://localhost:8080/arvore-documento/v1/dossie-produto/{id}/formulario
+Content-Type: application/json
+Accept: application/json
+```
+
+Corpo para inclusao ou edicao de respostas de formulario no dossie produto:
+
+```json
+[
+  {
+    "vinculo_dossie": {
+      "fase": 0,
+      "cliente": {
+        "cpf": "string",
+        "cnpj": "string",
+        "tipo_vinculo": 0
+      },
+      "produto": {
+        "codigo_operacao": 0,
+        "codigo_modalidade": 0
+      },
+      "garantia": {
+        "codigo_bacen": 0,
+        "produto_operacao": 0,
+        "produto_modalidade": 0,
+        "clientes_avalistas": [
+          {
+            "cpf": "string",
+            "cnpj": "string"
+          }
+        ]
+      },
+      "respostas_formulario": [
+        {
+          "campo_formulario": 0,
+          "resposta": "string",
+          "opcoes_selecionadas": [
+            "string"
+          ],
+          "excluir": true
+        }
+      ]
+    }
+  }
+]
 ```
 
 Resposta de sucesso:
@@ -237,6 +297,13 @@ HTTP POST /arvore-documento/v1/dossie-produto
   -> DossieProdutoMockFactory
   -> DossieProdutoMapper
   -> resposta mockada com id do dossie produto
+
+HTTP PATCH /arvore-documento/v1/dossie-produto/{id}/formulario
+  -> DossieProdutoResource
+  -> DossieProdutoService
+  -> DossieProdutoMockFactory
+  -> DossieProdutoMapper
+  -> resposta mockada com id do dossie produto
 ```
 
 ### Fluxo com MTR real
@@ -266,6 +333,15 @@ HTTP POST /arvore-documento/v1/dossie-produto
   -> DossieProdutoGateway
   -> DossieProdutoClient
   -> POST /simtr/dossie-produto/v1/dossie-produto
+  -> DossieProdutoMapper
+  -> resposta do arvore-documento com HTTP 201
+
+HTTP PATCH /arvore-documento/v1/dossie-produto/{id}/formulario
+  -> DossieProdutoResource
+  -> DossieProdutoService
+  -> DossieProdutoGateway
+  -> DossieProdutoClient
+  -> PATCH /simtr/dossie-produto/v1/dossie-produto/{id}/formulario
   -> DossieProdutoMapper
   -> resposta do arvore-documento com HTTP 201
 ```
@@ -342,11 +418,11 @@ quarkus.swagger-ui.path=/arvore-documento/doc
 %dev.quarkus.smallrye-openapi.path=/arvore-documento/openai
 %dev.quarkus.swagger-ui.path=/arvore-documento/doc
 
-quarkus.rest-client.parametrizacao-processo.url=http://localhost:8081
+quarkus.rest-client.parametrizacao-processo.url=https://api.des.caixa:8443/simtr
 quarkus.rest-client.parametrizacao-processo.connect-timeout=3000
 quarkus.rest-client.parametrizacao-processo.read-timeout=10000
 
-quarkus.rest-client.parametrizacao-checklist.url=http://localhost:8081
+quarkus.rest-client.parametrizacao-checklist.url=https://api.des.caixa:8443/simtr
 quarkus.rest-client.parametrizacao-checklist.connect-timeout=3000
 quarkus.rest-client.parametrizacao-checklist.read-timeout=10000
 
@@ -419,8 +495,8 @@ Pontos importantes:
 Em ambiente real, configure a URL do MTR por variavel de ambiente:
 
 ```bash
-export QUARKUS_REST_CLIENT_PARAMETRIZACAO_PROCESSO_URL=https://simtr-parametrizacao-des.apps.nprd.caixa
-export QUARKUS_REST_CLIENT_PARAMETRIZACAO_CHECKLIST_URL=https://simtr-parametrizacao-des.apps.nprd.caixa
+export QUARKUS_REST_CLIENT_PARAMETRIZACAO_PROCESSO_URL=https://api.des.caixa:8443/simtr
+export QUARKUS_REST_CLIENT_PARAMETRIZACAO_CHECKLIST_URL=https://api.des.caixa:8443/simtr
 export QUARKUS_REST_CLIENT_DOSSIE_PRODUTO_URL=https://api.des.caixa:8443/simtr
 ```
 
@@ -613,7 +689,7 @@ Exemplo ja versionado:
 
 ## Mock do dossie produto
 
-O simulador de dossie produto permite desenvolver o endpoint de criacao basica sem chamar o MTR real.
+O simulador de dossie produto permite desenvolver os endpoints de criacao basica e de inclusao ou edicao de respostas de formulario sem chamar o MTR real.
 
 O simulador e controlado pela propriedade:
 
@@ -632,25 +708,27 @@ Com isso:
 
 ### Arquivos de mock do dossie produto
 
-O arquivo usado em runtime fica em:
+Os arquivos usados em runtime ficam em:
 
 ```text
 src/main/resources/mock/dossieproduto/criacao-basica-dossie-produto.md
+src/main/resources/mock/dossieproduto/formulario-dossie-produto.md
 ```
 
-A copia documental fica em:
+As copias documentais ficam em:
 
 ```text
 doc/mock/dossie-produto/criacao-basica-dossie-produto.md
+doc/mock/dossie-produto/formulario-dossie-produto.md
 ```
 
-O arquivo documenta a chamada original e contem o corpo JSON retornado pelo MTR na secao:
+Cada arquivo documenta a chamada original e contem o corpo JSON retornado pelo MTR na secao:
 
 ```markdown
 ## dados do mock corpo do retorno json
 ```
 
-Resposta mockada atual:
+Resposta mockada atual para criacao e formulario:
 
 ```json
 {
@@ -658,7 +736,7 @@ Resposta mockada atual:
 }
 ```
 
-Para adicionar outro cenario de mock de criacao de dossie produto, crie um novo arquivo Markdown em `src/main/resources/mock/dossieproduto`, mantenha a secao `## dados do mock corpo do retorno json` e coloque abaixo dela o JSON de resposta esperado.
+Para adicionar outro cenario de mock de dossie produto, crie um novo arquivo Markdown em `src/main/resources/mock/dossieproduto`, mantenha a secao `## dados do mock corpo do retorno json` e coloque abaixo dela o JSON de resposta esperado.
 
 ## Como chamar o MTR real em dev mode
 
@@ -691,8 +769,8 @@ $env:ARVORE_DOCUMENTO_SIMULADOR_DOSSIE_PRODUTO_HABILITADO="false"
 Nesse caso, configure tambem a URL real do MTR:
 
 ```powershell
-$env:QUARKUS_REST_CLIENT_PARAMETRIZACAO_PROCESSO_URL="https://simtr-parametrizacao-des.apps.nprd.caixa"
-$env:QUARKUS_REST_CLIENT_PARAMETRIZACAO_CHECKLIST_URL="https://simtr-parametrizacao-des.apps.nprd.caixa"
+$env:QUARKUS_REST_CLIENT_PARAMETRIZACAO_PROCESSO_URL="https://api.des.caixa:8443/simtr"
+$env:QUARKUS_REST_CLIENT_PARAMETRIZACAO_CHECKLIST_URL="https://api.des.caixa:8443/simtr"
 $env:QUARKUS_REST_CLIENT_DOSSIE_PRODUTO_URL="https://api.des.caixa:8443/simtr"
 ```
 
@@ -933,6 +1011,49 @@ Invoke-WebRequest `
   -ContentType "application/json" `
   -Headers @{ Accept = "application/json" } `
   -Body $body
+
+$formularioBody = @(
+  @{
+    vinculo_dossie = @{
+      fase = 0
+      cliente = @{
+        cpf = "string"
+        cnpj = "string"
+        tipo_vinculo = 0
+      }
+      produto = @{
+        codigo_operacao = 0
+        codigo_modalidade = 0
+      }
+      garantia = @{
+        codigo_bacen = 0
+        produto_operacao = 0
+        produto_modalidade = 0
+        clientes_avalistas = @(
+          @{
+            cpf = "string"
+            cnpj = "string"
+          }
+        )
+      }
+      respostas_formulario = @(
+        @{
+          campo_formulario = 0
+          resposta = "string"
+          opcoes_selecionadas = @("string")
+          excluir = $true
+        }
+      )
+    }
+  }
+) | ConvertTo-Json -Depth 8
+
+Invoke-WebRequest `
+  -Uri "http://localhost:8080/arvore-documento/v1/dossie-produto/1/formulario" `
+  -Method PATCH `
+  -ContentType "application/json" `
+  -Headers @{ Accept = "application/json" } `
+  -Body $formularioBody
 ```
 
 ### Conferir log JSON local
@@ -1025,6 +1146,9 @@ A observabilidade atual tem duas saidas sempre ativas e duas saidas opcionais:
 | API | `arvore-documento.api.dossie-produto.criar` |
 | Aplicacao | `arvore-documento.service.dossie-produto.criar` |
 | Integracao MTR | `mtr.dossie-produto.criar` |
+| API | `arvore-documento.api.dossie-produto.formulario.atualizar` |
+| Aplicacao | `arvore-documento.service.dossie-produto.formulario.atualizar` |
+| Integracao MTR | `mtr.dossie-produto.formulario.atualizar` |
 
 Os spans de integracao MTR aparecem quando o simulador correspondente esta desabilitado.
 
@@ -1422,7 +1546,7 @@ mvn quarkus:dev -Ddebug=false "-Darvore-documento.simulador.parametrizacao-proce
 E configure a URL real:
 
 ```powershell
-$env:QUARKUS_REST_CLIENT_PARAMETRIZACAO_PROCESSO_URL="https://simtr-parametrizacao-des.apps.nprd.caixa"
+$env:QUARKUS_REST_CLIENT_PARAMETRIZACAO_PROCESSO_URL="https://api.des.caixa:8443/simtr"
 ```
 
 ### Servidor remoto nao recebe traces ou logs
