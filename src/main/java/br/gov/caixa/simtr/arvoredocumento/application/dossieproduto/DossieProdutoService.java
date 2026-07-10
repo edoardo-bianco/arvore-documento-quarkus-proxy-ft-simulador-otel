@@ -5,11 +5,13 @@ import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCri
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoCriadoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoInclusaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoFormularioDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoValidacaoNegocialDto;
 import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoCriacaoVo;
 import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoCriadoVo;
 import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoDocumentoCriadoVo;
 import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoDocumentoInclusaoVo;
 import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoFormularioVo;
+import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoValidacaoNegocialVo;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.dossieproduto.DossieProdutoGateway;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.dossieproduto.mock.DossieProdutoMockFactory;
 import br.gov.caixa.simtr.arvoredocumento.mapper.dossieproduto.DossieProdutoMapper;
@@ -342,6 +344,94 @@ public class DossieProdutoService {
         return dossieProdutoGateway.incluirDocumentoDossieProduto(id, requisicaoDto);
     }
 
+    @WithSpan("arvore-documento.service.dossie-produto.validacao-negocial.registrar")
+    public Uni<Void> registrarValidacaoNegocialDossieProduto(
+            Long id,
+            DossieProdutoValidacaoNegocialVo requisicao
+    ) {
+        Integer quantidadeVerificacoes = quantidadeVerificacoesValidacao(requisicao);
+        Integer quantidadeRespostasFormulario = quantidadeRespostasFormularioValidacao(requisicao);
+
+        Span span = Span.current();
+        span.setAttribute("arvore_documento.simulador_dossie_produto_habilitado", simuladorDossieProdutoHabilitado);
+        setLongAttribute(span, "dossie_produto.id", id);
+        setIntAttribute(span, "dossie_produto.validacao.verificacoes.quantidade", quantidadeVerificacoes);
+        setIntAttribute(span, "dossie_produto.validacao.respostas_formulario.quantidade", quantidadeRespostasFormulario);
+
+        ObservabilityLog.info(
+                LOG,
+                "arvore-documento.dossie-produto.validacao-negocial.service.iniciado",
+                ObservabilityLog.fields(
+                        "camada", "application",
+                        "componente", "DossieProdutoService",
+                        "operacao", "registrar-validacao-negocial-dossie-produto",
+                        "dossie_produto_id", id,
+                        "validacao_verificacoes_quantidade", quantidadeVerificacoes,
+                        "validacao_respostas_formulario_quantidade", quantidadeRespostasFormulario,
+                        "simulador_habilitado", simuladorDossieProdutoHabilitado
+                )
+        );
+
+        return registrarValidacaoNegocialDossieProdutoNoMtrOuSimulador(id, requisicao)
+                .invoke(resposta -> ObservabilityLog.info(
+                        LOG,
+                        "arvore-documento.dossie-produto.validacao-negocial.service.concluido",
+                        ObservabilityLog.fields(
+                                "camada", "application",
+                                "componente", "DossieProdutoService",
+                                "operacao", "registrar-validacao-negocial-dossie-produto",
+                                "dossie_produto_id", id,
+                                "resultado", "sucesso"
+                        )
+                ))
+                .onFailure().invoke(erro -> {
+                    span.recordException(erro);
+                    span.setStatus(StatusCode.ERROR, String.valueOf(erro.getMessage()));
+
+                    ObservabilityLog.error(
+                            LOG,
+                            "arvore-documento.dossie-produto.validacao-negocial.service.falhou",
+                            erro,
+                            ObservabilityLog.fields(
+                                    "camada", "application",
+                                    "componente", "DossieProdutoService",
+                                    "operacao", "registrar-validacao-negocial-dossie-produto",
+                                    "dossie_produto_id", id,
+                                    "erro_tipo", erro.getClass().getSimpleName(),
+                                    "resultado", "erro"
+                            )
+                    );
+                });
+    }
+
+    private Uni<Void> registrarValidacaoNegocialDossieProdutoNoMtrOuSimulador(
+            Long id,
+            DossieProdutoValidacaoNegocialVo requisicao
+    ) {
+        DossieProdutoValidacaoNegocialDto requisicaoDto = dossieProdutoMapper.toDto(requisicao);
+
+        if (simuladorDossieProdutoHabilitado) {
+            ObservabilityLog.info(
+                    LOG,
+                    "arvore-documento.dossie-produto.validacao-negocial.simulador.usado",
+                    ObservabilityLog.fields(
+                            "camada", "application",
+                            "componente", "DossieProdutoService",
+                            "operacao", "registrar-validacao-negocial-dossie-produto",
+                            "dossie_produto_id", id,
+                            "origem", "mock"
+                    )
+            );
+
+            Span.current().setAttribute("arvore_documento.origem_dados", "mock");
+            dossieProdutoMockFactory.registrarValidacaoNegocialDossieProdutoMock(id, requisicaoDto);
+            return Uni.createFrom().voidItem();
+        }
+
+        Span.current().setAttribute("arvore_documento.origem_dados", "mtr");
+        return dossieProdutoGateway.registrarValidacaoNegocialDossieProduto(id, requisicaoDto);
+    }
+
     @WithSpan("arvore-documento.service.dossie-produto.workflow.avancar")
     public Uni<DossieProdutoCriadoVo> iniciarOuAvancarWorkflowDossieProduto(Long id) {
         Span span = Span.current();
@@ -474,6 +564,20 @@ public class DossieProdutoService {
             return null;
         }
         return requisicao.propriedades().size();
+    }
+
+    private static Integer quantidadeVerificacoesValidacao(DossieProdutoValidacaoNegocialVo requisicao) {
+        if (requisicao == null || requisicao.verificacoes() == null) {
+            return null;
+        }
+        return requisicao.verificacoes().size();
+    }
+
+    private static Integer quantidadeRespostasFormularioValidacao(DossieProdutoValidacaoNegocialVo requisicao) {
+        if (requisicao == null || requisicao.respostasFormulario() == null) {
+            return null;
+        }
+        return requisicao.respostasFormulario().size();
     }
 
     private static void setLongAttribute(Span span, String nome, Long valor) {

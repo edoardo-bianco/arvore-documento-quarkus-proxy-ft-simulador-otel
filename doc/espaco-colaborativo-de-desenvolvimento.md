@@ -76,6 +76,7 @@ POST /arvore-documento/v1/dossie-produto
 PATCH /arvore-documento/v1/dossie-produto/{id}/formulario
 POST /arvore-documento/v1/dossie-produto/{id}/documento
 POST /arvore-documento/v1/dossie-produto/{id}/workflow
+PATCH /arvore-documento/v1/dossie-produto/{id}/validacao-negocial
 ```
 
 Esses endpoints cobrem:
@@ -86,6 +87,7 @@ Esses endpoints cobrem:
 - inclusao ou edicao de respostas de formulario no Dossie Produto.
 - inclusao de documento no Dossie Produto com retorno de `id_documento` e `id_instancia_documento`.
 - inicio ou avanco do workflow do Dossie Produto com retorno do `id` do dossie.
+- registro de validacao negocial dos checklists analisados no Dossie Produto, seguindo o contrato tecnico do OpenAPI com `verificacoes` e `respostas_formulario`.
 
 Tambem foi consolidada a migracao dos mappers para MapStruct:
 
@@ -126,7 +128,7 @@ Resultado: suite passou apos a migracao de `DossieProdutoMapper` e passou novame
 | Dossie Produto | `POST /simtr-dossie-produto/v1/dossie-produto/{id}/cancelar` | `POST /arvore-documento/v1/dossie-produto/{id}/cancelar` | Pendente | Implementar em passo separado. |
 | Dossie Produto | `GET /simtr-dossie-produto/v2/dossie-produto/{id}` | `GET /arvore-documento/v1/dossie-produto/{id}` | Pendente | Confirmar contrato externo do hub antes de implementar. |
 | Dossie Produto | `POST /simtr-dossie-produto/v2/dossie-produto/{id}/documento` | `POST /arvore-documento/v1/dossie-produto/{id}/documento` | Implementado | Vincula documento ja armazenado ao Dossie Produto e retorna `id_documento` e `id_instancia_documento`. |
-| Dossie Produto | `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/validacao-negocial` | `PATCH /arvore-documento/v1/dossie-produto/{id}/validacao-negocial` | Pendente | Ler secao funcional antes de modelar DTOs. |
+| Dossie Produto | `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/validacao-negocial` | `PATCH /arvore-documento/v1/dossie-produto/{id}/validacao-negocial` | Implementado | Retorna `200 OK` sem corpo; contrato tecnico segue OpenAPI com `verificacoes` e `respostas_formulario`. |
 | Gestao de Documentos | `POST /simtr-gestao-documento/v1/storage/container/credencial` | A definir | Pendente | Definir resource/client mantendo padrao do projeto. |
 
 ## Fontes obrigatorias para novos endpoints
@@ -405,6 +407,14 @@ Nao deixar implementacao sem planejamento aprovado, sem teste, sem atualizacao d
 
 Antes de qualquer nova implementacao, registrar o plano em um Markdown proprio e aguardar revisao do usuario.
 
+Regra reforcada em 2026-07-10:
+
+- Todo novo endpoint ou incremento funcional deve ter um `doc/planejamento-*.md` criado ou atualizado antes de qualquer alteracao de codigo de implementacao.
+- O planejamento deve ser registrado nesta secao com status claro.
+- O agente deve perguntar explicitamente ao usuario se o plano foi revisado e aprovado.
+- O agente deve parar no ponto de aprovacao e nao iniciar implementacao, testes de implementacao ou alteracoes de codigo antes da aprovacao explicita do usuario.
+- Se o usuario pedir para implementar diretamente, mas ainda nao houver planejamento aprovado, criar o planejamento primeiro e pedir revisao.
+
 Regra operacional obrigatoria:
 
 1. Criar ou atualizar um arquivo `doc/planejamento-*.md` antes de qualquer alteracao de codigo de implementacao.
@@ -415,6 +425,7 @@ Regra operacional obrigatoria:
 
 Planejamentos registrados:
 
+- `doc/planejamento-dossie-produto-validacao-negocial-v1.md` - `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/validacao-negocial` para registrar resultados de validacao negocial dos checklists analisados no Dossie Produto. Revisado, aprovado e implementado em 2026-07-10.
 - `doc/planejamento-dossie-produto-documento-v2.md` - `POST /simtr-dossie-produto/v2/dossie-produto/{id}/documento` para vincular documento ao Dossie Produto e retornar `id_documento` e `id_instancia_documento`. Revisado, aprovado e implementado em 2026-07-10.
 - `doc/planejamento-dossie-produto-workflow-v1.md` - `POST /simtr-dossie-produto/v1/dossie-produto/{id}/workflow` para iniciar ou avancar o fluxo de um Dossie Produto. Revisado, aprovado e implementado em 2026-07-10.
 - `doc/planejamento-ajuste-mockito-java-agent.md` - ajuste do build de testes para configurar Mockito como Java agent no Surefire e evitar auto-anexo dinamico do Byte Buddy. Revisado, aprovado e implementado em 2026-07-10.
@@ -755,6 +766,150 @@ Decisoes:
 
 Pendencias:
 - Nenhuma pendencia neste ajuste. Se o warning de auto-anexo voltar, revisar `pom.xml`, a copia de `mockito-core.jar` e a configuracao de `argLine` do Surefire.
+
+### 2026-07-10 - Codex - PATCH validacao negocial Dossie Produto v1
+
+Objetivo:
+- Implementar `PATCH /arvore-documento/v1/dossie-produto/{id}/validacao-negocial` como proxy do `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/validacao-negocial`.
+
+Planejamento:
+- `doc/planejamento-dossie-produto-validacao-negocial-v1.md` criado, revisado e aprovado pelo usuario antes da implementacao.
+- Usuario confirmou seguir considerando o OpenAPI como contrato tecnico verdadeiro do MTR, usando `verificacoes` e `respostas_formulario`.
+
+Feito:
+- Criados DTOs e VOs especificos para validacao negocial.
+- `DossieProdutoMapper` atualizado para mapear request DTO -> VO -> DTO.
+- `DossieProdutoClient`, `DossieProdutoGateway`, `DossieProdutoService` e `DossieProdutoResource` atualizados com fluxo vertical completo.
+- Endpoint retorna `200 OK` sem corpo e usa `Uni<Void>` nas camadas internas.
+- Simulador atualizado com mock Markdown de sucesso sem corpo.
+- Testes de resource, service, gateway, mock factory e mapper adicionados/ajustados.
+
+Arquivos alterados:
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dossieproduto/DossieProdutoResource.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/application/dossieproduto/DossieProdutoService.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoClient.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoGateway.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/mock/DossieProdutoMockFactory.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/dossieproduto/DossieProdutoMapper.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dto/dossieproduto/*ValidacaoNegocial*.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/domain/dossieproduto/*ValidacaoNegocial*.java`
+- `src/main/resources/mock/dossieproduto/validacao-negocial-dossie-produto.md`
+- `doc/mock/dossie-produto/validacao-negocial-dossie-produto.md`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/TestFixtures.java`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceEndpointTest.java`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceBeanCoverageTest.java`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/application/dossieproduto/DossieProdutoServiceTest.java`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/GatewayTest.java`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/mock/MockFactoryTest.java`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/mapper/dossieproduto/DossieProdutoMapperTest.java`
+- `doc/planejamento-dossie-produto-validacao-negocial-v1.md`
+- `doc/espaco-colaborativo-de-desenvolvimento.md`
+- `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`
+
+Testes criados/ajustados:
+- Endpoint HTTP 200 para validacao negocial com payload canonico do OpenAPI.
+- Endpoint HTTP 400 para `id` invalido e corpo ausente.
+- Service selecionando mock ou gateway conforme simulador.
+- Gateway encaminhando `id` e request ao client e propagando falhas.
+- Mock factory lendo `validacao-negocial-dossie-produto.md`.
+- Mapper preservando DTO -> VO -> DTO para verificacoes, pareceres, garantia, produto e respostas de formulario.
+
+Comandos executados:
+- `mvn -q test`
+
+Resultado dos testes:
+- Suite passou.
+
+Cobertura:
+- Relatorio gerado pelo `quarkus-jacoco` em `target/jacoco-report/index.html`.
+
+Decisoes:
+- O OpenAPI e a fonte de verdade do contrato tecnico implementado no MTR para este endpoint.
+- O Hub modela e encaminha `verificacoes` e `respostas_formulario`.
+- Os nomes do exemplo funcional divergente, `verificacoes_realizadas` e `resposta_formulario`, nao foram modelados.
+- O campo `identificador_negocial`, presente apenas no exemplo funcional, nao foi modelado nem encaminhado ao MTR.
+- A resposta de sucesso e `200 OK` sem corpo.
+- Validacoes locais foram mantidas cautelosas: path/body obrigatorios e campos required do OpenAPI nos objetos informados, exceto `previo`, sem validar enum de `resultado` nem range de `indice_ia`.
+
+Pendencias:
+- Nenhuma pendencia neste endpoint.
+
+### 2026-07-10 - Codex - Ajuste path OpenAPI
+
+Objetivo:
+- Alterar o path do documento OpenAPI gerado pelo Quarkus de `/arvore-documento/openai` para `/arvore-documento/openapi`.
+
+Feito:
+- Atualizada a configuracao `quarkus.smallrye-openapi.path` e `%dev.quarkus.smallrye-openapi.path`.
+- Atualizadas a documentacao principal, o README e a copia documental de properties.
+- Adicionado teste HTTP para validar `GET /arvore-documento/openapi`.
+
+Arquivos alterados:
+- `src/main/resources/application.properties`
+- `doc/properties/application.properties`
+- `README.md`
+- `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceEndpointTest.java`
+- `doc/espaco-colaborativo-de-desenvolvimento.md`
+
+Testes criados/ajustados:
+- `ResourceEndpointTest.openApiEndpointRetorna200NoPathConvencional`.
+
+Comandos executados:
+- `mvn -q test`
+
+Resultado dos testes:
+- Suite passou.
+
+Cobertura:
+- Relatorio gerado pelo `quarkus-jacoco` em `target/jacoco-report/index.html`.
+
+Decisoes:
+- O path oficial do OpenAPI do SIMTR Hub e `/arvore-documento/openapi`.
+- O path antigo `/arvore-documento/openai` deixa de ser documentado como endpoint valido.
+
+Pendencias:
+- Nenhuma.
+
+### 2026-07-10 - Codex - Correcao validacao local `previo`
+
+Objetivo:
+- Permitir payload de validacao negocial sem `previo` em cada verificacao, pois o MTR implementado aceita esse campo como opcional.
+
+Feito:
+- Removida a obrigatoriedade local de `previo` em `DossieProdutoValidacaoNegocialVerificacaoDto`.
+- Adicionado teste HTTP com JSON sem `previo` para `PATCH /arvore-documento/v1/dossie-produto/{id}/validacao-negocial`.
+- Ajustado teste de mapper para preservar `previo` nulo.
+- Atualizados planejamento e documentacao consolidada com a decisao.
+
+Arquivos alterados:
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dto/dossieproduto/DossieProdutoValidacaoNegocialVerificacaoDto.java`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceEndpointTest.java`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/mapper/dossieproduto/DossieProdutoMapperTest.java`
+- `doc/planejamento-dossie-produto-validacao-negocial-v1.md`
+- `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`
+- `doc/espaco-colaborativo-de-desenvolvimento.md`
+
+Testes criados/ajustados:
+- `ResourceEndpointTest.dossieProdutoPatchValidacaoNegocialAceitaVerificacaoSemPrevio`.
+- `DossieProdutoMapperTest.devePreservarObjetosAninhadosNulos`.
+
+Comandos executados:
+- mvn -q test
+
+Resultado dos testes:
+- Suite passou.
+
+Cobertura:
+- Teste HTTP cobre a ausencia real do campo `previo` na entrada.
+- Teste de mapper cobre preservacao de `previo` nulo no ciclo DTO -> VO -> DTO.
+
+Decisoes:
+- `previo` permanece no contrato para ser encaminhado quando informado.
+- Ausencia de `previo` nao deve gerar `400` no Hub.
+
+Pendencias:
+- Nenhuma.
 
 ### Template para proximos registros
 

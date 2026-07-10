@@ -5,6 +5,7 @@ import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCri
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoCriadoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoInclusaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoFormularioDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoValidacaoNegocialDto;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.mock.MarkdownJsonMockReader;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -20,6 +21,8 @@ public class DossieProdutoMockFactory {
             "mock/dossieproduto/formulario-dossie-produto.md";
     private static final String DOCUMENTO_MOCK_RESOURCE =
             "mock/dossieproduto/documento-dossie-produto.md";
+    private static final String VALIDACAO_NEGOCIAL_MOCK_RESOURCE =
+            "mock/dossieproduto/validacao-negocial-dossie-produto.md";
     private static final String WORKFLOW_MOCK_RESOURCE =
             "mock/dossieproduto/workflow-dossie-produto.md";
 
@@ -77,6 +80,20 @@ public class DossieProdutoMockFactory {
         }
 
         return resposta;
+    }
+
+    public void registrarValidacaoNegocialDossieProdutoMock(
+            Long id,
+            DossieProdutoValidacaoNegocialDto requisicao
+    ) {
+        Object resposta = mockReader.readFirstJsonObject(
+                VALIDACAO_NEGOCIAL_MOCK_RESOURCE,
+                Object.class
+        );
+
+        if (resposta == null) {
+            throw new IllegalStateException("Arquivo de mock nao encontrado no classpath: " + VALIDACAO_NEGOCIAL_MOCK_RESOURCE);
+        }
     }
 
     public DossieProdutoCriadoDto iniciarOuAvancarWorkflowDossieProdutoMock(Long id) {

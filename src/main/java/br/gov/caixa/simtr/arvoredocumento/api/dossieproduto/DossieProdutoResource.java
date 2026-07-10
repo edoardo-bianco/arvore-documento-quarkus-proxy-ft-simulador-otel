@@ -5,6 +5,7 @@ import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCri
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoCriadoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoInclusaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoFormularioDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoValidacaoNegocialDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.erro.ErroPadraoDto;
 import br.gov.caixa.simtr.arvoredocumento.application.dossieproduto.DossieProdutoService;
 import br.gov.caixa.simtr.arvoredocumento.mapper.dossieproduto.DossieProdutoMapper;
@@ -421,6 +422,121 @@ public class DossieProdutoResource {
                 });
     }
 
+    @PATCH
+    @Path("/{id}/validacao-negocial")
+    @WithSpan(value = "arvore-documento.api.dossie-produto.validacao-negocial.registrar", kind = SpanKind.SERVER)
+    @Operation(
+            summary = "Registra validacao negocial no dossie de produto",
+            description = "Recebe a chamada no contrato do arvore-documento, aciona o servico de aplicacao e registra a validacao negocial no simtr-dossie-produto v1."
+    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "200",
+                    description = "Verificacao do dossie aplicada com sucesso."
+            ),
+            @APIResponse(
+                    responseCode = "400",
+                    description = "Requisicao invalida.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "401",
+                    description = "Nao autorizado.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "403",
+                    description = "Canal ou usuario sem permissao.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "404",
+                    description = "Recurso nao localizado para os parametros informados.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "409",
+                    description = "Conflito ao processar a requisicao.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "500",
+                    description = "Erro interno.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "503",
+                    description = "Servico de terceiros indisponivel no momento.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            )
+    })
+    public Uni<Response> registrarValidacaoNegocialDossieProduto(
+            @PathParam("id")
+            @NotNull(message = "O identificador do dossie produto deve ser informado.")
+            @Min(value = 1, message = "O identificador do dossie produto deve ser maior que zero.")
+            Long id,
+            @NotNull(message = "O corpo da requisicao deve ser informado.")
+            @Valid DossieProdutoValidacaoNegocialDto requisicao) {
+
+        Integer quantidadeVerificacoes = quantidadeVerificacoesValidacao(requisicao);
+        Integer quantidadeRespostasFormulario = quantidadeRespostasFormularioValidacao(requisicao);
+
+        Span span = Span.current();
+        span.setAttribute("http.route", "/arvore-documento/v1/dossie-produto/{id}/validacao-negocial");
+        span.setAttribute("arvore_documento.api", "dossie-produto-v1");
+        setLongAttribute(span, "dossie_produto.id", id);
+        setIntAttribute(span, "dossie_produto.validacao.verificacoes.quantidade", quantidadeVerificacoes);
+        setIntAttribute(span, "dossie_produto.validacao.respostas_formulario.quantidade", quantidadeRespostasFormulario);
+
+        ObservabilityLog.info(
+                LOG,
+                "arvore-documento.dossie-produto.validacao-negocial.requisicao.recebida",
+                ObservabilityLog.fields(
+                        "camada", "api",
+                        "componente", "DossieProdutoResource",
+                        "operacao", "registrar-validacao-negocial-dossie-produto",
+                        "dossie_produto_id", id,
+                        "validacao_verificacoes_quantidade", quantidadeVerificacoes,
+                        "validacao_respostas_formulario_quantidade", quantidadeRespostasFormulario
+                )
+        );
+
+        return dossieProdutoService.registrarValidacaoNegocialDossieProduto(
+                        id,
+                        dossieProdutoMapper.toVo(requisicao)
+                )
+                .invoke(resposta -> ObservabilityLog.info(
+                        LOG,
+                        "arvore-documento.dossie-produto.validacao-negocial.resposta.enviada",
+                        ObservabilityLog.fields(
+                                "camada", "api",
+                                "componente", "DossieProdutoResource",
+                                "operacao", "registrar-validacao-negocial-dossie-produto",
+                                "dossie_produto_id", id,
+                                "resultado", "sucesso"
+                        )
+                ))
+                .replaceWith(Response.ok().build())
+                .onFailure().invoke(erro -> {
+                    span.recordException(erro);
+                    span.setStatus(StatusCode.ERROR, String.valueOf(erro.getMessage()));
+
+                    ObservabilityLog.error(
+                            LOG,
+                            "arvore-documento.dossie-produto.validacao-negocial.requisicao.falhou",
+                            erro,
+                            ObservabilityLog.fields(
+                                    "camada", "api",
+                                    "componente", "DossieProdutoResource",
+                                    "operacao", "registrar-validacao-negocial-dossie-produto",
+                                    "dossie_produto_id", id,
+                                    "erro_tipo", erro.getClass().getSimpleName(),
+                                    "resultado", "erro"
+                            )
+                    );
+                });
+    }
+
     @POST
     @Path("/{id}/workflow")
     @Consumes(MediaType.WILDCARD)
@@ -581,6 +697,20 @@ public class DossieProdutoResource {
             return null;
         }
         return requisicao.propriedades().size();
+    }
+
+    private static Integer quantidadeVerificacoesValidacao(DossieProdutoValidacaoNegocialDto requisicao) {
+        if (requisicao == null || requisicao.verificacoes() == null) {
+            return null;
+        }
+        return requisicao.verificacoes().size();
+    }
+
+    private static Integer quantidadeRespostasFormularioValidacao(DossieProdutoValidacaoNegocialDto requisicao) {
+        if (requisicao == null || requisicao.respostasFormulario() == null) {
+            return null;
+        }
+        return requisicao.respostasFormulario().size();
     }
 
     private static void setLongAttribute(Span span, String nome, Long valor) {

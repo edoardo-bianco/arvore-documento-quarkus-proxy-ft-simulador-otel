@@ -268,6 +268,69 @@ HTTP/1.1 201 Created
 ```
 
 ```http
+PATCH http://localhost:8080/arvore-documento/v1/dossie-produto/{id}/validacao-negocial
+Content-Type: application/json
+Accept: application/json
+```
+
+Corpo para registro de validacao negocial no dossie produto, seguindo o OpenAPI implementado no MTR:
+
+```json
+{
+  "verificacoes": [
+    {
+      "identificador_instancia_documento": 0,
+      "identificador_checklist": 0,
+      "versao_checklist": 0,
+      "analise_realizada": true,
+      "parecer_apontamentos": [
+        {
+          "identificador_apontamento": 0,
+          "resultado": "APROVADO",
+          "comentario": "string",
+          "necessidade_reanalise": true,
+          "indice_ia": 0.99
+        }
+      ],
+      "garantia": {
+        "codigo_bacen": 0,
+        "clientes_avalistas": [
+          {
+            "cpf": "string",
+            "cnpj": "string"
+          }
+        ]
+      },
+      "produto": {
+        "codigo_operacao": 0,
+        "codigo_modalidade": 0
+      },
+      "previo": true
+    }
+  ],
+  "respostas_formulario": [
+    {
+      "campo_formulario": 29848450,
+      "resposta": "string",
+      "opcoes_selecionadas": [
+        "string"
+      ]
+    }
+  ]
+}
+```
+
+Observacao sobre `previo`: o campo e aceito quando informado, mas nao e obrigatorio na validacao local do Hub. Payloads reais da integracao de pre-validacao podem omitir esse indicador; nesse caso o Hub deve encaminhar a requisicao ao MTR sem bloquear com `400`.
+
+Resposta de sucesso:
+
+```http
+HTTP/1.1 200 OK
+```
+
+Sem corpo de resposta.
+
+```http
 POST http://localhost:8080/arvore-documento/v1/dossie-produto/{id}/workflow
 Accept: application/json
 ```
@@ -303,10 +366,8 @@ GET http://localhost:8080/arvore-documento/doc/
 O projeto esta configurado com o path abaixo:
 
 ```http
-GET http://localhost:8080/arvore-documento/openai
+GET http://localhost:8080/arvore-documento/openapi
 ```
-
-Observacao: o nome do path esta como `openai`, mas o conteudo retornado e o documento OpenAPI gerado pelo Quarkus. Se o objetivo for usar o nome convencional, ajuste para `/arvore-documento/openapi` no `application.properties`.
 
 ### Health check
 
@@ -365,7 +426,7 @@ DossieProdutoResource
                   -> simtr-dossie-produto
   -> DossieProdutoMapper.toVo(...)
   -> DossieProdutoMapper.toDto(...)
-  -> DossieProdutoCriadoDto ou DossieProdutoDocumentoCriadoDto
+  -> DossieProdutoCriadoDto, DossieProdutoDocumentoCriadoDto ou resposta sem corpo
 ```
 
 O fluxo `DTO -> VO -> DTO` e proposital. Mesmo que o contrato atual seja parecido com o retorno do MTR, o VO cria uma fronteira para regras futuras, enriquecimento e adaptacao de contrato.
@@ -407,6 +468,13 @@ HTTP POST /arvore-documento/v1/dossie-produto/{id}/documento
   -> DossieProdutoMockFactory
   -> DossieProdutoMapper
   -> resposta mockada com id_documento e id_instancia_documento
+
+HTTP PATCH /arvore-documento/v1/dossie-produto/{id}/validacao-negocial
+  -> DossieProdutoResource
+  -> DossieProdutoService
+  -> DossieProdutoMockFactory
+  -> DossieProdutoMapper
+  -> resposta 200 OK sem corpo
 
 HTTP POST /arvore-documento/v1/dossie-produto/{id}/workflow
   -> DossieProdutoResource
@@ -463,6 +531,14 @@ HTTP POST /arvore-documento/v1/dossie-produto/{id}/documento
   -> POST /simtr/dossie-produto/v2/dossie-produto/{id}/documento
   -> DossieProdutoMapper
   -> resposta do SIMTR Hub com HTTP 201
+
+HTTP PATCH /arvore-documento/v1/dossie-produto/{id}/validacao-negocial
+  -> DossieProdutoResource
+  -> DossieProdutoService
+  -> DossieProdutoGateway
+  -> DossieProdutoClient
+  -> PATCH /simtr/dossie-produto/v1/dossie-produto/{id}/validacao-negocial
+  -> resposta do SIMTR Hub com HTTP 200 sem corpo
 
 HTTP POST /arvore-documento/v1/dossie-produto/{id}/workflow
   -> DossieProdutoResource
@@ -540,10 +616,10 @@ Conteudo funcional relevante:
 quarkus.application.name=arvore-documento
 quarkus.http.port=8080
 
-quarkus.smallrye-openapi.path=/arvore-documento/openai
+quarkus.smallrye-openapi.path=/arvore-documento/openapi
 quarkus.swagger-ui.always-include=true
 quarkus.swagger-ui.path=/arvore-documento/doc
-%dev.quarkus.smallrye-openapi.path=/arvore-documento/openai
+%dev.quarkus.smallrye-openapi.path=/arvore-documento/openapi
 %dev.quarkus.swagger-ui.path=/arvore-documento/doc
 
 quarkus.rest-client.parametrizacao-processo.url=https://api.des.caixa:8443/simtr
@@ -566,7 +642,7 @@ arvore-documento.simulador.dossie-produto.habilitado=false
 %dev.arvore-documento.simulador.dossie-produto.habilitado=true
 ```
 
-O REST Client de dossie produto usa base versionavel `@Path("/dossie-produto")`. As versoes ficam nos metodos (`/v1/dossie-produto...` e `/v2/dossie-produto...`) para manter um unico client do servico e permitir endpoints v1 e v2 sem duplicar `/simtr`. O workflow usa `POST /v1/dossie-produto/{id}/workflow` e nao recebe request body.
+O REST Client de dossie produto usa base versionavel `@Path("/dossie-produto")`. As versoes ficam nos metodos (`/v1/dossie-produto...` e `/v2/dossie-produto...`) para manter um unico client do servico e permitir endpoints v1 e v2 sem duplicar `/simtr`. A validacao negocial usa `PATCH /v1/dossie-produto/{id}/validacao-negocial` e retorna sucesso sem corpo. O workflow usa `POST /v1/dossie-produto/{id}/workflow` e nao recebe request body.
 
 Configuracao de observabilidade atual:
 
@@ -819,7 +895,7 @@ Exemplo ja versionado:
 
 ## Mock do dossie produto
 
-O simulador de dossie produto permite desenvolver os endpoints de criacao basica, inclusao ou edicao de respostas de formulario, inclusao de documento e workflow sem chamar o MTR real.
+O simulador de dossie produto permite desenvolver os endpoints de criacao basica, inclusao ou edicao de respostas de formulario, inclusao de documento, validacao negocial e workflow sem chamar o MTR real.
 
 O simulador e controlado pela propriedade:
 
@@ -844,6 +920,7 @@ Os arquivos usados em runtime ficam em:
 src/main/resources/mock/dossieproduto/criacao-basica-dossie-produto.md
 src/main/resources/mock/dossieproduto/formulario-dossie-produto.md
 src/main/resources/mock/dossieproduto/documento-dossie-produto.md
+src/main/resources/mock/dossieproduto/validacao-negocial-dossie-produto.md
 src/main/resources/mock/dossieproduto/workflow-dossie-produto.md
 ```
 
@@ -853,6 +930,7 @@ As copias documentais ficam em:
 doc/mock/dossie-produto/criacao-basica-dossie-produto.md
 doc/mock/dossie-produto/formulario-dossie-produto.md
 doc/mock/dossie-produto/documento-dossie-produto.md
+doc/mock/dossie-produto/validacao-negocial-dossie-produto.md
 doc/mock/dossie-produto/workflow-dossie-produto.md
 ```
 
@@ -869,6 +947,8 @@ Resposta mockada atual para criacao, formulario e workflow:
   "id": 1
 }
 ```
+
+Para validacao negocial, o mock runtime le o arquivo Markdown correspondente e usa `{}` apenas para representar sucesso sem corpo de resposta.
 
 Resposta mockada atual para inclusao de documento:
 
@@ -1326,6 +1406,9 @@ A observabilidade atual tem duas saidas sempre ativas e duas saidas opcionais:
 | API | `arvore-documento.api.dossie-produto.documento.incluir` |
 | Aplicacao | `arvore-documento.service.dossie-produto.documento.incluir` |
 | Integracao MTR | `mtr.dossie-produto.documento.incluir` |
+| API | `arvore-documento.api.dossie-produto.validacao-negocial.registrar` |
+| Aplicacao | `arvore-documento.service.dossie-produto.validacao-negocial.registrar` |
+| Integracao MTR | `mtr.dossie-produto.validacao-negocial.registrar` |
 | API | `arvore-documento.api.dossie-produto.workflow.avancar` |
 | Aplicacao | `arvore-documento.service.dossie-produto.workflow.avancar` |
 | Integracao MTR | `mtr.dossie-produto.workflow.avancar` |
@@ -1793,19 +1876,12 @@ Use:
 http://localhost:8080/arvore-documento/doc/
 ```
 
-### `/arvore-documento/openapi` retorna 404
+### `/arvore-documento/openai` retorna 404
 
-O path configurado atualmente e:
+O path OpenAPI configurado e:
 
 ```text
-http://localhost:8080/arvore-documento/openai
-```
-
-Para trocar para o nome convencional:
-
-```properties
-quarkus.smallrye-openapi.path=/arvore-documento/openapi
-%dev.quarkus.smallrye-openapi.path=/arvore-documento/openapi
+http://localhost:8080/arvore-documento/openapi
 ```
 
 ### `/q/health/live` retorna 404
@@ -1902,10 +1978,9 @@ Get-Content -Tail 20 target/logs/arvore-documento.json
 
 ## Proximos passos
 
-1. Decidir se o path OpenAPI deve continuar `/arvore-documento/openai` ou mudar para `/arvore-documento/openapi`.
-2. Criar um `docker-compose-jaeger.yml` para padronizar a subida do Jaeger.
-3. Adicionar configuracao versionada de OpenTelemetry Collector para enviar traces ao Tempo e logs ao Loki.
-4. Adicionar testes unitarios para `ProcessoService` cobrindo simulador e MTR real.
-5. Adicionar stub/WireMock para respostas `200`, `404`, `500` e timeout do `simtr-parametrizacao`.
-6. Adicionar stub/WireMock para respostas `201`, `400`, `403`, `404`, `409`, `500` e timeout do `simtr-dossie-produto`.
-7. Criar dashboard Grafana com latencia, erro, volume e correlacao por `traceId`.
+1. Criar um `docker-compose-jaeger.yml` para padronizar a subida do Jaeger.
+2. Adicionar configuracao versionada de OpenTelemetry Collector para enviar traces ao Tempo e logs ao Loki.
+3. Adicionar testes unitarios para `ProcessoService` cobrindo simulador e MTR real.
+4. Adicionar stub/WireMock para respostas `200`, `404`, `500` e timeout do `simtr-parametrizacao`.
+5. Adicionar stub/WireMock para respostas `201`, `400`, `403`, `404`, `409`, `500` e timeout do `simtr-dossie-produto`.
+6. Criar dashboard Grafana com latencia, erro, volume e correlacao por `traceId`.

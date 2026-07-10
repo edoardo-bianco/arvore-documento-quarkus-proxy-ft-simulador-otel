@@ -69,6 +69,13 @@ class MockFactoryTest {
     }
 
     @Test
+    void deveLerMockDeValidacaoNegocialDossieProduto() {
+        DossieProdutoMockFactory factory = new DossieProdutoMockFactory(reader);
+
+        factory.registrarValidacaoNegocialDossieProdutoMock(123L, null);
+    }
+
+    @Test
     void deveLerMockDeWorkflowDossieProdutoERetornarIdDoPath() {
         DossieProdutoMockFactory factory = new DossieProdutoMockFactory(reader);
 

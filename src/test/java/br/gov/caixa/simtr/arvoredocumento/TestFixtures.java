@@ -16,6 +16,13 @@ import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoVin
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoVinculoDossieDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoVinculoGarantiaDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoVinculoProdutoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoValidacaoNegocialClienteAvalistaDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoValidacaoNegocialDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoValidacaoNegocialGarantiaDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoValidacaoNegocialParecerApontamentoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoValidacaoNegocialProdutoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoValidacaoNegocialRespostaFormularioDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoValidacaoNegocialVerificacaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.checklist.ChecklistApontamentoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.checklist.ChecklistDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.CampoFormularioDto;
@@ -235,6 +242,61 @@ public final class TestFixtures {
                         new DossieProdutoDocumentoAtributoDto("cpf", "00072169125", null, null)
                 ),
                 null
+        );
+    }
+
+    public static DossieProdutoValidacaoNegocialDto validacaoNegocialDto() {
+        return new DossieProdutoValidacaoNegocialDto(
+                List.of(new DossieProdutoValidacaoNegocialVerificacaoDto(
+                        1122928L,
+                        6592L,
+                        2,
+                        true,
+                        List.of(
+                                new DossieProdutoValidacaoNegocialParecerApontamentoDto(
+                                        1000012877L,
+                                        "APROVADO",
+                                        "apontamento aprovado",
+                                        false,
+                                        1.0
+                                ),
+                                new DossieProdutoValidacaoNegocialParecerApontamentoDto(
+                                        1000011696L,
+                                        "APROVADO",
+                                        null,
+                                        true,
+                                        0.7
+                                ),
+                                new DossieProdutoValidacaoNegocialParecerApontamentoDto(
+                                        1000011695L,
+                                        "INCONCLUSIVO",
+                                        "necessita revisao",
+                                        true,
+                                        0.3
+                                )
+                        ),
+                        new DossieProdutoValidacaoNegocialGarantiaDto(
+                                300,
+                                List.of(new DossieProdutoValidacaoNegocialClienteAvalistaDto(
+                                        "12345678901",
+                                        null
+                                ))
+                        ),
+                        new DossieProdutoValidacaoNegocialProdutoDto(100, 200),
+                        true
+                )),
+                List.of(
+                        new DossieProdutoValidacaoNegocialRespostaFormularioDto(
+                                1000011689L,
+                                "teste",
+                                null
+                        ),
+                        new DossieProdutoValidacaoNegocialRespostaFormularioDto(
+                                1000011699L,
+                                null,
+                                List.of("2")
+                        )
+                )
         );
     }
 }

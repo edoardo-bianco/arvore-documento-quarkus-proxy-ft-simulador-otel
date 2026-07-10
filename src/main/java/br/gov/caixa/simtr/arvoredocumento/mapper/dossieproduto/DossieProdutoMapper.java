@@ -5,11 +5,13 @@ import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCri
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoCriadoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoInclusaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoFormularioDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoValidacaoNegocialDto;
 import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoCriacaoVo;
 import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoCriadoVo;
 import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoDocumentoCriadoVo;
 import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoDocumentoInclusaoVo;
 import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoFormularioVo;
+import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoValidacaoNegocialVo;
 import org.mapstruct.Mapper;
 
 import java.util.List;
@@ -36,4 +38,8 @@ public interface DossieProdutoMapper {
     DossieProdutoDocumentoCriadoVo toVo(DossieProdutoDocumentoCriadoDto dto);
 
     DossieProdutoDocumentoCriadoDto toDto(DossieProdutoDocumentoCriadoVo vo);
+
+    DossieProdutoValidacaoNegocialVo toVo(DossieProdutoValidacaoNegocialDto dto);
+
+    DossieProdutoValidacaoNegocialDto toDto(DossieProdutoValidacaoNegocialVo vo);
 }

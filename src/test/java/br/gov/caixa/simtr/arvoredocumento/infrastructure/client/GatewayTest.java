@@ -6,6 +6,7 @@ import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCri
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoCriadoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoInclusaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoFormularioDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoValidacaoNegocialDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.checklist.ChecklistDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.ProcessoDto;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.dossieproduto.DossieProdutoClient;
@@ -31,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class GatewayTest {
 
     @Test
-    void dossieGatewayEncaminhaCriacaoFormularioDocumentoEWorkflowParaClient() {
+    void dossieGatewayEncaminhaCriacaoFormularioDocumentoValidacaoNegocialEWorkflowParaClient() {
         FakeDossieProdutoClient client = new FakeDossieProdutoClient();
         DossieProdutoGateway gateway = new DossieProdutoGateway(client);
 
@@ -47,6 +48,11 @@ class GatewayTest {
                         TestFixtures.documentoInclusaoDto()
                 )
                 .await().indefinitely();
+        gateway.registrarValidacaoNegocialDossieProduto(
+                        432L,
+                        TestFixtures.validacaoNegocialDto()
+                )
+                .await().indefinitely();
         DossieProdutoCriadoDto workflow = gateway.iniciarOuAvancarWorkflowDossieProduto(654L)
                 .await().indefinitely();
 
@@ -60,6 +66,8 @@ class GatewayTest {
         assertEquals(3, client.formularioRecebido.size());
         assertEquals(321L, client.idDocumentoRecebido);
         assertEquals("RG", client.documentoRecebido.tipoDocumento());
+        assertEquals(432L, client.idValidacaoNegocialRecebido);
+        assertEquals(6592L, client.validacaoNegocialRecebida.verificacoes().getFirst().identificadorChecklist());
         assertEquals(654L, client.idWorkflowRecebido);
     }
 
@@ -75,6 +83,8 @@ class GatewayTest {
                 () -> gateway.atualizarFormularioDossieProduto(123L, null).await().indefinitely()));
         assertSame(client.falha, assertThrows(IllegalStateException.class,
                 () -> gateway.incluirDocumentoDossieProduto(123L, null).await().indefinitely()));
+        assertSame(client.falha, assertThrows(IllegalStateException.class,
+                () -> gateway.registrarValidacaoNegocialDossieProduto(123L, null).await().indefinitely()));
         assertSame(client.falha, assertThrows(IllegalStateException.class,
                 () -> gateway.iniciarOuAvancarWorkflowDossieProduto(123L).await().indefinitely()));
     }
@@ -138,6 +148,8 @@ class GatewayTest {
         private List<DossieProdutoFormularioDto> formularioRecebido;
         private Long idDocumentoRecebido;
         private DossieProdutoDocumentoInclusaoDto documentoRecebido;
+        private Long idValidacaoNegocialRecebido;
+        private DossieProdutoValidacaoNegocialDto validacaoNegocialRecebida;
         private Long idWorkflowRecebido;
         private RuntimeException falha;
 
@@ -174,6 +186,19 @@ class GatewayTest {
                 return Uni.createFrom().failure(falha);
             }
             return Uni.createFrom().item(new DossieProdutoDocumentoCriadoDto(456L, 789L));
+        }
+
+        @Override
+        public Uni<Void> registrarValidacaoNegocialDossieProduto(
+                Long id,
+                DossieProdutoValidacaoNegocialDto requisicao
+        ) {
+            idValidacaoNegocialRecebido = id;
+            validacaoNegocialRecebida = requisicao;
+            if (falha != null) {
+                return Uni.createFrom().failure(falha);
+            }
+            return Uni.createFrom().voidItem();
         }
 
         @Override

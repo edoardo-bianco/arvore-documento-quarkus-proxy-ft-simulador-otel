@@ -6,6 +6,7 @@ import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCri
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoCriadoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoInclusaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoFormularioDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoValidacaoNegocialDto;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.dossieproduto.DossieProdutoGateway;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.dossieproduto.mock.DossieProdutoMockFactory;
 import br.gov.caixa.simtr.arvoredocumento.mapper.dossieproduto.DossieProdutoMapper;
@@ -125,6 +126,38 @@ class DossieProdutoServiceTest {
     }
 
     @Test
+    void validacaoNegocialComSimuladorHabilitadoUsaMockFactory() {
+        FakeDossieGateway gateway = new FakeDossieGateway();
+        FakeDossieMockFactory mockFactory = new FakeDossieMockFactory();
+        DossieProdutoService service = new DossieProdutoService(gateway, mockFactory, mapper, true);
+
+        service.registrarValidacaoNegocialDossieProduto(
+                        123L,
+                        mapper.toVo(TestFixtures.validacaoNegocialDto())
+                )
+                .await().indefinitely();
+
+        assertTrue(mockFactory.validacaoNegocialChamada);
+        assertFalse(gateway.validacaoNegocialChamada);
+    }
+
+    @Test
+    void validacaoNegocialComSimuladorDesabilitadoUsaGateway() {
+        FakeDossieGateway gateway = new FakeDossieGateway();
+        FakeDossieMockFactory mockFactory = new FakeDossieMockFactory();
+        DossieProdutoService service = new DossieProdutoService(gateway, mockFactory, mapper, false);
+
+        service.registrarValidacaoNegocialDossieProduto(
+                        123L,
+                        mapper.toVo(TestFixtures.validacaoNegocialDto())
+                )
+                .await().indefinitely();
+
+        assertTrue(gateway.validacaoNegocialChamada);
+        assertFalse(mockFactory.validacaoNegocialChamada);
+    }
+
+    @Test
     void workflowComSimuladorHabilitadoUsaMockFactory() {
         FakeDossieGateway gateway = new FakeDossieGateway();
         FakeDossieMockFactory mockFactory = new FakeDossieMockFactory();
@@ -156,6 +189,7 @@ class DossieProdutoServiceTest {
         private boolean criacaoChamada;
         private boolean formularioChamada;
         private boolean documentoChamada;
+        private boolean validacaoNegocialChamada;
         private boolean workflowChamada;
 
         private FakeDossieGateway() {
@@ -187,6 +221,15 @@ class DossieProdutoServiceTest {
         }
 
         @Override
+        public Uni<Void> registrarValidacaoNegocialDossieProduto(
+                Long id,
+                DossieProdutoValidacaoNegocialDto requisicao
+        ) {
+            validacaoNegocialChamada = true;
+            return Uni.createFrom().voidItem();
+        }
+
+        @Override
         public Uni<DossieProdutoCriadoDto> iniciarOuAvancarWorkflowDossieProduto(Long id) {
             workflowChamada = true;
             return Uni.createFrom().item(new DossieProdutoCriadoDto(9L));
@@ -197,6 +240,7 @@ class DossieProdutoServiceTest {
         private boolean criacaoChamada;
         private boolean formularioChamada;
         private boolean documentoChamada;
+        private boolean validacaoNegocialChamada;
         private boolean workflowChamada;
 
         private FakeDossieMockFactory() {
@@ -225,6 +269,14 @@ class DossieProdutoServiceTest {
         ) {
             documentoChamada = true;
             return new DossieProdutoDocumentoCriadoDto(5L, 6L);
+        }
+
+        @Override
+        public void registrarValidacaoNegocialDossieProdutoMock(
+                Long id,
+                DossieProdutoValidacaoNegocialDto requisicao
+        ) {
+            validacaoNegocialChamada = true;
         }
 
         @Override

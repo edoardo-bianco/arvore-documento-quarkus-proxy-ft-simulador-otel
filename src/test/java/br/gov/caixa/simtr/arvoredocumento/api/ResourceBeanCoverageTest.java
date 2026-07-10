@@ -138,6 +138,29 @@ class ResourceBeanCoverageTest {
     }
 
     @Test
+    void dossieProdutoResourceCobreValidacaoNegocialSucessoEFalhaDoBeanCdi() {
+        when(dossieProdutoService.registrarValidacaoNegocialDossieProduto(eq(123L), any()))
+                .thenReturn(Uni.createFrom().voidItem());
+        when(dossieProdutoService.registrarValidacaoNegocialDossieProduto(eq(124L), any()))
+                .thenReturn(Uni.createFrom().failure(new IllegalStateException("falha validacao negocial")));
+
+        Response response = dossieProdutoResource.registrarValidacaoNegocialDossieProduto(
+                        123L,
+                        TestFixtures.validacaoNegocialDto()
+                )
+                .await().indefinitely();
+
+        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+        assertEquals(null, response.getEntity());
+        assertThrows(IllegalStateException.class,
+                () -> dossieProdutoResource.registrarValidacaoNegocialDossieProduto(
+                                124L,
+                                TestFixtures.validacaoNegocialDto()
+                        )
+                        .await().indefinitely());
+    }
+
+    @Test
     void dossieProdutoResourceCobreWorkflowSucessoEFalhaDoBeanCdi() {
         when(dossieProdutoService.iniciarOuAvancarWorkflowDossieProduto(123L))
                 .thenReturn(Uni.createFrom().item(new DossieProdutoCriadoVo(123L)));

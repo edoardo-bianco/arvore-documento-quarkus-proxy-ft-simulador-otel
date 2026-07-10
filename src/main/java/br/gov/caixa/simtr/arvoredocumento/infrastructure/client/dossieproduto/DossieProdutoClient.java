@@ -5,6 +5,7 @@ import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCri
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoCriadoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoInclusaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoFormularioDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoValidacaoNegocialDto;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.RequestHeaderFactory;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.RestClientObservabilityFilter;
 import br.gov.caixa.simtr.arvoredocumento.shared.exception.MtrBusinessErrorException;
@@ -157,6 +158,46 @@ public interface DossieProdutoClient {
     Uni<DossieProdutoDocumentoCriadoDto> incluirDocumentoDossieProduto(
             @PathParam("id") Long id,
             DossieProdutoDocumentoInclusaoDto requisicao
+    );
+
+    @PATCH
+    @Path("/v1/dossie-produto/{id}/validacao-negocial")
+    @Timeout(value = 2_000, unit = ChronoUnit.MILLIS)
+    @Retry(
+            maxRetries = 3,
+            delay = 300,
+            delayUnit = ChronoUnit.MILLIS,
+            jitter = 100,
+            jitterDelayUnit = ChronoUnit.MILLIS,
+            retryOn = {
+                    MtrServerErrorException.class,
+                    ProcessingException.class,
+                    TimeoutException.class
+            },
+            abortOn = {
+                    MtrBusinessErrorException.class,
+                    MtrClientTechnicalException.class
+            }
+    )
+    @CircuitBreaker(
+            requestVolumeThreshold = 10,
+            failureRatio = 0.5,
+            delay = 10_000,
+            delayUnit = ChronoUnit.MILLIS,
+            successThreshold = 2,
+            failOn = {
+                    MtrServerErrorException.class,
+                    ProcessingException.class,
+                    TimeoutException.class
+            },
+            skipOn = {
+                    MtrBusinessErrorException.class,
+                    MtrClientTechnicalException.class
+            }
+    )
+    Uni<Void> registrarValidacaoNegocialDossieProduto(
+            @PathParam("id") Long id,
+            DossieProdutoValidacaoNegocialDto requisicao
     );
 
     @POST

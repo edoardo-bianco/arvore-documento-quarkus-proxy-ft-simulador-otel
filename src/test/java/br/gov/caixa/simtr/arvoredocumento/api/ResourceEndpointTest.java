@@ -40,6 +40,16 @@ class ResourceEndpointTest {
     }
 
     @Test
+    void openApiEndpointRetorna200NoPathConvencional() {
+        given()
+                .accept(ContentType.JSON)
+                .when()
+                .get("/arvore-documento/openapi")
+                .then()
+                .statusCode(200);
+    }
+
+    @Test
     void dossieProdutoPostRetorna201ComMockDoQuarkus() {
         given()
                 .contentType(ContentType.JSON)
@@ -94,6 +104,58 @@ class ResourceEndpointTest {
     }
 
     @Test
+    void dossieProdutoPatchValidacaoNegocialRetorna200SemCorpo() {
+        given()
+                .contentType(ContentType.JSON)
+                .accept(ContentType.JSON)
+                .body(TestFixtures.validacaoNegocialDto())
+                .when()
+                .patch("/arvore-documento/v1/dossie-produto/{id}/validacao-negocial", 123L)
+                .then()
+                .statusCode(200);
+    }
+
+    @Test
+    void dossieProdutoPatchValidacaoNegocialAceitaVerificacaoSemPrevio() {
+        given()
+                .contentType(ContentType.JSON)
+                .accept(ContentType.JSON)
+                .body("""
+                        {
+                          "verificacoes": [
+                            {
+                              "identificador_checklist": 5000005493,
+                              "versao_checklist": 1,
+                              "analise_realizada": true,
+                              "parecer_apontamentos": [
+                                {
+                                  "identificador_apontamento": 5000005494,
+                                  "resultado": "APROVADO",
+                                  "indice_ia": 1,
+                                  "necessidade_reanalise": true,
+                                  "comentario": "teste"
+                                }
+                              ]
+                            }
+                          ],
+                          "respostas_formulario": [
+                            {
+                              "campo_formulario": 1000011176,
+                              "resposta": null,
+                              "opcoes_selecionadas": [
+                                "S"
+                              ]
+                            }
+                          ]
+                        }
+                        """)
+                .when()
+                .patch("/arvore-documento/v1/dossie-produto/{id}/validacao-negocial", 123L)
+                .then()
+                .statusCode(200);
+    }
+
+    @Test
     void dossieProdutoPostWorkflowRetorna200ComIdDoPath() {
         given()
                 .accept(ContentType.JSON)
@@ -136,6 +198,31 @@ class ResourceEndpointTest {
                 .body(TestFixtures.documentoInclusaoDto())
                 .when()
                 .post("/arvore-documento/v1/dossie-produto/{id}/documento", 0)
+                .then()
+                .statusCode(400)
+                .body("codigo_erro", equalTo("ARVDOCP0001"));
+    }
+
+    @Test
+    void dossieProdutoPatchValidacaoNegocialRetorna400ParaIdInvalido() {
+        given()
+                .contentType(ContentType.JSON)
+                .accept(ContentType.JSON)
+                .body(TestFixtures.validacaoNegocialDto())
+                .when()
+                .patch("/arvore-documento/v1/dossie-produto/{id}/validacao-negocial", 0)
+                .then()
+                .statusCode(400)
+                .body("codigo_erro", equalTo("ARVDOCP0001"));
+    }
+
+    @Test
+    void dossieProdutoPatchValidacaoNegocialRetorna400ParaCorpoAusente() {
+        given()
+                .contentType(ContentType.JSON)
+                .accept(ContentType.JSON)
+                .when()
+                .patch("/arvore-documento/v1/dossie-produto/{id}/validacao-negocial", 123L)
                 .then()
                 .statusCode(400)
                 .body("codigo_erro", equalTo("ARVDOCP0001"));

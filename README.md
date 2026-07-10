@@ -195,7 +195,7 @@ GET /arvore-documento/doc
 OpenAPI:
 
 ```http
-GET /arvore-documento/openai
+GET /arvore-documento/openapi
 ```
 
 ## Chamadas de exemplo
