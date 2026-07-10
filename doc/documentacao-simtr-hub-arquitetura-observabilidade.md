@@ -267,6 +267,25 @@ HTTP/1.1 201 Created
 }
 ```
 
+```http
+POST http://localhost:8080/arvore-documento/v1/dossie-produto/{id}/workflow
+Accept: application/json
+```
+
+Esse endpoint nao recebe corpo de requisicao e aceita chamada sem `Content-Type`.
+
+Resposta de sucesso:
+
+```http
+HTTP/1.1 200 OK
+```
+
+```json
+{
+  "id": 0
+}
+```
+
 Parametro:
 
 ```java
@@ -344,7 +363,7 @@ DossieProdutoResource
           -> DossieProdutoGateway
               -> DossieProdutoClient
                   -> simtr-dossie-produto
-      -> DossieProdutoMapper.toVo(...)
+  -> DossieProdutoMapper.toVo(...)
   -> DossieProdutoMapper.toDto(...)
   -> DossieProdutoCriadoDto ou DossieProdutoDocumentoCriadoDto
 ```
@@ -388,6 +407,13 @@ HTTP POST /arvore-documento/v1/dossie-produto/{id}/documento
   -> DossieProdutoMockFactory
   -> DossieProdutoMapper
   -> resposta mockada com id_documento e id_instancia_documento
+
+HTTP POST /arvore-documento/v1/dossie-produto/{id}/workflow
+  -> DossieProdutoResource
+  -> DossieProdutoService
+  -> DossieProdutoMockFactory
+  -> DossieProdutoMapper
+  -> resposta mockada com id do dossie produto
 ```
 
 ### Fluxo com MTR real
@@ -437,6 +463,15 @@ HTTP POST /arvore-documento/v1/dossie-produto/{id}/documento
   -> POST /simtr/dossie-produto/v2/dossie-produto/{id}/documento
   -> DossieProdutoMapper
   -> resposta do SIMTR Hub com HTTP 201
+
+HTTP POST /arvore-documento/v1/dossie-produto/{id}/workflow
+  -> DossieProdutoResource
+  -> DossieProdutoService
+  -> DossieProdutoGateway
+  -> DossieProdutoClient
+  -> POST /simtr/dossie-produto/v1/dossie-produto/{id}/workflow
+  -> DossieProdutoMapper
+  -> resposta do SIMTR Hub com HTTP 200
 ```
 
 ## Pacotes
@@ -531,7 +566,7 @@ arvore-documento.simulador.dossie-produto.habilitado=false
 %dev.arvore-documento.simulador.dossie-produto.habilitado=true
 ```
 
-O REST Client de dossie produto usa base versionavel `@Path("/dossie-produto")`. As versoes ficam nos metodos (`/v1/dossie-produto...` e `/v2/dossie-produto...`) para manter um unico client do servico e permitir endpoints v1 e v2 sem duplicar `/simtr`.
+O REST Client de dossie produto usa base versionavel `@Path("/dossie-produto")`. As versoes ficam nos metodos (`/v1/dossie-produto...` e `/v2/dossie-produto...`) para manter um unico client do servico e permitir endpoints v1 e v2 sem duplicar `/simtr`. O workflow usa `POST /v1/dossie-produto/{id}/workflow` e nao recebe request body.
 
 Configuracao de observabilidade atual:
 
@@ -784,7 +819,7 @@ Exemplo ja versionado:
 
 ## Mock do dossie produto
 
-O simulador de dossie produto permite desenvolver os endpoints de criacao basica, inclusao ou edicao de respostas de formulario e inclusao de documento sem chamar o MTR real.
+O simulador de dossie produto permite desenvolver os endpoints de criacao basica, inclusao ou edicao de respostas de formulario, inclusao de documento e workflow sem chamar o MTR real.
 
 O simulador e controlado pela propriedade:
 
@@ -809,6 +844,7 @@ Os arquivos usados em runtime ficam em:
 src/main/resources/mock/dossieproduto/criacao-basica-dossie-produto.md
 src/main/resources/mock/dossieproduto/formulario-dossie-produto.md
 src/main/resources/mock/dossieproduto/documento-dossie-produto.md
+src/main/resources/mock/dossieproduto/workflow-dossie-produto.md
 ```
 
 As copias documentais ficam em:
@@ -817,6 +853,7 @@ As copias documentais ficam em:
 doc/mock/dossie-produto/criacao-basica-dossie-produto.md
 doc/mock/dossie-produto/formulario-dossie-produto.md
 doc/mock/dossie-produto/documento-dossie-produto.md
+doc/mock/dossie-produto/workflow-dossie-produto.md
 ```
 
 Cada arquivo documenta a chamada original e contem o corpo JSON retornado pelo MTR na secao:
@@ -825,7 +862,7 @@ Cada arquivo documenta a chamada original e contem o corpo JSON retornado pelo M
 ## dados do mock corpo do retorno json
 ```
 
-Resposta mockada atual para criacao e formulario:
+Resposta mockada atual para criacao, formulario e workflow:
 
 ```json
 {
@@ -1168,6 +1205,37 @@ Invoke-WebRequest `
 Get-Content -Tail 20 target/logs/arvore-documento.json
 ```
 
+### Testes, Mockito e JaCoCo
+
+A suite usa `quarkus-junit-mockito`/Mockito e `quarkus-jacoco`.
+
+Para evitar o auto-anexo dinamico do Mockito/Byte Buddy em JDKs recentes, o `pom.xml` configura:
+
+- `maven-dependency-plugin` copiando `org.mockito:mockito-core` resolvido pelo Maven para `target/test-agents/mockito-core.jar`;
+- `maven-surefire-plugin` iniciando a JVM de testes com `@{argLine} -javaagent:${project.build.directory}/test-agents/mockito-core.jar`;
+- propriedade vazia `<argLine></argLine>` para preservar compatibilidade com outros produtores de `argLine`.
+
+Essa configuracao substitui o self-attach dinamico do Mockito por agente Java carregado no startup da JVM de testes. Ela preserva `@InjectMock`, `quarkus-junit-mockito` e o relatorio do `quarkus-jacoco`.
+
+Validacao padrao:
+
+```powershell
+mvn -q test
+```
+
+Resultado esperado:
+
+- a suite passa;
+- `target/test-agents/mockito-core.jar` e gerado;
+- `target/jacoco-report/index.html` e gerado;
+- nao aparecem os warnings `Mockito is currently self-attaching...`, `A Java agent has been loaded dynamically` e `Dynamic loading of agents will be disallowed...`.
+
+O aviso abaixo pode aparecer mesmo com a solucao correta, porque ele esta relacionado ao class sharing da JVM com bootstrap classpath alterado por agente Java:
+
+```text
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+```
+
 ## Tratamento de erro
 
 O REST Client usa `@ClientExceptionMapper` para converter respostas HTTP de erro do MTR em excecoes controladas.
@@ -1258,6 +1326,9 @@ A observabilidade atual tem duas saidas sempre ativas e duas saidas opcionais:
 | API | `arvore-documento.api.dossie-produto.documento.incluir` |
 | Aplicacao | `arvore-documento.service.dossie-produto.documento.incluir` |
 | Integracao MTR | `mtr.dossie-produto.documento.incluir` |
+| API | `arvore-documento.api.dossie-produto.workflow.avancar` |
+| Aplicacao | `arvore-documento.service.dossie-produto.workflow.avancar` |
+| Integracao MTR | `mtr.dossie-produto.workflow.avancar` |
 
 Os spans de integracao MTR aparecem quando o simulador correspondente esta desabilitado.
 
@@ -1536,6 +1607,24 @@ Select-String `
 Essa correlacao funciona porque `ObservabilityLog` copia o contexto do span atual para o MDC, e o JSON logger escreve o MDC no console e no arquivo.
 
 ## Troubleshooting
+
+### Warning do Mockito sobre self-attach durante testes
+
+Se `mvn -q test` voltar a mostrar:
+
+```text
+Mockito is currently self-attaching...
+WARNING: A Java agent has been loaded dynamically
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+```
+
+Verifique primeiro o `pom.xml`:
+
+- `maven-dependency-plugin` deve copiar `org.mockito:mockito-core` para `target/test-agents/mockito-core.jar`;
+- `maven-surefire-plugin` deve conter `@{argLine} -javaagent:${project.build.directory}/test-agents/mockito-core.jar`;
+- `systemPropertyVariables` do Surefire deve continuar preservando `java.util.logging.manager=org.jboss.logmanager.LogManager`.
+
+Nao tratar esse caso com `-XX:+EnableDynamicAgentLoading` como solucao principal. Essa flag apenas reduz ruido do JDK e mantem o comportamento que sera restringido em versoes futuras.
 
 ### Como verificar erros internos
 

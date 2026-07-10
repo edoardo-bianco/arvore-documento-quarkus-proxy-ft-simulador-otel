@@ -94,6 +94,17 @@ class ResourceEndpointTest {
     }
 
     @Test
+    void dossieProdutoPostWorkflowRetorna200ComIdDoPath() {
+        given()
+                .accept(ContentType.JSON)
+                .when()
+                .post("/arvore-documento/v1/dossie-produto/{id}/workflow", 123L)
+                .then()
+                .statusCode(200)
+                .body("id", equalTo(123));
+    }
+
+    @Test
     void processoEndpointRetorna400ParaIdentificadorInvalido() {
         given()
                 .accept(ContentType.JSON)
@@ -125,6 +136,17 @@ class ResourceEndpointTest {
                 .body(TestFixtures.documentoInclusaoDto())
                 .when()
                 .post("/arvore-documento/v1/dossie-produto/{id}/documento", 0)
+                .then()
+                .statusCode(400)
+                .body("codigo_erro", equalTo("ARVDOCP0001"));
+    }
+
+    @Test
+    void dossieProdutoPostWorkflowRetorna400ParaIdInvalido() {
+        given()
+                .accept(ContentType.JSON)
+                .when()
+                .post("/arvore-documento/v1/dossie-produto/{id}/workflow", 0)
                 .then()
                 .statusCode(400)
                 .body("codigo_erro", equalTo("ARVDOCP0001"));

@@ -136,4 +136,21 @@ class ResourceBeanCoverageTest {
                 () -> dossieProdutoResource.incluirDocumentoDossieProduto(124L, TestFixtures.documentoInclusaoDto())
                         .await().indefinitely());
     }
+
+    @Test
+    void dossieProdutoResourceCobreWorkflowSucessoEFalhaDoBeanCdi() {
+        when(dossieProdutoService.iniciarOuAvancarWorkflowDossieProduto(123L))
+                .thenReturn(Uni.createFrom().item(new DossieProdutoCriadoVo(123L)));
+        when(dossieProdutoService.iniciarOuAvancarWorkflowDossieProduto(124L))
+                .thenReturn(Uni.createFrom().failure(new IllegalStateException("falha workflow")));
+
+        Response response = dossieProdutoResource.iniciarOuAvancarWorkflowDossieProduto(123L)
+                .await().indefinitely();
+
+        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+        assertEquals(123L, ((DossieProdutoCriadoDto) response.getEntity()).id());
+        assertThrows(IllegalStateException.class,
+                () -> dossieProdutoResource.iniciarOuAvancarWorkflowDossieProduto(124L)
+                        .await().indefinitely());
+    }
 }

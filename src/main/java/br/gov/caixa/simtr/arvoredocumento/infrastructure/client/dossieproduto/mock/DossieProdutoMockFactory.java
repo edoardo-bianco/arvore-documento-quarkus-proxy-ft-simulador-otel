@@ -20,6 +20,8 @@ public class DossieProdutoMockFactory {
             "mock/dossieproduto/formulario-dossie-produto.md";
     private static final String DOCUMENTO_MOCK_RESOURCE =
             "mock/dossieproduto/documento-dossie-produto.md";
+    private static final String WORKFLOW_MOCK_RESOURCE =
+            "mock/dossieproduto/workflow-dossie-produto.md";
 
     private final MarkdownJsonMockReader mockReader;
 
@@ -72,6 +74,23 @@ public class DossieProdutoMockFactory {
 
         if (resposta == null) {
             throw new IllegalStateException("Arquivo de mock nao encontrado no classpath: " + DOCUMENTO_MOCK_RESOURCE);
+        }
+
+        return resposta;
+    }
+
+    public DossieProdutoCriadoDto iniciarOuAvancarWorkflowDossieProdutoMock(Long id) {
+        DossieProdutoCriadoDto resposta = mockReader.readFirstJsonObject(
+                WORKFLOW_MOCK_RESOURCE,
+                DossieProdutoCriadoDto.class
+        );
+
+        if (resposta == null) {
+            throw new IllegalStateException("Arquivo de mock nao encontrado no classpath: " + WORKFLOW_MOCK_RESOURCE);
+        }
+
+        if (id != null) {
+            return new DossieProdutoCriadoDto(id);
         }
 
         return resposta;

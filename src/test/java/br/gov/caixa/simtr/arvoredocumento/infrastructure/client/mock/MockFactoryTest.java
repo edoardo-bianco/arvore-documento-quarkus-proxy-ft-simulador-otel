@@ -67,4 +67,13 @@ class MockFactoryTest {
         assertEquals(456L, resposta.idDocumento());
         assertEquals(789L, resposta.idInstanciaDocumento());
     }
+
+    @Test
+    void deveLerMockDeWorkflowDossieProdutoERetornarIdDoPath() {
+        DossieProdutoMockFactory factory = new DossieProdutoMockFactory(reader);
+
+        DossieProdutoCriadoDto resposta = factory.iniciarOuAvancarWorkflowDossieProdutoMock(123L);
+
+        assertEquals(123L, resposta.id());
+    }
 }

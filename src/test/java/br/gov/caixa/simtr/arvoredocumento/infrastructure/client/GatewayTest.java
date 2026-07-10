@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class GatewayTest {
 
     @Test
-    void dossieGatewayEncaminhaCriacaoFormularioEDocumentoParaClient() {
+    void dossieGatewayEncaminhaCriacaoFormularioDocumentoEWorkflowParaClient() {
         FakeDossieProdutoClient client = new FakeDossieProdutoClient();
         DossieProdutoGateway gateway = new DossieProdutoGateway(client);
 
@@ -47,16 +47,20 @@ class GatewayTest {
                         TestFixtures.documentoInclusaoDto()
                 )
                 .await().indefinitely();
+        DossieProdutoCriadoDto workflow = gateway.iniciarOuAvancarWorkflowDossieProduto(654L)
+                .await().indefinitely();
 
         assertEquals(99L, criacao.id());
         assertEquals(123L, formulario.id());
         assertEquals(456L, documento.idDocumento());
         assertEquals(789L, documento.idInstanciaDocumento());
+        assertEquals(654L, workflow.id());
         assertEquals(TestFixtures.dossieCriacaoDto().processo(), client.criacaoRecebida.processo());
         assertEquals(123L, client.idFormularioRecebido);
         assertEquals(3, client.formularioRecebido.size());
         assertEquals(321L, client.idDocumentoRecebido);
         assertEquals("RG", client.documentoRecebido.tipoDocumento());
+        assertEquals(654L, client.idWorkflowRecebido);
     }
 
     @Test
@@ -71,6 +75,8 @@ class GatewayTest {
                 () -> gateway.atualizarFormularioDossieProduto(123L, null).await().indefinitely()));
         assertSame(client.falha, assertThrows(IllegalStateException.class,
                 () -> gateway.incluirDocumentoDossieProduto(123L, null).await().indefinitely()));
+        assertSame(client.falha, assertThrows(IllegalStateException.class,
+                () -> gateway.iniciarOuAvancarWorkflowDossieProduto(123L).await().indefinitely()));
     }
 
     @Test
@@ -132,6 +138,7 @@ class GatewayTest {
         private List<DossieProdutoFormularioDto> formularioRecebido;
         private Long idDocumentoRecebido;
         private DossieProdutoDocumentoInclusaoDto documentoRecebido;
+        private Long idWorkflowRecebido;
         private RuntimeException falha;
 
         @Override
@@ -167,6 +174,15 @@ class GatewayTest {
                 return Uni.createFrom().failure(falha);
             }
             return Uni.createFrom().item(new DossieProdutoDocumentoCriadoDto(456L, 789L));
+        }
+
+        @Override
+        public Uni<DossieProdutoCriadoDto> iniciarOuAvancarWorkflowDossieProduto(Long id) {
+            idWorkflowRecebido = id;
+            if (falha != null) {
+                return Uni.createFrom().failure(falha);
+            }
+            return Uni.createFrom().item(new DossieProdutoCriadoDto(id));
         }
     }
 

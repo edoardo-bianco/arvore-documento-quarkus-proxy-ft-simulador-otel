@@ -124,10 +124,39 @@ class DossieProdutoServiceTest {
         assertFalse(mockFactory.documentoChamada);
     }
 
+    @Test
+    void workflowComSimuladorHabilitadoUsaMockFactory() {
+        FakeDossieGateway gateway = new FakeDossieGateway();
+        FakeDossieMockFactory mockFactory = new FakeDossieMockFactory();
+        DossieProdutoService service = new DossieProdutoService(gateway, mockFactory, mapper, true);
+
+        var resposta = service.iniciarOuAvancarWorkflowDossieProduto(123L)
+                .await().indefinitely();
+
+        assertEquals(123L, resposta.id());
+        assertTrue(mockFactory.workflowChamada);
+        assertFalse(gateway.workflowChamada);
+    }
+
+    @Test
+    void workflowComSimuladorDesabilitadoUsaGateway() {
+        FakeDossieGateway gateway = new FakeDossieGateway();
+        FakeDossieMockFactory mockFactory = new FakeDossieMockFactory();
+        DossieProdutoService service = new DossieProdutoService(gateway, mockFactory, mapper, false);
+
+        var resposta = service.iniciarOuAvancarWorkflowDossieProduto(123L)
+                .await().indefinitely();
+
+        assertEquals(9L, resposta.id());
+        assertTrue(gateway.workflowChamada);
+        assertFalse(mockFactory.workflowChamada);
+    }
+
     private static class FakeDossieGateway extends DossieProdutoGateway {
         private boolean criacaoChamada;
         private boolean formularioChamada;
         private boolean documentoChamada;
+        private boolean workflowChamada;
 
         private FakeDossieGateway() {
             super(null);
@@ -156,12 +185,19 @@ class DossieProdutoServiceTest {
             documentoChamada = true;
             return Uni.createFrom().item(new DossieProdutoDocumentoCriadoDto(7L, 8L));
         }
+
+        @Override
+        public Uni<DossieProdutoCriadoDto> iniciarOuAvancarWorkflowDossieProduto(Long id) {
+            workflowChamada = true;
+            return Uni.createFrom().item(new DossieProdutoCriadoDto(9L));
+        }
     }
 
     private static class FakeDossieMockFactory extends DossieProdutoMockFactory {
         private boolean criacaoChamada;
         private boolean formularioChamada;
         private boolean documentoChamada;
+        private boolean workflowChamada;
 
         private FakeDossieMockFactory() {
             super(null);
@@ -189,6 +225,12 @@ class DossieProdutoServiceTest {
         ) {
             documentoChamada = true;
             return new DossieProdutoDocumentoCriadoDto(5L, 6L);
+        }
+
+        @Override
+        public DossieProdutoCriadoDto iniciarOuAvancarWorkflowDossieProdutoMock(Long id) {
+            workflowChamada = true;
+            return new DossieProdutoCriadoDto(id);
         }
     }
 }

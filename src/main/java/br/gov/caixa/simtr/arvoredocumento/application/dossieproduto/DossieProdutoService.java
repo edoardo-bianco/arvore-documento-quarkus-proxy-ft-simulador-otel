@@ -342,6 +342,86 @@ public class DossieProdutoService {
         return dossieProdutoGateway.incluirDocumentoDossieProduto(id, requisicaoDto);
     }
 
+    @WithSpan("arvore-documento.service.dossie-produto.workflow.avancar")
+    public Uni<DossieProdutoCriadoVo> iniciarOuAvancarWorkflowDossieProduto(Long id) {
+        Span span = Span.current();
+        span.setAttribute("arvore_documento.simulador_dossie_produto_habilitado", simuladorDossieProdutoHabilitado);
+        setLongAttribute(span, "dossie_produto.id", id);
+
+        ObservabilityLog.info(
+                LOG,
+                "arvore-documento.dossie-produto.workflow.service.iniciado",
+                ObservabilityLog.fields(
+                        "camada", "application",
+                        "componente", "DossieProdutoService",
+                        "operacao", "iniciar-ou-avancar-workflow-dossie-produto",
+                        "dossie_produto_id", id,
+                        "simulador_habilitado", simuladorDossieProdutoHabilitado
+                )
+        );
+
+        return iniciarOuAvancarWorkflowDossieProdutoNoMtrOuSimulador(id)
+                .map(dossieProdutoMapper::toVo)
+                .invoke(resposta -> {
+                    if (resposta != null && resposta.id() != null) {
+                        span.setAttribute("dossie_produto.workflow.id_resposta", resposta.id());
+                    }
+
+                    ObservabilityLog.info(
+                            LOG,
+                            "arvore-documento.dossie-produto.workflow.service.concluido",
+                            ObservabilityLog.fields(
+                                    "camada", "application",
+                                    "componente", "DossieProdutoService",
+                                    "operacao", "iniciar-ou-avancar-workflow-dossie-produto",
+                                    "dossie_produto_id", id,
+                                    "dossie_produto_id_resposta", resposta != null ? resposta.id() : null,
+                                    "resultado", "sucesso"
+                            )
+                    );
+                })
+                .onFailure().invoke(erro -> {
+                    span.recordException(erro);
+                    span.setStatus(StatusCode.ERROR, String.valueOf(erro.getMessage()));
+
+                    ObservabilityLog.error(
+                            LOG,
+                            "arvore-documento.dossie-produto.workflow.service.falhou",
+                            erro,
+                            ObservabilityLog.fields(
+                                    "camada", "application",
+                                    "componente", "DossieProdutoService",
+                                    "operacao", "iniciar-ou-avancar-workflow-dossie-produto",
+                                    "dossie_produto_id", id,
+                                    "erro_tipo", erro.getClass().getSimpleName(),
+                                    "resultado", "erro"
+                            )
+                    );
+                });
+    }
+
+    private Uni<DossieProdutoCriadoDto> iniciarOuAvancarWorkflowDossieProdutoNoMtrOuSimulador(Long id) {
+        if (simuladorDossieProdutoHabilitado) {
+            ObservabilityLog.info(
+                    LOG,
+                    "arvore-documento.dossie-produto.workflow.simulador.usado",
+                    ObservabilityLog.fields(
+                            "camada", "application",
+                            "componente", "DossieProdutoService",
+                            "operacao", "iniciar-ou-avancar-workflow-dossie-produto",
+                            "dossie_produto_id", id,
+                            "origem", "mock"
+                    )
+            );
+
+            Span.current().setAttribute("arvore_documento.origem_dados", "mock");
+            return Uni.createFrom().item(dossieProdutoMockFactory.iniciarOuAvancarWorkflowDossieProdutoMock(id));
+        }
+
+        Span.current().setAttribute("arvore_documento.origem_dados", "mtr");
+        return dossieProdutoGateway.iniciarOuAvancarWorkflowDossieProduto(id);
+    }
+
     private static Long processo(DossieProdutoCriacaoVo requisicao) {
         return requisicao != null ? requisicao.processo() : null;
     }

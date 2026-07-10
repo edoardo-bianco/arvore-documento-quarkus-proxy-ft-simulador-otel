@@ -159,6 +159,43 @@ public interface DossieProdutoClient {
             DossieProdutoDocumentoInclusaoDto requisicao
     );
 
+    @POST
+    @Path("/v1/dossie-produto/{id}/workflow")
+    @Timeout(value = 2_000, unit = ChronoUnit.MILLIS)
+    @Retry(
+            maxRetries = 3,
+            delay = 300,
+            delayUnit = ChronoUnit.MILLIS,
+            jitter = 100,
+            jitterDelayUnit = ChronoUnit.MILLIS,
+            retryOn = {
+                    MtrServerErrorException.class,
+                    ProcessingException.class,
+                    TimeoutException.class
+            },
+            abortOn = {
+                    MtrBusinessErrorException.class,
+                    MtrClientTechnicalException.class
+            }
+    )
+    @CircuitBreaker(
+            requestVolumeThreshold = 10,
+            failureRatio = 0.5,
+            delay = 10_000,
+            delayUnit = ChronoUnit.MILLIS,
+            successThreshold = 2,
+            failOn = {
+                    MtrServerErrorException.class,
+                    ProcessingException.class,
+                    TimeoutException.class
+            },
+            skipOn = {
+                    MtrBusinessErrorException.class,
+                    MtrClientTechnicalException.class
+            }
+    )
+    Uni<DossieProdutoCriadoDto> iniciarOuAvancarWorkflowDossieProduto(@PathParam("id") Long id);
+
     @ClientExceptionMapper
     static RuntimeException toException(Response response) {
         return DossieProdutoClientExceptionMapper.toException(response);

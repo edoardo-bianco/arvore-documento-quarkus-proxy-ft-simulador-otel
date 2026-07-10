@@ -75,6 +75,7 @@ GET /arvore-documento/v1/checklist/identificador-negocial/{identificador}/versao
 POST /arvore-documento/v1/dossie-produto
 PATCH /arvore-documento/v1/dossie-produto/{id}/formulario
 POST /arvore-documento/v1/dossie-produto/{id}/documento
+POST /arvore-documento/v1/dossie-produto/{id}/workflow
 ```
 
 Esses endpoints cobrem:
@@ -84,6 +85,7 @@ Esses endpoints cobrem:
 - criacao basica de Dossie Produto em modo rascunho;
 - inclusao ou edicao de respostas de formulario no Dossie Produto.
 - inclusao de documento no Dossie Produto com retorno de `id_documento` e `id_instancia_documento`.
+- inicio ou avanco do workflow do Dossie Produto com retorno do `id` do dossie.
 
 Tambem foi consolidada a migracao dos mappers para MapStruct:
 
@@ -120,7 +122,7 @@ Resultado: suite passou apos a migracao de `DossieProdutoMapper` e passou novame
 | Dossie Produto | `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/garantia` | `PATCH /arvore-documento/v1/dossie-produto/{id}/garantia` | Pendente | Proximo endpoint candidato. |
 | Dossie Produto | `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/produto` | `PATCH /arvore-documento/v1/dossie-produto/{id}/produto` | Pendente | Implementar em passo separado. |
 | Dossie Produto | `POST /simtr-dossie-produto/v1/dossie-produto/{id}/capturar` | `POST /arvore-documento/v1/dossie-produto/{id}/capturar` | Pendente | Implementar em passo separado. |
-| Dossie Produto | `POST /simtr-dossie-produto/v1/dossie-produto/{id}/workflow` | `POST /arvore-documento/v1/dossie-produto/{id}/workflow` | Pendente | Implementar em passo separado. |
+| Dossie Produto | `POST /simtr-dossie-produto/v1/dossie-produto/{id}/workflow` | `POST /arvore-documento/v1/dossie-produto/{id}/workflow` | Implementado | Sem corpo de requisicao; retorna `200 OK` com `{ "id": ... }`. |
 | Dossie Produto | `POST /simtr-dossie-produto/v1/dossie-produto/{id}/cancelar` | `POST /arvore-documento/v1/dossie-produto/{id}/cancelar` | Pendente | Implementar em passo separado. |
 | Dossie Produto | `GET /simtr-dossie-produto/v2/dossie-produto/{id}` | `GET /arvore-documento/v1/dossie-produto/{id}` | Pendente | Confirmar contrato externo do hub antes de implementar. |
 | Dossie Produto | `POST /simtr-dossie-produto/v2/dossie-produto/{id}/documento` | `POST /arvore-documento/v1/dossie-produto/{id}/documento` | Implementado | Vincula documento ja armazenado ao Dossie Produto e retorna `id_documento` e `id_instancia_documento`. |
@@ -282,6 +284,7 @@ As versoes do servico ficam nos paths dos metodos do client:
 POST /v1/dossie-produto
 PATCH /v1/dossie-produto/{id}/formulario
 POST /v2/dossie-produto/{id}/documento
+POST /v1/dossie-produto/{id}/workflow
 ```
 
 No `application.properties`, a URL ja inclui `/simtr`:
@@ -402,9 +405,19 @@ Nao deixar implementacao sem planejamento aprovado, sem teste, sem atualizacao d
 
 Antes de qualquer nova implementacao, registrar o plano em um Markdown proprio e aguardar revisao do usuario.
 
+Regra operacional obrigatoria:
+
+1. Criar ou atualizar um arquivo `doc/planejamento-*.md` antes de qualquer alteracao de codigo de implementacao.
+2. Registrar o planejamento nesta secao com status claro.
+3. Perguntar explicitamente ao usuario se o plano foi revisado e aprovado.
+4. Somente iniciar alteracoes de codigo apos aprovacao explicita do usuario.
+5. Se o plano mudar durante a implementacao, atualizar o Markdown e registrar a decisao neste espaco colaborativo.
+
 Planejamentos registrados:
 
 - `doc/planejamento-dossie-produto-documento-v2.md` - `POST /simtr-dossie-produto/v2/dossie-produto/{id}/documento` para vincular documento ao Dossie Produto e retornar `id_documento` e `id_instancia_documento`. Revisado, aprovado e implementado em 2026-07-10.
+- `doc/planejamento-dossie-produto-workflow-v1.md` - `POST /simtr-dossie-produto/v1/dossie-produto/{id}/workflow` para iniciar ou avancar o fluxo de um Dossie Produto. Revisado, aprovado e implementado em 2026-07-10.
+- `doc/planejamento-ajuste-mockito-java-agent.md` - ajuste do build de testes para configurar Mockito como Java agent no Surefire e evitar auto-anexo dinamico do Byte Buddy. Revisado, aprovado e implementado em 2026-07-10.
 
 ## Padrao para adicionar novo endpoint de Dossie Produto
 
@@ -638,6 +651,111 @@ Decisoes:
 Pendencias:
 - Implementar os demais endpoints pendentes da matriz em ciclos separados.
 
+### 2026-07-10 - Codex - POST workflow Dossie Produto v1
+
+Objetivo:
+- Implementar `POST /arvore-documento/v1/dossie-produto/{id}/workflow` como proxy do `POST /simtr-dossie-produto/v1/dossie-produto/{id}/workflow`.
+
+Planejamento:
+- `doc/planejamento-dossie-produto-workflow-v1.md` criado, revisado e aprovado pelo usuario antes da implementacao.
+- Usuario confirmou a criacao da copia documental do mock em `doc/mock/dossie-produto/workflow-dossie-produto.md`.
+- Usuario confirmou retorno `200 OK` com corpo `{ "id": ... }`, seguindo o OpenAPI.
+
+Feito:
+- Adicionado endpoint HTTP `POST /arvore-documento/v1/dossie-produto/{id}/workflow`.
+- Adicionado metodo v1 no `DossieProdutoClient` para chamar `/dossie-produto/v1/dossie-produto/{id}/workflow`.
+- `DossieProdutoGateway`, `DossieProdutoService` e `DossieProdutoResource` atualizados com fluxo vertical completo.
+- `DossieProdutoMockFactory` atualizado para retornar workflow mockado.
+- Mock runtime e copia documental adicionados para workflow.
+- Endpoint configurado com `@Consumes(MediaType.WILDCARD)` para aceitar chamada sem corpo e sem `Content-Type`.
+- Testes de resource, service, gateway, mock factory e bean coverage adicionados/ajustados.
+
+Arquivos alterados:
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dossieproduto/DossieProdutoResource.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/application/dossieproduto/DossieProdutoService.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoClient.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/DossieProdutoGateway.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/dossieproduto/mock/DossieProdutoMockFactory.java`
+- `src/main/resources/mock/dossieproduto/workflow-dossie-produto.md`
+- `doc/mock/dossie-produto/workflow-dossie-produto.md`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceEndpointTest.java`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceBeanCoverageTest.java`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/application/dossieproduto/DossieProdutoServiceTest.java`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/GatewayTest.java`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/mock/MockFactoryTest.java`
+- `doc/planejamento-dossie-produto-workflow-v1.md`
+- `doc/espaco-colaborativo-de-desenvolvimento.md`
+- `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`
+
+Testes criados/ajustados:
+- Endpoint HTTP 200 para workflow sem corpo e sem `Content-Type`.
+- Endpoint HTTP 400 para `id` invalido.
+- Service selecionando mock ou gateway conforme simulador.
+- Gateway encaminhando `id` para client e propagando falhas.
+- Mock factory lendo `workflow-dossie-produto.md`.
+- Bean coverage cobrindo sucesso/falha do resource.
+
+Comandos executados:
+- `mvn -q test`
+
+Resultado dos testes:
+- Primeira execucao falhou com HTTP 415 no workflow sem `Content-Type`.
+- Ajustado `@Consumes(MediaType.WILDCARD)` no metodo de workflow.
+- Segunda execucao passou.
+
+Cobertura:
+- Relatorio gerado pelo `quarkus-jacoco` em `target/jacoco-report/index.html`.
+
+Decisoes:
+- O endpoint de workflow nao cria DTO/VO novo de request porque nao recebe corpo.
+- O retorno reutiliza `DossieProdutoCriadoDto` e `DossieProdutoCriadoVo`, pois o OpenAPI define resposta simples `{ "id": ... }`.
+- O status de sucesso do Hub e `200 OK`, nao `201 Created`.
+- O metodo do resource aceita chamada sem corpo e sem `Content-Type` por ser endpoint sem request body.
+
+Pendencias:
+- Implementar os demais endpoints pendentes da matriz em ciclos separados.
+
+### 2026-07-10 - Codex - Ajuste Mockito Java Agent nos testes
+
+Objetivo:
+- Resolver os warnings de auto-anexo dinamico do Mockito/Byte Buddy durante `mvn -q test` e preparar a suite para JDKs futuros.
+
+Planejamento:
+- `doc/planejamento-ajuste-mockito-java-agent.md` criado, revisado e aprovado pelo usuario antes da implementacao.
+- Usuario confirmou seguir com a solucao proposta baseada em configurar Mockito como Java agent no Surefire.
+
+Feito:
+- Adicionada propriedade vazia `<argLine></argLine>` no `pom.xml`.
+- Adicionado `maven-dependency-plugin` para copiar `org.mockito:mockito-core` resolvido pelo Maven para `target/test-agents/mockito-core.jar`.
+- Atualizado `maven-surefire-plugin` para iniciar a JVM de testes com `@{argLine} -javaagent:${project.build.directory}/test-agents/mockito-core.jar`.
+- Preservada a configuracao existente de `java.util.logging.manager` no Surefire.
+- Documentacao consolidada atualizada com a motivacao e o troubleshooting do ajuste.
+
+Arquivos alterados:
+- `pom.xml`
+- `doc/planejamento-ajuste-mockito-java-agent.md`
+- `doc/espaco-colaborativo-de-desenvolvimento.md`
+- `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`
+
+Comandos executados:
+- `mvn -q test`
+
+Resultado dos testes:
+- Suite passou.
+- Os warnings `Mockito is currently self-attaching...`, `A Java agent has been loaded dynamically` e `Dynamic loading of agents will be disallowed...` nao apareceram na execucao validada.
+- O aviso `OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended` ainda pode aparecer; ele e diferente do auto-anexo dinamico e pode ocorrer com agente Java carregado no startup.
+
+Cobertura:
+- Relatorio gerado pelo `quarkus-jacoco` em `target/jacoco-report/index.html`.
+
+Decisoes:
+- A regra "nao adicionar `argLine` no Surefire sem decisao explicita" foi satisfeita pela aprovacao do usuario neste planejamento.
+- Nao usar `-XX:+EnableDynamicAgentLoading`, porque isso apenas esconderia parte do aviso e manteria o auto-anexo dinamico.
+- Nao hardcodar caminho do jar no repositorio Maven local; o build copia o jar resolvido para `target/test-agents`.
+
+Pendencias:
+- Nenhuma pendencia neste ajuste. Se o warning de auto-anexo voltar, revisar `pom.xml`, a copia de `mockito-core.jar` e a configuracao de `argLine` do Surefire.
+
 ### Template para proximos registros
 
 ```text
@@ -719,13 +837,23 @@ src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceBeanCoverageTest.ja
 
 ## Warnings conhecidos
 
-O warning abaixo pode aparecer durante testes:
+O warning abaixo foi tratado em 2026-07-10 configurando Mockito como Java agent no Surefire:
 
 ```text
 Mockito is currently self-attaching...
 ```
 
-Ele nao esta relacionado a encoding, MapStruct ou JaCoCo.
+Ele nao esta relacionado a encoding, MapStruct ou JaCoCo. Se voltar a aparecer, verificar:
+
+- `pom.xml`, principalmente `maven-dependency-plugin` copiando `mockito-core.jar`;
+- `maven-surefire-plugin` com `@{argLine} -javaagent:${project.build.directory}/test-agents/mockito-core.jar`;
+- existencia de `target/test-agents/mockito-core.jar` apos a fase `process-test-classes`.
+
+O aviso abaixo ainda pode aparecer com agente Java carregado no startup e nao indica auto-anexo dinamico do Mockito:
+
+```text
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+```
 
 Se texto com acento aparecer quebrado no console, validar primeiro o arquivo:
 

@@ -421,6 +421,114 @@ public class DossieProdutoResource {
                 });
     }
 
+    @POST
+    @Path("/{id}/workflow")
+    @Consumes(MediaType.WILDCARD)
+    @WithSpan(value = "arvore-documento.api.dossie-produto.workflow.avancar", kind = SpanKind.SERVER)
+    @Operation(
+            summary = "Inicia ou avança o workflow do dossiê de produto",
+            description = "Recebe a chamada no contrato do arvore-documento, aciona o serviço de aplicação e inicia ou avança o fluxo do dossiê de produto no simtr-dossie-produto v1."
+    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "200",
+                    description = "Fluxo iniciado ou avançado com sucesso.",
+                    content = @Content(schema = @Schema(implementation = DossieProdutoCriadoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "400",
+                    description = "Requisição inválida.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "401",
+                    description = "Não autorizado.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "403",
+                    description = "Canal ou usuário sem permissão.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "404",
+                    description = "Parâmetro não localizado para o avanço de fluxo no Dossiê de Produto.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "409",
+                    description = "Conflito ao processar a requisição.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            ),
+            @APIResponse(
+                    responseCode = "500",
+                    description = "Erro interno.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            )
+    })
+    public Uni<Response> iniciarOuAvancarWorkflowDossieProduto(
+            @PathParam("id")
+            @NotNull(message = "O identificador do dossie produto deve ser informado.")
+            @Min(value = 1, message = "O identificador do dossie produto deve ser maior que zero.")
+            Long id) {
+
+        Span span = Span.current();
+        span.setAttribute("http.route", "/arvore-documento/v1/dossie-produto/{id}/workflow");
+        span.setAttribute("arvore_documento.api", "dossie-produto-v1");
+        setLongAttribute(span, "dossie_produto.id", id);
+
+        ObservabilityLog.info(
+                LOG,
+                "arvore-documento.dossie-produto.workflow.requisicao.recebida",
+                ObservabilityLog.fields(
+                        "camada", "api",
+                        "componente", "DossieProdutoResource",
+                        "operacao", "iniciar-ou-avancar-workflow-dossie-produto",
+                        "dossie_produto_id", id
+                )
+        );
+
+        return dossieProdutoService.iniciarOuAvancarWorkflowDossieProduto(id)
+                .map(dossieProdutoMapper::toDto)
+                .invoke(resposta -> {
+                    if (resposta != null && resposta.id() != null) {
+                        span.setAttribute("dossie_produto.workflow.id_resposta", resposta.id());
+                    }
+
+                    ObservabilityLog.info(
+                            LOG,
+                            "arvore-documento.dossie-produto.workflow.resposta.enviada",
+                            ObservabilityLog.fields(
+                                    "camada", "api",
+                                    "componente", "DossieProdutoResource",
+                                    "operacao", "iniciar-ou-avancar-workflow-dossie-produto",
+                                    "dossie_produto_id", id,
+                                    "dossie_produto_id_resposta", resposta != null ? resposta.id() : null,
+                                    "resultado", "sucesso"
+                            )
+                    );
+                })
+                .map(resposta -> Response.ok(resposta).build())
+                .onFailure().invoke(erro -> {
+                    span.recordException(erro);
+                    span.setStatus(StatusCode.ERROR, String.valueOf(erro.getMessage()));
+
+                    ObservabilityLog.error(
+                            LOG,
+                            "arvore-documento.dossie-produto.workflow.requisicao.falhou",
+                            erro,
+                            ObservabilityLog.fields(
+                                    "camada", "api",
+                                    "componente", "DossieProdutoResource",
+                                    "operacao", "iniciar-ou-avancar-workflow-dossie-produto",
+                                    "dossie_produto_id", id,
+                                    "erro_tipo", erro.getClass().getSimpleName(),
+                                    "resultado", "erro"
+                            )
+                    );
+                });
+    }
+
     private static Long processo(DossieProdutoCriacaoDto requisicao) {
         return requisicao != null ? requisicao.processo() : null;
     }
