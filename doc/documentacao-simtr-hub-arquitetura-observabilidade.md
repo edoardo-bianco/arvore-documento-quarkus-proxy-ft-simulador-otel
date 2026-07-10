@@ -4,12 +4,14 @@
 
 - [Objetivo](#objetivo)
 - [Cenario de uso](#cenario-de-uso)
+- [Procedimento de implementacao](#procedimento-de-implementacao)
 - [Contrato exposto](#contrato-exposto)
 - [Arquitetura](#arquitetura)
 - [Pacotes](#pacotes)
 - [Configuracao atual](#configuracao-atual)
 - [Mock da parametrizacao](#mock-da-parametrizacao)
 - [Mock do dossie produto](#mock-do-dossie-produto)
+- [Mock da gestao de documentos](#mock-da-gestao-de-documentos)
 - [Como chamar o MTR real em dev mode](#como-chamar-o-mtr-real-em-dev-mode)
 - [Perfis de observabilidade](#perfis-de-observabilidade)
 - [Execucao local](#execucao-local)
@@ -25,7 +27,7 @@
 
 ## Objetivo
 
-O `SIMTR Hub` e um microsservico Quarkus criado para atuar como proxy/adapter entre consumidores internos e servicos MTR, iniciando por parametrizacao e dossie produto.
+O `SIMTR Hub` e um microsservico Quarkus criado para atuar como proxy/adapter entre consumidores internos e servicos MTR, iniciando por parametrizacao, dossie produto e Gestao de Documentos.
 
 O projeto nao faz apenas repasse HTTP. Ele cria uma fronteira controlada para:
 
@@ -83,6 +85,28 @@ Beneficios praticos:
 - falhas recorrentes podem abrir circuit breaker;
 - chamadas locais podem usar mock em dev mode;
 - logs e traces permitem reconstruir a execucao completa.
+
+## Procedimento de implementacao
+
+Toda nova implementacao de endpoint ou incremento funcional deve comecar por um arquivo Markdown de planejamento em `doc/planejamento-*.md`.
+
+O planejamento deve registrar objetivo, fontes consultadas, contrato MTR, endpoint exposto pelo `SIMTR Hub`, decisoes tecnicas propostas, arquivos previstos, testes previstos, riscos, pendencias e criterios de aceite. Depois de criar ou atualizar o planejamento, o agente deve perguntar explicitamente ao usuario se o plano foi revisado e aprovado.
+
+Nao iniciar alteracoes de codigo de implementacao antes da aprovacao explicita do usuario.
+
+Para o Modulo Gestao de Documentos, a fonte tecnica obrigatoria e:
+
+```text
+doc/swagger-mtr/simtr-gestao-documento-openapi-2.23.1.0
+```
+
+O planejamento atual para a credencial SAS de container e:
+
+```text
+doc/planejamento-gestao-documento-credencial-container-v1.md
+```
+
+Status: revisado, aprovado e implementado em 2026-07-10.
 
 ## Contrato exposto
 
@@ -355,6 +379,29 @@ Parametro:
 @Min(value = 1, message = "O identificador negocial deve ser maior que zero.")
 ```
 
+### Gestao de Documentos - credencial de container
+
+```http
+POST http://localhost:8080/arvore-documento/v1/storage/container/credencial
+Accept: application/json
+```
+
+Contrato MTR de referencia:
+
+```http
+POST /simtr-gestao-documento/v1/storage/container/credencial
+```
+
+Fonte tecnica obrigatoria:
+
+```text
+doc/swagger-mtr/simtr-gestao-documento-openapi-2.23.1.0
+```
+
+Esse endpoint nao recebe corpo de requisicao e aceita chamada sem `Content-Type`. A resposta de sucesso e `200 OK` com `sas`, `validade`, `url_storage` e, quando retornado pelo MTR, `nome_container`.
+
+O campo `sas` e credencial sensivel e nao deve ser exposto em logs de aplicacao. O filtro de observabilidade dos REST Clients mascara `sas` e outros campos sensiveis antes de registrar payloads em logs ou spans.
+
 ### Swagger UI
 
 ```http
@@ -427,6 +474,18 @@ DossieProdutoResource
   -> DossieProdutoMapper.toVo(...)
   -> DossieProdutoMapper.toDto(...)
   -> DossieProdutoCriadoDto, DossieProdutoDocumentoCriadoDto ou resposta sem corpo
+
+GestaoDocumentoResource
+  -> GestaoDocumentoService
+      -> se simulador=true
+          -> GestaoDocumentoMockFactory
+      -> se simulador=false
+          -> GestaoDocumentoGateway
+              -> GestaoDocumentoClient
+                  -> simtr-gestao-documento
+  -> GestaoDocumentoMapper.toVo(...)
+  -> GestaoDocumentoMapper.toDto(...)
+  -> GestaoDocumentoCredencialContainerDto
 ```
 
 O fluxo `DTO -> VO -> DTO` e proposital. Mesmo que o contrato atual seja parecido com o retorno do MTR, o VO cria uma fronteira para regras futuras, enriquecimento e adaptacao de contrato.
@@ -482,6 +541,13 @@ HTTP POST /arvore-documento/v1/dossie-produto/{id}/workflow
   -> DossieProdutoMockFactory
   -> DossieProdutoMapper
   -> resposta mockada com id do dossie produto
+
+HTTP POST /arvore-documento/v1/storage/container/credencial
+  -> GestaoDocumentoResource
+  -> GestaoDocumentoService
+  -> GestaoDocumentoMockFactory
+  -> GestaoDocumentoMapper
+  -> resposta mockada com credencial SAS
 ```
 
 ### Fluxo com MTR real
@@ -548,6 +614,15 @@ HTTP POST /arvore-documento/v1/dossie-produto/{id}/workflow
   -> POST /simtr/dossie-produto/v1/dossie-produto/{id}/workflow
   -> DossieProdutoMapper
   -> resposta do SIMTR Hub com HTTP 200
+
+HTTP POST /arvore-documento/v1/storage/container/credencial
+  -> GestaoDocumentoResource
+  -> GestaoDocumentoService
+  -> GestaoDocumentoGateway
+  -> GestaoDocumentoClient
+  -> POST /simtr/gestao-documento/v1/storage/container/credencial
+  -> GestaoDocumentoMapper
+  -> resposta do SIMTR Hub com HTTP 200
 ```
 
 ## Pacotes
@@ -559,25 +634,31 @@ br.gov.caixa.simtr.arvoredocumento
 |   |-- dto
 |   |   |-- erro
 |   |   |-- dossieproduto
+|   |   |-- gestaodocumento
 |   |   |-- parametrizacao.checklist
 |   |   `-- parametrizacao.processo
 |   |-- exception
 |   |-- dossieproduto
+|   |-- gestaodocumento
 |   `-- parametrizacao
 |-- application
 |   |-- dossieproduto
+|   |-- gestaodocumento
 |   `-- parametrizacao
 |-- domain
 |   |-- dossieproduto
+|   |-- gestaodocumento
 |   |-- parametrizacao.checklist
 |   `-- parametrizacao.processo
 |-- infrastructure
 |   `-- client
 |       |-- dossieproduto
+|       |-- gestaodocumento
 |       |-- mock
 |       `-- parametrizacao
 |-- mapper
 |   |-- dossieproduto
+|   |-- gestaodocumento
 |   `-- parametrizacao
 `-- shared
     |-- exception
@@ -588,18 +669,23 @@ br.gov.caixa.simtr.arvoredocumento
 |---|---|
 | `api.parametrizacao` | Endpoint REST exposto pelo `SIMTR Hub` |
 | `api.dossieproduto` | Endpoint REST de negocio para dossies produto |
+| `api.gestaodocumento` | Endpoint REST para credencial de storage do Modulo Gestao de Documentos |
 | `api.dev` | Redirect de `/` para Dev UI em dev mode |
 | `api.dto` | Contratos REST de sucesso e erro |
 | `api.exception` | Conversao de excecoes para resposta HTTP |
 | `application.parametrizacao` | Caso de uso e escolha entre simulador e MTR |
 | `application.dossieproduto` | Caso de uso de dossie produto e escolha entre simulador e MTR |
+| `application.gestaodocumento` | Caso de uso de Gestao de Documentos e escolha entre simulador e MTR |
 | `domain.parametrizacao.processo` | Modelo interno em VOs |
 | `domain.dossieproduto` | Modelo interno em VOs para dossie produto |
+| `domain.gestaodocumento` | Modelo interno em VOs para Gestao de Documentos |
 | `infrastructure.client.parametrizacao` | Gateway e REST Client do MTR |
 | `infrastructure.client.dossieproduto` | Gateway e REST Client do `simtr-dossie-produto` |
+| `infrastructure.client.gestaodocumento` | Gateway e REST Client do `simtr-gestao-documento` |
 | `infrastructure.client.mock` | Leitor comum de mocks em Markdown com corpo JSON |
 | `mapper.parametrizacao` | Conversao DTO/VO |
 | `mapper.dossieproduto` | Conversao DTO/VO de dossie produto |
+| `mapper.gestaodocumento` | Conversao DTO/VO de Gestao de Documentos |
 | `shared.observability` | Logs estruturados com contexto de trace |
 
 ## Configuracao atual
@@ -634,15 +720,23 @@ quarkus.rest-client.dossie-produto.url=https://api.des.caixa:8443/simtr
 quarkus.rest-client.dossie-produto.connect-timeout=3000
 quarkus.rest-client.dossie-produto.read-timeout=10000
 
+quarkus.rest-client.gestao-documento.url=https://api.des.caixa:8443/simtr
+quarkus.rest-client.gestao-documento.connect-timeout=3000
+quarkus.rest-client.gestao-documento.read-timeout=10000
+
 arvore-documento.simulador.parametrizacao-processo.habilitado=false
 %dev.arvore-documento.simulador.parametrizacao-processo.habilitado=true
 arvore-documento.simulador.parametrizacao-checklist.habilitado=false
 %dev.arvore-documento.simulador.parametrizacao-checklist.habilitado=true
 arvore-documento.simulador.dossie-produto.habilitado=false
 %dev.arvore-documento.simulador.dossie-produto.habilitado=true
+arvore-documento.simulador.gestao-documento.habilitado=false
+%dev.arvore-documento.simulador.gestao-documento.habilitado=true
 ```
 
 O REST Client de dossie produto usa base versionavel `@Path("/dossie-produto")`. As versoes ficam nos metodos (`/v1/dossie-produto...` e `/v2/dossie-produto...`) para manter um unico client do servico e permitir endpoints v1 e v2 sem duplicar `/simtr`. A validacao negocial usa `PATCH /v1/dossie-produto/{id}/validacao-negocial` e retorna sucesso sem corpo. O workflow usa `POST /v1/dossie-produto/{id}/workflow` e nao recebe request body.
+
+O REST Client de Gestao de Documentos usa `@Path("/gestao-documento")` e URL base `https://api.des.caixa:8443/simtr`, chamando o MTR via `/simtr/gestao-documento/v1/storage/container/credencial`, sem duplicar `/simtr`.
 
 Configuracao de observabilidade atual:
 
@@ -704,6 +798,7 @@ Em ambiente real, configure a URL do MTR por variavel de ambiente:
 export QUARKUS_REST_CLIENT_PARAMETRIZACAO_PROCESSO_URL=https://api.des.caixa:8443/simtr
 export QUARKUS_REST_CLIENT_PARAMETRIZACAO_CHECKLIST_URL=https://api.des.caixa:8443/simtr
 export QUARKUS_REST_CLIENT_DOSSIE_PRODUTO_URL=https://api.des.caixa:8443/simtr
+export QUARKUS_REST_CLIENT_GESTAO_DOCUMENTO_URL=https://api.des.caixa:8443/simtr
 ```
 
 ## Mock da parametrizacao
@@ -961,6 +1056,50 @@ Resposta mockada atual para inclusao de documento:
 
 Para adicionar outro cenario de mock de dossie produto, crie um novo arquivo Markdown em `src/main/resources/mock/dossieproduto`, mantenha a secao `## dados do mock corpo do retorno json` e coloque abaixo dela o JSON de resposta esperado.
 
+## Mock da gestao de documentos
+
+O simulador de Gestao de Documentos permite desenvolver a geracao de credencial SAS de container sem chamar o MTR real.
+
+O simulador e controlado pela propriedade:
+
+```properties
+arvore-documento.simulador.gestao-documento.habilitado=false
+%dev.arvore-documento.simulador.gestao-documento.habilitado=true
+```
+
+Com isso:
+
+- fora do dev mode, o padrao e chamar o REST Client real do `simtr-gestao-documento`;
+- em dev mode, o padrao e usar o mock local;
+- quando o mock esta ativo, o fluxo nao chama o REST Client de Gestao de Documentos;
+- o `GestaoDocumentoService` chama `GestaoDocumentoMockFactory`;
+- o retorno mockado continua passando pelo mapper correspondente, mantendo o fluxo DTO -> VO -> DTO da API.
+
+Arquivo usado em runtime:
+
+```text
+src/main/resources/mock/gestaodocumento/credencial-container.md
+```
+
+Copia documental:
+
+```text
+doc/mock/gestao-documento/credencial-container.md
+```
+
+Resposta mockada atual:
+
+```json
+{
+  "sas": "sv=mock&ss=b&srt=o&sp=rw&se=2026-07-10T18:00:00Z&sig=mock",
+  "validade": "10/07/2026 18:00:00",
+  "url_storage": "https://dossiedigitaldes.blob.core.windows.net",
+  "nome_container": "pre-validacao"
+}
+```
+
+O valor de `sas` existe no mock para representar o contrato, mas deve ser tratado como segredo operacional. Logs de aplicacao e payloads registrados pelo REST Client devem manter esse campo mascarado.
+
 ## Como chamar o MTR real em dev mode
 
 Se precisar testar a integracao real mesmo em dev mode, desabilite o simulador:
@@ -981,12 +1120,19 @@ Para desabilitar apenas o simulador de dossie produto:
 mvn quarkus:dev -Ddebug=false "-Darvore-documento.simulador.dossie-produto.habilitado=false"
 ```
 
+Para desabilitar apenas o simulador de Gestao de Documentos:
+
+```powershell
+mvn quarkus:dev -Ddebug=false "-Darvore-documento.simulador.gestao-documento.habilitado=false"
+```
+
 Ou configure por variavel de ambiente:
 
 ```powershell
 $env:ARVORE_DOCUMENTO_SIMULADOR_PARAMETRIZACAO_PROCESSO_HABILITADO="false"
 $env:ARVORE_DOCUMENTO_SIMULADOR_PARAMETRIZACAO_CHECKLIST_HABILITADO="false"
 $env:ARVORE_DOCUMENTO_SIMULADOR_DOSSIE_PRODUTO_HABILITADO="false"
+$env:ARVORE_DOCUMENTO_SIMULADOR_GESTAO_DOCUMENTO_HABILITADO="false"
 ```
 
 Nesse caso, configure tambem a URL real do MTR:
@@ -995,6 +1141,7 @@ Nesse caso, configure tambem a URL real do MTR:
 $env:QUARKUS_REST_CLIENT_PARAMETRIZACAO_PROCESSO_URL="https://api.des.caixa:8443/simtr"
 $env:QUARKUS_REST_CLIENT_PARAMETRIZACAO_CHECKLIST_URL="https://api.des.caixa:8443/simtr"
 $env:QUARKUS_REST_CLIENT_DOSSIE_PRODUTO_URL="https://api.des.caixa:8443/simtr"
+$env:QUARKUS_REST_CLIENT_GESTAO_DOCUMENTO_URL="https://api.des.caixa:8443/simtr"
 ```
 
 ## Perfis de observabilidade
@@ -1324,7 +1471,7 @@ Fluxo:
 
 ```text
 MTR retorna 4xx/5xx
-  -> ParametrizacaoClientExceptionMapper.toException(...) ou DossieProdutoClientExceptionMapper.toException(...)
+  -> ParametrizacaoClientExceptionMapper.toException(...), DossieProdutoClientExceptionMapper.toException(...) ou GestaoDocumentoClientExceptionMapper.toException(...)
   -> ClientErrorBodyReader
   -> MtrBusinessErrorException, MtrClientTechnicalException ou MtrServerErrorException
   -> MtrRestClientExceptionMapper
@@ -1359,12 +1506,14 @@ Erros de negocio (`400`, `404`, `409`, `422`) abortam retry e sao ignorados pelo
 
 ## Logs de REST Client
 
-As chamadas dos REST Clients de parametrizacao e dossie produto passam pelo `RestClientObservabilityFilter`. O filtro registra dois eventos por chamada:
+As chamadas dos REST Clients de parametrizacao, dossie produto e Gestao de Documentos passam pelo `RestClientObservabilityFilter`. O filtro registra dois eventos por chamada:
 
 - `mtr.rest-client.request.enviada`
 - `mtr.rest-client.response.recebida`
 
 Esses logs incluem URL real montada pelo client, metodo HTTP, classe e operacao do client, status HTTP, duracao e payload truncado de entrada/saida. Headers nao sao logados para evitar exposicao de `apikey` ou token.
+
+Antes de truncar e registrar payload, o filtro mascara campos sensiveis por nome, incluindo `sas`, `token`, `access_token`, `refresh_token`, `client_secret`, `secret`, `apikey`, `api_key` e `password`. Isso evita expor a credencial SAS retornada por Gestao de Documentos mesmo quando `payload.habilitado=true`.
 
 As mesmas informacoes principais tambem sao adicionadas ao span corrente como atributos/eventos, incluindo `rest_client.url`, `rest_client.request.body`, `rest_client.response.body`, tamanhos e marcadores de truncamento.
 
@@ -1412,6 +1561,9 @@ A observabilidade atual tem duas saidas sempre ativas e duas saidas opcionais:
 | API | `arvore-documento.api.dossie-produto.workflow.avancar` |
 | Aplicacao | `arvore-documento.service.dossie-produto.workflow.avancar` |
 | Integracao MTR | `mtr.dossie-produto.workflow.avancar` |
+| API | `arvore-documento.api.gestao-documento.credencial-container.gerar` |
+| Aplicacao | `arvore-documento.service.gestao-documento.credencial-container.gerar` |
+| Integracao MTR | `mtr.gestao-documento.credencial-container.gerar` |
 
 Os spans de integracao MTR aparecem quando o simulador correspondente esta desabilitado.
 
@@ -1983,4 +2135,5 @@ Get-Content -Tail 20 target/logs/arvore-documento.json
 3. Adicionar testes unitarios para `ProcessoService` cobrindo simulador e MTR real.
 4. Adicionar stub/WireMock para respostas `200`, `404`, `500` e timeout do `simtr-parametrizacao`.
 5. Adicionar stub/WireMock para respostas `201`, `400`, `403`, `404`, `409`, `500` e timeout do `simtr-dossie-produto`.
-6. Criar dashboard Grafana com latencia, erro, volume e correlacao por `traceId`.
+6. Adicionar stub/WireMock para respostas `200`, `401`, `403`, `500`, `503` e timeout do `simtr-gestao-documento`.
+7. Criar dashboard Grafana com latencia, erro, volume e correlacao por `traceId`.

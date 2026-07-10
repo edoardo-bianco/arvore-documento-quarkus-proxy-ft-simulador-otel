@@ -16,6 +16,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
@@ -113,6 +115,26 @@ class RestClientObservabilityFilterTest {
         filter.filter(requestContext(new HashMap<>(), "POST", "http://localhost/simtr/bytes", "texto".getBytes(StandardCharsets.UTF_8)));
         filter.filter(requestContext(new HashMap<>(), "POST", "http://localhost/simtr/stream", new ByteArrayInputStream(new byte[]{1, 2, 3})));
         filter.filter(requestContext(new HashMap<>(), "POST", "http://localhost/simtr/objeto", new PayloadSemJson()));
+    }
+
+    @Test
+    void mascaraCamposSensiveisNoPayloadAntesDeLogar() {
+        String payload = """
+                {
+                  "sas": "segredo-sas",
+                  "url_storage": "https://storage.example",
+                  "aninhado": {
+                    "token": "segredo-token"
+                  }
+                }
+                """;
+
+        String sanitized = RestClientObservabilityFilter.sanitizePayload(payload);
+
+        assertFalse(sanitized.contains("segredo-sas"));
+        assertFalse(sanitized.contains("segredo-token"));
+        assertTrue(sanitized.contains("\"sas\":\"***\""));
+        assertTrue(sanitized.contains("\"token\":\"***\""));
     }
 
     private static ClientRequestContext requestContext(

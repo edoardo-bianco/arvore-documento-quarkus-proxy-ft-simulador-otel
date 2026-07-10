@@ -7,10 +7,13 @@ import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDoc
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoInclusaoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoFormularioDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoValidacaoNegocialDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.gestaodocumento.GestaoDocumentoCredencialContainerDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.checklist.ChecklistDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.ProcessoDto;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.dossieproduto.DossieProdutoClient;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.dossieproduto.DossieProdutoGateway;
+import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.gestaodocumento.GestaoDocumentoClient;
+import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.gestaodocumento.GestaoDocumentoGateway;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.parametrizacao.ParametrizacaoChecklistClient;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.parametrizacao.ParametrizacaoChecklistGateway;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.parametrizacao.ParametrizacaoProcessoClient;
@@ -87,6 +90,29 @@ class GatewayTest {
                 () -> gateway.registrarValidacaoNegocialDossieProduto(123L, null).await().indefinitely()));
         assertSame(client.falha, assertThrows(IllegalStateException.class,
                 () -> gateway.iniciarOuAvancarWorkflowDossieProduto(123L).await().indefinitely()));
+    }
+
+    @Test
+    void gestaoDocumentoGatewayEncaminhaCredencialContainerParaClient() {
+        FakeGestaoDocumentoClient client = new FakeGestaoDocumentoClient();
+        GestaoDocumentoGateway gateway = new GestaoDocumentoGateway(client);
+
+        GestaoDocumentoCredencialContainerDto resposta = gateway.gerarCredencialContainer()
+                .await().indefinitely();
+
+        assertEquals("pre-validacao", resposta.nomeContainer());
+        assertEquals("https://storage.example", resposta.urlStorage());
+        assertEquals(1, client.credencialContainerChamadas);
+    }
+
+    @Test
+    void gestaoDocumentoGatewayPropagaFalhaDoClient() {
+        FakeGestaoDocumentoClient client = new FakeGestaoDocumentoClient();
+        client.falha = new IllegalStateException("falha gestao documento");
+        GestaoDocumentoGateway gateway = new GestaoDocumentoGateway(client);
+
+        assertSame(client.falha, assertThrows(IllegalStateException.class,
+                () -> gateway.gerarCredencialContainer().await().indefinitely()));
     }
 
     @Test
@@ -238,6 +264,25 @@ class GatewayTest {
                 return Uni.createFrom().failure(falha);
             }
             return Uni.createFrom().item(TestFixtures.checklistDto());
+        }
+    }
+
+    static class FakeGestaoDocumentoClient implements GestaoDocumentoClient {
+        private int credencialContainerChamadas;
+        private RuntimeException falha;
+
+        @Override
+        public Uni<GestaoDocumentoCredencialContainerDto> gerarCredencialContainer() {
+            credencialContainerChamadas++;
+            if (falha != null) {
+                return Uni.createFrom().failure(falha);
+            }
+            return Uni.createFrom().item(new GestaoDocumentoCredencialContainerDto(
+                    "sas",
+                    "10/07/2026 18:00:00",
+                    "https://storage.example",
+                    "pre-validacao"
+            ));
         }
     }
 }

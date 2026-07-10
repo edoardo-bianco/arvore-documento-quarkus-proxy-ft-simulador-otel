@@ -2,7 +2,10 @@ package br.gov.caixa.simtr.arvoredocumento.infrastructure.client;
 
 import br.gov.caixa.simtr.arvoredocumento.shared.observability.ObservabilityLog;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import jakarta.annotation.Priority;
@@ -23,7 +26,10 @@ import java.lang.reflect.Method;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 @Provider
 @Priority(Priorities.USER)
@@ -45,6 +51,21 @@ public class RestClientObservabilityFilter implements ClientRequestFilter, Clien
     private static final boolean DEFAULT_PAYLOAD_ENABLED = true;
     private static final int DEFAULT_INPUT_MAX_LENGTH = 2_000;
     private static final int DEFAULT_OUTPUT_MAX_LENGTH = 4_000;
+    private static final String MASKED_VALUE = "***";
+    private static final Set<String> SENSITIVE_FIELD_NAMES = Set.of(
+            "sas",
+            "token",
+            "access_token",
+            "refresh_token",
+            "client_secret",
+            "secret",
+            "apikey",
+            "api_key",
+            "password"
+    );
+    private static final Pattern SENSITIVE_JSON_STRING_FIELD_PATTERN = Pattern.compile(
+            "(?i)(\"(?:sas|token|access_token|refresh_token|client_secret|secret|apikey|api_key|password)\"\\s*:\\s*)\"[^\"]*\""
+    );
 
     @Override
     public void filter(ClientRequestContext requestContext) {
@@ -219,12 +240,62 @@ public class RestClientObservabilityFilter implements ClientRequestFilter, Clien
             return PayloadSnapshot.empty(normalizedLimit);
         }
 
-        int originalLength = payload.length();
+        String sanitizedPayload = sanitizePayload(payload);
+        int originalLength = sanitizedPayload.length();
         if (originalLength <= normalizedLimit) {
-            return new PayloadSnapshot(payload, true, originalLength, false, normalizedLimit);
+            return new PayloadSnapshot(sanitizedPayload, true, originalLength, false, normalizedLimit);
         }
 
-        return new PayloadSnapshot(payload.substring(0, normalizedLimit), true, originalLength, true, normalizedLimit);
+        return new PayloadSnapshot(sanitizedPayload.substring(0, normalizedLimit), true, originalLength, true, normalizedLimit);
+    }
+
+    static String sanitizePayload(String payload) {
+        if (payload == null || payload.isBlank()) {
+            return payload;
+        }
+
+        try {
+            JsonNode root = OBJECT_MAPPER.readTree(payload);
+            JsonNode sanitizedRoot = root.deepCopy();
+            if (maskSensitiveFields(sanitizedRoot)) {
+                return OBJECT_MAPPER.writeValueAsString(sanitizedRoot);
+            }
+            return payload;
+        } catch (RuntimeException | JsonProcessingException e) {
+            return SENSITIVE_JSON_STRING_FIELD_PATTERN.matcher(payload)
+                    .replaceAll("$1\"" + MASKED_VALUE + "\"");
+        }
+    }
+
+    private static boolean maskSensitiveFields(JsonNode node) {
+        if (node instanceof ObjectNode objectNode) {
+            boolean masked = false;
+            Iterator<Map.Entry<String, JsonNode>> fields = objectNode.fields();
+            while (fields.hasNext()) {
+                Map.Entry<String, JsonNode> field = fields.next();
+                if (isSensitiveField(field.getKey())) {
+                    objectNode.put(field.getKey(), MASKED_VALUE);
+                    masked = true;
+                } else {
+                    masked |= maskSensitiveFields(field.getValue());
+                }
+            }
+            return masked;
+        }
+
+        if (node instanceof ArrayNode arrayNode) {
+            boolean masked = false;
+            for (JsonNode item : arrayNode) {
+                masked |= maskSensitiveFields(item);
+            }
+            return masked;
+        }
+
+        return false;
+    }
+
+    private static boolean isSensitiveField(String fieldName) {
+        return fieldName != null && SENSITIVE_FIELD_NAMES.contains(fieldName.toLowerCase());
     }
 
     private static InvocationMetadata invocationMetadata(ClientRequestContext requestContext) {

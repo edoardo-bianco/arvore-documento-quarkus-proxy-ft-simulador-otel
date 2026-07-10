@@ -77,6 +77,7 @@ PATCH /arvore-documento/v1/dossie-produto/{id}/formulario
 POST /arvore-documento/v1/dossie-produto/{id}/documento
 POST /arvore-documento/v1/dossie-produto/{id}/workflow
 PATCH /arvore-documento/v1/dossie-produto/{id}/validacao-negocial
+POST /arvore-documento/v1/storage/container/credencial
 ```
 
 Esses endpoints cobrem:
@@ -88,6 +89,7 @@ Esses endpoints cobrem:
 - inclusao de documento no Dossie Produto com retorno de `id_documento` e `id_instancia_documento`.
 - inicio ou avanco do workflow do Dossie Produto com retorno do `id` do dossie.
 - registro de validacao negocial dos checklists analisados no Dossie Produto, seguindo o contrato tecnico do OpenAPI com `verificacoes` e `respostas_formulario`.
+- geracao de credencial SAS para upload documental no Storage do MTR, sem expor `sas` em logs.
 
 Tambem foi consolidada a migracao dos mappers para MapStruct:
 
@@ -95,6 +97,7 @@ Tambem foi consolidada a migracao dos mappers para MapStruct:
 src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/parametrizacao/ChecklistMapper.java
 src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/parametrizacao/ProcessoMapper.java
 src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/dossieproduto/DossieProdutoMapper.java
+src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/gestaodocumento/GestaoDocumentoMapper.java
 ```
 
 Implementacoes MapStruct geradas e validadas:
@@ -103,6 +106,7 @@ Implementacoes MapStruct geradas e validadas:
 target/generated-sources/annotations/.../ChecklistMapperImpl.java
 target/generated-sources/annotations/.../ProcessoMapperImpl.java
 target/generated-sources/annotations/.../DossieProdutoMapperImpl.java
+target/generated-sources/annotations/.../GestaoDocumentoMapperImpl.java
 ```
 
 Validacao executada:
@@ -111,7 +115,7 @@ Validacao executada:
 mvn -q test
 ```
 
-Resultado: suite passou apos a migracao de `DossieProdutoMapper` e passou novamente apos a migracao de `ProcessoMapper`.
+Resultado: suite passou apos a migracao de `DossieProdutoMapper`, passou novamente apos a migracao de `ProcessoMapper` e passou apos a implementacao de Gestao de Documentos.
 
 ## Matriz de endpoints da solucao
 
@@ -129,11 +133,11 @@ Resultado: suite passou apos a migracao de `DossieProdutoMapper` e passou novame
 | Dossie Produto | `GET /simtr-dossie-produto/v2/dossie-produto/{id}` | `GET /arvore-documento/v1/dossie-produto/{id}` | Pendente | Confirmar contrato externo do hub antes de implementar. |
 | Dossie Produto | `POST /simtr-dossie-produto/v2/dossie-produto/{id}/documento` | `POST /arvore-documento/v1/dossie-produto/{id}/documento` | Implementado | Vincula documento ja armazenado ao Dossie Produto e retorna `id_documento` e `id_instancia_documento`. |
 | Dossie Produto | `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/validacao-negocial` | `PATCH /arvore-documento/v1/dossie-produto/{id}/validacao-negocial` | Implementado | Retorna `200 OK` sem corpo; contrato tecnico segue OpenAPI com `verificacoes` e `respostas_formulario`. |
-| Gestao de Documentos | `POST /simtr-gestao-documento/v1/storage/container/credencial` | A definir | Pendente | Definir resource/client mantendo padrao do projeto. |
+| Gestao de Documentos | `POST /simtr-gestao-documento/v1/storage/container/credencial` | `POST /arvore-documento/v1/storage/container/credencial` | Implementado | Sem body e sem `Content-Type`; retorna `200 OK` com `sas`, `validade`, `url_storage` e `nome_container`; usa obrigatoriamente `doc/swagger-mtr/simtr-gestao-documento-openapi-2.23.1.0` e mascara `sas` em payloads logados. |
 
 ## Fontes obrigatorias para novos endpoints
 
-Antes de implementar qualquer endpoint pendente, ler as duas fontes abaixo na secao exata do endpoint:
+Antes de implementar qualquer endpoint pendente, ler a documentacao funcional e o OpenAPI tecnico do modulo na secao exata do endpoint:
 
 1. Documentacao funcional e de integracao:
 
@@ -146,7 +150,7 @@ Usar esse arquivo para entender:
 - intencao de negocio;
 - momento do fluxo de pre-validacao;
 - comportamento esperado;
-- relacao com workflow, documentos, validacao negocial e Dossie Produto.
+- relacao com workflow, documentos, validacao negocial, Dossie Produto e Gestao de Documentos.
 
 2. Contrato OpenAPI tecnico de Dossie Produto:
 
@@ -165,6 +169,32 @@ Esse arquivo representa a familia `simtr-dossie-produto-openapi- 2.20.0.x` dispo
 - schemas;
 - campos obrigatorios/opcionais;
 - versao do endpoint (`v1`, `v2`, `v3`, `v4`).
+
+3. Contrato OpenAPI tecnico de Gestao de Documentos:
+
+```text
+doc/swagger-mtr/simtr-gestao-documento-openapi-2.23.1.0
+```
+
+Esse arquivo representa o contrato tecnico local do `simtr-gestao-documento`. Para o endpoint de credencial de container, usar obrigatoriamente:
+
+```http
+POST /simtr-gestao-documento/v1/storage/container/credencial
+```
+
+Usar esse OpenAPI para validar:
+
+- metodo HTTP;
+- path;
+- ausencia ou presenca de parametros;
+- ausencia ou presenca de request body;
+- response body;
+- status codes;
+- schemas;
+- campos obrigatorios/opcionais;
+- seguranca declarada.
+
+Para Gestao de Documentos, nao usar o OpenAPI de Dossie Produto como fonte tecnica de contrato.
 
 Se a documentacao funcional e o OpenAPI parecerem divergentes:
 
@@ -369,22 +399,23 @@ Para cada endpoint ou incremento funcional:
 2. Escolher apenas um endpoint ou incremento por ciclo de trabalho.
 3. Ler `doc/api-integracao-mtr-pre-validacao-v1.md` na secao exata do endpoint.
 4. Ler `doc/swagger-mtr/simtr-dossie-produto-openapi- 2.20.0.8` no path exato do endpoint quando for Dossie Produto.
-5. Conferir a implementacao existente antes de criar qualquer classe nova.
-6. Antes de implementar, criar um arquivo Markdown de planejamento em `doc/`, com nome descritivo do endpoint ou incremento.
-7. O planejamento deve conter objetivo, fontes consultadas, contrato externo, endpoint exposto pelo SIMTR Hub, decisoes tecnicas propostas, arquivos previstos, testes previstos, riscos, pendencias e criterios de aceite.
-8. Depois de criar o planejamento, perguntar explicitamente ao usuario se ele revisou e aprova seguir para implementacao.
-9. Nao iniciar alteracoes de codigo de implementacao antes da aprovacao do usuario.
-10. Implementar o fluxo vertical completo, respeitando o padrao ja desenvolvido, somente apos aprovacao do planejamento.
-11. Criar ou ajustar testes unitarios para o novo desenvolvimento.
-12. Manter cobertura minima de 80% de linhas para o novo desenvolvimento e nao reduzir a cobertura global abaixo da meta vigente.
-13. Rodar a suite a cada implementacao:
+5. Ler `doc/swagger-mtr/simtr-gestao-documento-openapi-2.23.1.0` no path exato do endpoint quando for Gestao de Documentos.
+6. Conferir a implementacao existente antes de criar qualquer classe nova.
+7. Antes de implementar, criar um arquivo Markdown de planejamento em `doc/`, com nome descritivo do endpoint ou incremento.
+8. O planejamento deve conter objetivo, fontes consultadas, contrato externo, endpoint exposto pelo SIMTR Hub, decisoes tecnicas propostas, arquivos previstos, testes previstos, riscos, pendencias e criterios de aceite.
+9. Depois de criar o planejamento, perguntar explicitamente ao usuario se ele revisou e aprova seguir para implementacao.
+10. Nao iniciar alteracoes de codigo de implementacao antes da aprovacao do usuario.
+11. Implementar o fluxo vertical completo, respeitando o padrao ja desenvolvido, somente apos aprovacao do planejamento.
+12. Criar ou ajustar testes unitarios para o novo desenvolvimento.
+13. Manter cobertura minima de 80% de linhas para o novo desenvolvimento e nao reduzir a cobertura global abaixo da meta vigente.
+14. Rodar a suite a cada implementacao:
 
 ```powershell
 mvn -q test
 ```
 
-14. Se a suite falhar, corrigir antes de iniciar outro endpoint.
-15. Atualizar este documento com:
+15. Se a suite falhar, corrigir antes de iniciar outro endpoint.
+16. Atualizar este documento com:
 
 ```text
 data
@@ -399,7 +430,7 @@ decisoes tomadas
 pendencias restantes
 ```
 
-16. Atualizar `doc/documentacao-simtr-hub-arquitetura-observabilidade.md` sempre que houver decisao consolidada ou mudanca de padrao que outras pessoas precisem conhecer.
+17. Atualizar `doc/documentacao-simtr-hub-arquitetura-observabilidade.md` sempre que houver decisao consolidada ou mudanca de padrao que outras pessoas precisem conhecer.
 
 Nao deixar implementacao sem planejamento aprovado, sem teste, sem atualizacao deste espaco colaborativo e sem consolidar na documentacao principal as decisoes que deixaram de ser apenas contexto de trabalho.
 
@@ -425,6 +456,7 @@ Regra operacional obrigatoria:
 
 Planejamentos registrados:
 
+- `doc/planejamento-gestao-documento-credencial-container-v1.md` - `POST /simtr-gestao-documento/v1/storage/container/credencial` para gerar credencial SAS de container no Modulo Gestao de Documentos. Revisado, aprovado e implementado em 2026-07-10.
 - `doc/planejamento-dossie-produto-validacao-negocial-v1.md` - `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/validacao-negocial` para registrar resultados de validacao negocial dos checklists analisados no Dossie Produto. Revisado, aprovado e implementado em 2026-07-10.
 - `doc/planejamento-dossie-produto-documento-v2.md` - `POST /simtr-dossie-produto/v2/dossie-produto/{id}/documento` para vincular documento ao Dossie Produto e retornar `id_documento` e `id_instancia_documento`. Revisado, aprovado e implementado em 2026-07-10.
 - `doc/planejamento-dossie-produto-workflow-v1.md` - `POST /simtr-dossie-produto/v1/dossie-produto/{id}/workflow` para iniciar ou avancar o fluxo de um Dossie Produto. Revisado, aprovado e implementado em 2026-07-10.
@@ -476,6 +508,68 @@ mesmo @ClientExceptionMapper ja existente
 11. Adicionar ou ajustar testes.
 12. Rodar `mvn -q test`.
 13. Atualizar este documento.
+
+## Padrao para adicionar novo endpoint de Gestao de Documentos
+
+Para cada novo endpoint de Gestao de Documentos:
+
+1. Criar ou atualizar primeiro o planejamento Markdown em `doc/planejamento-*.md`.
+2. Registrar o planejamento em `Planejamentos registrados` com status claro.
+3. Perguntar explicitamente ao usuario se o plano foi revisado e aprovado.
+4. Aguardar aprovacao explicita antes de alterar codigo de implementacao.
+5. Usar como fonte tecnica obrigatoria:
+
+```text
+doc/swagger-mtr/simtr-gestao-documento-openapi-2.23.1.0
+```
+
+6. Criar DTOs em:
+
+```text
+src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dto/gestaodocumento
+```
+
+7. Criar VOs equivalentes em:
+
+```text
+src/main/java/br/gov/caixa/simtr/arvoredocumento/domain/gestaodocumento
+```
+
+8. Criar mapper MapStruct em:
+
+```text
+src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/gestaodocumento/GestaoDocumentoMapper.java
+```
+
+9. Criar resource e service proprios do modulo:
+
+```text
+src/main/java/br/gov/caixa/simtr/arvoredocumento/api/gestaodocumento
+src/main/java/br/gov/caixa/simtr/arvoredocumento/application/gestaodocumento
+```
+
+10. Criar REST Client, Gateway, exception mapper e mock factory proprios:
+
+```text
+src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/gestaodocumento
+```
+
+11. Manter DTO -> VO -> DTO como fronteira arquitetural.
+12. Usar `@RegisterRestClient(configKey = "gestao-documento")`.
+13. Usar base do REST Client coerente com o API Manager, prevista como `@Path("/gestao-documento")`, com URL base `https://api.des.caixa:8443/simtr`.
+14. Nao duplicar `/simtr` no REST Client.
+15. Nao copiar cegamente o prefixo bruto `/simtr-gestao-documento` para o REST Client sem validar o roteamento do API Manager.
+16. Para endpoint sem request body, configurar consumo de forma que chamada sem corpo e sem `Content-Type` nao gere `415`.
+17. Criar mocks Markdown em:
+
+```text
+src/main/resources/mock/gestaodocumento
+doc/mock/gestao-documento
+```
+
+18. Tratar credenciais e tokens, como `sas`, como dados sensiveis e evitar exposicao em logs.
+19. Criar testes de resource, service, gateway, mock factory e mapper.
+20. Rodar `mvn -q test` apos implementacao.
 
 ## Observabilidade obrigatoria para novos endpoints
 
@@ -569,6 +663,76 @@ LINE coverage >= 80%
 Nao reintroduzir `jacoco-maven-plugin` sem decisao explicita.
 
 ## Historico de trabalho dos agentes
+
+### 2026-07-10 - Codex - POST credencial container Gestao de Documentos v1
+
+Objetivo:
+- Implementar `POST /arvore-documento/v1/storage/container/credencial` como proxy do `POST /simtr-gestao-documento/v1/storage/container/credencial`.
+
+Planejamento:
+- `doc/planejamento-gestao-documento-credencial-container-v1.md` criado, revisado e aprovado pelo usuario antes da implementacao.
+- Usuario aprovou expor o path do Hub, criar modulo tecnico separado `gestaodocumento`, tratar `validade` de forma flexivel e impedir exposicao de `sas` em logs de payload.
+
+Feito:
+- Criados DTO, VO e mapper MapStruct especificos para credencial de container.
+- Criado `GestaoDocumentoResource` com endpoint sem body e `@Consumes(MediaType.WILDCARD)` para aceitar chamada sem `Content-Type`.
+- Criado `GestaoDocumentoService` com escolha entre simulador e MTR real por `arvore-documento.simulador.gestao-documento.habilitado`.
+- Criados `GestaoDocumentoClient`, `GestaoDocumentoGateway` e `GestaoDocumentoClientExceptionMapper`.
+- Criado mock runtime e copia documental para `credencial-container.md`.
+- Adicionadas propriedades `quarkus.rest-client.gestao-documento.*` e simulador de Gestao de Documentos nas configuracoes runtime, teste e documentais.
+- Atualizado `RestClientObservabilityFilter` para mascarar campos sensiveis, incluindo `sas`, antes de registrar payloads em logs e spans.
+- Atualizados README, documentacao consolidada e este espaco colaborativo.
+
+Arquivos alterados:
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/gestaodocumento/GestaoDocumentoResource.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/api/dto/gestaodocumento/GestaoDocumentoCredencialContainerDto.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/application/gestaodocumento/GestaoDocumentoService.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/domain/gestaodocumento/GestaoDocumentoCredencialContainerVo.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/gestaodocumento/*`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/gestaodocumento/mock/GestaoDocumentoMockFactory.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/gestaodocumento/GestaoDocumentoMapper.java`
+- `src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/RestClientObservabilityFilter.java`
+- `src/main/resources/mock/gestaodocumento/credencial-container.md`
+- `doc/mock/gestao-documento/credencial-container.md`
+- `src/main/resources/application.properties`
+- `src/test/resources/application.properties`
+- `doc/properties/application*.properties`
+- `doc/properties/application*.yml`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/**/*GestaoDocumento*Test.java`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceEndpointTest.java`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceBeanCoverageTest.java`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/GatewayTest.java`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/mock/MockFactoryTest.java`
+- `src/test/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/RestClientObservabilityFilterTest.java`
+- `doc/planejamento-gestao-documento-credencial-container-v1.md`
+- `doc/espaco-colaborativo-de-desenvolvimento.md`
+- `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`
+- `README.md`
+
+Testes criados/ajustados:
+- Endpoint HTTP 200 para credencial de container sem body e sem `Content-Type`.
+- Resource CDI cobrindo sucesso e falha.
+- Service selecionando mock quando simulador esta habilitado e gateway quando desabilitado.
+- Gateway encaminhando chamada sem request body e propagando falhas.
+- Mock factory lendo `credencial-container.md`.
+- Mapper preservando DTO -> VO -> DTO e `validade` flexivel.
+- Filtro de observabilidade mascarando `sas` e outros campos sensiveis antes de logar payload.
+
+Comandos executados:
+- `mvn -q test`
+
+Resultado dos testes:
+- Suite passou.
+
+Decisoes:
+- O endpoint externo oficial do Hub e `POST /arvore-documento/v1/storage/container/credencial`.
+- Gestao de Documentos usa modulo tecnico proprio `gestaodocumento`.
+- O REST Client usa `@Path("/gestao-documento")` e URL base `https://api.des.caixa:8443/simtr`, resultando em `/simtr/gestao-documento/v1/storage/container/credencial` no API Manager, sem duplicar `/simtr`.
+- `validade` permanece como `Object` no DTO/VO para preservar string ou objeto `Calendar` retornado pelo MTR.
+- `sas` e tratado como segredo e nao deve aparecer em logs de aplicacao ou payloads logados pelo REST Client.
+
+Pendencias:
+- Adicionar stub/WireMock para respostas `200`, `401`, `403`, `500`, `503` e timeout do `simtr-gestao-documento`.
 
 ### 2026-07-10 - Consolidacao MapStruct e Dossie Produto
 
@@ -974,6 +1138,25 @@ src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceEndpointTest.java
 src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceBeanCoverageTest.java
 ```
 
+Para Gestao de Documentos, ler tambem:
+
+```text
+doc/swagger-mtr/simtr-gestao-documento-openapi-2.23.1.0
+doc/planejamento-gestao-documento-credencial-container-v1.md
+```
+
+Como a implementacao de Gestao de Documentos ja existe, ler tambem os arquivos do fluxo vertical correspondente:
+
+```text
+src/main/java/br/gov/caixa/simtr/arvoredocumento/api/gestaodocumento/GestaoDocumentoResource.java
+src/main/java/br/gov/caixa/simtr/arvoredocumento/application/gestaodocumento/GestaoDocumentoService.java
+src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/gestaodocumento/GestaoDocumentoClient.java
+src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/gestaodocumento/GestaoDocumentoGateway.java
+src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/gestaodocumento/GestaoDocumentoClientExceptionMapper.java
+src/main/java/br/gov/caixa/simtr/arvoredocumento/infrastructure/client/gestaodocumento/mock/GestaoDocumentoMockFactory.java
+src/main/java/br/gov/caixa/simtr/arvoredocumento/mapper/gestaodocumento/GestaoDocumentoMapper.java
+```
+
 ## Regras de continuidade
 
 - Nao reverter alteracoes nao relacionadas.
@@ -983,6 +1166,7 @@ src/test/java/br/gov/caixa/simtr/arvoredocumento/api/ResourceBeanCoverageTest.ja
 - Manter DTO -> VO -> DTO.
 - Nao criar novo REST client de Dossie Produto se o endpoint pertence ao mesmo servico.
 - Nao criar novo resource de Dossie Produto sem necessidade real.
+- Para Gestao de Documentos, usar modulo tecnico proprio e o OpenAPI `simtr-gestao-documento-openapi-2.23.1.0`.
 - Nao duplicar `/simtr` no REST Client.
 - Nao trocar mocks Markdown por implementacao hardcoded sem decisao explicita.
 - Nao reintroduzir `jacoco-maven-plugin` sem decisao explicita.

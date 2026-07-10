@@ -131,6 +131,13 @@ quarkus:
       connect-timeout: 15000
       read-timeout: 90000
       proxy-address: none
+    gestao-documento:
+      url: ${QUARKUS_REST_CLIENT_GESTAO_DOCUMENTO_URL}
+      scope: jakarta.enterprise.context.ApplicationScoped
+      connection-pool-size: 5
+      connect-timeout: ${simtr.http.establishconnectiontimeout}
+      read-timeout: ${simtr.http.sockettimeout}
+      proxy-address: none
     #logging:
     #  scope: request-response
     #  body-limit: 500    
@@ -306,3 +313,8 @@ simtr:
   feature:
     usa-novos-campos:
       identidade-fiscal: true
+
+arvore-documento:
+  simulador:
+    gestao-documento:
+      habilitado: false

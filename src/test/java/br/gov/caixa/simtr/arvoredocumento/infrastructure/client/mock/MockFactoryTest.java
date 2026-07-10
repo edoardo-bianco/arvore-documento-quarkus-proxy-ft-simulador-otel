@@ -2,9 +2,11 @@ package br.gov.caixa.simtr.arvoredocumento.infrastructure.client.mock;
 
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriadoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoCriadoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.gestaodocumento.GestaoDocumentoCredencialContainerDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.checklist.ChecklistDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.ProcessoDto;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.dossieproduto.mock.DossieProdutoMockFactory;
+import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.gestaodocumento.mock.GestaoDocumentoMockFactory;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.parametrizacao.mock.ChecklistMockFactory;
 import br.gov.caixa.simtr.arvoredocumento.infrastructure.client.parametrizacao.mock.ProcessoMockFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -82,5 +84,17 @@ class MockFactoryTest {
         DossieProdutoCriadoDto resposta = factory.iniciarOuAvancarWorkflowDossieProdutoMock(123L);
 
         assertEquals(123L, resposta.id());
+    }
+
+    @Test
+    void deveLerMockDeCredencialContainerGestaoDocumento() {
+        GestaoDocumentoMockFactory factory = new GestaoDocumentoMockFactory(reader);
+
+        GestaoDocumentoCredencialContainerDto resposta = factory.gerarCredencialContainerMock();
+
+        assertNotNull(resposta.sas());
+        assertEquals("10/07/2026 18:00:00", resposta.validade());
+        assertEquals("https://dossiedigitaldes.blob.core.windows.net", resposta.urlStorage());
+        assertEquals("pre-validacao", resposta.nomeContainer());
     }
 }

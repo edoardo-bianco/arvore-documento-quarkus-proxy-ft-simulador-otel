@@ -4,14 +4,19 @@ import br.gov.caixa.simtr.arvoredocumento.TestFixtures;
 import br.gov.caixa.simtr.arvoredocumento.api.dossieproduto.DossieProdutoResource;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoCriadoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoDocumentoCriadoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.gestaodocumento.GestaoDocumentoCredencialContainerDto;
+import br.gov.caixa.simtr.arvoredocumento.api.gestaodocumento.GestaoDocumentoResource;
 import br.gov.caixa.simtr.arvoredocumento.api.parametrizacao.ChecklistResource;
 import br.gov.caixa.simtr.arvoredocumento.api.parametrizacao.ProcessoResource;
 import br.gov.caixa.simtr.arvoredocumento.application.dossieproduto.DossieProdutoService;
+import br.gov.caixa.simtr.arvoredocumento.application.gestaodocumento.GestaoDocumentoService;
 import br.gov.caixa.simtr.arvoredocumento.application.parametrizacao.ChecklistService;
 import br.gov.caixa.simtr.arvoredocumento.application.parametrizacao.ProcessoService;
 import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoCriadoVo;
 import br.gov.caixa.simtr.arvoredocumento.domain.dossieproduto.DossieProdutoDocumentoCriadoVo;
+import br.gov.caixa.simtr.arvoredocumento.domain.gestaodocumento.GestaoDocumentoCredencialContainerVo;
 import br.gov.caixa.simtr.arvoredocumento.mapper.dossieproduto.DossieProdutoMapper;
+import br.gov.caixa.simtr.arvoredocumento.mapper.gestaodocumento.GestaoDocumentoMapper;
 import br.gov.caixa.simtr.arvoredocumento.mapper.parametrizacao.ChecklistMapper;
 import br.gov.caixa.simtr.arvoredocumento.mapper.parametrizacao.ProcessoMapper;
 import io.quarkus.test.InjectMock;
@@ -40,6 +45,9 @@ class ResourceBeanCoverageTest {
     DossieProdutoResource dossieProdutoResource;
 
     @Inject
+    GestaoDocumentoResource gestaoDocumentoResource;
+
+    @Inject
     ProcessoMapper processoMapper;
 
     @Inject
@@ -47,6 +55,9 @@ class ResourceBeanCoverageTest {
 
     @Inject
     DossieProdutoMapper dossieProdutoMapper;
+
+    @Inject
+    GestaoDocumentoMapper gestaoDocumentoMapper;
 
     @InjectMock
     ProcessoService processoService;
@@ -56,6 +67,9 @@ class ResourceBeanCoverageTest {
 
     @InjectMock
     DossieProdutoService dossieProdutoService;
+
+    @InjectMock
+    GestaoDocumentoService gestaoDocumentoService;
 
     @Test
     void processoResourceCobreSucessoEFalhaDoBeanCdi() {
@@ -175,5 +189,27 @@ class ResourceBeanCoverageTest {
         assertThrows(IllegalStateException.class,
                 () -> dossieProdutoResource.iniciarOuAvancarWorkflowDossieProduto(124L)
                         .await().indefinitely());
+    }
+
+    @Test
+    void gestaoDocumentoResourceCobreCredencialContainerSucessoEFalhaDoBeanCdi() {
+        when(gestaoDocumentoService.gerarCredencialContainer())
+                .thenReturn(Uni.createFrom().item(new GestaoDocumentoCredencialContainerVo(
+                        "sas-sensivel",
+                        "10/07/2026 18:00:00",
+                        "https://storage.example",
+                        "pre-validacao"
+                )))
+                .thenReturn(Uni.createFrom().failure(new IllegalStateException("falha gestao documento")));
+
+        Response response = gestaoDocumentoResource.gerarCredencialContainer()
+                .await().indefinitely();
+
+        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+        GestaoDocumentoCredencialContainerDto entity = (GestaoDocumentoCredencialContainerDto) response.getEntity();
+        assertEquals("pre-validacao", entity.nomeContainer());
+        assertEquals("https://storage.example", entity.urlStorage());
+        assertThrows(IllegalStateException.class,
+                () -> gestaoDocumentoResource.gerarCredencialContainer().await().indefinitely());
     }
 }

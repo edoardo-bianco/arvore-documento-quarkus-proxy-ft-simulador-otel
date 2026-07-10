@@ -140,6 +140,13 @@ quarkus:
       connect-timeout: 15000
       read-timeout: 90000
       proxy-address: none
+    gestao-documento:
+      url: https://api.des.caixa:8443/simtr
+      scope: jakarta.enterprise.context.ApplicationScoped
+      connection-pool-size: 5
+      connect-timeout: 1000
+      read-timeout: 1000
+      proxy-address: none
     #logging:
     #  scope: request-response
     #  body-limit: 500
@@ -342,6 +349,11 @@ simtr:
     usa-novos-campos:
       identidade-fiscal: true
     client-res[0]: binario
+
+arvore-documento:
+  simulador:
+    gestao-documento:
+      habilitado: true
 document-intelligence-azure-configuracao:
   canal-sso: "mtr-ia-01"
   confidence: 0.80 #Define o limiar de confiança para as operações de classificação e extração de documentos. Documentos com pontuação abaixo desse valor podem ser considerados como não classificados ou com baixa confiabilidade.

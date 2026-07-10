@@ -167,6 +167,20 @@ class ResourceEndpointTest {
     }
 
     @Test
+    void gestaoDocumentoPostCredencialContainerRetorna200SemBodyEContentType() {
+        given()
+                .accept(ContentType.JSON)
+                .when()
+                .post("/arvore-documento/v1/storage/container/credencial")
+                .then()
+                .statusCode(200)
+                .body("sas", notNullValue())
+                .body("validade", equalTo("10/07/2026 18:00:00"))
+                .body("url_storage", equalTo("https://dossiedigitaldes.blob.core.windows.net"))
+                .body("nome_container", equalTo("pre-validacao"));
+    }
+
+    @Test
     void processoEndpointRetorna400ParaIdentificadorInvalido() {
         given()
                 .accept(ContentType.JSON)

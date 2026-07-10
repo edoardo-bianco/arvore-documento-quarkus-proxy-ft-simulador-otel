@@ -1,6 +1,6 @@
 # arvore-documento
 
-Microsservico Quarkus usado como proxy/adapter entre consumidores internos e APIs MTR relacionadas a arvore documental, parametrizacao e dossie produto.
+Microsservico Quarkus usado como proxy/adapter entre consumidores internos e APIs MTR relacionadas a arvore documental, parametrizacao, dossie produto e gestao de documentos.
 
 O projeto nao faz apenas repasse HTTP. Ele cria uma fronteira com DTOs, VOs, mappers, service, gateway, tratamento de erro, resiliencia, simulador e observabilidade.
 
@@ -13,6 +13,10 @@ GET /arvore-documento/v1/processo/identificador-negocial/{identificador}
 GET /arvore-documento/v1/checklist/identificador-negocial/{identificador}/versao/{versao}
 POST /arvore-documento/v1/dossie-produto
 PATCH /arvore-documento/v1/dossie-produto/{id}/formulario
+POST /arvore-documento/v1/dossie-produto/{id}/documento
+PATCH /arvore-documento/v1/dossie-produto/{id}/validacao-negocial
+POST /arvore-documento/v1/dossie-produto/{id}/workflow
+POST /arvore-documento/v1/storage/container/credencial
 ```
 
 ### APIs consumidas no MTR
@@ -22,9 +26,15 @@ GET /simtr/parametrizacao/v2/patriarca/processo/identificador-negocial/{identifi
 GET /simtr/parametrizacao/v1/cadastro/checklist/identificador-negocial/{identificador}/versao/{versao}
 POST /simtr/dossie-produto/v1/dossie-produto
 PATCH /simtr/dossie-produto/v1/dossie-produto/{id}/formulario
+POST /simtr/dossie-produto/v2/dossie-produto/{id}/documento
+PATCH /simtr/dossie-produto/v1/dossie-produto/{id}/validacao-negocial
+POST /simtr/dossie-produto/v1/dossie-produto/{id}/workflow
+POST /simtr/gestao-documento/v1/storage/container/credencial
 ```
 
-Os endpoints de dossie produto implementam a criacao basica em modo rascunho e a inclusao ou edicao de respostas de formulario. Ambos retornam HTTP `201` com o id do dossie:
+Os endpoints de dossie produto implementam criacao basica, formulario, inclusao de documento, validacao negocial e workflow. Gestao de Documentos implementa a geracao de credencial SAS de container para upload documental.
+
+Criacao basica e formulario retornam HTTP `201` com o id do dossie:
 
 ```json
 {
@@ -66,6 +76,11 @@ DossieProdutoResource
   -> DossieProdutoService
   -> DossieProdutoGateway ou DossieProdutoMockFactory
   -> DossieProdutoMapper
+
+GestaoDocumentoResource
+  -> GestaoDocumentoService
+  -> GestaoDocumentoGateway ou GestaoDocumentoMockFactory
+  -> GestaoDocumentoMapper
 ```
 
 O ciclo `DTO -> VO -> DTO` e intencional: o VO cria uma fronteira para regras futuras, enriquecimento e adaptacao de contrato sem acoplar a API externa diretamente ao contrato MTR.
@@ -79,24 +94,30 @@ br.gov.caixa.simtr.arvoredocumento
 |   |-- dto
 |   |   |-- dossieproduto
 |   |   |-- erro
+|   |   |-- gestaodocumento
 |   |   |-- parametrizacao.checklist
 |   |   `-- parametrizacao.processo
 |   |-- exception
+|   |-- gestaodocumento
 |   `-- parametrizacao
 |-- application
 |   |-- dossieproduto
+|   |-- gestaodocumento
 |   `-- parametrizacao
 |-- domain
 |   |-- dossieproduto
+|   |-- gestaodocumento
 |   |-- parametrizacao.checklist
 |   `-- parametrizacao.processo
 |-- infrastructure
 |   `-- client
 |       |-- dossieproduto
+|       |-- gestaodocumento
 |       |-- mock
 |       `-- parametrizacao
 |-- mapper
 |   |-- dossieproduto
+|   |-- gestaodocumento
 |   `-- parametrizacao
 `-- shared
     |-- exception
@@ -126,6 +147,10 @@ quarkus.rest-client.parametrizacao-checklist.read-timeout=10000
 quarkus.rest-client.dossie-produto.url=https://api.des.caixa:8443/simtr
 quarkus.rest-client.dossie-produto.connect-timeout=3000
 quarkus.rest-client.dossie-produto.read-timeout=10000
+
+quarkus.rest-client.gestao-documento.url=https://api.des.caixa:8443/simtr
+quarkus.rest-client.gestao-documento.connect-timeout=3000
+quarkus.rest-client.gestao-documento.read-timeout=10000
 ```
 
 Em ambiente real, as URLs podem ser sobrescritas por variaveis de ambiente:
@@ -134,6 +159,7 @@ Em ambiente real, as URLs podem ser sobrescritas por variaveis de ambiente:
 export QUARKUS_REST_CLIENT_PARAMETRIZACAO_PROCESSO_URL=https://api.des.caixa:8443/simtr
 export QUARKUS_REST_CLIENT_PARAMETRIZACAO_CHECKLIST_URL=https://api.des.caixa:8443/simtr
 export QUARKUS_REST_CLIENT_DOSSIE_PRODUTO_URL=https://api.des.caixa:8443/simtr
+export QUARKUS_REST_CLIENT_GESTAO_DOCUMENTO_URL=https://api.des.caixa:8443/simtr
 ```
 
 Credenciais e apikey:
@@ -155,12 +181,20 @@ arvore-documento.simulador.parametrizacao-checklist.habilitado=false
 %dev.arvore-documento.simulador.parametrizacao-checklist.habilitado=true
 arvore-documento.simulador.dossie-produto.habilitado=false
 %dev.arvore-documento.simulador.dossie-produto.habilitado=true
+arvore-documento.simulador.gestao-documento.habilitado=false
+%dev.arvore-documento.simulador.gestao-documento.habilitado=true
 ```
 
-Com isso, processo, checklist e dossie produto usam mock por padrao em dev mode. Para chamar o MTR real de dossie produto em dev mode, desabilite explicitamente o simulador:
+Com isso, processo, checklist, dossie produto e gestao de documentos usam mock por padrao em dev mode. Para chamar o MTR real de dossie produto em dev mode, desabilite explicitamente o simulador:
 
 ```bash
 mvn quarkus:dev -Ddebug=false "-Darvore-documento.simulador.dossie-produto.habilitado=false"
+```
+
+Para chamar o MTR real de Gestao de Documentos em dev mode:
+
+```bash
+mvn quarkus:dev -Ddebug=false "-Darvore-documento.simulador.gestao-documento.habilitado=false"
 ```
 
 Mocks em runtime:
@@ -171,6 +205,10 @@ src/main/resources/mock/parametrizacao/1000009990-consulta-processo-parametrizac
 src/main/resources/mock/parametrizacao/1000012583-v1-checklist-parametrizacao-versao-1.md
 src/main/resources/mock/dossieproduto/criacao-basica-dossie-produto.md
 src/main/resources/mock/dossieproduto/formulario-dossie-produto.md
+src/main/resources/mock/dossieproduto/documento-dossie-produto.md
+src/main/resources/mock/dossieproduto/validacao-negocial-dossie-produto.md
+src/main/resources/mock/dossieproduto/workflow-dossie-produto.md
+src/main/resources/mock/gestaodocumento/credencial-container.md
 ```
 
 Copias documentais:
@@ -178,6 +216,11 @@ Copias documentais:
 ```text
 doc/mock/parametrizacao
 doc/mock/dossie-produto/criacao-basica-dossie-produto.md
+doc/mock/dossie-produto/formulario-dossie-produto.md
+doc/mock/dossie-produto/documento-dossie-produto.md
+doc/mock/dossie-produto/validacao-negocial-dossie-produto.md
+doc/mock/dossie-produto/workflow-dossie-produto.md
+doc/mock/gestao-documento/credencial-container.md
 ```
 
 ## Execucao local
@@ -230,6 +273,10 @@ curl -X POST \
       }
     ]
   }'
+
+curl -X POST \
+  'http://localhost:8080/arvore-documento/v1/storage/container/credencial' \
+  -H 'Accept: application/json'
 ```
 
 ## Tratamento de erro
@@ -266,6 +313,21 @@ Spans explicitos:
 - `arvore-documento.api.dossie-produto.criar`
 - `arvore-documento.service.dossie-produto.criar`
 - `mtr.dossie-produto.criar`
+- `arvore-documento.api.dossie-produto.formulario.atualizar`
+- `arvore-documento.service.dossie-produto.formulario.atualizar`
+- `mtr.dossie-produto.formulario.atualizar`
+- `arvore-documento.api.dossie-produto.documento.incluir`
+- `arvore-documento.service.dossie-produto.documento.incluir`
+- `mtr.dossie-produto.documento.incluir`
+- `arvore-documento.api.dossie-produto.validacao-negocial.registrar`
+- `arvore-documento.service.dossie-produto.validacao-negocial.registrar`
+- `mtr.dossie-produto.validacao-negocial.registrar`
+- `arvore-documento.api.dossie-produto.workflow.avancar`
+- `arvore-documento.service.dossie-produto.workflow.avancar`
+- `mtr.dossie-produto.workflow.avancar`
+- `arvore-documento.api.gestao-documento.credencial-container.gerar`
+- `arvore-documento.service.gestao-documento.credencial-container.gerar`
+- `mtr.gestao-documento.credencial-container.gerar`
 
 Campos comuns nos logs:
 
@@ -279,6 +341,7 @@ Campos comuns nos logs:
 - `processo`
 - `chave_correlacao_canal`
 - `dossie_produto_id`
+- `nome_container`
 - `resultado`
 - `erro_tipo`
 - `url`
@@ -287,6 +350,8 @@ Campos comuns nos logs:
 - `request_body_truncado`
 - `response_body`
 - `response_body_truncado`
+
+Payloads de REST Client sao mascarados antes do log para campos sensiveis como `sas`, `token`, `client_secret`, `apikey` e `password`.
 
 Por padrao, o projeto nao exporta OpenTelemetry para fora. Isso evita erro ou ruido em maquinas sem Docker, Jaeger ou OpenTelemetry Collector.
 
@@ -329,5 +394,5 @@ mvn quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,grafana"
 Detalhes completos de arquitetura, mock, observabilidade e troubleshooting ficam em:
 
 ```text
-doc/documentacao-arvore-documento-quarkus-proxy-observabilidade.md
+doc/documentacao-simtr-hub-arquitetura-observabilidade.md
 ```

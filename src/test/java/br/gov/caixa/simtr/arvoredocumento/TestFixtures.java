@@ -23,6 +23,7 @@ import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoVal
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoValidacaoNegocialProdutoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoValidacaoNegocialRespostaFormularioDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.dossieproduto.DossieProdutoValidacaoNegocialVerificacaoDto;
+import br.gov.caixa.simtr.arvoredocumento.api.dto.gestaodocumento.GestaoDocumentoCredencialContainerDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.checklist.ChecklistApontamentoDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.checklist.ChecklistDto;
 import br.gov.caixa.simtr.arvoredocumento.api.dto.parametrizacao.processo.CampoFormularioDto;
@@ -297,6 +298,15 @@ public final class TestFixtures {
                                 List.of("2")
                         )
                 )
+        );
+    }
+
+    public static GestaoDocumentoCredencialContainerDto gestaoDocumentoCredencialContainerDto() {
+        return new GestaoDocumentoCredencialContainerDto(
+                "sv=mock&ss=b&srt=o&sp=rw&se=2026-07-10T18:00:00Z&sig=mock",
+                "10/07/2026 18:00:00",
+                "https://dossiedigitaldes.blob.core.windows.net",
+                "pre-validacao"
         );
     }
 }
