@@ -11,7 +11,7 @@ quarkus:
     # A common root path for non-application endpoints. Various extension-provided endpoints such as metrics, health, and openapi are deployed under this path by default.
     non-application-root-path: /simtr-hub-outsourcing
     port: 8090
-    test-port: 8083
+    test-port: 8082
     test-ssl-port: 8446
 
 # Logging configuration property 

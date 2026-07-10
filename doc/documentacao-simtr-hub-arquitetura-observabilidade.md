@@ -1436,6 +1436,12 @@ Get-Content -Tail 20 target/logs/arvore-documento.json
 
 A suite usa `quarkus-junit-mockito`/Mockito e `quarkus-jacoco`.
 
+Em `src/test/resources/application.properties`, o profile de testes fixa a porta HTTP de teste em `8082`:
+
+```properties
+quarkus.http.test-port=8082
+```
+
 Para evitar o auto-anexo dinamico do Mockito/Byte Buddy em JDKs recentes, o `pom.xml` configura:
 
 - `maven-dependency-plugin` copiando `org.mockito:mockito-core` resolvido pelo Maven para `target/test-agents/mockito-core.jar`;

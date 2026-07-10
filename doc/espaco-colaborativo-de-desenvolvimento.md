@@ -649,10 +649,13 @@ target/jacoco-report/index.html
 Configuracao em `src/test/resources/application.properties`:
 
 ```properties
+quarkus.http.test-port=8082
 quarkus.jacoco.report=true
 quarkus.jacoco.report-location=target/jacoco-report
 quarkus.jacoco.title=arvore-documento
 ```
+
+O profile de testes deve usar a porta HTTP `8082`, evitando a porta padrao `8081` do Quarkus em execucoes locais e de pipeline.
 
 Meta vigente:
 
@@ -663,6 +666,28 @@ LINE coverage >= 80%
 Nao reintroduzir `jacoco-maven-plugin` sem decisao explicita.
 
 ## Historico de trabalho dos agentes
+
+### 2026-07-10 - Codex - Porta HTTP do profile test
+
+Objetivo:
+- Fixar a porta HTTP dos testes Quarkus em `8082`.
+
+Feito:
+- Adicionado `quarkus.http.test-port=8082` em `src/test/resources/application.properties`.
+- Atualizados templates documentais `doc/properties/application-simtr-hub.properties` e `doc/properties/application-simtr-hub.yml`, substituindo `8083` por `8082`.
+- Atualizadas a documentacao consolidada e a secao de testes deste espaco colaborativo.
+
+Comandos executados:
+- `mvn -q test`
+
+Resultado dos testes:
+- Suite passou.
+
+Decisoes:
+- O profile de testes deve usar a porta HTTP `8082`, evitando depender da porta padrao `8081` do Quarkus.
+
+Pendencias:
+- Nenhuma.
 
 ### 2026-07-10 - Codex - POST credencial container Gestao de Documentos v1
 
