@@ -19,7 +19,7 @@ Antes de executar qualquer item:
 
 ## Ponto de retomada
 
-- **Ultima tarefa concluida:** 0.2 - observabilidade contratual protegida.
+- **Ultima tarefa concluida:** 0.3 - borda MTR exercitada com stub HTTP local.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
   produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
@@ -30,10 +30,14 @@ Antes de executar qualquer item:
   independentes, erros completos, validacoes e semantica OpenAPI protegidos.
 - **Evidencia de observabilidade:** `inventario-observabilidade.md`; 12 testes focados aprovados;
   suite completa com 126 testes, zero falhas, zero erros e zero ignorados.
+- **Evidencia da borda MTR:** `baseline-borda-mtr.md`; cinco testes focados percorrem Resource ate
+  stub localhost com simulador desabilitado, wire/headers/OIDC/observabilidade, erro lossless,
+  retry, timeout e circuit breaker; suite completa com 131 testes, zero falhas, zero erros e zero
+  ignorados.
 - **Codigo de producao:** nenhuma alteracao.
-- **Codigo de producao Java:** nenhuma alteracao nas Tasks 0.1 e 0.2; exporter e dependencia
-  OpenTelemetry adicionados somente ao escopo de teste.
-- **Proximo item pendente:** 0.3 - criar stub MTR local com simulador desabilitado. Nao iniciado;
+- **Codigo de producao Java:** nenhuma alteracao nas Tasks 0.1 a 0.3; exporter OpenTelemetry e stub
+  HTTP local existem somente no escopo de teste.
+- **Proximo item pendente:** 0.4 - adicionar ArchUnit progressivo. Nao iniciado;
   requer autorizacao humana para retomar.
 
 ## Fase 0 - Baseline e guardrails
@@ -50,7 +54,7 @@ Antes de executar qualquer item:
 - [x] 0.2b Proteger nomes, kinds e atributos de spans das oito capacidades e bordas MTR.
 - [x] 0.2c Proteger eventos e campos estruturados de log considerados contratuais.
 - [x] 0.2d Criar inventario, executar testes focados/suite e fechar somente 0.2.
-- [ ] 0.3 Criar stub MTR local com simulador desabilitado.
+- [x] 0.3 Criar stub MTR local com simulador desabilitado.
 - [ ] 0.4 Adicionar ArchUnit progressivo.
 - [ ] C0 Executar suite/build e obter GO humano.
 
@@ -138,7 +142,7 @@ data, evidencias verificaveis e aprovador humano.
 
 | Checkpoint | Status | Data | Evidencias | Aprovador |
 |---|---|---|---|---|
-| C0 | PENDENTE | 2026-07-12 | G1: branch confirmada; baseline 100/0; Task 0.1: manifesto HTTP/OpenAPI e 22 focados; Task 0.2: inventario de observabilidade e 12 focados; suite 126/0; Tasks 0.3-0.4 pendentes | - |
+| C0 | PENDENTE | 2026-07-12 | G1: branch confirmada; baseline 100/0; Task 0.1: manifesto HTTP/OpenAPI e 22 focados; Task 0.2: inventario de observabilidade e 12 focados; Task 0.3: baseline MTR com cinco focados; suite 131/0; Task 0.4 pendente | - |
 | C1 | PENDENTE | - | - | - |
 | C2.1 | PENDENTE | - | - | - |
 | C2.2 | PENDENTE | - | - | - |
