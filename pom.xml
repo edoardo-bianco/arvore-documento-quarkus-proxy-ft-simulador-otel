@@ -13,6 +13,7 @@
         <compiler-plugin.version>3.14.0</compiler-plugin.version>
         <argLine></argLine>
         <maven-dependency-plugin.version>3.8.1</maven-dependency-plugin.version>
+        <archunit.version>1.4.2</archunit.version>
         <mapstruct.version>1.6.3</mapstruct.version>
         <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -111,6 +112,12 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-junit-mockito</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <version>${archunit.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

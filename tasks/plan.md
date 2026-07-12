@@ -3,7 +3,7 @@
 ## Status
 
 - **Planejado:** 2026-07-11
-- **Implementacao:** Fase 0 em andamento; Tasks 0.1 a 0.3 concluidas
+- **Implementacao:** Fase 0 em andamento; Tasks 0.1 a 0.4 concluidas
 - **Branch de trabalho:** `refactor/ddd-fase-0-baseline`
 - **Documento arquitetural:** `../doc/arquitetura-ddd-integracoes-atomicas.md`
 - **Checklist operacional:** `todo.md`
