@@ -210,18 +210,6 @@ src/main/resources/mock/dossieproduto/workflow-dossie-produto.md
 src/main/resources/mock/gestaodocumento/credencial-container.md
 ```
 
-Copias documentais:
-
-```text
-doc/mock/parametrizacao
-doc/mock/dossie-produto/criacao-basica-dossie-produto.md
-doc/mock/dossie-produto/formulario-dossie-produto.md
-doc/mock/dossie-produto/documento-dossie-produto.md
-doc/mock/dossie-produto/validacao-negocial-dossie-produto.md
-doc/mock/dossie-produto/workflow-dossie-produto.md
-doc/mock/gestao-documento/credencial-container.md
-```
-
 ## Execucao local
 
 ```bash

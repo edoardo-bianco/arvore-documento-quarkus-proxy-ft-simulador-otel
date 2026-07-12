@@ -1,7 +1,14 @@
 # SIMTR Hub - Arquitetura e observabilidade
 
+## Status e uso
+
+Este documento descreve o comportamento operacional e a implementacao atual usados como baseline.
+Ele nao define a arquitetura alvo nem o plano da refatoracao DDD. Para essas decisoes, prevalecem
+`doc/arquitetura-ddd-integracoes-atomicas.md`, `tasks/plan.md` e `tasks/todo.md`.
+
 ## Indice
 
+- [Status e uso](#status-e-uso)
 - [Objetivo](#objetivo)
 - [Cenario de uso](#cenario-de-uso)
 - [Procedimento de implementacao](#procedimento-de-implementacao)
@@ -98,25 +105,15 @@ Beneficios praticos:
 
 ## Procedimento de implementacao
 
-Toda nova implementacao de endpoint ou incremento funcional deve comecar por um arquivo Markdown de planejamento em `doc/planejamento-*.md`.
-
-O planejamento deve registrar objetivo, fontes consultadas, contrato MTR, endpoint exposto pelo `SIMTR Hub`, decisoes tecnicas propostas, arquivos previstos, testes previstos, riscos, pendencias e criterios de aceite. Depois de criar ou atualizar o planejamento, o agente deve perguntar explicitamente ao usuario se o plano foi revisado e aprovado.
-
-Nao iniciar alteracoes de codigo de implementacao antes da aprovacao explicita do usuario.
+Para a refatoracao DDD vigente, as fontes autoritativas sao
+`doc/arquitetura-ddd-integracoes-atomicas.md`, `tasks/plan.md` e `tasks/todo.md`. O executor deve
+seguir a proxima tarefa pendente e respeitar os checkpoints de aprovacao definidos nesses arquivos.
 
 Para o Modulo Gestao de Documentos, a fonte tecnica obrigatoria e:
 
 ```text
 doc/swagger-mtr/simtr-gestao-documento-openapi-2.23.1.0
 ```
-
-O planejamento atual para a credencial SAS de container e:
-
-```text
-doc/planejamento-gestao-documento-credencial-container-v1.md
-```
-
-Status: revisado, aprovado e implementado em 2026-07-10.
 
 ## Contrato exposto
 
@@ -1019,16 +1016,6 @@ src/main/resources/mock/dossieproduto/validacao-negocial-dossie-produto.md
 src/main/resources/mock/dossieproduto/workflow-dossie-produto.md
 ```
 
-As copias documentais ficam em:
-
-```text
-doc/mock/dossie-produto/criacao-basica-dossie-produto.md
-doc/mock/dossie-produto/formulario-dossie-produto.md
-doc/mock/dossie-produto/documento-dossie-produto.md
-doc/mock/dossie-produto/validacao-negocial-dossie-produto.md
-doc/mock/dossie-produto/workflow-dossie-produto.md
-```
-
 Cada arquivo documenta a chamada original e contem o corpo JSON retornado pelo MTR na secao:
 
 ```markdown
@@ -1079,12 +1066,6 @@ Arquivo usado em runtime:
 
 ```text
 src/main/resources/mock/gestaodocumento/credencial-container.md
-```
-
-Copia documental:
-
-```text
-doc/mock/gestao-documento/credencial-container.md
 ```
 
 Resposta mockada atual:

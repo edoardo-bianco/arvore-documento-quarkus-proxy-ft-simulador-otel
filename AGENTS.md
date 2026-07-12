@@ -9,5 +9,3 @@ Antes de alterar a arquitetura ou implementar uma etapa da refatoracao DDD:
    de um checkpoint sem GO humano registrado na tabela de `tasks/todo.md`.
 5. Preserve paths, JSON, validacoes, erros, simulador, fault tolerance e observabilidade.
 6. Nao implemente novos endpoints, workflows, upload, cache de SAS ou Quarkus Flow neste escopo.
-
-`doc/decisoes-arquitetura-hexagonal-ddd-flow-v1.md` foi substituido e serve apenas como historico.

@@ -5,7 +5,6 @@
 - **Status:** aceito
 - **Data:** 2026-07-11
 - **Escopo:** refatoracao do comportamento atualmente implementado
-- **Documento substituido:** `decisoes-arquitetura-hexagonal-ddd-flow-v1.md`
 - **Plano executavel:** `../tasks/plan.md`
 - **Checklist de retomada:** `../tasks/todo.md`
 
@@ -372,7 +371,6 @@ criterios de operacao e maturidade dos providers de persistencia.
 | Renome quebrar dashboards | Inventario e testes de spans, eventos e atributos |
 | Testes validarem apenas simulador | Stub MTR com simulador desabilitado |
 | Big bang de packages | Uma capacidade vertical por etapa e checkpoints GO/NO-GO |
-| Documento historico orientar agentes | Status de substituido e ponteiro no `AGENTS.md` |
 
 ## Fontes oficiais de framework
 
