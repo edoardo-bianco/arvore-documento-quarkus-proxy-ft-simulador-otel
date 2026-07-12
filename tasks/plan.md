@@ -3,7 +3,7 @@
 ## Status
 
 - **Planejado:** 2026-07-11
-- **Implementacao:** nao iniciada
+- **Implementacao:** Fase 0 em andamento; Task 0.1 concluida
 - **Branch de trabalho:** `refactor/ddd-fase-0-baseline`
 - **Documento arquitetural:** `../doc/arquitetura-ddd-integracoes-atomicas.md`
 - **Checklist operacional:** `todo.md`
@@ -68,6 +68,22 @@ dependencias, checkpoints e obter GO humano antes da execucao.
 7. Nenhum teste preexistente pode ser removido, desabilitado ou substituido sem evidencia e GO
    humano registrados.
 
+### Estrategia de implementacao e testes
+
+A execucao usa **refatoracao incremental orientada por caracterizacao**:
+
+- testes de caracterizacao do legado podem iniciar verdes quando o valor esperado vem de contrato
+  observado e independente; requests e respostas congelados nao podem ser derivados dos mesmos
+  DTOs ou mocks de runtime usados pela implementacao;
+- RED-GREEN-REFACTOR estrito aplica-se a logica nova, bugs, mapeamentos, invariantes, casos de uso e
+  regras arquiteturais;
+- mudancas que possam afetar CDI, Jackson, REST Client, OpenAPI, configuracao ou observabilidade nao
+  sao classificadas como movimentos mecanicos;
+- cada incremento executa testes focados; a suite completa roda sempre que a verificacao da task
+  exigir e em todo checkpoint, sem repeticao quando nao houve mudanca;
+- o manifesto relaciona cada capacidade aos testes/metodos exatos, contratos protegidos, lacunas
+  conhecidas e evidencia OpenAPI, sem substituir protecao executavel.
+
 ## Mapa de arquivos por tipo de task
 
 Este mapa vale para todas as fases e evita que uma task atravesse camadas sem declarar o motivo:
@@ -93,8 +109,10 @@ mecanicos, deve subdividir a task no checklist antes de editar.
 **Criterios de aceite:**
 
 - paths, verbos, status, JSON e validacoes relevantes estao cobertos;
-- erros publicos atuais possuem exemplos de caracterizacao;
-- o OpenAPI e comparado semanticamente, sem depender da ordem textual;
+- requests, respostas e erros congelados usam oraculos independentes dos DTOs e mocks de runtime;
+- erros publicos atuais possuem exemplos completos de caracterizacao;
+- o OpenAPI e comparado semanticamente, sem depender da ordem textual, cobrindo o conjunto exato de
+  operacoes e a estrutura contratual completa;
 - um manifesto lista por capacidade os testes e contratos protegidos;
 - os testes passam contra a implementacao original.
 

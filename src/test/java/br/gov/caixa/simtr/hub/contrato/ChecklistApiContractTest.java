@@ -1,36 +1,24 @@
 package br.gov.caixa.simtr.hub.contrato;
 
-import br.gov.caixa.simtr.hub.arquitetura.configuracao.mock.MarkdownJsonMockReader;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
-import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
-import java.util.Iterator;
-import java.util.Map;
-import java.util.UUID;
-
+import static br.gov.caixa.simtr.hub.contrato.JsonContractAssertions.assertErroValidacaoExato;
+import static br.gov.caixa.simtr.hub.contrato.JsonContractAssertions.assertFingerprint;
 import static io.restassured.RestAssured.given;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 class ChecklistApiContractTest {
 
     private static final String PATH =
             "/simtr-hub/v1/checklist/identificador-negocial/{identificador}/versao/{versao}";
-    private static final String MOCK =
-            "mock/parametrizacao/1000012583-v1-checklist-parametrizacao-versao-1.md";
-
-    @Inject
-    MarkdownJsonMockReader mockReader;
+    private static final String FINGERPRINT_RESPOSTA =
+            "fa497a3a7f7feea380be4312bb5ad8231c385c7a5aa10043b5092971fdb816aa";
 
     @Test
     void preservaRespostaJsonCompletaDaConsultaDeChecklist() {
-        JsonNode esperado = removerCamposNulos(mockReader.readFirstJsonObject(MOCK, JsonNode.class));
-
         JsonNode resposta = given()
                 .accept(ContentType.JSON)
                 .when()
@@ -41,7 +29,7 @@ class ChecklistApiContractTest {
                 .extract()
                 .as(JsonNode.class);
 
-        assertEquals(esperado, resposta);
+        assertFingerprint(FINGERPRINT_RESPOSTA, resposta);
     }
 
     @Test
@@ -65,38 +53,6 @@ class ChecklistApiContractTest {
                 .extract()
                 .as(JsonNode.class);
 
-        assertEquals(400, erro.path("codigo_http").asInt());
-        assertEquals("simtr-hub", erro.path("recurso").asText());
-        assertEquals("ARVDOCP0001", erro.path("codigo_erro").asText());
-        assertEquals(mensagem, erro.path("erros").path(0).path("mensagem").asText());
-        assertTrue(uuidValido(erro.path("id_erro").asText()));
-        assertFalse(erro.has("detalhe"));
-        assertFalse(erro.has("stacktrace"));
-    }
-
-    private static boolean uuidValido(String valor) {
-        try {
-            UUID.fromString(valor);
-            return true;
-        } catch (IllegalArgumentException e) {
-            return false;
-        }
-    }
-
-    private static JsonNode removerCamposNulos(JsonNode node) {
-        if (node.isObject()) {
-            Iterator<Map.Entry<String, JsonNode>> campos = node.fields();
-            while (campos.hasNext()) {
-                Map.Entry<String, JsonNode> campo = campos.next();
-                if (campo.getValue().isNull()) {
-                    campos.remove();
-                } else {
-                    removerCamposNulos(campo.getValue());
-                }
-            }
-        } else if (node.isArray()) {
-            node.forEach(ChecklistApiContractTest::removerCamposNulos);
-        }
-        return node;
+        assertErroValidacaoExato(erro, mensagem);
     }
 }

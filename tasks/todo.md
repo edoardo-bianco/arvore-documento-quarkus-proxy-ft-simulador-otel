@@ -19,21 +19,28 @@ Antes de executar qualquer item:
 
 ## Ponto de retomada
 
-- **Tarefa atual:** 0.1 - EM ANDAMENTO.
-- **Concluido:** baseline com 100 testes e zero falhas; 16 testes focados de caracterizacao
-  REST aprovados para processo, checklist, cinco operacoes de dossie produto e credencial de
-  gestao de documento; suite completa do checkpoint com 116 testes, zero falhas, zero erros e
-  nenhum teste ignorado.
+- **Ultima tarefa concluida:** 0.1 - contratos HTTP congelados.
+- **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
+  caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
+  produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
+  erros e nenhum teste ignorado.
 - **Comportamento registrado:** a resposta publica de checklist omite campos nulos, mesmo que
   esses campos existam no mock interno.
-- **Pendente em 0.1:** caracterizacao semantica do OpenAPI e manifesto dos contratos HTTP.
+- **Evidencia:** `baseline-contratos.md` relaciona as oito capacidades aos oraculos independentes,
+  erros completos, validacoes e semantica OpenAPI protegidos.
 - **Codigo de producao:** nenhuma alteracao.
-- **Proximo passo:** concluir 0.1, executar novamente a suite completa e somente entao avaliar
-  o item 0.1 para fechamento.
+- **Proximo item pendente:** 0.2 - inventariar e proteger observabilidade contratual. Nao iniciado;
+  requer autorizacao humana para retomar.
 
 ## Fase 0 - Baseline e guardrails
 
-- [ ] 0.1 Congelar contratos HTTP dos oito endpoints.
+- [x] 0.1 Congelar contratos HTTP dos oito endpoints.
+- [x] 0.1a Auditar e tornar independentes os oraculos HTTP dos 16 testes existentes.
+- [x] 0.1a.1 Congelar processo, checklist e credencial sem ler mocks de runtime no oraculo.
+- [x] 0.1a.2 Substituir serializacao de DTOs por requests JSON literais nos testes de dossie.
+- [x] 0.1b Fortalecer erros completos e validacoes de maior risco, incluindo cascata e JSON invalido.
+- [x] 0.1c Caracterizar semanticamente o OpenAPI completo e o conjunto exato de oito operacoes.
+- [x] 0.1d Criar manifesto por capacidade, executar testes focados/suite e fechar somente 0.1.
 - [ ] 0.2 Inventariar e proteger observabilidade contratual.
 - [ ] 0.3 Criar stub MTR local com simulador desabilitado.
 - [ ] 0.4 Adicionar ArchUnit progressivo.
@@ -123,7 +130,7 @@ data, evidencias verificaveis e aprovador humano.
 
 | Checkpoint | Status | Data | Evidencias | Aprovador |
 |---|---|---|---|---|
-| C0 | PENDENTE | 2026-07-11 | G1: branch confirmada; baseline 100/0; demais evidencias pendentes | - |
+| C0 | PENDENTE | 2026-07-12 | G1: branch confirmada; baseline 100/0; Task 0.1: manifesto HTTP/OpenAPI, 22 focados e suite 122/0; Tasks 0.2-0.4 pendentes | - |
 | C1 | PENDENTE | - | - | - |
 | C2.1 | PENDENTE | - | - | - |
 | C2.2 | PENDENTE | - | - | - |
