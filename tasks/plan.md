@@ -4,7 +4,7 @@
 
 - **Planejado:** 2026-07-11
 - **Implementacao:** nao iniciada
-- **Branch de trabalho:** `refactor/ddd-integracoes-atomicas`
+- **Branch de trabalho:** `refactor/ddd-fase-0-baseline`
 - **Documento arquitetural:** `../doc/arquitetura-ddd-integracoes-atomicas.md`
 - **Checklist operacional:** `todo.md`
 
@@ -16,7 +16,7 @@ tabela autoritativa de `todo.md`.
 As Tasks 0.1 a 0.4 podem executar em sua ordem de dependencias quando a intencao e este plano
 estiverem aprovados pelo usuario, mesmo sem checkpoint anterior. Antes da primeira edicao de
 producao, o executor deve registrar em `todo.md` que a Fase 0 foi iniciada, anexar `git diff`/estado
-da arvore, confirmar `refactor/ddd-integracoes-atomicas` como branch atual e confirmar a baseline
+da arvore, confirmar `refactor/ddd-fase-0-baseline` como branch atual e confirmar a baseline
 de testes. C0 encerra essa excecao: nenhuma Task da Fase 1 pode iniciar sem C0 em `GO`.
 
 ## Objetivo
@@ -28,7 +28,7 @@ TDD leve e sem implementar funcionalidades ou workflows novos.
 ## Pre-condicao Git obrigatoria
 
 Antes da Task 0.1, o trabalho deve estar fora de `main` em uma branch dedicada. A branch inicial
-aprovada e criada para este plano e `refactor/ddd-integracoes-atomicas`.
+aprovada e criada para esta fase e `refactor/ddd-fase-0-baseline`.
 
 - Nao executar tasks de implementacao diretamente em `main`.
 - No inicio de cada retomada, confirmar a branch com `git rev-parse --abbrev-ref HEAD`.

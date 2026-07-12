@@ -5,7 +5,7 @@
 Antes de executar qualquer item:
 
 - [ ] ler `../doc/arquitetura-ddd-integracoes-atomicas.md`;
-- [ ] confirmar `refactor/ddd-integracoes-atomicas` com `git rev-parse --abbrev-ref HEAD`;
+- [ ] confirmar `refactor/ddd-fase-0-baseline` com `git rev-parse --abbrev-ref HEAD`;
 - [ ] se a Fase 0 ainda nao terminou, aplicar a regra de bootstrap de `plan.md` e seguir as
   dependencias 0.1–0.4; a exigencia de checkpoint `GO` comeca somente ao entrar na Fase 1;
 - [ ] verificar `git diff` e preservar alteracoes do usuario;
@@ -13,8 +13,23 @@ Antes de executar qualquer item:
 
 ## Pre-condicao Git
 
-- [x] G0 Criar a branch local `refactor/ddd-integracoes-atomicas` a partir de `main`.
-- [ ] G1 Antes da Task 0.1, registrar branch atual e estado do working tree nas evidencias de C0.
+- [x] G0 Criar a branch local `refactor/ddd-fase-0-baseline` a partir de `main` atualizado.
+- [x] G1 Branch `refactor/ddd-fase-0-baseline` confirmada; working tree continha somente a
+  atualizacao documental da branch; baseline `mvn -q test`: 100 testes, zero falhas.
+
+## Ponto de retomada
+
+- **Tarefa atual:** 0.1 - EM ANDAMENTO.
+- **Concluido:** baseline com 100 testes e zero falhas; 16 testes focados de caracterizacao
+  REST aprovados para processo, checklist, cinco operacoes de dossie produto e credencial de
+  gestao de documento; suite completa do checkpoint com 116 testes, zero falhas, zero erros e
+  nenhum teste ignorado.
+- **Comportamento registrado:** a resposta publica de checklist omite campos nulos, mesmo que
+  esses campos existam no mock interno.
+- **Pendente em 0.1:** caracterizacao semantica do OpenAPI e manifesto dos contratos HTTP.
+- **Codigo de producao:** nenhuma alteracao.
+- **Proximo passo:** concluir 0.1, executar novamente a suite completa e somente entao avaliar
+  o item 0.1 para fechamento.
 
 ## Fase 0 - Baseline e guardrails
 
@@ -108,7 +123,7 @@ data, evidencias verificaveis e aprovador humano.
 
 | Checkpoint | Status | Data | Evidencias | Aprovador |
 |---|---|---|---|---|
-| C0 | PENDENTE | - | - | - |
+| C0 | PENDENTE | 2026-07-11 | G1: branch confirmada; baseline 100/0; demais evidencias pendentes | - |
 | C1 | PENDENTE | - | - | - |
 | C2.1 | PENDENTE | - | - | - |
 | C2.2 | PENDENTE | - | - | - |
