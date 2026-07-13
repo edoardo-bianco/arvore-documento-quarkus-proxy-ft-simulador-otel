@@ -18,6 +18,7 @@ import java.util.concurrent.Executors;
 public class DossieProdutoMtrStubTestResource implements QuarkusTestResourceLifecycleManager {
 
     static final String CAMINHO_CRIACAO = "/simtr/dossie-produto/v1/dossie-produto";
+    static final String CAMINHO_DOCUMENTO = "/simtr/dossie-produto/v2/dossie-produto";
 
     private static final ConcurrentLinkedQueue<StubResponse> RESPOSTAS = new ConcurrentLinkedQueue<>();
     private static final CopyOnWriteArrayList<CapturedRequest> REQUISICOES = new CopyOnWriteArrayList<>();
@@ -37,6 +38,7 @@ public class DossieProdutoMtrStubTestResource implements QuarkusTestResourceLife
         server.setExecutor(executor);
         server.createContext("/oidc/token", this::handleToken);
         server.createContext(CAMINHO_CRIACAO, this::handleDossieProduto);
+        server.createContext(CAMINHO_DOCUMENTO, this::handleDossieProduto);
         server.start();
 
         String baseUrl = "http://127.0.0.1:" + server.getAddress().getPort();

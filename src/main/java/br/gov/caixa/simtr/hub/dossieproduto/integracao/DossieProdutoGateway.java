@@ -1,7 +1,5 @@
 package br.gov.caixa.simtr.hub.dossieproduto.integracao;
 
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoCriadoDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoInclusaoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialDto;
 import br.gov.caixa.simtr.hub.arquitetura.observabilidade.ObservabilityLog;
 import io.opentelemetry.api.trace.Span;
@@ -24,89 +22,6 @@ public class DossieProdutoGateway {
     @Inject
     public DossieProdutoGateway(@RestClient DossieProdutoClient dossieProdutoClient) {
         this.dossieProdutoClient = dossieProdutoClient;
-    }
-
-    @WithSpan(value = "mtr.dossie-produto.documento.incluir", kind = SpanKind.CLIENT)
-    public Uni<DossieProdutoDocumentoCriadoDto> incluirDocumentoDossieProduto(
-            Long id,
-            DossieProdutoDocumentoInclusaoDto requisicao
-    ) {
-        Integer quantidadeAtributos = quantidadeAtributosDocumento(requisicao);
-        Integer quantidadePropriedades = quantidadePropriedadesDocumento(requisicao);
-        String tipoDocumento = tipoDocumento(requisicao);
-
-        Span span = Span.current();
-        span.setAttribute("mtr.servico", "simtr-dossie-produto");
-        span.setAttribute("mtr.api", "dossie-produto-v2");
-        span.setAttribute("http.request.method", "POST");
-        span.setAttribute("url.path", "/simtr/dossie-produto/v2/dossie-produto/" + id + "/documento");
-        setLongAttribute(span, "dossie_produto.id", id);
-        setStringAttribute(span, "dossie_produto.documento.tipo", tipoDocumento);
-        setIntAttribute(span, "dossie_produto.documento.atributos.quantidade", quantidadeAtributos);
-        setIntAttribute(span, "dossie_produto.documento.propriedades.quantidade", quantidadePropriedades);
-
-        ObservabilityLog.info(
-                LOG,
-                "mtr.dossie-produto.documento.chamada.iniciada",
-                ObservabilityLog.fields(
-                        "camada", "infrastructure",
-                        "componente", "DossieProdutoGateway",
-                        "dependencia", "simtr-dossie-produto",
-                        "operacao", "incluir-documento-dossie-produto-v2",
-                        "dossie_produto_id", id,
-                        "tipo_documento", tipoDocumento,
-                        "documento_atributos_quantidade", quantidadeAtributos,
-                        "documento_propriedades_quantidade", quantidadePropriedades
-                )
-        );
-
-        return dossieProdutoClient.incluirDocumentoDossieProduto(id, requisicao)
-                .invoke(resposta -> {
-                    span.setAttribute("mtr.resposta.sucesso", true);
-                    if (resposta != null && resposta.idDocumento() != null) {
-                        span.setAttribute("dossie_produto.documento.id", resposta.idDocumento());
-                    }
-                    if (resposta != null && resposta.idInstanciaDocumento() != null) {
-                        span.setAttribute("dossie_produto.documento.instancia.id", resposta.idInstanciaDocumento());
-                    }
-
-                    ObservabilityLog.info(
-                            LOG,
-                            "mtr.dossie-produto.documento.chamada.concluida",
-                            ObservabilityLog.fields(
-                                    "camada", "infrastructure",
-                                    "componente", "DossieProdutoGateway",
-                                    "dependencia", "simtr-dossie-produto",
-                                    "operacao", "incluir-documento-dossie-produto-v2",
-                                    "dossie_produto_id", id,
-                                    "id_documento", resposta != null ? resposta.idDocumento() : null,
-                                    "id_instancia_documento", resposta != null ? resposta.idInstanciaDocumento() : null,
-                                    "resultado", "sucesso"
-                            )
-                    );
-                })
-                .onFailure().invoke(erro -> {
-                    span.recordException(erro);
-                    span.setStatus(StatusCode.ERROR, String.valueOf(erro.getMessage()));
-                    span.setAttribute("mtr.resposta.sucesso", false);
-                    span.setAttribute("erro.tipo", erro.getClass().getName());
-
-                    ObservabilityLog.error(
-                            LOG,
-                            "mtr.dossie-produto.documento.chamada.falhou",
-                            erro,
-                            ObservabilityLog.fields(
-                                    "camada", "infrastructure",
-                                    "componente", "DossieProdutoGateway",
-                                    "dependencia", "simtr-dossie-produto",
-                                    "operacao", "incluir-documento-dossie-produto-v2",
-                                    "dossie_produto_id", id,
-                                    "tipo_documento", tipoDocumento,
-                                    "erro_tipo", erro.getClass().getSimpleName(),
-                                    "resultado", "erro"
-                            )
-                    );
-                });
     }
 
     @WithSpan(value = "mtr.dossie-produto.validacao-negocial.registrar", kind = SpanKind.CLIENT)
@@ -180,24 +95,6 @@ public class DossieProdutoGateway {
                 });
     }
 
-    private static String tipoDocumento(DossieProdutoDocumentoInclusaoDto requisicao) {
-        return requisicao != null ? requisicao.tipoDocumento() : null;
-    }
-
-    private static Integer quantidadeAtributosDocumento(DossieProdutoDocumentoInclusaoDto requisicao) {
-        if (requisicao == null || requisicao.atributos() == null) {
-            return null;
-        }
-        return requisicao.atributos().size();
-    }
-
-    private static Integer quantidadePropriedadesDocumento(DossieProdutoDocumentoInclusaoDto requisicao) {
-        if (requisicao == null || requisicao.propriedades() == null) {
-            return null;
-        }
-        return requisicao.propriedades().size();
-    }
-
     private static Integer quantidadeVerificacoesValidacao(DossieProdutoValidacaoNegocialDto requisicao) {
         if (requisicao == null || requisicao.verificacoes() == null) {
             return null;
@@ -224,9 +121,4 @@ public class DossieProdutoGateway {
         }
     }
 
-    private static void setStringAttribute(Span span, String nome, String valor) {
-        if (valor != null) {
-            span.setAttribute(nome, valor);
-        }
-    }
 }

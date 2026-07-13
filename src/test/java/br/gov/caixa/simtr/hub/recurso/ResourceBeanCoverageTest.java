@@ -5,7 +5,7 @@ import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.DossieProdutoResourc
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.CriacaoDossieProdutoRequest;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.CriacaoDossieProdutoResponse;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriadoDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoCriadoDto;
+import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.InclusaoDocumentoDossieProdutoResponse;
 import br.gov.caixa.simtr.hub.gestaodocumento.recurso.rest.v1.dto.GestaoDocumentoCredencialContainerDto;
 import br.gov.caixa.simtr.hub.gestaodocumento.recurso.rest.v1.GestaoDocumentoResource;
 import br.gov.caixa.simtr.hub.parametrizacao.fachada.ParametrizacaoFachada;
@@ -15,12 +15,13 @@ import br.gov.caixa.simtr.hub.dossieproduto.fachada.DossieProdutoFachada;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.IniciarOuAvancarWorkflowDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.CriarDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.AtualizarFormularioDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.IncluirDocumentoDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.IdentificadorDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoAtualizacaoFormularioDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoWorkflowDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoCriacaoDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoInclusaoDocumentoDossieProduto;
 import br.gov.caixa.simtr.hub.gestaodocumento.fachada.GestaoDocumentoFachada;
-import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoDocumentoCriadoVo;
 import br.gov.caixa.simtr.hub.gestaodocumento.dominio.GestaoDocumentoCredencialContainerVo;
 import br.gov.caixa.simtr.hub.dossieproduto.mapeamento.DossieProdutoMapper;
 import br.gov.caixa.simtr.hub.gestaodocumento.mapeamento.GestaoDocumentoMapper;
@@ -77,6 +78,9 @@ class ResourceBeanCoverageTest {
 
     @InjectMock
     AtualizarFormularioDossieProduto atualizarFormularioDossieProduto;
+
+    @InjectMock
+    IncluirDocumentoDossieProduto incluirDocumentoDossieProduto;
 
     @InjectMock
     IniciarOuAvancarWorkflowDossieProduto iniciarOuAvancarWorkflow;
@@ -153,17 +157,20 @@ class ResourceBeanCoverageTest {
 
     @Test
     void dossieProdutoResourceCobreDocumentoSucessoEFalhaDoBeanCdi() {
-        when(dossieProdutoFachada.incluirDocumentoDossieProduto(eq(123L), any()))
-                .thenReturn(Uni.createFrom().item(new DossieProdutoDocumentoCriadoVo(456L, 789L)));
-        when(dossieProdutoFachada.incluirDocumentoDossieProduto(eq(124L), any()))
-                .thenReturn(Uni.createFrom().failure(new IllegalStateException("falha documento")));
+        when(incluirDocumentoDossieProduto.executar(any()))
+                .thenReturn(Uni.createFrom().item(
+                        new ResultadoInclusaoDocumentoDossieProduto(456L, 789L)))
+                .thenReturn(Uni.createFrom().failure(
+                        new IllegalStateException("falha documento")));
 
         Response response = dossieProdutoResource.incluirDocumentoDossieProduto(123L, TestFixtures.documentoInclusaoDto())
                 .await().indefinitely();
 
         assertEquals(Response.Status.CREATED.getStatusCode(), response.getStatus());
-        assertEquals(456L, ((DossieProdutoDocumentoCriadoDto) response.getEntity()).idDocumento());
-        assertEquals(789L, ((DossieProdutoDocumentoCriadoDto) response.getEntity()).idInstanciaDocumento());
+        assertEquals(456L, ((InclusaoDocumentoDossieProdutoResponse)
+                response.getEntity()).idDocumento());
+        assertEquals(789L, ((InclusaoDocumentoDossieProdutoResponse)
+                response.getEntity()).idInstanciaDocumento());
         assertThrows(IllegalStateException.class,
                 () -> dossieProdutoResource.incluirDocumentoDossieProduto(124L, TestFixtures.documentoInclusaoDto())
                         .await().indefinitely());

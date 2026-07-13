@@ -1,7 +1,5 @@
 package br.gov.caixa.simtr.hub.dossieproduto.integracao;
 
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoCriadoDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoInclusaoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialDto;
 import br.gov.caixa.simtr.hub.arquitetura.seguranca.RequestHeaderFactory;
 import br.gov.caixa.simtr.hub.arquitetura.observabilidade.RestClientObservabilityFilter;
@@ -13,7 +11,6 @@ import io.quarkus.rest.client.reactive.ClientExceptionMapper;
 import io.smallrye.mutiny.Uni;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.PATCH;
-import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.ProcessingException;
@@ -38,46 +35,6 @@ import java.time.temporal.ChronoUnit;
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public interface DossieProdutoClient {
-
-    @POST
-    @Path("/v2/dossie-produto/{id}/documento")
-    @Timeout(value = 2_000, unit = ChronoUnit.MILLIS)
-    @Retry(
-            maxRetries = 3,
-            delay = 300,
-            delayUnit = ChronoUnit.MILLIS,
-            jitter = 100,
-            jitterDelayUnit = ChronoUnit.MILLIS,
-            retryOn = {
-                    MtrServerErrorException.class,
-                    ProcessingException.class,
-                    TimeoutException.class
-            },
-            abortOn = {
-                    MtrBusinessErrorException.class,
-                    MtrClientTechnicalException.class
-            }
-    )
-    @CircuitBreaker(
-            requestVolumeThreshold = 10,
-            failureRatio = 0.5,
-            delay = 10_000,
-            delayUnit = ChronoUnit.MILLIS,
-            successThreshold = 2,
-            failOn = {
-                    MtrServerErrorException.class,
-                    ProcessingException.class,
-                    TimeoutException.class
-            },
-            skipOn = {
-                    MtrBusinessErrorException.class,
-                    MtrClientTechnicalException.class
-            }
-    )
-    Uni<DossieProdutoDocumentoCriadoDto> incluirDocumentoDossieProduto(
-            @PathParam("id") Long id,
-            DossieProdutoDocumentoInclusaoDto requisicao
-    );
 
     @PATCH
     @Path("/v1/dossie-produto/{id}/validacao-negocial")

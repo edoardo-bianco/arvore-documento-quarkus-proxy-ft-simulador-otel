@@ -23,7 +23,7 @@ Antes de executar qualquer item:
 
 ## Ponto de retomada
 
-- **Ultima tarefa concluida:** 2.2e - borda REST do formulario.
+- **Ultima tarefa concluida:** 2.3e - borda REST da inclusao de documento.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
   produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
@@ -127,7 +127,43 @@ Antes de executar qualquer item:
   Quarkus continua responsavel por gera-lo sem filtro ou manipulacao. O profile padrao `test`
   agora declara `quarkus.devservices.enabled=false`. `mvn -q clean test` executou 191 casos em 45
   relatorios, com zero falhas, zero erros e zero ignorados; `git diff --check` passou.
-- **Proximo item pendente:** C2.2 - revisar evidencias do formulario e obter GO humano.
+- **Checkpoint C2.2:** GO humano confirmado em 2026-07-13; inclusao de documento desbloqueada.
+- **Evidencia da caracterizacao da inclusao de documento:**
+  `baseline-documento-dossie-produto.md`; contrato HTTP/JSON/validacao, nulos aceitos, wire MTR v2,
+  headers/OIDC/trace, resposta, erro lossless sem retry, retry apos 500, matriz FT, simulador,
+  configuracao e observabilidade congelados. O OpenAPI permaneceu sob geracao exclusiva do
+  Quarkus, sem teste ou manipulacao. `mvn -q clean test` executou 197 casos em 46 relatorios, com
+  zero falhas, zero erros e zero ignorados, sem Docker ou Dev Services; nenhuma classe de producao
+  foi alterada.
+- **Evidencia do nucleo da inclusao de documento:** comando, seis tipos aninhados/resultado,
+  portas de entrada e saida e caso de uso usam nomes internos; dominio permanece Java puro e a
+  aplicacao usa somente tipos internos e `Uni`. O teste JUnit puro preserva comando, listas,
+  elementos nulos, resultado e falha; os 13 guardrails ArchUnit passaram. `mvn -q clean test`
+  executou 199 casos em 47 relatorios, com zero falhas, zero erros e zero ignorados, sem Docker ou
+  Dev Services.
+- **Evidencia da borda MTR v2 da inclusao de documento:** request/response e erro de protocolo,
+  REST Client, mapper, falha interna, qualifier e adapter sao exclusivos da capacidade e nao
+  reutilizam DTO REST publico. Stub HTTP local comprovou path, JSON, headers, OIDC local,
+  nulabilidade, ids de resposta, erro 400 sem retry e retry 500 com o mesmo wire. Matriz FT,
+  declaracao do span e 13 guardrails ArchUnit passaram. `mvn -q clean test` executou 209 casos em
+  49 relatorios, com zero falhas, zero erros e zero ignorados, no profile `test`, sem Docker ou Dev
+  Services.
+- **Evidencia da borda simulador da inclusao de documento:** DTO proprio le
+  `id_documento`/`id_instancia_documento` da fixture snake_case e o adapter retorna somente o
+  resultado interno. Qualifier e producer selecionam simulador quando a property existente esta
+  ligada e MTR quando desligada; testes CDI provam ambos os estados sem profile adicional. A
+  configuracao permaneceu inalterada, os 13 guardrails ArchUnit passaram e `mvn -q clean test`
+  executou 213 casos em 52 relatorios, com zero falhas, zero erros e zero ignorados, sem Docker ou
+  Dev Services.
+- **Evidencia da borda REST da inclusao de documento:** request/response explicitos, mapper
+  lossless e observabilidade ligam o Resource somente a porta de entrada. Contratos HTTP, JSON,
+  validacao, nulos, erros, MTR v2, simulador, FT, spans e logs passaram sem testar ou manipular o
+  OpenAPI gerado pelo Quarkus. A cadeia legada exclusiva foi removida de Fachada, Service,
+  Gateway, REST Client, MapStruct e mock factory, junto dos DTOs/VOs sem uso; `rg` confirmou
+  ausencia de referencias. `mvn -q clean test` executou 215 casos em 55 relatorios, com zero
+  falhas, zero erros e zero ignorados, no profile `test`, sem Docker ou Dev Services;
+  `git diff --check` passou.
+- **Proximo item pendente:** C2.3 - revisar evidencias do documento e obter GO humano.
 
 ## Fase 0 - Baseline e guardrails
 
@@ -182,12 +218,24 @@ Antes de executar qualquer item:
 - [x] 2.2e.2 Remover a cadeia legada exclusiva do formulario apos equivalencia verde.
 - [x] 2.2e.3 Provar HTTP, erros, observabilidade, ArchUnit e ausencia de referencias legadas.
 - [x] 2.2e Migrar borda REST do formulario.
-- [ ] C2.2 Registrar evidencias e obter GO humano.
-- [ ] 2.3a Caracterizar inclusao de documento.
-- [ ] 2.3b Criar nucleo da inclusao de documento.
-- [ ] 2.3c Criar borda MTR v2 da inclusao de documento.
-- [ ] 2.3d Criar borda simulador da inclusao de documento.
-- [ ] 2.3e Migrar borda REST da inclusao de documento.
+- [x] C2.2 Registrar evidencias e obter GO humano.
+- [x] 2.3a.1 Congelar contrato HTTP, validacao e nulabilidade da inclusao de documento.
+- [x] 2.3a.2 Congelar wire MTR v2, erros e matriz FT contra stub HTTP local.
+- [x] 2.3a.3 Registrar simulador, observabilidade, configuracao e evidencias da suite.
+- [x] 2.3a Caracterizar inclusao de documento.
+- [x] 2.3b.1 Criar comando, tipos aninhados e resultado internos da inclusao de documento.
+- [x] 2.3b.2 Criar portas e caso de uso da inclusao de documento com fake da porta de saida.
+- [x] 2.3b.3 Provar isolamento do nucleo com teste unitario e ArchUnit.
+- [x] 2.3b Criar nucleo da inclusao de documento.
+- [x] 2.3c.1 Criar DTOs v2, erro e REST Client MTR exclusivos da inclusao de documento.
+- [x] 2.3c.2 Criar falha interna, mapper, qualifier e adapter MTR do documento.
+- [x] 2.3c.3 Provar wire, nulabilidade, erros, observabilidade e matriz FT no novo client/adapter.
+- [x] 2.3c Criar borda MTR v2 da inclusao de documento.
+- [x] 2.3d Criar borda simulador da inclusao de documento.
+- [x] 2.3e.1 Criar request/response explicitos, mapper REST e observabilidade do caso de uso.
+- [x] 2.3e.2 Ligar o Resource a porta de entrada e comprovar equivalencia HTTP, de erros, MTR e simulador.
+- [x] 2.3e.3 Remover a cadeia legada exclusiva da inclusao de documento e provar ausencia de referencias.
+- [x] 2.3e Migrar borda REST da inclusao de documento.
 - [ ] C2.3 Registrar evidencias e obter GO humano.
 - [ ] 2.4a Caracterizar validacao negocial.
 - [ ] 2.4b Criar nucleo da validacao negocial.
@@ -247,7 +295,7 @@ data, evidencias verificaveis e aprovador humano.
 | C0 | GO | 2026-07-12 | G1: branch confirmada; baseline 100/0; Task 0.1: manifesto HTTP/OpenAPI e 22 focados; Task 0.2: inventario de observabilidade e 12 focados; Task 0.3: baseline MTR com cinco focados; Task 0.4: guardrails ArchUnit progressivos; `mvn -q test` executado novamente com codigo 0 e suite/build verdes | Usuario, GO registrado em conversa |
 | C1 | GO | 2026-07-12 | Tasks 1.1-1.5 concluidas; `mvn -q clean test` com 153 elementos `testcase`, zero falhas, zero erros e zero ignorados; oito operacoes publicas e 43 schemas OpenAPI preservados; FT, wire, OIDC de teste, simulador, observabilidade e ArchUnit verdes; legado controlado do workflow removido sem referencias; `diff --check` limpo | Usuario, GO registrado em conversa |
 | C2.1 | GO | 2026-07-13 | Tasks 2.1a-2.1e concluidas; `mvn -q clean test` com 163 elementos `testcase`, zero falhas, zero erros e zero ignorados; contratos HTTP/JSON/validacao, wire MTR, simulador, erros lossless, matriz FT, observabilidade e ArchUnit verdes; cadeia legada da criacao removida sem referencias; `diff --check` limpo | Usuario, GO registrado em conversa |
-| C2.2 | PENDENTE | - | - | - |
+| C2.2 | GO | 2026-07-13 | Tasks 2.2a-2.2e concluidas; `mvn -q clean test` com 191 elementos `testcase` em 45 relatorios, zero falhas, zero erros e zero ignorados; contratos HTTP/JSON/validacao, wire MTR, simulador, erros lossless, matriz FT, observabilidade e ArchUnit verdes; cadeia legada do formulario removida sem referencias; `diff --check` limpo; commit `05571a1` publicado | Usuario, GO registrado em conversa |
 | C2.3 | PENDENTE | - | - | - |
 | C2.4 | PENDENTE | - | - | - |
 | C2 | PENDENTE | - | - | - |

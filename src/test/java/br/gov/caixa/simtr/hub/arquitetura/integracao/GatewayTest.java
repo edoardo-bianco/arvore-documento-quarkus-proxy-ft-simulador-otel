@@ -1,8 +1,6 @@
 package br.gov.caixa.simtr.hub.arquitetura.integracao;
 
 import br.gov.caixa.simtr.hub.TestFixtures;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoCriadoDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoInclusaoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialDto;
 import br.gov.caixa.simtr.hub.gestaodocumento.recurso.rest.v1.dto.GestaoDocumentoCredencialContainerDto;
 import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.checklist.ChecklistDto;
@@ -29,24 +27,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class GatewayTest {
 
     @Test
-    void dossieGatewayEncaminhaDocumentoEValidacaoNegocialParaClient() {
+    void dossieGatewayEncaminhaValidacaoNegocialParaClient() {
         FakeDossieProdutoClient client = new FakeDossieProdutoClient();
         DossieProdutoGateway gateway = new DossieProdutoGateway(client);
 
-        DossieProdutoDocumentoCriadoDto documento = gateway.incluirDocumentoDossieProduto(
-                        321L,
-                        TestFixtures.documentoInclusaoDto()
-                )
-                .await().indefinitely();
         gateway.registrarValidacaoNegocialDossieProduto(
                         432L,
                         TestFixtures.validacaoNegocialDto()
                 )
                 .await().indefinitely();
-        assertEquals(456L, documento.idDocumento());
-        assertEquals(789L, documento.idInstanciaDocumento());
-        assertEquals(321L, client.idDocumentoRecebido);
-        assertEquals("RG", client.documentoRecebido.tipoDocumento());
         assertEquals(432L, client.idValidacaoNegocialRecebido);
         assertEquals(6592L, client.validacaoNegocialRecebida.verificacoes().getFirst().identificadorChecklist());
     }
@@ -57,8 +46,6 @@ class GatewayTest {
         client.falha = new IllegalStateException("falha dossie");
         DossieProdutoGateway gateway = new DossieProdutoGateway(client);
 
-        assertSame(client.falha, assertThrows(IllegalStateException.class,
-                () -> gateway.incluirDocumentoDossieProduto(123L, null).await().indefinitely()));
         assertSame(client.falha, assertThrows(IllegalStateException.class,
                 () -> gateway.registrarValidacaoNegocialDossieProduto(123L, null).await().indefinitely()));
     }
@@ -132,24 +119,9 @@ class GatewayTest {
     }
 
     static class FakeDossieProdutoClient implements DossieProdutoClient {
-        private Long idDocumentoRecebido;
-        private DossieProdutoDocumentoInclusaoDto documentoRecebido;
         private Long idValidacaoNegocialRecebido;
         private DossieProdutoValidacaoNegocialDto validacaoNegocialRecebida;
         private RuntimeException falha;
-
-        @Override
-        public Uni<DossieProdutoDocumentoCriadoDto> incluirDocumentoDossieProduto(
-                Long id,
-                DossieProdutoDocumentoInclusaoDto requisicao
-        ) {
-            idDocumentoRecebido = id;
-            documentoRecebido = requisicao;
-            if (falha != null) {
-                return Uni.createFrom().failure(falha);
-            }
-            return Uni.createFrom().item(new DossieProdutoDocumentoCriadoDto(456L, 789L));
-        }
 
         @Override
         public Uni<Void> registrarValidacaoNegocialDossieProduto(

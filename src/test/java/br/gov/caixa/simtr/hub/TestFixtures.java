@@ -7,7 +7,7 @@ import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.CriacaoDossiePro
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoAtributoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoClienteDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoGarantiaDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoInclusaoDto;
+import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.InclusaoDocumentoDossieProdutoRequest;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoPropriedadeDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoVinculoDossieDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoFormularioDto;
@@ -194,8 +194,8 @@ public final class TestFixtures {
         ));
     }
 
-    public static DossieProdutoDocumentoInclusaoDto documentoInclusaoDto() {
-        return new DossieProdutoDocumentoInclusaoDto(
+    public static InclusaoDocumentoDossieProdutoRequest documentoInclusaoDto() {
+        return new InclusaoDocumentoDossieProdutoRequest(
                 null,
                 "container/documento.pdf",
                 "GED123",
@@ -225,8 +225,8 @@ public final class TestFixtures {
         );
     }
 
-    public static DossieProdutoDocumentoInclusaoDto documentoInclusaoSemObjetoAtributoDto() {
-        return new DossieProdutoDocumentoInclusaoDto(
+    public static InclusaoDocumentoDossieProdutoRequest documentoInclusaoSemObjetoAtributoDto() {
+        return new InclusaoDocumentoDossieProdutoRequest(
                 null,
                 "cli-web-mtr/TESTE_DEFENDER_01_20251104.pdf",
                 null,

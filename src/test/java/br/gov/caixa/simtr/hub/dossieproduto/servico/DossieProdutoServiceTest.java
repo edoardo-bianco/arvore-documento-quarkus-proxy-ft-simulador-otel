@@ -1,8 +1,6 @@
 package br.gov.caixa.simtr.hub.dossieproduto.servico;
 
 import br.gov.caixa.simtr.hub.TestFixtures;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoCriadoDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoInclusaoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialDto;
 import br.gov.caixa.simtr.hub.dossieproduto.integracao.DossieProdutoGateway;
 import br.gov.caixa.simtr.hub.dossieproduto.integracao.mock.DossieProdutoMockFactory;
@@ -12,7 +10,6 @@ import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -21,42 +18,6 @@ class DossieProdutoServiceTest {
 
     @Inject
     DossieProdutoMapper mapper;
-
-    @Test
-    void documentoComSimuladorHabilitadoUsaMockFactory() {
-        FakeDossieGateway gateway = new FakeDossieGateway();
-        FakeDossieMockFactory mockFactory = new FakeDossieMockFactory();
-        DossieProdutoService service = new DossieProdutoService(gateway, mockFactory, mapper, true);
-
-        var resposta = service.incluirDocumentoDossieProduto(
-                        123L,
-                        mapper.toVo(TestFixtures.documentoInclusaoDto())
-                )
-                .await().indefinitely();
-
-        assertEquals(5L, resposta.idDocumento());
-        assertEquals(6L, resposta.idInstanciaDocumento());
-        assertTrue(mockFactory.documentoChamada);
-        assertFalse(gateway.documentoChamada);
-    }
-
-    @Test
-    void documentoComSimuladorDesabilitadoUsaGateway() {
-        FakeDossieGateway gateway = new FakeDossieGateway();
-        FakeDossieMockFactory mockFactory = new FakeDossieMockFactory();
-        DossieProdutoService service = new DossieProdutoService(gateway, mockFactory, mapper, false);
-
-        var resposta = service.incluirDocumentoDossieProduto(
-                        123L,
-                        mapper.toVo(TestFixtures.documentoInclusaoDto())
-                )
-                .await().indefinitely();
-
-        assertEquals(7L, resposta.idDocumento());
-        assertEquals(8L, resposta.idInstanciaDocumento());
-        assertTrue(gateway.documentoChamada);
-        assertFalse(mockFactory.documentoChamada);
-    }
 
     @Test
     void validacaoNegocialComSimuladorHabilitadoUsaMockFactory() {
@@ -91,20 +52,10 @@ class DossieProdutoServiceTest {
     }
 
     private static class FakeDossieGateway extends DossieProdutoGateway {
-        private boolean documentoChamada;
         private boolean validacaoNegocialChamada;
 
         private FakeDossieGateway() {
             super(null);
-        }
-
-        @Override
-        public Uni<DossieProdutoDocumentoCriadoDto> incluirDocumentoDossieProduto(
-                Long id,
-                DossieProdutoDocumentoInclusaoDto requisicao
-        ) {
-            documentoChamada = true;
-            return Uni.createFrom().item(new DossieProdutoDocumentoCriadoDto(7L, 8L));
         }
 
         @Override
@@ -118,20 +69,10 @@ class DossieProdutoServiceTest {
     }
 
     private static class FakeDossieMockFactory extends DossieProdutoMockFactory {
-        private boolean documentoChamada;
         private boolean validacaoNegocialChamada;
 
         private FakeDossieMockFactory() {
             super(null);
-        }
-
-        @Override
-        public DossieProdutoDocumentoCriadoDto incluirDocumentoDossieProdutoMock(
-                Long id,
-                DossieProdutoDocumentoInclusaoDto requisicao
-        ) {
-            documentoChamada = true;
-            return new DossieProdutoDocumentoCriadoDto(5L, 6L);
         }
 
         @Override

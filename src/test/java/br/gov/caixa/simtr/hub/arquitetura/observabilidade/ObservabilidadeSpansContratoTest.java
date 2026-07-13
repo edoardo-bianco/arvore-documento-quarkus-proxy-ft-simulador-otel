@@ -2,6 +2,7 @@ package br.gov.caixa.simtr.hub.arquitetura.observabilidade;
 
 import br.gov.caixa.simtr.hub.dossieproduto.integracao.DossieProdutoGateway;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.CriacaoDossieProdutoMtrAdapter;
+import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.DocumentoDossieProdutoMtrAdapter;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.FormularioDossieProdutoMtrAdapter;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.WorkflowDossieProdutoMtrAdapter;
 import br.gov.caixa.simtr.hub.gestaodocumento.integracao.GestaoDocumentoGateway;
@@ -114,7 +115,7 @@ class ObservabilidadeSpansContratoTest {
                         "mtr.dossie-produto.formulario.atualizar|CLIENT|"),
                 Map.entry("CriacaoDossieProdutoMtrAdapter#criar",
                         "mtr.dossie-produto.criar|CLIENT|"),
-                Map.entry("DossieProdutoGateway#incluirDocumentoDossieProduto",
+                Map.entry("DocumentoDossieProdutoMtrAdapter#incluir",
                         "mtr.dossie-produto.documento.incluir|CLIENT|"),
                 Map.entry("WorkflowDossieProdutoMtrAdapter#avancar",
                         "mtr.dossie-produto.workflow.avancar|CLIENT|"),
@@ -134,6 +135,7 @@ class ObservabilidadeSpansContratoTest {
         assertEquals(esperado, extrairSpansDeclarados(
                 DossieProdutoGateway.class,
                 CriacaoDossieProdutoMtrAdapter.class,
+                DocumentoDossieProdutoMtrAdapter.class,
                 FormularioDossieProdutoMtrAdapter.class,
                 WorkflowDossieProdutoMtrAdapter.class,
                 GestaoDocumentoGateway.class,

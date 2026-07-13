@@ -1,10 +1,6 @@
 package br.gov.caixa.simtr.hub.dossieproduto.servico;
 
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoCriadoDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoInclusaoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialDto;
-import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoDocumentoCriadoVo;
-import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoDocumentoInclusaoVo;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoValidacaoNegocialVo;
 import br.gov.caixa.simtr.hub.dossieproduto.integracao.DossieProdutoGateway;
 import br.gov.caixa.simtr.hub.dossieproduto.integracao.mock.DossieProdutoMockFactory;
@@ -41,110 +37,6 @@ public class DossieProdutoService {
         this.dossieProdutoMockFactory = dossieProdutoMockFactory;
         this.dossieProdutoMapper = dossieProdutoMapper;
         this.simuladorDossieProdutoHabilitado = simuladorDossieProdutoHabilitado;
-    }
-
-    @WithSpan("simtr-hub.service.dossie-produto.documento.incluir")
-    public Uni<DossieProdutoDocumentoCriadoVo> incluirDocumentoDossieProduto(
-            Long id,
-            DossieProdutoDocumentoInclusaoVo requisicao
-    ) {
-        Integer quantidadeAtributos = quantidadeAtributosDocumento(requisicao);
-        Integer quantidadePropriedades = quantidadePropriedadesDocumento(requisicao);
-        String tipoDocumento = tipoDocumento(requisicao);
-
-        Span span = Span.current();
-        span.setAttribute("simtr_hub.simulador_dossie_produto_habilitado", simuladorDossieProdutoHabilitado);
-        setLongAttribute(span, "dossie_produto.id", id);
-        setStringAttribute(span, "dossie_produto.documento.tipo", tipoDocumento);
-        setIntAttribute(span, "dossie_produto.documento.atributos.quantidade", quantidadeAtributos);
-        setIntAttribute(span, "dossie_produto.documento.propriedades.quantidade", quantidadePropriedades);
-
-        ObservabilityLog.info(
-                LOG,
-                "simtr-hub.dossie-produto.documento.service.iniciado",
-                ObservabilityLog.fields(
-                        "camada", "application",
-                        "componente", "DossieProdutoService",
-                        "operacao", "incluir-documento-dossie-produto",
-                        "dossie_produto_id", id,
-                        "tipo_documento", tipoDocumento,
-                        "documento_atributos_quantidade", quantidadeAtributos,
-                        "documento_propriedades_quantidade", quantidadePropriedades,
-                        "simulador_habilitado", simuladorDossieProdutoHabilitado
-                )
-        );
-
-        return incluirDocumentoDossieProdutoNoMtrOuSimulador(id, requisicao)
-                .map(dossieProdutoMapper::toVo)
-                .invoke(resposta -> {
-                    if (resposta != null && resposta.idDocumento() != null) {
-                        span.setAttribute("dossie_produto.documento.id", resposta.idDocumento());
-                    }
-                    if (resposta != null && resposta.idInstanciaDocumento() != null) {
-                        span.setAttribute("dossie_produto.documento.instancia.id", resposta.idInstanciaDocumento());
-                    }
-
-                    ObservabilityLog.info(
-                            LOG,
-                            "simtr-hub.dossie-produto.documento.service.concluido",
-                            ObservabilityLog.fields(
-                                    "camada", "application",
-                                    "componente", "DossieProdutoService",
-                                    "operacao", "incluir-documento-dossie-produto",
-                                    "dossie_produto_id", id,
-                                    "id_documento", resposta != null ? resposta.idDocumento() : null,
-                                    "id_instancia_documento", resposta != null ? resposta.idInstanciaDocumento() : null,
-                                    "resultado", "sucesso"
-                            )
-                    );
-                })
-                .onFailure().invoke(erro -> {
-                    span.recordException(erro);
-                    span.setStatus(StatusCode.ERROR, String.valueOf(erro.getMessage()));
-
-                    ObservabilityLog.error(
-                            LOG,
-                            "simtr-hub.dossie-produto.documento.service.falhou",
-                            erro,
-                            ObservabilityLog.fields(
-                                    "camada", "application",
-                                    "componente", "DossieProdutoService",
-                                    "operacao", "incluir-documento-dossie-produto",
-                                    "dossie_produto_id", id,
-                                    "tipo_documento", tipoDocumento,
-                                    "erro_tipo", erro.getClass().getSimpleName(),
-                                    "resultado", "erro"
-                            )
-                    );
-                });
-    }
-
-    private Uni<DossieProdutoDocumentoCriadoDto> incluirDocumentoDossieProdutoNoMtrOuSimulador(
-            Long id,
-            DossieProdutoDocumentoInclusaoVo requisicao
-    ) {
-        DossieProdutoDocumentoInclusaoDto requisicaoDto = dossieProdutoMapper.toDto(requisicao);
-
-        if (simuladorDossieProdutoHabilitado) {
-            ObservabilityLog.info(
-                    LOG,
-                    "simtr-hub.dossie-produto.documento.simulador.usado",
-                    ObservabilityLog.fields(
-                            "camada", "application",
-                            "componente", "DossieProdutoService",
-                            "operacao", "incluir-documento-dossie-produto",
-                            "dossie_produto_id", id,
-                            "tipo_documento", tipoDocumento(requisicao),
-                            "origem", "mock"
-                    )
-            );
-
-            Span.current().setAttribute("simtr_hub.origem_dados", "mock");
-            return Uni.createFrom().item(dossieProdutoMockFactory.incluirDocumentoDossieProdutoMock(id, requisicaoDto));
-        }
-
-        Span.current().setAttribute("simtr_hub.origem_dados", "mtr");
-        return dossieProdutoGateway.incluirDocumentoDossieProduto(id, requisicaoDto);
     }
 
     @WithSpan("simtr-hub.service.dossie-produto.validacao-negocial.registrar")
@@ -235,24 +127,6 @@ public class DossieProdutoService {
         return dossieProdutoGateway.registrarValidacaoNegocialDossieProduto(id, requisicaoDto);
     }
 
-    private static String tipoDocumento(DossieProdutoDocumentoInclusaoVo requisicao) {
-        return requisicao != null ? requisicao.tipoDocumento() : null;
-    }
-
-    private static Integer quantidadeAtributosDocumento(DossieProdutoDocumentoInclusaoVo requisicao) {
-        if (requisicao == null || requisicao.atributos() == null) {
-            return null;
-        }
-        return requisicao.atributos().size();
-    }
-
-    private static Integer quantidadePropriedadesDocumento(DossieProdutoDocumentoInclusaoVo requisicao) {
-        if (requisicao == null || requisicao.propriedades() == null) {
-            return null;
-        }
-        return requisicao.propriedades().size();
-    }
-
     private static Integer quantidadeVerificacoesValidacao(DossieProdutoValidacaoNegocialVo requisicao) {
         if (requisicao == null || requisicao.verificacoes() == null) {
             return null;
@@ -279,9 +153,4 @@ public class DossieProdutoService {
         }
     }
 
-    private static void setStringAttribute(Span span, String nome, String valor) {
-        if (valor != null) {
-            span.setAttribute(nome, valor);
-        }
-    }
 }

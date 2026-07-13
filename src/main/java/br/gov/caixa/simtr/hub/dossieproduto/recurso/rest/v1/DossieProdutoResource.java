@@ -3,13 +3,15 @@ package br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.CriacaoDossieProdutoRequest;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.AtualizarFormularioDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.CriarDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.IncluirDocumentoDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaCriacaoDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaAtualizacaoFormularioDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaInclusaoDocumentoDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriadoDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoCriadoDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoInclusaoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoFormularioDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialDto;
+import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.InclusaoDocumentoDossieProdutoRequest;
+import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.InclusaoDocumentoDossieProdutoResponse;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.IniciarOuAvancarWorkflowDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaWorkflowDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.IdentificadorDossieProduto;
@@ -57,6 +59,7 @@ public class DossieProdutoResource {
     private final DossieProdutoMapper dossieProdutoMapper;
     private final CriarDossieProduto criarDossieProduto;
     private final AtualizarFormularioDossieProduto atualizarFormularioDossieProduto;
+    private final IncluirDocumentoDossieProduto incluirDocumentoDossieProduto;
     private final IniciarOuAvancarWorkflowDossieProduto iniciarOuAvancarWorkflow;
 
     @Inject
@@ -64,11 +67,13 @@ public class DossieProdutoResource {
                                  DossieProdutoMapper dossieProdutoMapper,
                                  CriarDossieProduto criarDossieProduto,
                                  AtualizarFormularioDossieProduto atualizarFormularioDossieProduto,
+                                 IncluirDocumentoDossieProduto incluirDocumentoDossieProduto,
                                  IniciarOuAvancarWorkflowDossieProduto iniciarOuAvancarWorkflow) {
         this.dossieProdutoFachada = dossieProdutoFachada;
         this.dossieProdutoMapper = dossieProdutoMapper;
         this.criarDossieProduto = criarDossieProduto;
         this.atualizarFormularioDossieProduto = atualizarFormularioDossieProduto;
+        this.incluirDocumentoDossieProduto = incluirDocumentoDossieProduto;
         this.iniciarOuAvancarWorkflow = iniciarOuAvancarWorkflow;
     }
 
@@ -324,7 +329,7 @@ public class DossieProdutoResource {
             @APIResponse(
                     responseCode = "201",
                     description = "Documento criado com sucesso.",
-                    content = @Content(schema = @Schema(implementation = DossieProdutoDocumentoCriadoDto.class))
+                    content = @Content(schema = @Schema(implementation = InclusaoDocumentoDossieProdutoResponse.class))
             ),
             @APIResponse(
                     responseCode = "400",
@@ -363,7 +368,7 @@ public class DossieProdutoResource {
             @Min(value = 1, message = "O identificador do dossie produto deve ser maior que zero.")
             Long id,
             @NotNull(message = "O corpo da requisicao deve ser informado.")
-            @Valid DossieProdutoDocumentoInclusaoDto requisicao) {
+            @Valid InclusaoDocumentoDossieProdutoRequest requisicao) {
 
         Integer quantidadeAtributos = quantidadeAtributosDocumento(requisicao);
         Integer quantidadePropriedades = quantidadePropriedadesDocumento(requisicao);
@@ -391,11 +396,12 @@ public class DossieProdutoResource {
                 )
         );
 
-        return dossieProdutoFachada.incluirDocumentoDossieProduto(
-                        id,
-                        dossieProdutoMapper.toVo(requisicao)
-                )
-                .map(resposta -> dossieProdutoMapper.toDto(resposta))
+        return incluirDocumentoDossieProduto.executar(
+                        DocumentoDossieProdutoRestMapper.paraComando(id, requisicao))
+                .onFailure(FalhaInclusaoDocumentoDossieProduto.class)
+                .transform(erro -> DocumentoDossieProdutoRestMapper.paraExcecaoRest(
+                        (FalhaInclusaoDocumentoDossieProduto) erro))
+                .map(DocumentoDossieProdutoRestMapper::paraResposta)
                 .invoke(resposta -> {
                     if (resposta != null && resposta.idDocumento() != null) {
                         span.setAttribute("dossie_produto.documento.id", resposta.idDocumento());
@@ -704,18 +710,20 @@ public class DossieProdutoResource {
                 .sum();
     }
 
-    private static String tipoDocumento(DossieProdutoDocumentoInclusaoDto requisicao) {
+    private static String tipoDocumento(InclusaoDocumentoDossieProdutoRequest requisicao) {
         return requisicao != null ? requisicao.tipoDocumento() : null;
     }
 
-    private static Integer quantidadeAtributosDocumento(DossieProdutoDocumentoInclusaoDto requisicao) {
+    private static Integer quantidadeAtributosDocumento(
+            InclusaoDocumentoDossieProdutoRequest requisicao) {
         if (requisicao == null || requisicao.atributos() == null) {
             return null;
         }
         return requisicao.atributos().size();
     }
 
-    private static Integer quantidadePropriedadesDocumento(DossieProdutoDocumentoInclusaoDto requisicao) {
+    private static Integer quantidadePropriedadesDocumento(
+            InclusaoDocumentoDossieProdutoRequest requisicao) {
         if (requisicao == null || requisicao.propriedades() == null) {
             return null;
         }

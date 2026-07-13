@@ -3,9 +3,9 @@
 ## Status
 
 - **Planejado:** 2026-07-11
-- **Implementacao:** Fase 0 concluida; C0, C1 e C2.1 em GO; Tasks 1.1 a 1.5, 2.1a a 2.1e e
-  2.2a a 2.2e concluidas; proximo passo: checkpoint C2.2, revisar evidencias do formulario e
-  obter GO humano antes da Task 2.3a
+- **Implementacao:** Fase 0 concluida; C0, C1, C2.1 e C2.2 em GO; Tasks 1.1 a 1.5, 2.1a a
+  2.1e, 2.2a a 2.2e e 2.3a a 2.3e concluidas; proximo passo: revisar o checkpoint C2.3 e obter
+  GO humano antes da validacao negocial
 - **Branch de trabalho:** `refactor/ddd-fase-0-baseline`
 - **Documento arquitetural:** `../doc/arquitetura-ddd-integracoes-atomicas.md`
 - **Checklist operacional:** `todo.md`
@@ -417,13 +417,16 @@ artefato; Resource usa somente porta de entrada.
 **Status:** concluida em 2026-07-13; mapper REST explicito e Resource usam a porta de entrada,
 cadeia legada exclusiva removida sem referencias e contratos HTTP/JSON/validacao, erros, FT,
 simulador/MTR e observabilidade preservados. O profile padrao `test` desabilita globalmente Dev
-Services; `mvn -q clean test` e `git diff --check` passaram. C2.2 permanece pendente.
+Services; `mvn -q clean test` e `git diff --check` passaram. C2.2 recebeu GO humano em
+2026-07-13.
 
 ### Checkpoint C2.2 - Formulario
 
-- [ ] Nulos/listas e validacao permanecem equivalentes.
-- [ ] Todas as bordas, ArchUnit, suite e build verdes.
-- [ ] GO humano registrado antes de documento.
+**Status:** `GO` humano registrado em 2026-07-13; inclusao de documento desbloqueada.
+
+- [x] Nulos/listas e validacao permanecem equivalentes.
+- [x] Todas as bordas, ArchUnit, suite e build verdes.
+- [x] GO humano registrado antes de documento.
 
 ### Subfase 2.3 - `IncluirDocumentoDossieProduto`
 
@@ -436,6 +439,12 @@ configuracao e matriz FT estao congelados, incluindo nulos aceitos.
 
 **Dependencias:** C2.2. **Escopo:** M.
 
+**Status:** concluida em 2026-07-13; contrato HTTP/JSON/validacao, nulos aceitos, wire MTR v2,
+headers/OIDC/trace, resposta, erros lossless, retry, matriz FT, simulador, configuracao e
+observabilidade congelados contra o legado. O OpenAPI permanece sob geracao exclusiva do Quarkus,
+sem teste ou manipulacao do documento gerado. Testes focados e `mvn -q clean test` passaram sem
+Docker ou Dev Services; nenhuma classe de producao foi alterada.
+
 #### Task 2.3b - Criar nucleo da inclusao
 
 **Criterios de aceite:** tipos, portas e caso de uso nao carregam Jackson/Jakarta; ids de documento
@@ -444,6 +453,12 @@ e instancia sao resultados internos sem nomes de protocolo.
 **Verificacao:** teste unitario e ArchUnit.
 
 **Dependencias:** 2.3a. **Escopo:** M.
+
+**Status:** concluida em 2026-07-13; comando, tipos aninhados, resultado, portas e caso de uso
+criados com nomes internos e sem dependencias de protocolo no dominio. Listas, elementos e campos
+nulos permanecem sem copia ou normalizacao; o caso de uso delega de forma reativa e preserva a
+mesma falha da porta de saida. Teste JUnit puro, ArchUnit e `mvn -q clean test` passaram sem Docker
+ou Dev Services. Nenhuma borda foi ligada nesta task.
 
 #### Task 2.3c - Criar borda MTR v2
 
@@ -454,6 +469,13 @@ matriz FT permanecem equivalentes.
 
 **Dependencias:** 2.3b. **Escopo:** M, subdividir arvore DTO em grupos de ate cinco arquivos.
 
+**Status:** concluida em 2026-07-13; DTOs de request/response v2, excecao de protocolo e REST
+Client exclusivos foram criados sem reutilizar DTO REST publico. Mapper, falha interna, qualifier e
+adapter implementam a porta de saida preservando path, wire, nulabilidade, os dois ids de resposta,
+erros e matriz FT. Testes JUnit puros, stub HTTP local, observabilidade, ArchUnit e
+`mvn -q clean test` passaram no profile `test`, sem Docker ou Dev Services. A borda ainda nao foi
+selecionada pelo caso de uso nem ligada ao endpoint REST.
+
 #### Task 2.3d - Criar borda simulador da inclusao
 
 **Criterios de aceite:** JSON snake_case e lido por DTO proprio; selecao/configuracao preservadas.
@@ -462,14 +484,31 @@ matriz FT permanecem equivalentes.
 
 **Dependencias:** 2.3b. **Escopo:** M.
 
+**Status:** concluida em 2026-07-13; DTO de resposta e adapter simulador exclusivos leem a
+fixture snake_case existente e retornam os dois identificadores internos. Qualifier e producer
+selecionam simulador ou MTR pela property existente, sem condicional no caso de uso. Testes JUnit
+puros, CDI com a property ligada/desligada, fixture real, ArchUnit e `mvn -q clean test` passaram
+no profile `test`, sem Docker ou Dev Services. Nenhuma property foi alterada e o endpoint REST
+permanece na cadeia legada ate a Task 2.3e.
+
 #### Task 2.3e - Migrar borda REST da inclusao
 
-**Criterios de aceite:** request/response explicitos; path/status/JSON/validacao/OpenAPI/logs iguais;
-Resource usa a porta de entrada.
+**Criterios de aceite:** request/response explicitos; path/status/JSON/validacao/logs iguais;
+OpenAPI integralmente gerado pelo Quarkus, sem teste ou manipulacao do artefato; Resource usa a
+porta de entrada.
 
 **Verificacao:** HTTP, equivalencia e suite.
 
 **Dependencias:** 2.3c e 2.3d. **Escopo:** M.
+
+**Status:** concluida em 2026-07-13; request/response REST explicitos, mapper lossless e wrapper de
+observabilidade ligam o Resource somente a porta de entrada. Testes Java puros e HTTP comprovaram
+campos, listas, nulos, validacoes, erros, status, simulador e MTR via stub local. A cadeia legada
+exclusiva foi removida de Fachada, Service, Gateway, REST Client, MapStruct e mock factory, junto
+dos DTOs/VOs sem uso; `rg` nao encontrou referencias remanescentes. O OpenAPI permaneceu sob
+geracao exclusiva do Quarkus, sem teste ou manipulacao. `mvn -q clean test` executou 215 casos em
+55 relatorios, com zero falhas, zero erros e zero ignorados, no profile `test`, sem Docker ou Dev
+Services; `git diff --check` passou.
 
 ### Checkpoint C2.3 - Documento
 

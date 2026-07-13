@@ -1,6 +1,5 @@
 package br.gov.caixa.simtr.hub.arquitetura.configuracao.mock;
 
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoCriadoDto;
 import br.gov.caixa.simtr.hub.gestaodocumento.recurso.rest.v1.dto.GestaoDocumentoCredencialContainerDto;
 import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.checklist.ChecklistDto;
 import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.processo.ProcessoDto;
@@ -39,16 +38,6 @@ class MockFactoryTest {
         assertNotNull(checklist);
         assertEquals(1000012583L, checklist.identificadorNegocial());
         assertEquals(1, checklist.versao());
-    }
-
-    @Test
-    void deveLerMockDeDocumentoDossieProduto() {
-        DossieProdutoMockFactory factory = new DossieProdutoMockFactory(reader);
-
-        DossieProdutoDocumentoCriadoDto resposta = factory.incluirDocumentoDossieProdutoMock(123L, null);
-
-        assertEquals(456L, resposta.idDocumento());
-        assertEquals(789L, resposta.idInstanciaDocumento());
     }
 
     @Test

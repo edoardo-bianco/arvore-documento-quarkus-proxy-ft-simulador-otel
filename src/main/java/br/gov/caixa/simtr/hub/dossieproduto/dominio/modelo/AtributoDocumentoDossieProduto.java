@@ -1,8 +1,8 @@
-package br.gov.caixa.simtr.hub.dossieproduto.dominio;
+package br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo;
 
 import java.util.List;
 
-public record DossieProdutoDocumentoAtributoVo(
+public record AtributoDocumentoDossieProduto(
         String chave,
         String valor,
         String objeto,
