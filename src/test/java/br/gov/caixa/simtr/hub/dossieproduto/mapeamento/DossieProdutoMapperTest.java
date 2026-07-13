@@ -1,8 +1,6 @@
 package br.gov.caixa.simtr.hub.dossieproduto.mapeamento;
 
 import br.gov.caixa.simtr.hub.TestFixtures;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoClienteDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriacaoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoInclusaoDto;
@@ -11,7 +9,6 @@ import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoVin
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoVinculoGarantiaDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialVerificacaoDto;
-import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoCriacaoVo;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoCriadoVo;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoDocumentoCriadoVo;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoDocumentoInclusaoVo;
@@ -38,21 +35,6 @@ class DossieProdutoMapperTest {
     @Test
     void deveInjetarMapperGeradoPeloCdi() {
         assertNotNull(mapper);
-    }
-
-    @Test
-    void devePreservarClienteRelacionadoNaCriacao() {
-        DossieProdutoCriacaoDto dto = TestFixtures.dossieCriacaoDto();
-
-        DossieProdutoCriacaoVo vo = mapper.toVo(dto);
-        DossieProdutoCriacaoDto dtoFinal = mapper.toDto(vo);
-
-        assertEquals(dto.processo(), dtoFinal.processo());
-        assertEquals(dto.chaveCorrelacaoCanal(), dtoFinal.chaveCorrelacaoCanal());
-        assertEquals(dto.numeroNegocio(), dtoFinal.numeroNegocio());
-        assertEquals(dto.clientes().getFirst().cpf(), dtoFinal.clientes().getFirst().cpf());
-        assertEquals(dto.clientes().getFirst().clienteRelacionado().cpf(),
-                dtoFinal.clientes().getFirst().clienteRelacionado().cpf());
     }
 
     @Test
@@ -142,8 +124,6 @@ class DossieProdutoMapperTest {
 
     @Test
     void deveRetornarNullParaContratosNulos() {
-        assertNull(mapper.toVo((DossieProdutoCriacaoDto) null));
-        assertNull(mapper.toDto((DossieProdutoCriacaoVo) null));
         assertNull(mapper.toVo((DossieProdutoCriadoDto) null));
         assertNull(mapper.toDto((DossieProdutoCriadoVo) null));
         assertNull(mapper.toFormularioVo(null));
@@ -161,14 +141,6 @@ class DossieProdutoMapperTest {
         assertNull(mapper.toFormularioVo(Collections.singletonList(null)).getFirst());
         assertNull(mapper.toFormularioDto(Collections.singletonList(null)).getFirst());
 
-        DossieProdutoCriacaoDto dto = new DossieProdutoCriacaoDto(
-                1L,
-                2L,
-                3L,
-                Collections.singletonList(null)
-        );
-
-        DossieProdutoCriacaoDto dtoFinal = mapper.toDto(mapper.toVo(dto));
         DossieProdutoDocumentoInclusaoDto documentoFinal = mapper.toDto(mapper.toVo(
                 new DossieProdutoDocumentoInclusaoDto(
                         null,
@@ -182,8 +154,6 @@ class DossieProdutoMapperTest {
                 )
         ));
 
-        assertEquals(1, dtoFinal.clientes().size());
-        assertNull(dtoFinal.clientes().getFirst());
         assertEquals(1, documentoFinal.atributos().size());
         assertNull(documentoFinal.atributos().getFirst());
         assertEquals(1, documentoFinal.propriedades().size());
@@ -204,12 +174,6 @@ class DossieProdutoMapperTest {
 
     @Test
     void devePreservarObjetosAninhadosNulos() {
-        DossieProdutoCriacaoDto criacao = new DossieProdutoCriacaoDto(
-                1L,
-                2L,
-                3L,
-                List.of(new DossieProdutoClienteDto("12345678901", null, 1L, null, 1))
-        );
         List<DossieProdutoFormularioDto> formulario = List.of(
                 new DossieProdutoFormularioDto(new DossieProdutoVinculoDossieDto(
                         10L,
@@ -227,10 +191,8 @@ class DossieProdutoMapperTest {
                 ))
         );
 
-        DossieProdutoCriacaoDto criacaoFinal = mapper.toDto(mapper.toVo(criacao));
         List<DossieProdutoFormularioDto> formularioFinal = mapper.toFormularioDto(mapper.toFormularioVo(formulario));
 
-        assertNull(criacaoFinal.clientes().getFirst().clienteRelacionado());
         assertNull(formularioFinal.getFirst().vinculoDossie().cliente());
         assertNull(formularioFinal.getFirst().vinculoDossie().produto());
         assertNull(formularioFinal.getFirst().vinculoDossie().garantia());

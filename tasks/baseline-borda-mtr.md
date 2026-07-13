@@ -17,8 +17,10 @@ chamadas para qualquer servico externo.
 - credenciais reais utilizadas: nenhuma.
 
 O `QuarkusTestResourceLifecycleManager` inicia antes da aplicacao e fornece dinamicamente a URL do
-REST Client e do token endpoint OIDC. O `QuarkusTestProfile` habilita o OIDC Client e desabilita o
-simulador somente para esta classe. O `connection-retry-count=1` evita a combinacao invalida
+REST Client e do token endpoint OIDC. O perfil padrao `test`, configurado em
+`src/test/resources/application.properties`, habilita o OIDC Client; o recurso de teste desabilita
+o simulador para as classes de contrato que percorrem o MTR. Nao existe `QuarkusTestProfile` nem
+`@TestProfile`. O `connection-retry-count=1` evita a combinacao invalida
 `retry().atMost(0)` observada no Quarkus `3.33.2.1` quando o OIDC Client, normalmente desligado nos
 testes, e habilitado. Esse ajuste nao altera as politicas de fault tolerance do REST Client.
 
@@ -51,7 +53,7 @@ e congela uma operacao com payload, uma falha de negocio e as tres politicas de 
 
 - nenhum endpoint, workflow, upload ou cache de SAS foi implementado;
 - nenhuma chamada sai de localhost;
-- o token, API key e client secret usados pelo profile sao valores falsos de teste;
+- o token, API key e client secret usados no ambiente `test` sao valores falsos de teste;
 - as annotations e os valores de retry, timeout e circuit breaker de producao nao foram alterados;
 - o teste do workflow provoca somente chamadas HTTP locais e nao resolve o risco funcional de
   idempotencia das operacoes mutaveis;

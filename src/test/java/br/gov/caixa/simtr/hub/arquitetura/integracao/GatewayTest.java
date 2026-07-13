@@ -1,7 +1,6 @@
 package br.gov.caixa.simtr.hub.arquitetura.integracao;
 
 import br.gov.caixa.simtr.hub.TestFixtures;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriacaoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoInclusaoDto;
@@ -35,12 +34,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class GatewayTest {
 
     @Test
-    void dossieGatewayEncaminhaCriacaoFormularioDocumentoValidacaoNegocialEWorkflowParaClient() {
+    void dossieGatewayEncaminhaFormularioDocumentoEValidacaoNegocialParaClient() {
         FakeDossieProdutoClient client = new FakeDossieProdutoClient();
         DossieProdutoGateway gateway = new DossieProdutoGateway(client);
 
-        DossieProdutoCriadoDto criacao = gateway.criarDossieProduto(TestFixtures.dossieCriacaoDto())
-                .await().indefinitely();
         DossieProdutoCriadoDto formulario = gateway.atualizarFormularioDossieProduto(
                         123L,
                         formularioComItensNulos()
@@ -56,22 +53,15 @@ class GatewayTest {
                         TestFixtures.validacaoNegocialDto()
                 )
                 .await().indefinitely();
-        DossieProdutoCriadoDto workflow = gateway.iniciarOuAvancarWorkflowDossieProduto(654L)
-                .await().indefinitely();
-
-        assertEquals(99L, criacao.id());
         assertEquals(123L, formulario.id());
         assertEquals(456L, documento.idDocumento());
         assertEquals(789L, documento.idInstanciaDocumento());
-        assertEquals(654L, workflow.id());
-        assertEquals(TestFixtures.dossieCriacaoDto().processo(), client.criacaoRecebida.processo());
         assertEquals(123L, client.idFormularioRecebido);
         assertEquals(3, client.formularioRecebido.size());
         assertEquals(321L, client.idDocumentoRecebido);
         assertEquals("RG", client.documentoRecebido.tipoDocumento());
         assertEquals(432L, client.idValidacaoNegocialRecebido);
         assertEquals(6592L, client.validacaoNegocialRecebida.verificacoes().getFirst().identificadorChecklist());
-        assertEquals(654L, client.idWorkflowRecebido);
     }
 
     @Test
@@ -81,15 +71,11 @@ class GatewayTest {
         DossieProdutoGateway gateway = new DossieProdutoGateway(client);
 
         assertSame(client.falha, assertThrows(IllegalStateException.class,
-                () -> gateway.criarDossieProduto(null).await().indefinitely()));
-        assertSame(client.falha, assertThrows(IllegalStateException.class,
                 () -> gateway.atualizarFormularioDossieProduto(123L, null).await().indefinitely()));
         assertSame(client.falha, assertThrows(IllegalStateException.class,
                 () -> gateway.incluirDocumentoDossieProduto(123L, null).await().indefinitely()));
         assertSame(client.falha, assertThrows(IllegalStateException.class,
                 () -> gateway.registrarValidacaoNegocialDossieProduto(123L, null).await().indefinitely()));
-        assertSame(client.falha, assertThrows(IllegalStateException.class,
-                () -> gateway.iniciarOuAvancarWorkflowDossieProduto(123L).await().indefinitely()));
     }
 
     @Test
@@ -169,24 +155,13 @@ class GatewayTest {
     }
 
     static class FakeDossieProdutoClient implements DossieProdutoClient {
-        private DossieProdutoCriacaoDto criacaoRecebida;
         private Long idFormularioRecebido;
         private List<DossieProdutoFormularioDto> formularioRecebido;
         private Long idDocumentoRecebido;
         private DossieProdutoDocumentoInclusaoDto documentoRecebido;
         private Long idValidacaoNegocialRecebido;
         private DossieProdutoValidacaoNegocialDto validacaoNegocialRecebida;
-        private Long idWorkflowRecebido;
         private RuntimeException falha;
-
-        @Override
-        public Uni<DossieProdutoCriadoDto> criarDossieProduto(DossieProdutoCriacaoDto requisicao) {
-            criacaoRecebida = requisicao;
-            if (falha != null) {
-                return Uni.createFrom().failure(falha);
-            }
-            return Uni.createFrom().item(new DossieProdutoCriadoDto(99L));
-        }
 
         @Override
         public Uni<DossieProdutoCriadoDto> atualizarFormularioDossieProduto(
@@ -225,15 +200,6 @@ class GatewayTest {
                 return Uni.createFrom().failure(falha);
             }
             return Uni.createFrom().voidItem();
-        }
-
-        @Override
-        public Uni<DossieProdutoCriadoDto> iniciarOuAvancarWorkflowDossieProduto(Long id) {
-            idWorkflowRecebido = id;
-            if (falha != null) {
-                return Uni.createFrom().failure(falha);
-            }
-            return Uni.createFrom().item(new DossieProdutoCriadoDto(id));
         }
     }
 

@@ -3,7 +3,8 @@
 ## Status
 
 - **Planejado:** 2026-07-11
-- **Implementacao:** Fase 0 em andamento; Tasks 0.1 a 0.4 concluidas
+- **Implementacao:** Fase 0 concluida; C0 e C1 em GO; Tasks 1.1 a 1.5 e 2.1a a 2.1e
+  concluidas; proximo passo: checkpoint C2.1, ainda pendente de GO humano
 - **Branch de trabalho:** `refactor/ddd-fase-0-baseline`
 - **Documento arquitetural:** `../doc/arquitetura-ddd-integracoes-atomicas.md`
 - **Checklist operacional:** `todo.md`
@@ -65,8 +66,13 @@ dependencias, checkpoints e obter GO humano antes da execucao.
 5. Todo checkpoint e GO/NO-GO humano antes da fase seguinte.
 6. Para toda capacidade, caracterizar tambem OpenAPI, propriedades/profiles, wire MTR e a matriz
    atual de timeout/retry/circuit breaker aplicavel.
-7. Nenhum teste preexistente pode ser removido, desabilitado ou substituido sem evidencia e GO
-   humano registrados.
+7. Um teste preexistente so pode ser removido ou substituido com evidencia de cobertura equivalente
+   verde. O usuario autorizou em 2026-07-12 a remocao, sem nova microaprovacao, do legado ja migrado
+   e controlado; testes nao podem ser desabilitados, e checkpoints continuam exigindo GO humano.
+8. O OpenAPI e gerado exclusivamente pelo Quarkus e nao deve ser testado, filtrado, complementado
+   ou manipulado. A decisao humana de 2026-07-13 substitui as referencias anteriores a fingerprint
+   ou caracterizacao do documento gerado; o contrato publico continua protegido no codigo Java e
+   nos testes HTTP/JSON/validacao dos Resources.
 
 ### Estrategia de implementacao e testes
 
@@ -331,7 +337,13 @@ validacao, OpenAPI e observabilidade nao mudam; bridge legado e removido.
 
 **Dependencias:** 2.1c e 2.1d. **Escopo:** M.
 
+**Status:** concluida em 2026-07-13; suite limpa verde e evidencias registradas em
+`baseline-criacao-dossie-produto.md`. O OpenAPI permaneceu sob geracao exclusiva do Quarkus, sem
+arquivo estatico, filtro ou annotation de ocultacao.
+
 ### Checkpoint C2.1 - Criacao
+
+**Status:** proximo passo, ainda `PENDENTE` e sem GO humano.
 
 - [ ] Evidencias de todas as bordas e matriz FT anexadas.
 - [ ] ArchUnit da capacidade ativo; suite/build verdes.

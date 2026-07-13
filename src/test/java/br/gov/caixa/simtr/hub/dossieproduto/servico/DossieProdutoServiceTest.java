@@ -1,7 +1,6 @@
 package br.gov.caixa.simtr.hub.dossieproduto.servico;
 
 import br.gov.caixa.simtr.hub.TestFixtures;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriacaoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoInclusaoDto;
@@ -26,34 +25,6 @@ class DossieProdutoServiceTest {
 
     @Inject
     DossieProdutoMapper mapper;
-
-    @Test
-    void criacaoComSimuladorHabilitadoUsaMockFactory() {
-        FakeDossieGateway gateway = new FakeDossieGateway();
-        FakeDossieMockFactory mockFactory = new FakeDossieMockFactory();
-        DossieProdutoService service = new DossieProdutoService(gateway, mockFactory, mapper, true);
-
-        var resposta = service.criarDossieProduto(mapper.toVo(TestFixtures.dossieCriacaoDto()))
-                .await().indefinitely();
-
-        assertEquals(1L, resposta.id());
-        assertTrue(mockFactory.criacaoChamada);
-        assertFalse(gateway.criacaoChamada);
-    }
-
-    @Test
-    void criacaoComSimuladorDesabilitadoUsaGateway() {
-        FakeDossieGateway gateway = new FakeDossieGateway();
-        FakeDossieMockFactory mockFactory = new FakeDossieMockFactory();
-        DossieProdutoService service = new DossieProdutoService(gateway, mockFactory, mapper, false);
-
-        var resposta = service.criarDossieProduto(mapper.toVo(TestFixtures.dossieCriacaoDto()))
-                .await().indefinitely();
-
-        assertEquals(2L, resposta.id());
-        assertTrue(gateway.criacaoChamada);
-        assertFalse(mockFactory.criacaoChamada);
-    }
 
     @Test
     void formularioComSimuladorHabilitadoUsaMockFactoryERetornaIdDoPath() {
@@ -157,49 +128,13 @@ class DossieProdutoServiceTest {
         assertFalse(mockFactory.validacaoNegocialChamada);
     }
 
-    @Test
-    void workflowComSimuladorHabilitadoUsaMockFactory() {
-        FakeDossieGateway gateway = new FakeDossieGateway();
-        FakeDossieMockFactory mockFactory = new FakeDossieMockFactory();
-        DossieProdutoService service = new DossieProdutoService(gateway, mockFactory, mapper, true);
-
-        var resposta = service.iniciarOuAvancarWorkflowDossieProduto(123L)
-                .await().indefinitely();
-
-        assertEquals(123L, resposta.id());
-        assertTrue(mockFactory.workflowChamada);
-        assertFalse(gateway.workflowChamada);
-    }
-
-    @Test
-    void workflowComSimuladorDesabilitadoUsaGateway() {
-        FakeDossieGateway gateway = new FakeDossieGateway();
-        FakeDossieMockFactory mockFactory = new FakeDossieMockFactory();
-        DossieProdutoService service = new DossieProdutoService(gateway, mockFactory, mapper, false);
-
-        var resposta = service.iniciarOuAvancarWorkflowDossieProduto(123L)
-                .await().indefinitely();
-
-        assertEquals(9L, resposta.id());
-        assertTrue(gateway.workflowChamada);
-        assertFalse(mockFactory.workflowChamada);
-    }
-
     private static class FakeDossieGateway extends DossieProdutoGateway {
-        private boolean criacaoChamada;
         private boolean formularioChamada;
         private boolean documentoChamada;
         private boolean validacaoNegocialChamada;
-        private boolean workflowChamada;
 
         private FakeDossieGateway() {
             super(null);
-        }
-
-        @Override
-        public Uni<DossieProdutoCriadoDto> criarDossieProduto(DossieProdutoCriacaoDto requisicao) {
-            criacaoChamada = true;
-            return Uni.createFrom().item(new DossieProdutoCriadoDto(2L));
         }
 
         @Override
@@ -228,29 +163,15 @@ class DossieProdutoServiceTest {
             validacaoNegocialChamada = true;
             return Uni.createFrom().voidItem();
         }
-
-        @Override
-        public Uni<DossieProdutoCriadoDto> iniciarOuAvancarWorkflowDossieProduto(Long id) {
-            workflowChamada = true;
-            return Uni.createFrom().item(new DossieProdutoCriadoDto(9L));
-        }
     }
 
     private static class FakeDossieMockFactory extends DossieProdutoMockFactory {
-        private boolean criacaoChamada;
         private boolean formularioChamada;
         private boolean documentoChamada;
         private boolean validacaoNegocialChamada;
-        private boolean workflowChamada;
 
         private FakeDossieMockFactory() {
             super(null);
-        }
-
-        @Override
-        public DossieProdutoCriadoDto criarDossieProdutoMock(DossieProdutoCriacaoDto requisicao) {
-            criacaoChamada = true;
-            return new DossieProdutoCriadoDto(1L);
         }
 
         @Override
@@ -277,12 +198,6 @@ class DossieProdutoServiceTest {
                 DossieProdutoValidacaoNegocialDto requisicao
         ) {
             validacaoNegocialChamada = true;
-        }
-
-        @Override
-        public DossieProdutoCriadoDto iniciarOuAvancarWorkflowDossieProdutoMock(Long id) {
-            workflowChamada = true;
-            return new DossieProdutoCriadoDto(id);
         }
     }
 }

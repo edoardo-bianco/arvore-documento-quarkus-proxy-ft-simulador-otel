@@ -2,6 +2,8 @@ package br.gov.caixa.simtr.hub.recurso;
 
 import br.gov.caixa.simtr.hub.TestFixtures;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.DossieProdutoResource;
+import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.CriacaoDossieProdutoRequest;
+import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.CriacaoDossieProdutoResponse;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoCriadoDto;
 import br.gov.caixa.simtr.hub.gestaodocumento.recurso.rest.v1.dto.GestaoDocumentoCredencialContainerDto;
@@ -10,6 +12,11 @@ import br.gov.caixa.simtr.hub.parametrizacao.fachada.ParametrizacaoFachada;
 import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.ChecklistResource;
 import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.ProcessoResource;
 import br.gov.caixa.simtr.hub.dossieproduto.fachada.DossieProdutoFachada;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.IniciarOuAvancarWorkflowDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.CriarDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.IdentificadorDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoWorkflowDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoCriacaoDossieProduto;
 import br.gov.caixa.simtr.hub.gestaodocumento.fachada.GestaoDocumentoFachada;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoCriadoVo;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoDocumentoCriadoVo;
@@ -65,6 +72,12 @@ class ResourceBeanCoverageTest {
     DossieProdutoFachada dossieProdutoFachada;
 
     @InjectMock
+    CriarDossieProduto criarDossieProduto;
+
+    @InjectMock
+    IniciarOuAvancarWorkflowDossieProduto iniciarOuAvancarWorkflow;
+
+    @InjectMock
     GestaoDocumentoFachada gestaoDocumentoFachada;
 
     @Test
@@ -99,16 +112,20 @@ class ResourceBeanCoverageTest {
 
     @Test
     void dossieProdutoResourceCobrePostSucessoEFalhaDoBeanCdi() {
-        when(dossieProdutoFachada.criarDossieProduto(any()))
-                .thenReturn(Uni.createFrom().item(new DossieProdutoCriadoVo(77L)))
+        when(criarDossieProduto.executar(any()))
+                .thenReturn(Uni.createFrom().item(new ResultadoCriacaoDossieProduto(77L)))
                 .thenReturn(Uni.createFrom().failure(new IllegalStateException("falha dossie")));
 
-        Response response = dossieProdutoResource.criarDossieProduto(TestFixtures.dossieCriacaoDto())
+        var fixture = TestFixtures.criacaoDossieProdutoRequest();
+        var request = new CriacaoDossieProdutoRequest(
+                fixture.processo(), fixture.chaveCorrelacaoCanal(), fixture.numeroNegocio(), fixture.clientes());
+
+        Response response = dossieProdutoResource.criarDossieProduto(request)
                 .await().indefinitely();
 
         assertEquals(Response.Status.CREATED.getStatusCode(), response.getStatus());
-        assertEquals(77L, ((DossieProdutoCriadoDto) response.getEntity()).id());
-        assertThrows(IllegalStateException.class, () -> dossieProdutoResource.criarDossieProduto(TestFixtures.dossieCriacaoDto())
+        assertEquals(77L, ((CriacaoDossieProdutoResponse) response.getEntity()).id());
+        assertThrows(IllegalStateException.class, () -> dossieProdutoResource.criarDossieProduto(request)
                 .await().indefinitely());
     }
 
@@ -172,9 +189,9 @@ class ResourceBeanCoverageTest {
 
     @Test
     void dossieProdutoResourceCobreWorkflowSucessoEFalhaDoBeanCdi() {
-        when(dossieProdutoFachada.iniciarOuAvancarWorkflowDossieProduto(123L))
-                .thenReturn(Uni.createFrom().item(new DossieProdutoCriadoVo(123L)));
-        when(dossieProdutoFachada.iniciarOuAvancarWorkflowDossieProduto(124L))
+        when(iniciarOuAvancarWorkflow.executar(new IdentificadorDossieProduto(123L)))
+                .thenReturn(Uni.createFrom().item(new ResultadoWorkflowDossieProduto(123L)));
+        when(iniciarOuAvancarWorkflow.executar(new IdentificadorDossieProduto(124L)))
                 .thenReturn(Uni.createFrom().failure(new IllegalStateException("falha workflow")));
 
         Response response = dossieProdutoResource.iniciarOuAvancarWorkflowDossieProduto(123L)

@@ -44,7 +44,9 @@ public class DossieProdutoMtrStubTestResource implements QuarkusTestResourceLife
                 "quarkus.rest-client.dossie-produto.url", baseUrl + "/simtr",
                 "quarkus.rest-client.dossie-produto.read-timeout", "5000",
                 "quarkus.oidc-client.auth-server-url", baseUrl,
-                "quarkus.oidc-client.token-path", "/oidc/token"
+                "quarkus.oidc-client.token-path", "/oidc/token",
+                "quarkus.oidc-client.connection-retry-count", "1",
+                "simtr-hub.simulador.dossie-produto.habilitado", "false"
         );
     }
 

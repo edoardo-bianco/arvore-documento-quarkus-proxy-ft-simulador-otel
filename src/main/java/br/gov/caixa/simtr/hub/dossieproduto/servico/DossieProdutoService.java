@@ -1,12 +1,10 @@
 package br.gov.caixa.simtr.hub.dossieproduto.servico;
 
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriacaoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoInclusaoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoFormularioDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialDto;
-import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoCriacaoVo;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoCriadoVo;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoDocumentoCriadoVo;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoDocumentoInclusaoVo;
@@ -50,99 +48,6 @@ public class DossieProdutoService {
         this.dossieProdutoMockFactory = dossieProdutoMockFactory;
         this.dossieProdutoMapper = dossieProdutoMapper;
         this.simuladorDossieProdutoHabilitado = simuladorDossieProdutoHabilitado;
-    }
-
-    @WithSpan("simtr-hub.service.dossie-produto.criar")
-    public Uni<DossieProdutoCriadoVo> criarDossieProduto(DossieProdutoCriacaoVo requisicao) {
-        Long processo = processo(requisicao);
-        Long chaveCorrelacaoCanal = chaveCorrelacaoCanal(requisicao);
-        Integer quantidadeClientes = quantidadeClientes(requisicao);
-
-        Span span = Span.current();
-        span.setAttribute("simtr_hub.simulador_dossie_produto_habilitado", simuladorDossieProdutoHabilitado);
-        setLongAttribute(span, "dossie_produto.processo", processo);
-        setLongAttribute(span, "dossie_produto.chave_correlacao_canal", chaveCorrelacaoCanal);
-        setIntAttribute(span, "dossie_produto.clientes.quantidade", quantidadeClientes);
-
-        ObservabilityLog.info(
-                LOG,
-                "simtr-hub.dossie-produto.service.iniciado",
-                ObservabilityLog.fields(
-                        "camada", "application",
-                        "componente", "DossieProdutoService",
-                        "operacao", "criar-dossie-produto",
-                        "processo", processo,
-                        "chave_correlacao_canal", chaveCorrelacaoCanal,
-                        "clientes_quantidade", quantidadeClientes,
-                        "simulador_habilitado", simuladorDossieProdutoHabilitado
-                )
-        );
-
-        return criarDossieProdutoNoMtrOuSimulador(requisicao)
-                .map(dossieProdutoMapper::toVo)
-                .invoke(resposta -> {
-                    if (resposta != null && resposta.id() != null) {
-                        span.setAttribute("dossie_produto.id", resposta.id());
-                    }
-
-                    ObservabilityLog.info(
-                            LOG,
-                            "simtr-hub.dossie-produto.service.concluido",
-                            ObservabilityLog.fields(
-                                    "camada", "application",
-                                    "componente", "DossieProdutoService",
-                                    "operacao", "criar-dossie-produto",
-                                    "processo", processo,
-                                    "chave_correlacao_canal", chaveCorrelacaoCanal,
-                                    "dossie_produto_id", resposta != null ? resposta.id() : null,
-                                    "resultado", "sucesso"
-                            )
-                    );
-                })
-                .onFailure().invoke(erro -> {
-                    span.recordException(erro);
-                    span.setStatus(StatusCode.ERROR, String.valueOf(erro.getMessage()));
-
-                    ObservabilityLog.error(
-                            LOG,
-                            "simtr-hub.dossie-produto.service.falhou",
-                            erro,
-                            ObservabilityLog.fields(
-                                    "camada", "application",
-                                    "componente", "DossieProdutoService",
-                                    "operacao", "criar-dossie-produto",
-                                    "processo", processo,
-                                    "chave_correlacao_canal", chaveCorrelacaoCanal,
-                                    "erro_tipo", erro.getClass().getSimpleName(),
-                                    "resultado", "erro"
-                            )
-                    );
-                });
-    }
-
-    private Uni<DossieProdutoCriadoDto> criarDossieProdutoNoMtrOuSimulador(DossieProdutoCriacaoVo requisicao) {
-        DossieProdutoCriacaoDto requisicaoDto = dossieProdutoMapper.toDto(requisicao);
-
-        if (simuladorDossieProdutoHabilitado) {
-            ObservabilityLog.info(
-                    LOG,
-                    "simtr-hub.dossie-produto.simulador.usado",
-                    ObservabilityLog.fields(
-                            "camada", "application",
-                            "componente", "DossieProdutoService",
-                            "operacao", "criar-dossie-produto",
-                            "processo", processo(requisicao),
-                            "chave_correlacao_canal", chaveCorrelacaoCanal(requisicao),
-                            "origem", "mock"
-                    )
-            );
-
-            Span.current().setAttribute("simtr_hub.origem_dados", "mock");
-            return Uni.createFrom().item(dossieProdutoMockFactory.criarDossieProdutoMock(requisicaoDto));
-        }
-
-        Span.current().setAttribute("simtr_hub.origem_dados", "mtr");
-        return dossieProdutoGateway.criarDossieProduto(requisicaoDto);
     }
 
     @WithSpan("simtr-hub.service.dossie-produto.formulario.atualizar")
@@ -430,101 +335,6 @@ public class DossieProdutoService {
 
         Span.current().setAttribute("simtr_hub.origem_dados", "mtr");
         return dossieProdutoGateway.registrarValidacaoNegocialDossieProduto(id, requisicaoDto);
-    }
-
-    @WithSpan("simtr-hub.service.dossie-produto.workflow.avancar")
-    public Uni<DossieProdutoCriadoVo> iniciarOuAvancarWorkflowDossieProduto(Long id) {
-        Span span = Span.current();
-        span.setAttribute("simtr_hub.simulador_dossie_produto_habilitado", simuladorDossieProdutoHabilitado);
-        setLongAttribute(span, "dossie_produto.id", id);
-
-        ObservabilityLog.info(
-                LOG,
-                "simtr-hub.dossie-produto.workflow.service.iniciado",
-                ObservabilityLog.fields(
-                        "camada", "application",
-                        "componente", "DossieProdutoService",
-                        "operacao", "iniciar-ou-avancar-workflow-dossie-produto",
-                        "dossie_produto_id", id,
-                        "simulador_habilitado", simuladorDossieProdutoHabilitado
-                )
-        );
-
-        return iniciarOuAvancarWorkflowDossieProdutoNoMtrOuSimulador(id)
-                .map(dossieProdutoMapper::toVo)
-                .invoke(resposta -> {
-                    if (resposta != null && resposta.id() != null) {
-                        span.setAttribute("dossie_produto.workflow.id_resposta", resposta.id());
-                    }
-
-                    ObservabilityLog.info(
-                            LOG,
-                            "simtr-hub.dossie-produto.workflow.service.concluido",
-                            ObservabilityLog.fields(
-                                    "camada", "application",
-                                    "componente", "DossieProdutoService",
-                                    "operacao", "iniciar-ou-avancar-workflow-dossie-produto",
-                                    "dossie_produto_id", id,
-                                    "dossie_produto_id_resposta", resposta != null ? resposta.id() : null,
-                                    "resultado", "sucesso"
-                            )
-                    );
-                })
-                .onFailure().invoke(erro -> {
-                    span.recordException(erro);
-                    span.setStatus(StatusCode.ERROR, String.valueOf(erro.getMessage()));
-
-                    ObservabilityLog.error(
-                            LOG,
-                            "simtr-hub.dossie-produto.workflow.service.falhou",
-                            erro,
-                            ObservabilityLog.fields(
-                                    "camada", "application",
-                                    "componente", "DossieProdutoService",
-                                    "operacao", "iniciar-ou-avancar-workflow-dossie-produto",
-                                    "dossie_produto_id", id,
-                                    "erro_tipo", erro.getClass().getSimpleName(),
-                                    "resultado", "erro"
-                            )
-                    );
-                });
-    }
-
-    private Uni<DossieProdutoCriadoDto> iniciarOuAvancarWorkflowDossieProdutoNoMtrOuSimulador(Long id) {
-        if (simuladorDossieProdutoHabilitado) {
-            ObservabilityLog.info(
-                    LOG,
-                    "simtr-hub.dossie-produto.workflow.simulador.usado",
-                    ObservabilityLog.fields(
-                            "camada", "application",
-                            "componente", "DossieProdutoService",
-                            "operacao", "iniciar-ou-avancar-workflow-dossie-produto",
-                            "dossie_produto_id", id,
-                            "origem", "mock"
-                    )
-            );
-
-            Span.current().setAttribute("simtr_hub.origem_dados", "mock");
-            return Uni.createFrom().item(dossieProdutoMockFactory.iniciarOuAvancarWorkflowDossieProdutoMock(id));
-        }
-
-        Span.current().setAttribute("simtr_hub.origem_dados", "mtr");
-        return dossieProdutoGateway.iniciarOuAvancarWorkflowDossieProduto(id);
-    }
-
-    private static Long processo(DossieProdutoCriacaoVo requisicao) {
-        return requisicao != null ? requisicao.processo() : null;
-    }
-
-    private static Long chaveCorrelacaoCanal(DossieProdutoCriacaoVo requisicao) {
-        return requisicao != null ? requisicao.chaveCorrelacaoCanal() : null;
-    }
-
-    private static Integer quantidadeClientes(DossieProdutoCriacaoVo requisicao) {
-        if (requisicao == null || requisicao.clientes() == null) {
-            return null;
-        }
-        return requisicao.clientes().size();
     }
 
     private static Integer quantidadeVinculosFormulario(List<DossieProdutoFormularioVo> requisicao) {

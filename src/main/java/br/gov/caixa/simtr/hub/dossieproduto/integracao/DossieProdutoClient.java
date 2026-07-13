@@ -1,6 +1,5 @@
 package br.gov.caixa.simtr.hub.dossieproduto.integracao;
 
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriacaoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoInclusaoDto;
@@ -42,43 +41,6 @@ import java.util.List;
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public interface DossieProdutoClient {
-
-    @POST
-    @Path("/v1/dossie-produto")
-    @Timeout(value = 2_000, unit = ChronoUnit.MILLIS)
-    @Retry(
-            maxRetries = 3,
-            delay = 300,
-            delayUnit = ChronoUnit.MILLIS,
-            jitter = 100,
-            jitterDelayUnit = ChronoUnit.MILLIS,
-            retryOn = {
-                    MtrServerErrorException.class,
-                    ProcessingException.class,
-                    TimeoutException.class
-            },
-            abortOn = {
-                    MtrBusinessErrorException.class,
-                    MtrClientTechnicalException.class
-            }
-    )
-    @CircuitBreaker(
-            requestVolumeThreshold = 10,
-            failureRatio = 0.5,
-            delay = 10_000,
-            delayUnit = ChronoUnit.MILLIS,
-            successThreshold = 2,
-            failOn = {
-                    MtrServerErrorException.class,
-                    ProcessingException.class,
-                    TimeoutException.class
-            },
-            skipOn = {
-                    MtrBusinessErrorException.class,
-                    MtrClientTechnicalException.class
-            }
-    )
-    Uni<DossieProdutoCriadoDto> criarDossieProduto(DossieProdutoCriacaoDto requisicao);
 
     @PATCH
     @Path("/v1/dossie-produto/{id}/formulario")
@@ -199,43 +161,6 @@ public interface DossieProdutoClient {
             @PathParam("id") Long id,
             DossieProdutoValidacaoNegocialDto requisicao
     );
-
-    @POST
-    @Path("/v1/dossie-produto/{id}/workflow")
-    @Timeout(value = 2_000, unit = ChronoUnit.MILLIS)
-    @Retry(
-            maxRetries = 3,
-            delay = 300,
-            delayUnit = ChronoUnit.MILLIS,
-            jitter = 100,
-            jitterDelayUnit = ChronoUnit.MILLIS,
-            retryOn = {
-                    MtrServerErrorException.class,
-                    ProcessingException.class,
-                    TimeoutException.class
-            },
-            abortOn = {
-                    MtrBusinessErrorException.class,
-                    MtrClientTechnicalException.class
-            }
-    )
-    @CircuitBreaker(
-            requestVolumeThreshold = 10,
-            failureRatio = 0.5,
-            delay = 10_000,
-            delayUnit = ChronoUnit.MILLIS,
-            successThreshold = 2,
-            failOn = {
-                    MtrServerErrorException.class,
-                    ProcessingException.class,
-                    TimeoutException.class
-            },
-            skipOn = {
-                    MtrBusinessErrorException.class,
-                    MtrClientTechnicalException.class
-            }
-    )
-    Uni<DossieProdutoCriadoDto> iniciarOuAvancarWorkflowDossieProduto(@PathParam("id") Long id);
 
     @ClientExceptionMapper
     static RuntimeException toException(Response response) {

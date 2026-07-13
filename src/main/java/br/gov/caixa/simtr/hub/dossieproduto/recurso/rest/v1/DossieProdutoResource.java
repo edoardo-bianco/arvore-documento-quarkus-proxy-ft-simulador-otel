@@ -1,11 +1,16 @@
 package br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1;
 
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriacaoDto;
+import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.CriacaoDossieProdutoRequest;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.CriarDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaCriacaoDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoInclusaoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoFormularioDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialDto;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.IniciarOuAvancarWorkflowDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaWorkflowDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.IdentificadorDossieProduto;
 import br.gov.caixa.simtr.hub.arquitetura.excecao.dto.ErroPadraoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.fachada.DossieProdutoFachada;
 import br.gov.caixa.simtr.hub.dossieproduto.mapeamento.DossieProdutoMapper;
@@ -48,12 +53,18 @@ public class DossieProdutoResource {
 
     private final DossieProdutoFachada dossieProdutoFachada;
     private final DossieProdutoMapper dossieProdutoMapper;
+    private final CriarDossieProduto criarDossieProduto;
+    private final IniciarOuAvancarWorkflowDossieProduto iniciarOuAvancarWorkflow;
 
     @Inject
     public DossieProdutoResource(DossieProdutoFachada dossieProdutoFachada,
-                                 DossieProdutoMapper dossieProdutoMapper) {
+                                 DossieProdutoMapper dossieProdutoMapper,
+                                 CriarDossieProduto criarDossieProduto,
+                                 IniciarOuAvancarWorkflowDossieProduto iniciarOuAvancarWorkflow) {
         this.dossieProdutoFachada = dossieProdutoFachada;
         this.dossieProdutoMapper = dossieProdutoMapper;
+        this.criarDossieProduto = criarDossieProduto;
+        this.iniciarOuAvancarWorkflow = iniciarOuAvancarWorkflow;
     }
 
     @POST
@@ -101,7 +112,7 @@ public class DossieProdutoResource {
     })
     public Uni<Response> criarDossieProduto(
             @NotNull(message = "O corpo da requisicao deve ser informado.")
-            @Valid DossieProdutoCriacaoDto requisicao) {
+            @Valid CriacaoDossieProdutoRequest requisicao) {
 
         Long processo = processo(requisicao);
         Long chaveCorrelacaoCanal = chaveCorrelacaoCanal(requisicao);
@@ -127,8 +138,11 @@ public class DossieProdutoResource {
                 )
         );
 
-        return dossieProdutoFachada.criarDossieProduto(dossieProdutoMapper.toVo(requisicao))
-                .map(dossieProdutoMapper::toDto)
+        return criarDossieProduto.executar(CriacaoDossieProdutoRestMapper.paraComando(requisicao))
+                .onFailure(FalhaCriacaoDossieProduto.class)
+                .transform(erro -> CriacaoDossieProdutoRestMapper.paraExcecaoRest(
+                        (FalhaCriacaoDossieProduto) erro))
+                .map(CriacaoDossieProdutoRestMapper::paraResposta)
                 .invoke(resposta -> {
                     if (resposta != null && resposta.id() != null) {
                         span.setAttribute("dossie_produto.id", resposta.id());
@@ -604,8 +618,11 @@ public class DossieProdutoResource {
                 )
         );
 
-        return dossieProdutoFachada.iniciarOuAvancarWorkflowDossieProduto(id)
-                .map(dossieProdutoMapper::toDto)
+        return iniciarOuAvancarWorkflow.executar(new IdentificadorDossieProduto(id))
+                .onFailure(FalhaWorkflowDossieProduto.class)
+                .transform(erro -> WorkflowDossieProdutoRestMapper.paraExcecaoRest(
+                        (FalhaWorkflowDossieProduto) erro))
+                .map(WorkflowDossieProdutoRestMapper::paraResposta)
                 .invoke(resposta -> {
                     if (resposta != null && resposta.id() != null) {
                         span.setAttribute("dossie_produto.workflow.id_resposta", resposta.id());
@@ -645,15 +662,15 @@ public class DossieProdutoResource {
                 });
     }
 
-    private static Long processo(DossieProdutoCriacaoDto requisicao) {
+    private static Long processo(CriacaoDossieProdutoRequest requisicao) {
         return requisicao != null ? requisicao.processo() : null;
     }
 
-    private static Long chaveCorrelacaoCanal(DossieProdutoCriacaoDto requisicao) {
+    private static Long chaveCorrelacaoCanal(CriacaoDossieProdutoRequest requisicao) {
         return requisicao != null ? requisicao.chaveCorrelacaoCanal() : null;
     }
 
-    private static Integer quantidadeClientes(DossieProdutoCriacaoDto requisicao) {
+    private static Integer quantidadeClientes(CriacaoDossieProdutoRequest requisicao) {
         if (requisicao == null || requisicao.clientes() == null) {
             return null;
         }

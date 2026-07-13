@@ -1,6 +1,8 @@
 package br.gov.caixa.simtr.hub.arquitetura.observabilidade;
 
 import br.gov.caixa.simtr.hub.dossieproduto.integracao.DossieProdutoGateway;
+import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.CriacaoDossieProdutoMtrAdapter;
+import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.WorkflowDossieProdutoMtrAdapter;
 import br.gov.caixa.simtr.hub.gestaodocumento.integracao.GestaoDocumentoGateway;
 import br.gov.caixa.simtr.hub.parametrizacao.integracao.ParametrizacaoChecklistGateway;
 import br.gov.caixa.simtr.hub.parametrizacao.integracao.ParametrizacaoProcessoGateway;
@@ -109,11 +111,11 @@ class ObservabilidadeSpansContratoTest {
         Map<String, String> esperado = Map.ofEntries(
                 Map.entry("DossieProdutoGateway#atualizarFormularioDossieProduto",
                         "mtr.dossie-produto.formulario.atualizar|CLIENT|"),
-                Map.entry("DossieProdutoGateway#criarDossieProduto",
+                Map.entry("CriacaoDossieProdutoMtrAdapter#criar",
                         "mtr.dossie-produto.criar|CLIENT|"),
                 Map.entry("DossieProdutoGateway#incluirDocumentoDossieProduto",
                         "mtr.dossie-produto.documento.incluir|CLIENT|"),
-                Map.entry("DossieProdutoGateway#iniciarOuAvancarWorkflowDossieProduto",
+                Map.entry("WorkflowDossieProdutoMtrAdapter#avancar",
                         "mtr.dossie-produto.workflow.avancar|CLIENT|"),
                 Map.entry("DossieProdutoGateway#registrarValidacaoNegocialDossieProduto",
                         "mtr.dossie-produto.validacao-negocial.registrar|CLIENT|"),
@@ -130,6 +132,8 @@ class ObservabilidadeSpansContratoTest {
 
         assertEquals(esperado, extrairSpansDeclarados(
                 DossieProdutoGateway.class,
+                CriacaoDossieProdutoMtrAdapter.class,
+                WorkflowDossieProdutoMtrAdapter.class,
                 GestaoDocumentoGateway.class,
                 ParametrizacaoChecklistGateway.class,
                 ParametrizacaoProcessoGateway.class

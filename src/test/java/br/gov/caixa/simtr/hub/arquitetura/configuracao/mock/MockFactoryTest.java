@@ -43,15 +43,6 @@ class MockFactoryTest {
     }
 
     @Test
-    void deveLerMockDeCriacaoDossieProduto() {
-        DossieProdutoMockFactory factory = new DossieProdutoMockFactory(reader);
-
-        DossieProdutoCriadoDto resposta = factory.criarDossieProdutoMock(null);
-
-        assertEquals(1L, resposta.id());
-    }
-
-    @Test
     void deveLerMockDeFormularioDossieProdutoERetornarIdDoPath() {
         DossieProdutoMockFactory factory = new DossieProdutoMockFactory(reader);
 
@@ -75,15 +66,6 @@ class MockFactoryTest {
         DossieProdutoMockFactory factory = new DossieProdutoMockFactory(reader);
 
         factory.registrarValidacaoNegocialDossieProdutoMock(123L, null);
-    }
-
-    @Test
-    void deveLerMockDeWorkflowDossieProdutoERetornarIdDoPath() {
-        DossieProdutoMockFactory factory = new DossieProdutoMockFactory(reader);
-
-        DossieProdutoCriadoDto resposta = factory.iniciarOuAvancarWorkflowDossieProdutoMock(123L);
-
-        assertEquals(123L, resposta.id());
     }
 
     @Test

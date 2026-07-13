@@ -1,6 +1,7 @@
 package br.gov.caixa.simtr.hub.arquitetura.guardrails;
 
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoCriadoVo;
+import br.gov.caixa.simtr.hub.dossieproduto.integracao.DossieProdutoGateway;
 import br.gov.caixa.simtr.hub.dominio.falso.ViolacaoGuardrail;
 import br.gov.caixa.simtr.hub.parametrizacao.falso.DependenciaEntreDominiosViolacao;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
@@ -27,6 +28,7 @@ class ArchUnitProgressivoTest {
             .resideInAnyPackage(
                     "..recurso..",
                     "..integracao..",
+                    "..adaptador..",
                     "..mapeamento..",
                     "..fachada..",
                     "jakarta.enterprise..",
@@ -52,6 +54,25 @@ class ArchUnitProgressivoTest {
     static final ArchRule dominios_nao_devem_dependender_uns_dos_outros = SlicesRuleDefinition.slices()
             .matching("br.gov.caixa.simtr.hub.(parametrizacao|dossieproduto|gestaodocumento)..")
             .should().notDependOnEachOther();
+
+    @ArchTest
+    static final ArchRule aplicacao_migrada_nao_deve_depender_de_bordas = noClasses()
+            .that().resideInAPackage("..dossieproduto.aplicacao..")
+            .should().dependOnClassesThat()
+            .resideInAnyPackage(
+                    "..integracao..", "..adaptador..", "..recurso..", "..mapeamento..", "..fachada..");
+
+    @ArchTest
+    static final ArchRule porta_de_entrada_nao_deve_expor_implementacao = noClasses()
+            .that().resideInAPackage("..dossieproduto.aplicacao.porta.entrada..")
+            .should().dependOnClassesThat()
+            .resideInAnyPackage("..aplicacao.porta.saida..", "..aplicacao.casodeuso..");
+
+    @ArchTest
+    static final ArchRule adapters_de_saida_migrados_nao_devem_reutilizar_contratos_de_outras_bordas = noClasses()
+            .that().resideInAPackage("..dossieproduto.adaptador.saida..")
+            .should().dependOnClassesThat()
+            .resideInAnyPackage("..recurso..", "..integracao..", "..arquitetura.excecao.dto..");
 
     @Test
     void regraDeErroRestDetectaUsoProibidoNoNucleo() {
@@ -83,5 +104,44 @@ class ArchUnitProgressivoTest {
 
         assertThrows(AssertionError.class, () -> regra.check(
                 new ClassFileImporter().importClasses(DependenciaEntreDominiosViolacao.class, DossieProdutoCriadoVo.class)));
+    }
+
+    @Test
+    void regraDeAplicacaoDetectaDependenciaDeAdapter() {
+        ArchRule regra = noClasses().should().dependOnClassesThat()
+                .resideInAPackage("..integracao..");
+
+        assertThrows(AssertionError.class, () -> regra.check(
+                new ClassFileImporter().importClasses(AplicacaoComAdapterViolacao.class)));
+    }
+
+    @Test
+    void regraDePortaDeEntradaDetectaExposicaoDaPortaDeSaida() {
+        ArchRule regra = noClasses().should().dependOnClassesThat()
+                .resideInAPackage("..aplicacao.porta.saida..");
+
+        assertThrows(AssertionError.class, () -> regra.check(
+                new ClassFileImporter().importClasses(PortaEntradaComSaidaViolacao.class)));
+    }
+
+    @Test
+    void regraDeAdapterMtrDetectaReusoDeDtoPublico() {
+        ArchRule regra = noClasses().should().dependOnClassesThat()
+                .resideInAPackage("..recurso.rest..dto..");
+
+        assertThrows(AssertionError.class, () -> regra.check(
+                new ClassFileImporter().importClasses(AdapterMtrComDtoPublicoViolacao.class)));
+    }
+
+    private static final class AplicacaoComAdapterViolacao {
+        private DossieProdutoGateway gateway;
+    }
+
+    private static final class PortaEntradaComSaidaViolacao {
+        private br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.saida.AvancarWorkflowDossieProduto portaSaida;
+    }
+
+    private static final class AdapterMtrComDtoPublicoViolacao {
+        private br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriadoDto dto;
     }
 }

@@ -1,6 +1,5 @@
 package br.gov.caixa.simtr.hub.dossieproduto.fachada;
 
-import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoCriacaoVo;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoCriadoVo;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoDocumentoCriadoVo;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoDocumentoInclusaoVo;
@@ -23,10 +22,6 @@ public class DossieProdutoFachada {
         this.dossieProdutoService = dossieProdutoService;
     }
 
-    public Uni<DossieProdutoCriadoVo> criarDossieProduto(DossieProdutoCriacaoVo requisicao) {
-        return dossieProdutoService.criarDossieProduto(requisicao);
-    }
-
     public Uni<DossieProdutoCriadoVo> atualizarFormularioDossieProduto(
             Long id,
             List<DossieProdutoFormularioVo> requisicao
@@ -46,9 +41,5 @@ public class DossieProdutoFachada {
             DossieProdutoValidacaoNegocialVo requisicao
     ) {
         return dossieProdutoService.registrarValidacaoNegocialDossieProduto(id, requisicao);
-    }
-
-    public Uni<DossieProdutoCriadoVo> iniciarOuAvancarWorkflowDossieProduto(Long id) {
-        return dossieProdutoService.iniciarOuAvancarWorkflowDossieProduto(id);
     }
 }

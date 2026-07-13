@@ -3,7 +3,7 @@ package br.gov.caixa.simtr.hub;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoClienteAvalistaDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoClienteDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoClienteRelacionadoDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriacaoDto;
+import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.CriacaoDossieProdutoRequest;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoAtributoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoClienteDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoGarantiaDto;
@@ -157,8 +157,8 @@ public final class TestFixtures {
         );
     }
 
-    public static DossieProdutoCriacaoDto dossieCriacaoDto() {
-        return new DossieProdutoCriacaoDto(
+    public static CriacaoDossieProdutoRequest criacaoDossieProdutoRequest() {
+        return new CriacaoDossieProdutoRequest(
                 100L,
                 200L,
                 300L,

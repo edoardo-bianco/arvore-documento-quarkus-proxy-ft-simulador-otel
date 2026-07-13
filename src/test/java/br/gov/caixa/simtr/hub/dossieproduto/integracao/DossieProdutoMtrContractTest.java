@@ -10,8 +10,6 @@ import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.testing.exporter.InMemorySpanExporter;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.QuarkusTestProfile;
-import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import jakarta.inject.Inject;
@@ -20,7 +18,6 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -31,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
-@TestProfile(DossieProdutoMtrContractTest.MtrProfile.class)
 @QuarkusTestResource(
         value = DossieProdutoMtrStubTestResource.class,
         restrictToAnnotatedClass = true
@@ -95,11 +91,11 @@ class DossieProdutoMtrContractTest {
 
         ((OpenTelemetrySdk) openTelemetry).getSdkTracerProvider().forceFlush().join(10, TimeUnit.SECONDS);
         SpanData observed = spanExporter.getFinishedSpanItems().stream()
-                .filter(span -> "DossieProdutoClient".equals(
+                .filter(span -> "CriacaoDossieProdutoMtrClient".equals(
                         span.getAttributes().get(AttributeKey.stringKey("rest_client.class"))))
                 .findFirst()
                 .orElseThrow();
-        assertEquals("criarDossieProduto",
+        assertEquals("criar",
                 observed.getAttributes().get(AttributeKey.stringKey("rest_client.operation")));
         assertEquals(201L,
                 observed.getAttributes().get(AttributeKey.longKey("rest_client.response.status_code")));
@@ -211,15 +207,4 @@ class DossieProdutoMtrContractTest {
                 .post("/simtr-hub/v1/dossie-produto/{id}/workflow", 123L);
     }
 
-    public static class MtrProfile implements QuarkusTestProfile {
-
-        @Override
-        public Map<String, String> getConfigOverrides() {
-            return Map.of(
-                    "simtr-hub.simulador.dossie-produto.habilitado", "false",
-                    "quarkus.oidc-client.enabled", "true",
-                    "quarkus.oidc-client.connection-retry-count", "1"
-            );
-        }
-    }
 }

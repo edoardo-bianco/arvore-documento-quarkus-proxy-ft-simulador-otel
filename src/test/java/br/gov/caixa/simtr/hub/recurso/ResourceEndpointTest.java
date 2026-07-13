@@ -54,7 +54,7 @@ class ResourceEndpointTest {
         given()
                 .contentType(ContentType.JSON)
                 .accept(ContentType.JSON)
-                .body(TestFixtures.dossieCriacaoDto())
+                .body(TestFixtures.criacaoDossieProdutoRequest())
                 .when()
                 .post("/simtr-hub/v1/dossie-produto")
                 .then()
