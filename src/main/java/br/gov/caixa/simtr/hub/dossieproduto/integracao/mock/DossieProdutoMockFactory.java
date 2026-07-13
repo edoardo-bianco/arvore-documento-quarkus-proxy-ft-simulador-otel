@@ -1,21 +1,15 @@
 package br.gov.caixa.simtr.hub.dossieproduto.integracao.mock;
 
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoInclusaoDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoFormularioDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialDto;
 import br.gov.caixa.simtr.hub.arquitetura.configuracao.mock.MarkdownJsonMockReader;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
-import java.util.List;
-
 @ApplicationScoped
 public class DossieProdutoMockFactory {
 
-    private static final String FORMULARIO_MOCK_RESOURCE =
-            "mock/dossieproduto/formulario-dossie-produto.md";
     private static final String DOCUMENTO_MOCK_RESOURCE =
             "mock/dossieproduto/documento-dossie-produto.md";
     private static final String VALIDACAO_NEGOCIAL_MOCK_RESOURCE =
@@ -26,26 +20,6 @@ public class DossieProdutoMockFactory {
     @Inject
     public DossieProdutoMockFactory(MarkdownJsonMockReader mockReader) {
         this.mockReader = mockReader;
-    }
-
-    public DossieProdutoCriadoDto atualizarFormularioDossieProdutoMock(
-            Long id,
-            List<DossieProdutoFormularioDto> requisicao
-    ) {
-        DossieProdutoCriadoDto resposta = mockReader.readFirstJsonObject(
-                FORMULARIO_MOCK_RESOURCE,
-                DossieProdutoCriadoDto.class
-        );
-
-        if (resposta == null) {
-            throw new IllegalStateException("Arquivo de mock nao encontrado no classpath: " + FORMULARIO_MOCK_RESOURCE);
-        }
-
-        if (id != null) {
-            return new DossieProdutoCriadoDto(id);
-        }
-
-        return resposta;
     }
 
     public DossieProdutoDocumentoCriadoDto incluirDocumentoDossieProdutoMock(

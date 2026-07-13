@@ -1,10 +1,8 @@
 package br.gov.caixa.simtr.hub.arquitetura.integracao;
 
 import br.gov.caixa.simtr.hub.TestFixtures;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoInclusaoDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoFormularioDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialDto;
 import br.gov.caixa.simtr.hub.gestaodocumento.recurso.rest.v1.dto.GestaoDocumentoCredencialContainerDto;
 import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.checklist.ChecklistDto;
@@ -21,9 +19,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Uni;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -34,15 +29,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class GatewayTest {
 
     @Test
-    void dossieGatewayEncaminhaFormularioDocumentoEValidacaoNegocialParaClient() {
+    void dossieGatewayEncaminhaDocumentoEValidacaoNegocialParaClient() {
         FakeDossieProdutoClient client = new FakeDossieProdutoClient();
         DossieProdutoGateway gateway = new DossieProdutoGateway(client);
 
-        DossieProdutoCriadoDto formulario = gateway.atualizarFormularioDossieProduto(
-                        123L,
-                        formularioComItensNulos()
-                )
-                .await().indefinitely();
         DossieProdutoDocumentoCriadoDto documento = gateway.incluirDocumentoDossieProduto(
                         321L,
                         TestFixtures.documentoInclusaoDto()
@@ -53,11 +43,8 @@ class GatewayTest {
                         TestFixtures.validacaoNegocialDto()
                 )
                 .await().indefinitely();
-        assertEquals(123L, formulario.id());
         assertEquals(456L, documento.idDocumento());
         assertEquals(789L, documento.idInstanciaDocumento());
-        assertEquals(123L, client.idFormularioRecebido);
-        assertEquals(3, client.formularioRecebido.size());
         assertEquals(321L, client.idDocumentoRecebido);
         assertEquals("RG", client.documentoRecebido.tipoDocumento());
         assertEquals(432L, client.idValidacaoNegocialRecebido);
@@ -70,8 +57,6 @@ class GatewayTest {
         client.falha = new IllegalStateException("falha dossie");
         DossieProdutoGateway gateway = new DossieProdutoGateway(client);
 
-        assertSame(client.falha, assertThrows(IllegalStateException.class,
-                () -> gateway.atualizarFormularioDossieProduto(123L, null).await().indefinitely()));
         assertSame(client.falha, assertThrows(IllegalStateException.class,
                 () -> gateway.incluirDocumentoDossieProduto(123L, null).await().indefinitely()));
         assertSame(client.falha, assertThrows(IllegalStateException.class,
@@ -146,35 +131,12 @@ class GatewayTest {
                 () -> gateway.consultarPorIdentificadorNegocialEVersao(100L, 1).await().indefinitely()));
     }
 
-    private static List<DossieProdutoFormularioDto> formularioComItensNulos() {
-        List<DossieProdutoFormularioDto> formulario = new ArrayList<>();
-        formulario.add(null);
-        formulario.add(new DossieProdutoFormularioDto(null));
-        formulario.add(TestFixtures.formularioDto().getFirst());
-        return formulario;
-    }
-
     static class FakeDossieProdutoClient implements DossieProdutoClient {
-        private Long idFormularioRecebido;
-        private List<DossieProdutoFormularioDto> formularioRecebido;
         private Long idDocumentoRecebido;
         private DossieProdutoDocumentoInclusaoDto documentoRecebido;
         private Long idValidacaoNegocialRecebido;
         private DossieProdutoValidacaoNegocialDto validacaoNegocialRecebida;
         private RuntimeException falha;
-
-        @Override
-        public Uni<DossieProdutoCriadoDto> atualizarFormularioDossieProduto(
-                Long id,
-                List<DossieProdutoFormularioDto> requisicao
-        ) {
-            idFormularioRecebido = id;
-            formularioRecebido = requisicao;
-            if (falha != null) {
-                return Uni.createFrom().failure(falha);
-            }
-            return Uni.createFrom().item(new DossieProdutoCriadoDto(id));
-        }
 
         @Override
         public Uni<DossieProdutoDocumentoCriadoDto> incluirDocumentoDossieProduto(

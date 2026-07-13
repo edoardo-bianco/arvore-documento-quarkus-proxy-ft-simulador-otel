@@ -37,6 +37,15 @@ class DossieProdutoErroApiContractTest {
     }
 
     @Test
+    void preservaErroParaCorpoDeFormularioAusente() {
+        validarErro(given()
+                        .contentType(ContentType.JSON)
+                        .accept(ContentType.JSON)
+                        .patch("/simtr-hub/v1/dossie-produto/{id}/formulario", 123L),
+                "O corpo da requisicao deve ser informado.");
+    }
+
+    @Test
     void preservaErroDeValidacaoCascataDoAtributoDeDocumento() {
         validarErro(given()
                         .contentType(ContentType.JSON)

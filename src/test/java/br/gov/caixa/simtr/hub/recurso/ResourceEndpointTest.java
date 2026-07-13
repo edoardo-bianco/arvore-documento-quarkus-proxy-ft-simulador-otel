@@ -40,16 +40,6 @@ class ResourceEndpointTest {
     }
 
     @Test
-    void openApiEndpointRetorna200NoPathConvencional() {
-        given()
-                .accept(ContentType.JSON)
-                .when()
-                .get("/simtr-hub/openapi")
-                .then()
-                .statusCode(200);
-    }
-
-    @Test
     void dossieProdutoPostRetorna201ComMockDoQuarkus() {
         given()
                 .contentType(ContentType.JSON)

@@ -1,8 +1,10 @@
 package br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1;
 
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.CriacaoDossieProdutoRequest;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.AtualizarFormularioDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.CriarDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaCriacaoDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaAtualizacaoFormularioDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoInclusaoDto;
@@ -54,16 +56,19 @@ public class DossieProdutoResource {
     private final DossieProdutoFachada dossieProdutoFachada;
     private final DossieProdutoMapper dossieProdutoMapper;
     private final CriarDossieProduto criarDossieProduto;
+    private final AtualizarFormularioDossieProduto atualizarFormularioDossieProduto;
     private final IniciarOuAvancarWorkflowDossieProduto iniciarOuAvancarWorkflow;
 
     @Inject
     public DossieProdutoResource(DossieProdutoFachada dossieProdutoFachada,
                                  DossieProdutoMapper dossieProdutoMapper,
                                  CriarDossieProduto criarDossieProduto,
+                                 AtualizarFormularioDossieProduto atualizarFormularioDossieProduto,
                                  IniciarOuAvancarWorkflowDossieProduto iniciarOuAvancarWorkflow) {
         this.dossieProdutoFachada = dossieProdutoFachada;
         this.dossieProdutoMapper = dossieProdutoMapper;
         this.criarDossieProduto = criarDossieProduto;
+        this.atualizarFormularioDossieProduto = atualizarFormularioDossieProduto;
         this.iniciarOuAvancarWorkflow = iniciarOuAvancarWorkflow;
     }
 
@@ -261,11 +266,12 @@ public class DossieProdutoResource {
                 )
         );
 
-        return dossieProdutoFachada.atualizarFormularioDossieProduto(
-                        id,
-                        dossieProdutoMapper.toFormularioVo(requisicao)
-                )
-                .map(dossieProdutoMapper::toDto)
+        return atualizarFormularioDossieProduto.executar(
+                        FormularioDossieProdutoRestMapper.paraComando(id, requisicao))
+                .onFailure(FalhaAtualizacaoFormularioDossieProduto.class)
+                .transform(erro -> FormularioDossieProdutoRestMapper.paraExcecaoRest(
+                        (FalhaAtualizacaoFormularioDossieProduto) erro))
+                .map(FormularioDossieProdutoRestMapper::paraResposta)
                 .invoke(resposta -> {
                     if (resposta != null && resposta.id() != null) {
                         span.setAttribute("dossie_produto.id_resposta", resposta.id());

@@ -23,7 +23,7 @@ Antes de executar qualquer item:
 
 ## Ponto de retomada
 
-- **Ultima tarefa concluida:** 2.1e - borda REST da criacao.
+- **Ultima tarefa concluida:** 2.2e - borda REST do formulario.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
   produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
@@ -98,7 +98,36 @@ Antes de executar qualquer item:
   padrao `test`, sem Docker, Dev Services, `QuarkusTestProfile` ou `@TestProfile`;
   `mvn -q clean test` com 163 elementos `testcase`, zero falhas, zero erros e zero ignorados. O teste
   HTTP da criacao tambem cobre a resposta nula preservada do contrato legado.
-- **Proximo item pendente:** C2.1 - revisar evidencias e obter GO humano.
+- **Checkpoint C2.1:** GO humano confirmado em 2026-07-13; formulario desbloqueado.
+- **Evidencia da caracterizacao do formulario:** `baseline-formulario-dossie-produto.md`; cinco
+  cenarios MTR novos congelam wire/headers/resposta, listas e nulos, erro lossless, retry e matriz
+  FT; o corpo REST obrigatorio ganhou teste dedicado. `mvn -q clean test` com 169 elementos
+  `testcase`, zero falhas, zero erros e zero ignorados; nenhuma classe de producao foi alterada.
+- **Evidencia do nucleo do formulario:** tipos internos preservam listas, elementos e campos nulos
+  sem copia ou normalizacao; portas de entrada/saida e caso de uso delegador usam somente `Uni` na
+  aplicacao. Teste unitario e ArchUnit passaram; `mvn -q clean test` executou 171 casos, com zero
+  falhas, zero erros e zero ignorados, no profile padrao `test`, sem Docker ou Dev Services.
+- **Evidencia da nova borda MTR do formulario:** DTOs, client, erro, mapper e adapter exclusivos;
+  testes unitarios e stub localhost comprovam wire completo, listas/elementos/campos nulos,
+  headers/OIDC/trace, resposta, erro lossless sem retry, retry de 500 e matriz FT. O guardrail foi
+  convertido para JUnit puro com ArchUnit core, eliminando a corrida de discovery com
+  `@QuarkusTest` sem reduzir as 13 regras/provas. `mvn -q clean test` executou 188 casos em 41
+  relatorios, com zero falhas, zero erros e zero ignorados, sem Docker ou Dev Services.
+- **Evidencia da borda simulador do formulario:** DTO de resposta, qualifier, adapter e producer
+  exclusivos leem a fixture existente sem DTO publico e preservam a precedencia do id informado.
+  Teste unitario prova a selecao do simulador quando ligado e do MTR quando desligado; testes CDI
+  confirmam ambos os estados e o bootstrap no profile padrao `test`. As properties permaneceram
+  inalteradas. ArchUnit passou e `mvn -q clean test` executou 191 casos em 43 relatorios, com zero
+  falhas, zero erros e zero ignorados, sem Docker ou Dev Services.
+- **Evidencia da borda REST do formulario:** mapper REST explicito e Resource usam somente
+  `AtualizarFormularioDossieProduto`; HTTP/JSON/validacao, erros lossless, simulador/MTR, matriz
+  FT, observabilidade e ArchUnit permanecem verdes. A cadeia legada exclusiva foi removida de
+  fachada, service, gateway, REST Client, mapper, mock factory e VOs, sem referencias
+  remanescentes. O teste do endpoint OpenAPI gerado foi removido conforme a decisao humana; o
+  Quarkus continua responsavel por gera-lo sem filtro ou manipulacao. O profile padrao `test`
+  agora declara `quarkus.devservices.enabled=false`. `mvn -q clean test` executou 191 casos em 45
+  relatorios, com zero falhas, zero erros e zero ignorados; `git diff --check` passou.
+- **Proximo item pendente:** C2.2 - revisar evidencias do formulario e obter GO humano.
 
 ## Fase 0 - Baseline e guardrails
 
@@ -138,12 +167,21 @@ Antes de executar qualquer item:
 - [x] 2.1c Criar borda MTR da criacao.
 - [x] 2.1d Criar borda simulador da criacao.
 - [x] 2.1e Migrar borda REST da criacao.
-- [ ] C2.1 Registrar evidencias e obter GO humano.
-- [ ] 2.2a Caracterizar formulario.
-- [ ] 2.2b Criar nucleo do formulario.
-- [ ] 2.2c Criar borda MTR do formulario.
-- [ ] 2.2d Criar borda simulador do formulario.
-- [ ] 2.2e Migrar borda REST do formulario.
+- [x] C2.1 Registrar evidencias e obter GO humano.
+- [x] 2.2a Caracterizar formulario.
+- [x] 2.2b.1 Criar tipos internos de cliente, produto, garantia, avalista e resposta.
+- [x] 2.2b.2 Criar comando, item, vinculo e resultado internos do formulario.
+- [x] 2.2b.3 Criar portas e caso de uso do formulario com fake da porta de saida.
+- [x] 2.2b Criar nucleo do formulario.
+- [x] 2.2c.1 Criar DTOs, erro e REST Client MTR exclusivos do formulario.
+- [x] 2.2c.2 Criar falha interna, mapper, qualifier e adapter MTR do formulario.
+- [x] 2.2c.3 Provar wire, nulabilidade, erros e matriz FT no novo client/adapter.
+- [x] 2.2c Criar borda MTR do formulario.
+- [x] 2.2d Criar borda simulador do formulario.
+- [x] 2.2e.1 Criar mapper REST, observabilidade e ligar o Resource a porta de entrada.
+- [x] 2.2e.2 Remover a cadeia legada exclusiva do formulario apos equivalencia verde.
+- [x] 2.2e.3 Provar HTTP, erros, observabilidade, ArchUnit e ausencia de referencias legadas.
+- [x] 2.2e Migrar borda REST do formulario.
 - [ ] C2.2 Registrar evidencias e obter GO humano.
 - [ ] 2.3a Caracterizar inclusao de documento.
 - [ ] 2.3b Criar nucleo da inclusao de documento.
@@ -208,7 +246,7 @@ data, evidencias verificaveis e aprovador humano.
 |---|---|---|---|---|
 | C0 | GO | 2026-07-12 | G1: branch confirmada; baseline 100/0; Task 0.1: manifesto HTTP/OpenAPI e 22 focados; Task 0.2: inventario de observabilidade e 12 focados; Task 0.3: baseline MTR com cinco focados; Task 0.4: guardrails ArchUnit progressivos; `mvn -q test` executado novamente com codigo 0 e suite/build verdes | Usuario, GO registrado em conversa |
 | C1 | GO | 2026-07-12 | Tasks 1.1-1.5 concluidas; `mvn -q clean test` com 153 elementos `testcase`, zero falhas, zero erros e zero ignorados; oito operacoes publicas e 43 schemas OpenAPI preservados; FT, wire, OIDC de teste, simulador, observabilidade e ArchUnit verdes; legado controlado do workflow removido sem referencias; `diff --check` limpo | Usuario, GO registrado em conversa |
-| C2.1 | PENDENTE | - | - | - |
+| C2.1 | GO | 2026-07-13 | Tasks 2.1a-2.1e concluidas; `mvn -q clean test` com 163 elementos `testcase`, zero falhas, zero erros e zero ignorados; contratos HTTP/JSON/validacao, wire MTR, simulador, erros lossless, matriz FT, observabilidade e ArchUnit verdes; cadeia legada da criacao removida sem referencias; `diff --check` limpo | Usuario, GO registrado em conversa |
 | C2.2 | PENDENTE | - | - | - |
 | C2.3 | PENDENTE | - | - | - |
 | C2.4 | PENDENTE | - | - | - |

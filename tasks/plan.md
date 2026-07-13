@@ -3,8 +3,9 @@
 ## Status
 
 - **Planejado:** 2026-07-11
-- **Implementacao:** Fase 0 concluida; C0 e C1 em GO; Tasks 1.1 a 1.5 e 2.1a a 2.1e
-  concluidas; proximo passo: checkpoint C2.1, ainda pendente de GO humano
+- **Implementacao:** Fase 0 concluida; C0, C1 e C2.1 em GO; Tasks 1.1 a 1.5, 2.1a a 2.1e e
+  2.2a a 2.2e concluidas; proximo passo: checkpoint C2.2, revisar evidencias do formulario e
+  obter GO humano antes da Task 2.3a
 - **Branch de trabalho:** `refactor/ddd-fase-0-baseline`
 - **Documento arquitetural:** `../doc/arquitetura-ddd-integracoes-atomicas.md`
 - **Checklist operacional:** `todo.md`
@@ -343,11 +344,11 @@ arquivo estatico, filtro ou annotation de ocultacao.
 
 ### Checkpoint C2.1 - Criacao
 
-**Status:** proximo passo, ainda `PENDENTE` e sem GO humano.
+**Status:** `GO` humano registrado em 2026-07-13; formulario desbloqueado.
 
-- [ ] Evidencias de todas as bordas e matriz FT anexadas.
-- [ ] ArchUnit da capacidade ativo; suite/build verdes.
-- [ ] GO humano registrado antes de formulario.
+- [x] Evidencias de todas as bordas e matriz FT anexadas.
+- [x] ArchUnit da capacidade ativo; suite/build verdes.
+- [x] GO humano registrado antes de formulario.
 
 ### Subfase 2.2 - `AtualizarFormularioDossieProduto`
 
@@ -360,6 +361,10 @@ configuracao e matriz FT estao congelados, incluindo listas e nulos atuais.
 
 **Dependencias:** C2.1. **Escopo:** M.
 
+**Status:** concluida em 2026-07-13; contratos e evidencias registrados em
+`baseline-formulario-dossie-produto.md`, sem mudanca de producao e sem testar ou manipular o
+OpenAPI gerado pelo Quarkus.
+
 #### Task 2.2b - Criar nucleo do formulario
 
 **Criterios de aceite:** tipos semanticos, portas e caso de uso sao framework-free salvo `Uni` na
@@ -368,6 +373,10 @@ aplicacao; nenhuma imutabilidade/regra funcional nova e introduzida.
 **Verificacao:** teste unitario e ArchUnit.
 
 **Dependencias:** 2.2a. **Escopo:** M.
+
+**Status:** concluida em 2026-07-13; tipos internos, portas e caso de uso criados sem regra
+funcional nova. Testes unitarios, ArchUnit e `mvn -q clean test` passaram no profile padrao
+`test`, sem Docker ou Dev Services.
 
 #### Task 2.2c - Criar borda MTR do formulario
 
@@ -378,6 +387,10 @@ classificacao atuais.
 
 **Dependencias:** 2.2b. **Escopo:** M, subdividir tipos aninhados se necessario.
 
+**Status:** concluida em 2026-07-13; DTOs/client/erro/mapper/adapter exclusivos preservam wire,
+nulos, headers, traducao lossless e ordem/classificacao FT. Testes unitarios, stub localhost,
+ArchUnit e `mvn -q clean test` passaram no profile padrao `test`, sem Docker ou Dev Services.
+
 #### Task 2.2d - Criar borda simulador do formulario
 
 **Criterios de aceite:** fixture e modelos proprios; properties e comportamento atual preservados.
@@ -386,14 +399,25 @@ classificacao atuais.
 
 **Dependencias:** 2.2b. **Escopo:** S/M.
 
+**Status:** concluida em 2026-07-13; DTO, qualifier, adapter e producer exclusivos preservam a
+fixture, a precedencia do identificador informado e a property existente. Testes unitario e CDI
+comprovam a selecao ligada/desligada no profile padrao `test`; ArchUnit e `mvn -q clean test`
+passaram sem Docker ou Dev Services.
+
 #### Task 2.2e - Migrar borda REST do formulario
 
-**Criterios de aceite:** path/status/JSON/validacao/OpenAPI/observabilidade equivalentes; Resource
-usa somente porta de entrada.
+**Criterios de aceite:** path/status/JSON/validacao/observabilidade equivalentes; anotacoes REST
+publicas preservadas e OpenAPI integralmente gerado pelo Quarkus, sem teste ou manipulacao do
+artefato; Resource usa somente porta de entrada.
 
 **Verificacao:** HTTP, equivalencia completa e suite.
 
 **Dependencias:** 2.2c e 2.2d. **Escopo:** M.
+
+**Status:** concluida em 2026-07-13; mapper REST explicito e Resource usam a porta de entrada,
+cadeia legada exclusiva removida sem referencias e contratos HTTP/JSON/validacao, erros, FT,
+simulador/MTR e observabilidade preservados. O profile padrao `test` desabilita globalmente Dev
+Services; `mvn -q clean test` e `git diff --check` passaram. C2.2 permanece pendente.
 
 ### Checkpoint C2.2 - Formulario
 

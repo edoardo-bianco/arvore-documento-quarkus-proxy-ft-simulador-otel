@@ -14,11 +14,12 @@ import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.ProcessoResource;
 import br.gov.caixa.simtr.hub.dossieproduto.fachada.DossieProdutoFachada;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.IniciarOuAvancarWorkflowDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.CriarDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.AtualizarFormularioDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.IdentificadorDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoAtualizacaoFormularioDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoWorkflowDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoCriacaoDossieProduto;
 import br.gov.caixa.simtr.hub.gestaodocumento.fachada.GestaoDocumentoFachada;
-import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoCriadoVo;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoDocumentoCriadoVo;
 import br.gov.caixa.simtr.hub.gestaodocumento.dominio.GestaoDocumentoCredencialContainerVo;
 import br.gov.caixa.simtr.hub.dossieproduto.mapeamento.DossieProdutoMapper;
@@ -73,6 +74,9 @@ class ResourceBeanCoverageTest {
 
     @InjectMock
     CriarDossieProduto criarDossieProduto;
+
+    @InjectMock
+    AtualizarFormularioDossieProduto atualizarFormularioDossieProduto;
 
     @InjectMock
     IniciarOuAvancarWorkflowDossieProduto iniciarOuAvancarWorkflow;
@@ -131,10 +135,11 @@ class ResourceBeanCoverageTest {
 
     @Test
     void dossieProdutoResourceCobrePatchSucessoEFalhaDoBeanCdi() {
-        when(dossieProdutoFachada.atualizarFormularioDossieProduto(eq(123L), any()))
-                .thenReturn(Uni.createFrom().item(new DossieProdutoCriadoVo(123L)));
-        when(dossieProdutoFachada.atualizarFormularioDossieProduto(eq(124L), any()))
-                .thenReturn(Uni.createFrom().failure(new IllegalStateException("falha formulario")));
+        when(atualizarFormularioDossieProduto.executar(any()))
+                .thenReturn(Uni.createFrom().item(
+                        new ResultadoAtualizacaoFormularioDossieProduto(123L)))
+                .thenReturn(Uni.createFrom().failure(
+                        new IllegalStateException("falha formulario")));
 
         Response response = dossieProdutoResource.atualizarFormularioDossieProduto(123L, TestFixtures.formularioDto())
                 .await().indefinitely();

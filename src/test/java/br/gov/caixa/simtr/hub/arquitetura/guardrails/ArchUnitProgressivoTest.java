@@ -1,27 +1,26 @@
 package br.gov.caixa.simtr.hub.arquitetura.guardrails;
 
-import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoCriadoVo;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.IdentificadorDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.integracao.DossieProdutoGateway;
 import br.gov.caixa.simtr.hub.dominio.falso.ViolacaoGuardrail;
 import br.gov.caixa.simtr.hub.parametrizacao.falso.DependenciaEntreDominiosViolacao;
+import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption.DoNotIncludeTests;
-import com.tngtech.archunit.junit.AnalyzeClasses;
-import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition;
 import org.junit.jupiter.api.Test;
 
-import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@AnalyzeClasses(packages = "br.gov.caixa.simtr.hub", importOptions = DoNotIncludeTests.class)
 class ArchUnitProgressivoTest {
 
     private static final String PACOTE_DTO_ERRO_REST = "..arquitetura.excecao.dto..";
+    private static final JavaClasses CODIGO_PRODUCAO = new ClassFileImporter()
+            .withImportOption(new DoNotIncludeTests())
+            .importPackages("br.gov.caixa.simtr.hub");
 
-    @ArchTest
     static final ArchRule dominio_nao_deve_dependender_de_framework_ou_bordas = noClasses()
             .that().resideInAPackage("..dominio..")
             .should().dependOnClassesThat()
@@ -37,42 +36,72 @@ class ArchUnitProgressivoTest {
                     "org.eclipse.microprofile..",
                     "com.fasterxml.jackson..");
 
-    @ArchTest
-    static final ArchRule erro_rest_tecnico_pode_ser_usado_nas_bordas_permitidas = classes()
-            .that().resideInAnyPackage("..recurso..", "..integracao..", "..arquitetura.excecao..")
-            .and().haveSimpleNameNotEndingWith("Dto")
+    static final ArchRule erro_rest_tecnico_pode_ser_usado_nas_bordas_permitidas = noClasses()
+            .that().resideOutsideOfPackages(
+                    "..recurso..", "..integracao..", "..arquitetura.excecao..")
             .should().dependOnClassesThat()
             .resideInAPackage(PACOTE_DTO_ERRO_REST);
 
-    @ArchTest
     static final ArchRule erro_rest_tecnico_nao_pode_vazar_para_o_nucleo = noClasses()
             .that().resideInAnyPackage("..dominio..", "..servico..", "..fachada..", "..mapeamento..")
             .should().dependOnClassesThat()
             .resideInAPackage(PACOTE_DTO_ERRO_REST);
 
-    @ArchTest
     static final ArchRule dominios_nao_devem_dependender_uns_dos_outros = SlicesRuleDefinition.slices()
             .matching("br.gov.caixa.simtr.hub.(parametrizacao|dossieproduto|gestaodocumento)..")
             .should().notDependOnEachOther();
 
-    @ArchTest
     static final ArchRule aplicacao_migrada_nao_deve_depender_de_bordas = noClasses()
             .that().resideInAPackage("..dossieproduto.aplicacao..")
             .should().dependOnClassesThat()
             .resideInAnyPackage(
                     "..integracao..", "..adaptador..", "..recurso..", "..mapeamento..", "..fachada..");
 
-    @ArchTest
     static final ArchRule porta_de_entrada_nao_deve_expor_implementacao = noClasses()
             .that().resideInAPackage("..dossieproduto.aplicacao.porta.entrada..")
             .should().dependOnClassesThat()
             .resideInAnyPackage("..aplicacao.porta.saida..", "..aplicacao.casodeuso..");
 
-    @ArchTest
     static final ArchRule adapters_de_saida_migrados_nao_devem_reutilizar_contratos_de_outras_bordas = noClasses()
             .that().resideInAPackage("..dossieproduto.adaptador.saida..")
             .should().dependOnClassesThat()
             .resideInAnyPackage("..recurso..", "..integracao..", "..arquitetura.excecao.dto..");
+
+    @Test
+    void dominioNaoDependeDeFrameworkOuBordas() {
+        dominio_nao_deve_dependender_de_framework_ou_bordas.check(CODIGO_PRODUCAO);
+    }
+
+    @Test
+    void erroRestTecnicoPermaneceNasBordasPermitidas() {
+        erro_rest_tecnico_pode_ser_usado_nas_bordas_permitidas.check(CODIGO_PRODUCAO);
+    }
+
+    @Test
+    void erroRestTecnicoNaoVazaParaONucleo() {
+        erro_rest_tecnico_nao_pode_vazar_para_o_nucleo.check(CODIGO_PRODUCAO);
+    }
+
+    @Test
+    void dominiosNaoDependemUnsDosOutros() {
+        dominios_nao_devem_dependender_uns_dos_outros.check(CODIGO_PRODUCAO);
+    }
+
+    @Test
+    void aplicacaoMigradaNaoDependeDeBordas() {
+        aplicacao_migrada_nao_deve_depender_de_bordas.check(CODIGO_PRODUCAO);
+    }
+
+    @Test
+    void portaDeEntradaNaoExpoeImplementacao() {
+        porta_de_entrada_nao_deve_expor_implementacao.check(CODIGO_PRODUCAO);
+    }
+
+    @Test
+    void adaptersDeSaidaMigradosNaoReutilizamContratosDeOutrasBordas() {
+        adapters_de_saida_migrados_nao_devem_reutilizar_contratos_de_outras_bordas
+                .check(CODIGO_PRODUCAO);
+    }
 
     @Test
     void regraDeErroRestDetectaUsoProibidoNoNucleo() {
@@ -103,7 +132,9 @@ class ArchUnitProgressivoTest {
                 .should().notDependOnEachOther();
 
         assertThrows(AssertionError.class, () -> regra.check(
-                new ClassFileImporter().importClasses(DependenciaEntreDominiosViolacao.class, DossieProdutoCriadoVo.class)));
+                new ClassFileImporter().importClasses(
+                        DependenciaEntreDominiosViolacao.class,
+                        IdentificadorDossieProduto.class)));
     }
 
     @Test

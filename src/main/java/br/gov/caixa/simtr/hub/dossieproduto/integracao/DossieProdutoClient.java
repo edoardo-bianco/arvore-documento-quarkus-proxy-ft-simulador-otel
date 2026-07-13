@@ -1,9 +1,7 @@
 package br.gov.caixa.simtr.hub.dossieproduto.integracao;
 
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoInclusaoDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoFormularioDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialDto;
 import br.gov.caixa.simtr.hub.arquitetura.seguranca.RequestHeaderFactory;
 import br.gov.caixa.simtr.hub.arquitetura.observabilidade.RestClientObservabilityFilter;
@@ -31,7 +29,6 @@ import org.eclipse.microprofile.rest.client.annotation.RegisterProvider;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
 import java.time.temporal.ChronoUnit;
-import java.util.List;
 
 @RegisterRestClient(configKey = "dossie-produto")
 @Path("/dossie-produto")
@@ -41,46 +38,6 @@ import java.util.List;
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public interface DossieProdutoClient {
-
-    @PATCH
-    @Path("/v1/dossie-produto/{id}/formulario")
-    @Timeout(value = 2_000, unit = ChronoUnit.MILLIS)
-    @Retry(
-            maxRetries = 3,
-            delay = 300,
-            delayUnit = ChronoUnit.MILLIS,
-            jitter = 100,
-            jitterDelayUnit = ChronoUnit.MILLIS,
-            retryOn = {
-                    MtrServerErrorException.class,
-                    ProcessingException.class,
-                    TimeoutException.class
-            },
-            abortOn = {
-                    MtrBusinessErrorException.class,
-                    MtrClientTechnicalException.class
-            }
-    )
-    @CircuitBreaker(
-            requestVolumeThreshold = 10,
-            failureRatio = 0.5,
-            delay = 10_000,
-            delayUnit = ChronoUnit.MILLIS,
-            successThreshold = 2,
-            failOn = {
-                    MtrServerErrorException.class,
-                    ProcessingException.class,
-                    TimeoutException.class
-            },
-            skipOn = {
-                    MtrBusinessErrorException.class,
-                    MtrClientTechnicalException.class
-            }
-    )
-    Uni<DossieProdutoCriadoDto> atualizarFormularioDossieProduto(
-            @PathParam("id") Long id,
-            List<DossieProdutoFormularioDto> requisicao
-    );
 
     @POST
     @Path("/v2/dossie-produto/{id}/documento")

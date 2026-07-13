@@ -1,10 +1,8 @@
 package br.gov.caixa.simtr.hub.dossieproduto.servico;
 
 import br.gov.caixa.simtr.hub.TestFixtures;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoInclusaoDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoFormularioDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialDto;
 import br.gov.caixa.simtr.hub.dossieproduto.integracao.DossieProdutoGateway;
 import br.gov.caixa.simtr.hub.dossieproduto.integracao.mock.DossieProdutoMockFactory;
@@ -13,8 +11,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -25,40 +21,6 @@ class DossieProdutoServiceTest {
 
     @Inject
     DossieProdutoMapper mapper;
-
-    @Test
-    void formularioComSimuladorHabilitadoUsaMockFactoryERetornaIdDoPath() {
-        FakeDossieGateway gateway = new FakeDossieGateway();
-        FakeDossieMockFactory mockFactory = new FakeDossieMockFactory();
-        DossieProdutoService service = new DossieProdutoService(gateway, mockFactory, mapper, true);
-
-        var resposta = service.atualizarFormularioDossieProduto(
-                        123L,
-                        mapper.toFormularioVo(TestFixtures.formularioDto())
-                )
-                .await().indefinitely();
-
-        assertEquals(123L, resposta.id());
-        assertTrue(mockFactory.formularioChamada);
-        assertFalse(gateway.formularioChamada);
-    }
-
-    @Test
-    void formularioComSimuladorDesabilitadoUsaGateway() {
-        FakeDossieGateway gateway = new FakeDossieGateway();
-        FakeDossieMockFactory mockFactory = new FakeDossieMockFactory();
-        DossieProdutoService service = new DossieProdutoService(gateway, mockFactory, mapper, false);
-
-        var resposta = service.atualizarFormularioDossieProduto(
-                        123L,
-                        mapper.toFormularioVo(TestFixtures.formularioDto())
-                )
-                .await().indefinitely();
-
-        assertEquals(4L, resposta.id());
-        assertTrue(gateway.formularioChamada);
-        assertFalse(mockFactory.formularioChamada);
-    }
 
     @Test
     void documentoComSimuladorHabilitadoUsaMockFactory() {
@@ -129,21 +91,11 @@ class DossieProdutoServiceTest {
     }
 
     private static class FakeDossieGateway extends DossieProdutoGateway {
-        private boolean formularioChamada;
         private boolean documentoChamada;
         private boolean validacaoNegocialChamada;
 
         private FakeDossieGateway() {
             super(null);
-        }
-
-        @Override
-        public Uni<DossieProdutoCriadoDto> atualizarFormularioDossieProduto(
-                Long id,
-                List<DossieProdutoFormularioDto> requisicao
-        ) {
-            formularioChamada = true;
-            return Uni.createFrom().item(new DossieProdutoCriadoDto(4L));
         }
 
         @Override
@@ -166,21 +118,11 @@ class DossieProdutoServiceTest {
     }
 
     private static class FakeDossieMockFactory extends DossieProdutoMockFactory {
-        private boolean formularioChamada;
         private boolean documentoChamada;
         private boolean validacaoNegocialChamada;
 
         private FakeDossieMockFactory() {
             super(null);
-        }
-
-        @Override
-        public DossieProdutoCriadoDto atualizarFormularioDossieProdutoMock(
-                Long id,
-                List<DossieProdutoFormularioDto> requisicao
-        ) {
-            formularioChamada = true;
-            return new DossieProdutoCriadoDto(id);
         }
 
         @Override
