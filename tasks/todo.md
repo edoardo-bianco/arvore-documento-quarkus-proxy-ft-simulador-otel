@@ -23,7 +23,7 @@ Antes de executar qualquer item:
 
 ## Ponto de retomada
 
-- **Ultima tarefa concluida:** 2.3e - borda REST da inclusao de documento.
+- **Ultima tarefa concluida:** C2.3 - GO humano da inclusao de documento.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
   produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
@@ -163,7 +163,16 @@ Antes de executar qualquer item:
   ausencia de referencias. `mvn -q clean test` executou 215 casos em 55 relatorios, com zero
   falhas, zero erros e zero ignorados, no profile `test`, sem Docker ou Dev Services;
   `git diff --check` passou.
-- **Proximo item pendente:** C2.3 - revisar evidencias do documento e obter GO humano.
+- **Checkpoint C2.3:** GO humano confirmado em 2026-07-13; validacao negocial desbloqueada.
+- **Checkpoint temporario de sessao (2026-07-13):** Task 2.4a iniciada apenas em documentacao e
+  inventario. Foram localizados o endpoint `PATCH /simtr-hub/v1/dossie-produto/{id}/validacao-negocial`,
+  o REST Client MTR v1, a cadeia legada, a fixture do simulador, a property de selecao, a matriz
+  de timeout/retry/circuit breaker, os sinais de observabilidade e o stub HTTP local reutilizavel.
+  A cobertura atual ja protege HTTP 200 sem corpo, id invalido e uma validacao em cascata, mas
+  ainda nao existe contrato MTR dedicado da capacidade. Nenhum arquivo de producao ou teste foi
+  alterado; OpenAPI, Docker e Dev Services nao foram usados.
+- **Proximo item pendente:** 2.4a.1 - completar a caracterizacao HTTP, validacao e nulabilidade;
+  depois executar 2.4a.2 e 2.4a.3, sem iniciar 2.4b.
 
 ## Fase 0 - Baseline e guardrails
 
@@ -236,7 +245,10 @@ Antes de executar qualquer item:
 - [x] 2.3e.2 Ligar o Resource a porta de entrada e comprovar equivalencia HTTP, de erros, MTR e simulador.
 - [x] 2.3e.3 Remover a cadeia legada exclusiva da inclusao de documento e provar ausencia de referencias.
 - [x] 2.3e Migrar borda REST da inclusao de documento.
-- [ ] C2.3 Registrar evidencias e obter GO humano.
+- [x] C2.3 Registrar evidencias e obter GO humano.
+- [ ] 2.4a.1 Congelar contrato HTTP, validacao e nulabilidade da validacao negocial.
+- [ ] 2.4a.2 Congelar wire MTR, erros e matriz FT contra stub HTTP local.
+- [ ] 2.4a.3 Registrar simulador, observabilidade, configuracao e evidencias da suite.
 - [ ] 2.4a Caracterizar validacao negocial.
 - [ ] 2.4b Criar nucleo da validacao negocial.
 - [ ] 2.4c Criar borda MTR da validacao negocial.
@@ -296,7 +308,7 @@ data, evidencias verificaveis e aprovador humano.
 | C1 | GO | 2026-07-12 | Tasks 1.1-1.5 concluidas; `mvn -q clean test` com 153 elementos `testcase`, zero falhas, zero erros e zero ignorados; oito operacoes publicas e 43 schemas OpenAPI preservados; FT, wire, OIDC de teste, simulador, observabilidade e ArchUnit verdes; legado controlado do workflow removido sem referencias; `diff --check` limpo | Usuario, GO registrado em conversa |
 | C2.1 | GO | 2026-07-13 | Tasks 2.1a-2.1e concluidas; `mvn -q clean test` com 163 elementos `testcase`, zero falhas, zero erros e zero ignorados; contratos HTTP/JSON/validacao, wire MTR, simulador, erros lossless, matriz FT, observabilidade e ArchUnit verdes; cadeia legada da criacao removida sem referencias; `diff --check` limpo | Usuario, GO registrado em conversa |
 | C2.2 | GO | 2026-07-13 | Tasks 2.2a-2.2e concluidas; `mvn -q clean test` com 191 elementos `testcase` em 45 relatorios, zero falhas, zero erros e zero ignorados; contratos HTTP/JSON/validacao, wire MTR, simulador, erros lossless, matriz FT, observabilidade e ArchUnit verdes; cadeia legada do formulario removida sem referencias; `diff --check` limpo; commit `05571a1` publicado | Usuario, GO registrado em conversa |
-| C2.3 | PENDENTE | - | - | - |
+| C2.3 | GO | 2026-07-13 | Tasks 2.3a-2.3e concluidas; `mvn -q clean test` com 215 elementos `testcase` em 55 relatorios, zero falhas, zero erros e zero ignorados; contratos HTTP/JSON/validacao, wire MTR v2, simulador, erros lossless, matriz FT, observabilidade e ArchUnit verdes; cadeia legada da inclusao de documento removida sem referencias; `diff --check` limpo; commit `099dd25` publicado | Usuario, GO registrado em conversa |
 | C2.4 | PENDENTE | - | - | - |
 | C2 | PENDENTE | - | - | - |
 | C3 | PENDENTE | - | - | - |

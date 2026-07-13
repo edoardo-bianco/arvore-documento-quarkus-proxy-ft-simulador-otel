@@ -3,9 +3,9 @@
 ## Status
 
 - **Planejado:** 2026-07-11
-- **Implementacao:** Fase 0 concluida; C0, C1, C2.1 e C2.2 em GO; Tasks 1.1 a 1.5, 2.1a a
-  2.1e, 2.2a a 2.2e e 2.3a a 2.3e concluidas; proximo passo: revisar o checkpoint C2.3 e obter
-  GO humano antes da validacao negocial
+- **Implementacao:** Fase 0 concluida; C0, C1, C2.1, C2.2 e C2.3 em GO; Tasks 1.1 a 1.5,
+  2.1a a 2.1e, 2.2a a 2.2e e 2.3a a 2.3e concluidas; proximo passo: Task 2.4a,
+  caracterizar a validacao negocial
 - **Branch de trabalho:** `refactor/ddd-fase-0-baseline`
 - **Documento arquitetural:** `../doc/arquitetura-ddd-integracoes-atomicas.md`
 - **Checklist operacional:** `todo.md`
@@ -512,16 +512,24 @@ Services; `git diff --check` passou.
 
 ### Checkpoint C2.3 - Documento
 
-- [ ] Contratos publico, MTR v2 e simulador equivalentes.
-- [ ] Todas as bordas, ArchUnit, suite e build verdes.
-- [ ] GO humano registrado antes de validacao negocial.
+**Status:** `GO` humano registrado em 2026-07-13; validacao negocial desbloqueada.
+
+- [x] Contratos publico, MTR v2 e simulador equivalentes.
+- [x] Todas as bordas, ArchUnit, suite e build verdes.
+- [x] GO humano registrado antes de validacao negocial.
 
 ### Subfase 2.4 - `RegistrarValidacaoNegocialDossieProduto`
 
 #### Task 2.4a - Caracterizar validacao negocial
 
-**Criterios de aceite:** HTTP 200 sem corpo, JSON/validacao/OpenAPI, MTR, simulador, erros,
+**Criterios de aceite:** HTTP 200 sem corpo, JSON/validacao, MTR, simulador, erros,
 observabilidade, configuracao e matriz FT estao congelados.
+
+**Status:** iniciada em 2026-07-13 e pausada em checkpoint temporario de sessao. C2.3 foi
+registrado como GO e a task foi subdividida no checklist. O inventario parcial confirmou a cadeia
+legada, a cobertura HTTP/validacao e observabilidade existente, a property do simulador, a matriz
+FT do REST Client e o stub HTTP local reutilizavel; nenhum codigo de producao ou teste foi
+alterado. Retomar pela caracterizacao executavel ainda ausente, sem testar ou manipular o OpenAPI.
 
 **Verificacao:** testes positivos/negativos contra o legado.
 
