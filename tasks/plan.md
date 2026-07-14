@@ -6,7 +6,7 @@
 - **Implementacao:** Fases 0, 1 e 2 concluidas; C0, C1 e C2 em GO; Tasks 1.1 a 1.5,
   2.1a a 2.1e, 2.2a a 2.2e, 2.3a a 2.3e, 2.4a a 2.4e e 2.5 concluidas; proximo
   passo: Task 3.1, caracterizar `ConsultarProcessoParametrizado`
-- **Branch de trabalho:** `refactor/ddd-fase-0-baseline`
+- **Branch de trabalho atual:** `refactor/ddd-fase-3-baseline`
 - **Documento arquitetural:** `../doc/arquitetura-ddd-integracoes-atomicas.md`
 - **Checklist operacional:** `todo.md`
 
@@ -34,6 +34,12 @@ aprovada e criada para esta fase e `refactor/ddd-fase-0-baseline`.
 
 - Nao executar tasks de implementacao diretamente em `main`.
 - No inicio de cada retomada, confirmar a branch com `git rev-parse --abbrev-ref HEAD`.
+- A partir da Fase 3, cada nova fase deve usar uma branch propria no formato
+  `refactor/ddd-fase-<numero>-baseline`.
+- A branch da nova fase deve nascer do commit publicado que recebeu `GO` no checkpoint da fase
+  anterior, ser publicada e ter upstream remoto configurado antes da primeira task de
+  implementacao.
+- Nao reutilizar a branch da fase anterior para implementar a fase seguinte.
 - Preservar alteracoes do usuario e revisar o diff antes de cada checkpoint.
 - Commit e push exigem solicitacao explicita do usuario e nao fazem parte automaticamente de um
   checkpoint.

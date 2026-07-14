@@ -5,7 +5,8 @@
 Antes de executar qualquer item:
 
 - [ ] ler `../doc/arquitetura-ddd-integracoes-atomicas.md`;
-- [ ] confirmar `refactor/ddd-fase-0-baseline` com `git rev-parse --abbrev-ref HEAD`;
+- [ ] confirmar com `git rev-parse --abbrev-ref HEAD` a branch da fase atual no formato
+  `refactor/ddd-fase-<numero>-baseline`;
 - [ ] se a Fase 0 ainda nao terminou, aplicar a regra de bootstrap de `plan.md` e seguir as
   dependencias 0.1–0.4; a exigencia de checkpoint `GO` comeca somente ao entrar na Fase 1;
 - [ ] verificar `git diff` e preservar alteracoes do usuario;
@@ -20,6 +21,8 @@ Antes de executar qualquer item:
 - [x] G0 Criar a branch local `refactor/ddd-fase-0-baseline` a partir de `main` atualizado.
 - [x] G1 Branch `refactor/ddd-fase-0-baseline` confirmada; working tree continha somente a
   atualizacao documental da branch; baseline `mvn -q test`: 100 testes, zero falhas.
+- [x] G2 Branch `refactor/ddd-fase-3-baseline` criada a partir do commit `4d24167`, que recebeu
+  GO em C2, publicada e configurada para rastrear `origin/refactor/ddd-fase-3-baseline`.
 
 ## Ponto de retomada
 
