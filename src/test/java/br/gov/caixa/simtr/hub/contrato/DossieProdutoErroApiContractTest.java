@@ -55,6 +55,15 @@ class DossieProdutoErroApiContractTest {
     }
 
     @Test
+    void preservaErroParaCorpoDeValidacaoNegocialAusente() {
+        validarErro(given()
+                        .contentType(ContentType.JSON)
+                        .accept(ContentType.JSON)
+                        .patch("/simtr-hub/v1/dossie-produto/{id}/validacao-negocial", 123L),
+                "O corpo da requisicao deve ser informado.");
+    }
+
+    @Test
     void preservaErroDeValidacaoCascataDoAtributoDeDocumento() {
         validarErro(given()
                         .contentType(ContentType.JSON)
@@ -80,6 +89,41 @@ class DossieProdutoErroApiContractTest {
                                 """)
                         .patch("/simtr-hub/v1/dossie-produto/{id}/validacao-negocial", 123L),
                 "O identificador do checklist deve ser informado.");
+    }
+
+    @Test
+    void preservaTodasAsValidacoesObrigatoriasDaValidacaoNegocial() {
+        validarErro(given()
+                        .contentType(ContentType.JSON)
+                        .accept(ContentType.JSON)
+                        .body("""
+                                {
+                                  "verificacoes": [
+                                    {
+                                      "identificador_checklist": 6592,
+                                      "versao_checklist": 2,
+                                      "analise_realizada": true,
+                                      "parecer_apontamentos": null
+                                    },
+                                    {
+                                      "parecer_apontamentos": [{}],
+                                      "produto": {}
+                                    }
+                                  ],
+                                  "respostas_formulario": [{}]
+                                }
+                                """)
+                        .patch("/simtr-hub/v1/dossie-produto/{id}/validacao-negocial", 123L),
+                "Os pareceres dos apontamentos devem ser informados.",
+                "O identificador do checklist deve ser informado.",
+                "A versao do checklist deve ser informada.",
+                "O indicador de analise realizada deve ser informado.",
+                "O identificador do apontamento deve ser informado.",
+                "O resultado do apontamento deve ser informado.",
+                "A necessidade de reanalise do apontamento deve ser informada.",
+                "O codigo da operacao do produto deve ser informado.",
+                "O codigo da modalidade do produto deve ser informado.",
+                "O campo do formulario deve ser informado.");
     }
 
     @Test

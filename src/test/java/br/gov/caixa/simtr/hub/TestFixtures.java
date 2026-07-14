@@ -17,7 +17,7 @@ import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoVin
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoVinculoGarantiaDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoVinculoProdutoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialClienteAvalistaDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialDto;
+import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.ValidacaoNegocialDossieProdutoRequest;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialGarantiaDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialParecerApontamentoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialProdutoDto;
@@ -246,8 +246,8 @@ public final class TestFixtures {
         );
     }
 
-    public static DossieProdutoValidacaoNegocialDto validacaoNegocialDto() {
-        return new DossieProdutoValidacaoNegocialDto(
+    public static ValidacaoNegocialDossieProdutoRequest validacaoNegocialRequest() {
+        return new ValidacaoNegocialDossieProdutoRequest(
                 List.of(new DossieProdutoValidacaoNegocialVerificacaoDto(
                         1122928L,
                         6592L,

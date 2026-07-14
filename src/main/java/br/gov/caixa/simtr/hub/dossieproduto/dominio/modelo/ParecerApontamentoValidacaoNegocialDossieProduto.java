@@ -1,6 +1,6 @@
-package br.gov.caixa.simtr.hub.dossieproduto.dominio;
+package br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo;
 
-public record DossieProdutoValidacaoNegocialParecerApontamentoVo(
+public record ParecerApontamentoValidacaoNegocialDossieProduto(
         Long identificadorApontamento,
         String resultado,
         String comentario,

@@ -23,7 +23,7 @@ Antes de executar qualquer item:
 
 ## Ponto de retomada
 
-- **Ultima tarefa concluida:** C2.3 - GO humano da inclusao de documento.
+- **Ultima tarefa concluida:** C2 - GO da Fase 2 de `dossieproduto`.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
   produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
@@ -171,8 +171,119 @@ Antes de executar qualquer item:
   A cobertura atual ja protege HTTP 200 sem corpo, id invalido e uma validacao em cascata, mas
   ainda nao existe contrato MTR dedicado da capacidade. Nenhum arquivo de producao ou teste foi
   alterado; OpenAPI, Docker e Dev Services nao foram usados.
-- **Proximo item pendente:** 2.4a.1 - completar a caracterizacao HTTP, validacao e nulabilidade;
-  depois executar 2.4a.2 e 2.4a.3, sem iniciar 2.4b.
+- **Evidencia HTTP da validacao negocial:** `DossieProdutoApiContractTest` e
+  `DossieProdutoErroApiContractTest` agora protegem HTTP 200 sem corpo, corpo ausente, todas as dez
+  mensagens obrigatorias aninhadas, listas de topo nulas e elementos, objetos e campos nulos
+  aceitos. As duas classes focadas passaram em 2026-07-14; nenhuma classe de producao mudou e o
+  OpenAPI nao foi testado ou manipulado.
+- **Evidencia MTR da validacao negocial:** `ValidacaoNegocialDossieProdutoMtrContractTest` percorre
+  o Resource legado ate o stub localhost com simulador desabilitado e protege path PATCH v1, wire
+  completo, nulos e omissao `NON_NULL`, headers, OIDC, `traceparent`, resposta 200 vazia, erro 400
+  lossless sem retry, retry de 500 com wire identico e a matriz FT declarada. Os cinco cenarios
+  focados passaram em 2026-07-14 sem rede externa, Docker ou Dev Services.
+- **Evidencia final da caracterizacao da validacao negocial:**
+  `baseline-validacao-negocial-dossie-produto.md` registra HTTP/JSON/validacao/nulabilidade, MTR
+  v1, simulador, configuracao, erros, observabilidade e matriz FT. Os testes focados de selecao,
+  fixture, spans e logs passaram; `mvn -q clean test` executou 224 casos em 56 relatorios, com zero
+  falhas, zero erros e zero ignorados, no profile `test`, sem Docker ou Dev Services. Nenhuma classe
+  de producao mudou e a Task 2.4b nao foi iniciada.
+- **Inicio da Task 2.4b (2026-07-14):** a arvore interna exige dez arquivos de producao; a task foi
+  subdividida antes da primeira edicao de producao para manter cada incremento em ate cinco
+  arquivos nao mecanicos. As seis alteracoes pendentes da Task 2.4a foram preservadas.
+- **Evidencia dos tipos folha da validacao negocial:** parecer de apontamento, cliente avalista e
+  produto foram criados como records Java puros, sem annotations ou imports de framework. Os 13
+  testes de `ArchUnitProgressivoTest` passaram.
+- **Evidencia dos tipos compostos da validacao negocial:** garantia, verificacao, resposta de
+  formulario e comando foram criados sem copia, normalizacao ou nova invariante. Listas, elementos
+  e campos nulos continuam representaveis; os 13 testes de `ArchUnitProgressivoTest` passaram.
+- **Evidencia das portas e caso de uso da validacao negocial:** o teste unitario registrou RED de
+  compilacao pela ausencia da porta de saida e passou a GREEN apos as duas portas e o caso de uso
+  minimo. O delegador preserva a mesma instancia do comando, listas, elementos nulos, resultado
+  `Void` e a mesma falha da porta de saida.
+- **Evidencia final do nucleo da validacao negocial:** sete tipos internos, comando, portas e caso
+  de uso permanecem sem DTOs ou frameworks, salvo `Uni` na aplicacao. Os dois testes unitarios e
+  os 13 guardrails ArchUnit passaram; `mvn -q clean test` executou 226 casos em 57 relatorios, com
+  zero falhas, zero erros e zero ignorados, sem Docker ou Dev Services. Nenhuma borda foi ligada.
+- **Inicio da Task 2.4c (2026-07-14):** a borda MTR exige sete arquivos de producao e foi
+  subdividida antes da primeira edicao de producao. O primeiro incremento cria
+  `ValidacaoNegocialDossieProdutoMtrRequest`, `ValidacaoNegocialDossieProdutoMtrException` e
+  `ValidacaoNegocialDossieProdutoMtrClient`; o segundo cria
+  `FalhaRegistroValidacaoNegocialDossieProduto`, `ValidacaoNegocialDossieProdutoMtrMapper`,
+  `ValidacaoNegocialMtr` e `ValidacaoNegocialDossieProdutoMtrAdapter`; o terceiro adiciona os
+  testes unitarios, amplia o contrato contra stub local e executa ArchUnit/suite. As alteracoes
+  locais das Tasks 2.4a e 2.4b serao preservadas.
+- **Evidencia do contrato e client MTR da validacao negocial:** request v1 com records aninhados,
+  excecao de protocolo e REST Client exclusivos preservam `PATCH`, path, omissao `NON_NULL`,
+  resposta vazia, providers de headers/OIDC/trace e a matriz de timeout/retry/circuit breaker.
+  O primeiro RED falhou pela ausencia dos tipos e os tres testes do client passaram a GREEN.
+- **Evidencia do adapter MTR da validacao negocial:** falha interna Java pura, mapper, qualifier e
+  adapter implementam a porta de saida sem DTO REST ou tipo legado. O segundo RED falhou pela
+  ausencia do mapper/falha/adapter; os tres testes passaram a GREEN preservando a arvore completa,
+  listas e elementos nulos, erro lossless e timeout. A traducao ocorre depois da politica FT.
+- **Evidencia final da borda MTR da validacao negocial:** o novo client e adapter percorreram o
+  stub localhost com wire completo e nulos, API key sintetica, OIDC local, `traceparent`, erro 400
+  sem retry e retry 500 com wire identico. A declaracao do span CLIENT e os mesmos nomes de
+  atributos/eventos do legado foram preservados; os 13 guardrails ArchUnit passaram.
+  `mvn -q clean test` executou 236 casos em 59 relatorios, com zero falhas, zero erros e zero
+  ignorados, no profile `test`, sem Docker ou Dev Services. Nenhum producer, simulador, caso de
+  uso ou Resource foi ligado.
+- **Inicio da Task 2.4d (2026-07-14):** a borda simulador cabe em cinco arquivos de producao, sem
+  subdivisao adicional: `ValidacaoNegocialDossieProdutoSimuladorResponse`,
+  `ValidacaoNegocialDossieProdutoSimuladorMapper`, `ValidacaoNegocialSimulador`,
+  `ValidacaoNegocialDossieProdutoSimuladorAdapter` e
+  `ValidacaoNegocialDossieProdutoPortasProducer`. O incremento preservara a fixture `{}`, o
+  retorno `Void`, a property existente e a observabilidade contratual; caso de uso, Resource e
+  Task 2.4e permanecerao desligados.
+- **Evidencia final da borda simulador da validacao negocial:** DTO e mapper exclusivos leem a
+  fixture real `{}` sem reutilizar DTO REST ou MTR e preservam o retorno `Void`. Qualifier, adapter
+  e producer selecionam simulador com a property ligada e MTR com ela desligada, sem ambiguidade
+  CDI; evento, campos de log e `simtr_hub.origem_dados=mock` permanecem equivalentes. O RED falhou
+  somente pelos cinco componentes ausentes; 14 testes focados, contratos de spans/logs e 13
+  guardrails passaram. `mvn -q clean test` executou 241 casos em 62 relatorios, com zero falhas,
+  zero erros e zero ignorados, no profile `test`, sem Docker ou Dev Services. Properties, fixture,
+  caso de uso e Resource nao foram alterados; a Task 2.4e nao foi iniciada.
+- **Inicio da Task 2.4e (2026-07-14):** a migracao foi subdividida antes da primeira edicao de
+  producao. A 2.4e.1 cria `ValidacaoNegocialDossieProdutoRequest`,
+  `ValidacaoNegocialDossieProdutoRestMapper` e
+  `ValidacaoNegocialDossieProdutoObservabilidade`; a 2.4e.2 altera somente
+  `DossieProdutoResource` para usar a porta de entrada e comprova equivalencia HTTP, MTR,
+  simulador, erro e telemetria; a 2.4e.3 remove, somente depois de cobertura verde e `rg` sem
+  consumidores, a cadeia exclusiva formada por `DossieProdutoFachada`, `DossieProdutoService`,
+  `DossieProdutoGateway`, `DossieProdutoClient`, `DossieProdutoClientExceptionMapper`,
+  `DossieProdutoMockFactory`, `DossieProdutoMapper`, os sete
+  `DossieProdutoValidacaoNegocial*Vo` e o DTO de topo legado
+  `DossieProdutoValidacaoNegocialDto`. Os seis DTOs REST aninhados, contratos externos,
+  properties, fixture e matriz FT permanecem.
+- **Evidencia final da borda REST da validacao negocial:** request publico com `List<@Valid T>`,
+  mapper REST completo e fronteira de observabilidade ligam o Resource a porta de entrada sem
+  alterar path, JSON, mensagens, nulabilidade, resposta, erro, simulador, FT ou telemetria. A
+  matriz HTTP/MTR/simulador/logs/spans e os 13 guardrails passou antes da remocao. `rg` confirmou
+  exclusividade e a cadeia legada, o DTO de topo e os sete VOs foram removidos; os seis DTOs REST
+  aninhados permanecem. O RED de compilacao e cinco testes novos substituem dez testes exclusivos
+  do legado removido. `mvn -q clean test` executou 236 casos em 62 relatorios, com zero falhas,
+  zero erros e zero ignorados, no profile `test`, sem Docker ou Dev Services. O warning `HV000271`
+  nao aparece mais para a capacidade; warnings restantes pertencem a formulario/documento. Nao
+  houve alteracao de OpenAPI, properties ou fixture.
+- **Checkpoint C2.4:** GO humano confirmado em 2026-07-14; consolidacao de `dossieproduto`
+  desbloqueada.
+- **Inicio da Task 2.5 (2026-07-14):** inventario global cruzou todas as classes de producao de
+  `dossieproduto` com referencias em producao e testes. Os unicos artefatos legados sem
+  consumidores sao `DossieProdutoClienteVo`, `DossieProdutoClienteRelacionadoVo` e
+  `DossieProdutoClienteAvalistaVo`; eles serao removidos em um unico incremento. Beans com uma
+  unica referencia textual, mas selecionados pelo CDI (`Observabilidade`, `PortasProducer` e
+  adapters de simulador), foram identificados como falsos positivos e permanecerao. A verificacao
+  sera feita com `rg`, ArchUnit e `mvn -q clean test`.
+- **Evidencia final da consolidacao de `dossieproduto`:** os tres VOs orfaos foram removidos sem
+  ajuste de consumidor. A auditoria posterior confirmou zero referencias, zero arquivos nos
+  packages raiz legados `fachada`, `servico`, `mapeamento` e `integracao`, e zero VOs no package
+  raiz `dominio`. Os sete falsos positivos restantes sao beans `@ApplicationScoped`, producers ou
+  adapters qualificados usados pelo CDI e foram preservados. Os 13 casos de
+  `ArchUnitProgressivoTest` passaram; `mvn -q clean test` executou 236 testes em 62 relatorios,
+  com zero falhas, zero erros e zero ignorados, no profile `test`, sem Docker ou Dev Services.
+  Nenhum endpoint, JSON, validacao, erro, simulador, FT, observabilidade, property, fixture,
+  OpenAPI ou dependencia foi alterado.
+- **Checkpoint C2:** GO humano confirmado em 2026-07-14; Fase 3 desbloqueada.
+- **Proximo item pendente:** 3.1 - caracterizar `ConsultarProcessoParametrizado`.
 
 ## Fase 0 - Baseline e guardrails
 
@@ -246,17 +357,27 @@ Antes de executar qualquer item:
 - [x] 2.3e.3 Remover a cadeia legada exclusiva da inclusao de documento e provar ausencia de referencias.
 - [x] 2.3e Migrar borda REST da inclusao de documento.
 - [x] C2.3 Registrar evidencias e obter GO humano.
-- [ ] 2.4a.1 Congelar contrato HTTP, validacao e nulabilidade da validacao negocial.
-- [ ] 2.4a.2 Congelar wire MTR, erros e matriz FT contra stub HTTP local.
-- [ ] 2.4a.3 Registrar simulador, observabilidade, configuracao e evidencias da suite.
-- [ ] 2.4a Caracterizar validacao negocial.
-- [ ] 2.4b Criar nucleo da validacao negocial.
-- [ ] 2.4c Criar borda MTR da validacao negocial.
-- [ ] 2.4d Criar borda simulador da validacao negocial.
-- [ ] 2.4e Migrar borda REST da validacao negocial.
-- [ ] C2.4 Registrar evidencias e obter GO humano.
-- [ ] 2.5 Remover artefatos legados sem referencias.
-- [ ] C2 Executar suite/build/ArchUnit, revisar diff e obter GO humano.
+- [x] 2.4a.1 Congelar contrato HTTP, validacao e nulabilidade da validacao negocial.
+- [x] 2.4a.2 Congelar wire MTR, erros e matriz FT contra stub HTTP local.
+- [x] 2.4a.3 Registrar simulador, observabilidade, configuracao e evidencias da suite.
+- [x] 2.4a Caracterizar validacao negocial.
+- [x] 2.4b.1 Criar tipos folha de parecer, cliente avalista e produto da validacao negocial.
+- [x] 2.4b.2 Criar garantia, verificacao, resposta de formulario e comando internos.
+- [x] 2.4b.3 Criar portas e caso de uso da validacao negocial com fake da porta de saida.
+- [x] 2.4b.4 Provar nulabilidade, falha e isolamento com JUnit, ArchUnit e suite.
+- [x] 2.4b Criar nucleo da validacao negocial.
+- [x] 2.4c.1 Criar request, erro de protocolo e REST Client MTR v1 exclusivos da validacao negocial.
+- [x] 2.4c.2 Criar falha interna, mapper, qualifier e adapter MTR da validacao negocial.
+- [x] 2.4c.3 Provar wire, nulabilidade, erros, observabilidade e matriz FT no novo client/adapter.
+- [x] 2.4c Criar borda MTR da validacao negocial.
+- [x] 2.4d Criar borda simulador da validacao negocial.
+- [x] 2.4e.1 Criar request/mapper REST e observabilidade da validacao negocial.
+- [x] 2.4e.2 Ligar o Resource e comprovar equivalencia HTTP, MTR, simulador, erros e telemetria.
+- [x] 2.4e.3 Remover a cadeia legada exclusiva e provar ausencia de referencias.
+- [x] 2.4e Migrar borda REST da validacao negocial.
+- [x] C2.4 Registrar evidencias e obter GO humano.
+- [x] 2.5 Remover artefatos legados sem referencias.
+- [x] C2 Executar suite/build/ArchUnit, revisar diff e obter GO humano.
 
 ## Fase 3 - `arvoredocumento`
 
@@ -309,8 +430,8 @@ data, evidencias verificaveis e aprovador humano.
 | C2.1 | GO | 2026-07-13 | Tasks 2.1a-2.1e concluidas; `mvn -q clean test` com 163 elementos `testcase`, zero falhas, zero erros e zero ignorados; contratos HTTP/JSON/validacao, wire MTR, simulador, erros lossless, matriz FT, observabilidade e ArchUnit verdes; cadeia legada da criacao removida sem referencias; `diff --check` limpo | Usuario, GO registrado em conversa |
 | C2.2 | GO | 2026-07-13 | Tasks 2.2a-2.2e concluidas; `mvn -q clean test` com 191 elementos `testcase` em 45 relatorios, zero falhas, zero erros e zero ignorados; contratos HTTP/JSON/validacao, wire MTR, simulador, erros lossless, matriz FT, observabilidade e ArchUnit verdes; cadeia legada do formulario removida sem referencias; `diff --check` limpo; commit `05571a1` publicado | Usuario, GO registrado em conversa |
 | C2.3 | GO | 2026-07-13 | Tasks 2.3a-2.3e concluidas; `mvn -q clean test` com 215 elementos `testcase` em 55 relatorios, zero falhas, zero erros e zero ignorados; contratos HTTP/JSON/validacao, wire MTR v2, simulador, erros lossless, matriz FT, observabilidade e ArchUnit verdes; cadeia legada da inclusao de documento removida sem referencias; `diff --check` limpo; commit `099dd25` publicado | Usuario, GO registrado em conversa |
-| C2.4 | PENDENTE | - | - | - |
-| C2 | PENDENTE | - | - | - |
+| C2.4 | GO | 2026-07-14 | Tasks 2.4a-2.4e concluidas; `mvn -q clean test` com 236 testes em 62 relatorios, zero falhas, zero erros e zero ignorados; contratos HTTP/JSON/validacao, wire MTR v1, simulador, erros lossless, matriz FT, observabilidade e ArchUnit verdes; warning depreciado removido da capacidade; cadeia legada da validacao negocial removida sem referencias; `diff --check` limpo | Usuario, GO registrado em conversa |
+| C2 | GO | 2026-07-14 | Fase 2 consolidada; suite, build e ArchUnit verdes; diff revisado sem bloqueios | Usuario, GO registrado em conversa |
 | C3 | PENDENTE | - | - | - |
 | C4 | PENDENTE | - | - | - |
 | C5 | PENDENTE | - | - | - |

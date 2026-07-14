@@ -186,6 +186,68 @@ class DossieProdutoApiContractTest {
     }
 
     @Test
+    void preservaListasDeTopoNulasAceitasNaValidacaoNegocial() {
+        String resposta = given()
+                .contentType(ContentType.JSON)
+                .accept(ContentType.JSON)
+                .body("""
+                        {
+                          "verificacoes": null,
+                          "respostas_formulario": null
+                        }
+                        """)
+                .when()
+                .patch("/simtr-hub/v1/dossie-produto/{id}/validacao-negocial", 123L)
+                .then()
+                .statusCode(200)
+                .extract().asString();
+
+        assertEquals("", resposta);
+    }
+
+    @Test
+    void preservaElementosObjetosECamposNulosAceitosNaValidacaoNegocial() {
+        String resposta = given()
+                .contentType(ContentType.JSON)
+                .accept(ContentType.JSON)
+                .body("""
+                        {
+                          "verificacoes": [
+                            null,
+                            {
+                              "identificador_instancia_documento": null,
+                              "identificador_checklist": 6592,
+                              "versao_checklist": 2,
+                              "analise_realizada": true,
+                              "parecer_apontamentos": [null],
+                              "garantia": {
+                                "codigo_bacen": null,
+                                "clientes_avalistas": [null]
+                              },
+                              "produto": null,
+                              "previo": null
+                            }
+                          ],
+                          "respostas_formulario": [
+                            null,
+                            {
+                              "campo_formulario": 1000011689,
+                              "resposta": null,
+                              "opcoes_selecionadas": [null]
+                            }
+                          ]
+                        }
+                        """)
+                .when()
+                .patch("/simtr-hub/v1/dossie-produto/{id}/validacao-negocial", 123L)
+                .then()
+                .statusCode(200)
+                .extract().asString();
+
+        assertEquals("", resposta);
+    }
+
+    @Test
     void preservaContratoDeAvancoDeWorkflow() {
         JsonNode resposta = given()
                 .accept(ContentType.JSON)

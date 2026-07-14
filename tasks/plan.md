@@ -3,9 +3,9 @@
 ## Status
 
 - **Planejado:** 2026-07-11
-- **Implementacao:** Fase 0 concluida; C0, C1, C2.1, C2.2 e C2.3 em GO; Tasks 1.1 a 1.5,
-  2.1a a 2.1e, 2.2a a 2.2e e 2.3a a 2.3e concluidas; proximo passo: Task 2.4a,
-  caracterizar a validacao negocial
+- **Implementacao:** Fases 0, 1 e 2 concluidas; C0, C1 e C2 em GO; Tasks 1.1 a 1.5,
+  2.1a a 2.1e, 2.2a a 2.2e, 2.3a a 2.3e, 2.4a a 2.4e e 2.5 concluidas; proximo
+  passo: Task 3.1, caracterizar `ConsultarProcessoParametrizado`
 - **Branch de trabalho:** `refactor/ddd-fase-0-baseline`
 - **Documento arquitetural:** `../doc/arquitetura-ddd-integracoes-atomicas.md`
 - **Checklist operacional:** `todo.md`
@@ -531,6 +531,13 @@ legada, a cobertura HTTP/validacao e observabilidade existente, a property do si
 FT do REST Client e o stub HTTP local reutilizavel; nenhum codigo de producao ou teste foi
 alterado. Retomar pela caracterizacao executavel ainda ausente, sem testar ou manipular o OpenAPI.
 
+**Conclusao:** concluida em 2026-07-14; HTTP 200 sem corpo, JSON, dez validacoes obrigatorias,
+nulabilidade, wire MTR v1, headers/OIDC/trace, erros lossless, retry, matriz FT, simulador,
+configuracao e observabilidade foram congelados contra o legado. Evidencias registradas em
+`baseline-validacao-negocial-dossie-produto.md`. `mvn -q clean test` executou 224 casos em 56
+relatorios, sem falhas, erros ou ignorados, no profile `test`, sem Docker ou Dev Services; nenhuma
+classe de producao foi alterada e a Task 2.4b nao foi iniciada.
+
 **Verificacao:** testes positivos/negativos contra o legado.
 
 **Dependencias:** C2.3. **Escopo:** M.
@@ -544,6 +551,13 @@ e preservada sem inventar invariantes.
 
 **Dependencias:** 2.4a. **Escopo:** M.
 
+**Status:** concluida em 2026-07-14; sete tipos internos, comando, portas de entrada/saida e caso
+de uso delegador foram criados sem dependencias de protocolo ou nova invariante. O teste unitario
+registrou RED de compilacao e passou a GREEN preservando comando, listas, elementos nulos,
+resultado `Void` e falha. Os 13 guardrails ArchUnit e `mvn -q clean test` com 226 casos em 57
+relatorios passaram sem Docker ou Dev Services. Nenhuma borda foi ligada e a Task 2.4c nao foi
+iniciada.
+
 #### Task 2.4c - Criar borda MTR da validacao
 
 **Criterios de aceite:** arvore de DTOs/mapper exclusiva; wire, erros e ordem FT equivalentes.
@@ -552,6 +566,14 @@ e preservada sem inventar invariantes.
 
 **Dependencias:** 2.4b. **Escopo:** M, subdividir DTOs aninhados em grupos de ate cinco arquivos.
 
+**Status:** concluida em 2026-07-14; request MTR v1 com tipos aninhados exclusivos, excecao de
+protocolo e REST Client preservam path, wire, omissao `NON_NULL`, headers, OIDC, trace e a matriz
+FT. Mapper, falha interna, qualifier e adapter implementam a porta de saida com traducao lossless
+depois da politica do client e com os mesmos spans, atributos e eventos de log do legado. Dois
+ciclos RED/GREEN, testes unitarios, stub localhost, 13 guardrails ArchUnit e `mvn -q clean test`
+com 236 casos em 59 relatorios passaram sem Docker ou Dev Services. Nenhuma borda foi selecionada
+pelo caso de uso ou ligada ao Resource, e a Task 2.4d nao foi iniciada.
+
 #### Task 2.4d - Criar borda simulador da validacao
 
 **Criterios de aceite:** fixture usa DTO/mapper proprio; properties e retorno atuais preservados.
@@ -559,6 +581,13 @@ e preservada sem inventar invariantes.
 **Verificacao:** simulador ligado/desligado e CDI.
 
 **Dependencias:** 2.4b. **Escopo:** M.
+
+**Status:** concluida em 2026-07-14; DTO vazio e mapper exclusivos leem a fixture `{}` e convertem
+para o resultado interno `Void`. Qualifier, adapter e producer preservam a property existente, o
+evento de simulador e o atributo de origem. RED de compilacao, cinco casos novos, selecao CDI nos
+dois estados, 13 guardrails e contratos de spans/logs passaram. `mvn -q clean test` executou 241
+casos em 62 relatorios, sem falhas, erros ou ignorados, no profile `test`, sem Docker ou Dev
+Services. Caso de uso e Resource permanecem desligados da nova borda.
 
 #### Task 2.4e - Migrar borda REST da validacao
 
@@ -569,11 +598,20 @@ OpenAPI e observabilidade permanecem iguais.
 
 **Dependencias:** 2.4c e 2.4d. **Escopo:** M.
 
+**Status:** concluida em 2026-07-14; request publico com `List<@Valid T>`, mapper REST completo e
+fronteira de observabilidade ligam o Resource a porta de entrada sem alterar path, JSON,
+validacoes, resposta, erros, simulador, FT ou telemetria. A cadeia legada exclusiva e seus sete
+VOs foram removidos somente depois da matriz de equivalencia verde e de busca global sem
+consumidores; os seis DTOs REST aninhados foram preservados. `mvn -q clean test` executou 236
+casos em 62 relatorios, sem falhas, erros ou ignorados, no profile `test`, sem Docker ou Dev
+Services. O warning `HV000271` nao aparece mais para a validacao negocial. C2.4 permanece
+pendente de GO humano.
+
 ### Checkpoint C2.4 - Validacao negocial
 
-- [ ] Validacao cascata equivalente e sem uso depreciado na capacidade.
-- [ ] Todas as bordas, ArchUnit, suite e build verdes.
-- [ ] GO humano registrado antes da consolidacao.
+- [x] Validacao cascata equivalente e sem uso depreciado na capacidade.
+- [x] Todas as bordas, ArchUnit, suite e build verdes.
+- [x] GO humano registrado antes da consolidacao.
 
 ### Task 2.5 - Consolidar `dossieproduto`
 
@@ -588,13 +626,24 @@ continuam validas; nenhuma classe morta permanece.
 
 **Escopo estimado:** M.
 
+**Status:** concluida em 2026-07-14 apos GO humano de C2.4. O inventario global encontrou e removeu
+somente `DossieProdutoClienteVo`, `DossieProdutoClienteRelacionadoVo` e
+`DossieProdutoClienteAvalistaVo`, sem consumidores. Beans descobertos pelo CDI foram separados dos
+falsos positivos textuais e preservados. Nao restam arquivos nos packages raiz legados
+`fachada`, `servico`, `mapeamento` ou `integracao`, nem VOs no package raiz `dominio`.
+`ArchUnitProgressivoTest` passou com 13 casos e `mvn -q clean test` executou 236 testes em 62
+relatorios, sem falhas, erros ou ignorados. Nenhum contrato, property, fixture ou dependencia foi
+alterado. C2 recebeu GO humano em 2026-07-14.
+
 ### Checkpoint C2 - GO/NO-GO de `dossieproduto`
 
-- [ ] Cinco capacidades atomicas migradas e verdes.
-- [ ] Nao existe orquestracao ou endpoint novo.
-- [ ] Retry de operacoes mutaveis continua documentado como risco, nao corrigido silenciosamente.
-- [ ] Contrato publico e MTR equivalentes ao baseline.
-- [ ] Revisao humana autoriza migrar os outros dominios.
+**Status:** `GO` humano registrado em 2026-07-14; Fase 3 desbloqueada.
+
+- [x] Cinco capacidades atomicas migradas e verdes.
+- [x] Nao existe orquestracao ou endpoint novo.
+- [x] Retry de operacoes mutaveis continua documentado como risco, nao corrigido silenciosamente.
+- [x] Contrato publico e MTR equivalentes ao baseline.
+- [x] Revisao humana autoriza migrar os outros dominios.
 
 ## Fase 3 - `arvoredocumento`
 

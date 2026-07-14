@@ -1,7 +1,7 @@
 package br.gov.caixa.simtr.hub.arquitetura.guardrails;
 
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.IdentificadorDossieProduto;
-import br.gov.caixa.simtr.hub.dossieproduto.integracao.DossieProdutoGateway;
+import br.gov.caixa.simtr.hub.gestaodocumento.integracao.GestaoDocumentoGateway;
 import br.gov.caixa.simtr.hub.dominio.falso.ViolacaoGuardrail;
 import br.gov.caixa.simtr.hub.parametrizacao.falso.DependenciaEntreDominiosViolacao;
 import com.tngtech.archunit.core.domain.JavaClasses;
@@ -165,7 +165,7 @@ class ArchUnitProgressivoTest {
     }
 
     private static final class AplicacaoComAdapterViolacao {
-        private DossieProdutoGateway gateway;
+        private GestaoDocumentoGateway gateway;
     }
 
     private static final class PortaEntradaComSaidaViolacao {

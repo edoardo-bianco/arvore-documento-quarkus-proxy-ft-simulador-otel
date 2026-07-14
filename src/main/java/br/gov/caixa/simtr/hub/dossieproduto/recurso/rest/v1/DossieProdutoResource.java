@@ -4,20 +4,20 @@ import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.CriacaoDossiePro
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.AtualizarFormularioDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.CriarDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.IncluirDocumentoDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.RegistrarValidacaoNegocialDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaCriacaoDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaAtualizacaoFormularioDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaInclusaoDocumentoDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaRegistroValidacaoNegocialDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoFormularioDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialDto;
+import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.ValidacaoNegocialDossieProdutoRequest;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.InclusaoDocumentoDossieProdutoRequest;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.InclusaoDocumentoDossieProdutoResponse;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.IniciarOuAvancarWorkflowDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaWorkflowDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.IdentificadorDossieProduto;
 import br.gov.caixa.simtr.hub.arquitetura.excecao.dto.ErroPadraoDto;
-import br.gov.caixa.simtr.hub.dossieproduto.fachada.DossieProdutoFachada;
-import br.gov.caixa.simtr.hub.dossieproduto.mapeamento.DossieProdutoMapper;
 import br.gov.caixa.simtr.hub.arquitetura.observabilidade.ObservabilityLog;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
@@ -55,26 +55,23 @@ public class DossieProdutoResource {
 
     private static final Logger LOG = Logger.getLogger(DossieProdutoResource.class);
 
-    private final DossieProdutoFachada dossieProdutoFachada;
-    private final DossieProdutoMapper dossieProdutoMapper;
     private final CriarDossieProduto criarDossieProduto;
     private final AtualizarFormularioDossieProduto atualizarFormularioDossieProduto;
     private final IncluirDocumentoDossieProduto incluirDocumentoDossieProduto;
     private final IniciarOuAvancarWorkflowDossieProduto iniciarOuAvancarWorkflow;
+    private final RegistrarValidacaoNegocialDossieProduto registrarValidacaoNegocial;
 
     @Inject
-    public DossieProdutoResource(DossieProdutoFachada dossieProdutoFachada,
-                                 DossieProdutoMapper dossieProdutoMapper,
-                                 CriarDossieProduto criarDossieProduto,
+    public DossieProdutoResource(CriarDossieProduto criarDossieProduto,
                                  AtualizarFormularioDossieProduto atualizarFormularioDossieProduto,
                                  IncluirDocumentoDossieProduto incluirDocumentoDossieProduto,
-                                 IniciarOuAvancarWorkflowDossieProduto iniciarOuAvancarWorkflow) {
-        this.dossieProdutoFachada = dossieProdutoFachada;
-        this.dossieProdutoMapper = dossieProdutoMapper;
+                                 IniciarOuAvancarWorkflowDossieProduto iniciarOuAvancarWorkflow,
+                                 RegistrarValidacaoNegocialDossieProduto registrarValidacaoNegocial) {
         this.criarDossieProduto = criarDossieProduto;
         this.atualizarFormularioDossieProduto = atualizarFormularioDossieProduto;
         this.incluirDocumentoDossieProduto = incluirDocumentoDossieProduto;
         this.iniciarOuAvancarWorkflow = iniciarOuAvancarWorkflow;
+        this.registrarValidacaoNegocial = registrarValidacaoNegocial;
     }
 
     @POST
@@ -502,7 +499,7 @@ public class DossieProdutoResource {
             @Min(value = 1, message = "O identificador do dossie produto deve ser maior que zero.")
             Long id,
             @NotNull(message = "O corpo da requisicao deve ser informado.")
-            @Valid DossieProdutoValidacaoNegocialDto requisicao) {
+            @Valid ValidacaoNegocialDossieProdutoRequest requisicao) {
 
         Integer quantidadeVerificacoes = quantidadeVerificacoesValidacao(requisicao);
         Integer quantidadeRespostasFormulario = quantidadeRespostasFormularioValidacao(requisicao);
@@ -527,10 +524,11 @@ public class DossieProdutoResource {
                 )
         );
 
-        return dossieProdutoFachada.registrarValidacaoNegocialDossieProduto(
-                        id,
-                        dossieProdutoMapper.toVo(requisicao)
-                )
+        return registrarValidacaoNegocial.executar(
+                        ValidacaoNegocialDossieProdutoRestMapper.paraComando(id, requisicao))
+                .onFailure(FalhaRegistroValidacaoNegocialDossieProduto.class)
+                .transform(erro -> ValidacaoNegocialDossieProdutoRestMapper.paraExcecaoRest(
+                        (FalhaRegistroValidacaoNegocialDossieProduto) erro))
                 .invoke(resposta -> ObservabilityLog.info(
                         LOG,
                         "simtr-hub.dossie-produto.validacao-negocial.resposta.enviada",
@@ -730,14 +728,14 @@ public class DossieProdutoResource {
         return requisicao.propriedades().size();
     }
 
-    private static Integer quantidadeVerificacoesValidacao(DossieProdutoValidacaoNegocialDto requisicao) {
+    private static Integer quantidadeVerificacoesValidacao(ValidacaoNegocialDossieProdutoRequest requisicao) {
         if (requisicao == null || requisicao.verificacoes() == null) {
             return null;
         }
         return requisicao.verificacoes().size();
     }
 
-    private static Integer quantidadeRespostasFormularioValidacao(DossieProdutoValidacaoNegocialDto requisicao) {
+    private static Integer quantidadeRespostasFormularioValidacao(ValidacaoNegocialDossieProdutoRequest requisicao) {
         if (requisicao == null || requisicao.respostasFormulario() == null) {
             return null;
         }

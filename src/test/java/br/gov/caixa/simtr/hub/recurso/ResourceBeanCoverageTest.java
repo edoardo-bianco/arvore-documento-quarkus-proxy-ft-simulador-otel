@@ -11,11 +11,11 @@ import br.gov.caixa.simtr.hub.gestaodocumento.recurso.rest.v1.GestaoDocumentoRes
 import br.gov.caixa.simtr.hub.parametrizacao.fachada.ParametrizacaoFachada;
 import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.ChecklistResource;
 import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.ProcessoResource;
-import br.gov.caixa.simtr.hub.dossieproduto.fachada.DossieProdutoFachada;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.IniciarOuAvancarWorkflowDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.CriarDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.AtualizarFormularioDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.IncluirDocumentoDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.RegistrarValidacaoNegocialDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.IdentificadorDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoAtualizacaoFormularioDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoWorkflowDossieProduto;
@@ -23,7 +23,6 @@ import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoCriacaoDossi
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoInclusaoDocumentoDossieProduto;
 import br.gov.caixa.simtr.hub.gestaodocumento.fachada.GestaoDocumentoFachada;
 import br.gov.caixa.simtr.hub.gestaodocumento.dominio.GestaoDocumentoCredencialContainerVo;
-import br.gov.caixa.simtr.hub.dossieproduto.mapeamento.DossieProdutoMapper;
 import br.gov.caixa.simtr.hub.gestaodocumento.mapeamento.GestaoDocumentoMapper;
 import br.gov.caixa.simtr.hub.parametrizacao.mapeamento.ChecklistMapper;
 import br.gov.caixa.simtr.hub.parametrizacao.mapeamento.ProcessoMapper;
@@ -37,7 +36,6 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
@@ -62,16 +60,10 @@ class ResourceBeanCoverageTest {
     ChecklistMapper checklistMapper;
 
     @Inject
-    DossieProdutoMapper dossieProdutoMapper;
-
-    @Inject
     GestaoDocumentoMapper gestaoDocumentoMapper;
 
     @InjectMock
     ParametrizacaoFachada parametrizacaoFachada;
-
-    @InjectMock
-    DossieProdutoFachada dossieProdutoFachada;
 
     @InjectMock
     CriarDossieProduto criarDossieProduto;
@@ -84,6 +76,9 @@ class ResourceBeanCoverageTest {
 
     @InjectMock
     IniciarOuAvancarWorkflowDossieProduto iniciarOuAvancarWorkflow;
+
+    @InjectMock
+    RegistrarValidacaoNegocialDossieProduto registrarValidacaoNegocial;
 
     @InjectMock
     GestaoDocumentoFachada gestaoDocumentoFachada;
@@ -178,14 +173,13 @@ class ResourceBeanCoverageTest {
 
     @Test
     void dossieProdutoResourceCobreValidacaoNegocialSucessoEFalhaDoBeanCdi() {
-        when(dossieProdutoFachada.registrarValidacaoNegocialDossieProduto(eq(123L), any()))
-                .thenReturn(Uni.createFrom().voidItem());
-        when(dossieProdutoFachada.registrarValidacaoNegocialDossieProduto(eq(124L), any()))
+        when(registrarValidacaoNegocial.executar(any()))
+                .thenReturn(Uni.createFrom().voidItem())
                 .thenReturn(Uni.createFrom().failure(new IllegalStateException("falha validacao negocial")));
 
         Response response = dossieProdutoResource.registrarValidacaoNegocialDossieProduto(
                         123L,
-                        TestFixtures.validacaoNegocialDto()
+                        TestFixtures.validacaoNegocialRequest()
                 )
                 .await().indefinitely();
 
@@ -194,7 +188,7 @@ class ResourceBeanCoverageTest {
         assertThrows(IllegalStateException.class,
                 () -> dossieProdutoResource.registrarValidacaoNegocialDossieProduto(
                                 124L,
-                                TestFixtures.validacaoNegocialDto()
+                                TestFixtures.validacaoNegocialRequest()
                         )
                         .await().indefinitely());
     }

@@ -1,12 +1,9 @@
 package br.gov.caixa.simtr.hub.arquitetura.integracao;
 
 import br.gov.caixa.simtr.hub.TestFixtures;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialDto;
 import br.gov.caixa.simtr.hub.gestaodocumento.recurso.rest.v1.dto.GestaoDocumentoCredencialContainerDto;
 import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.checklist.ChecklistDto;
 import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.processo.ProcessoDto;
-import br.gov.caixa.simtr.hub.dossieproduto.integracao.DossieProdutoClient;
-import br.gov.caixa.simtr.hub.dossieproduto.integracao.DossieProdutoGateway;
 import br.gov.caixa.simtr.hub.gestaodocumento.integracao.GestaoDocumentoClient;
 import br.gov.caixa.simtr.hub.gestaodocumento.integracao.GestaoDocumentoGateway;
 import br.gov.caixa.simtr.hub.parametrizacao.integracao.ParametrizacaoChecklistClient;
@@ -18,37 +15,11 @@ import io.smallrye.mutiny.Uni;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @QuarkusTest
 class GatewayTest {
-
-    @Test
-    void dossieGatewayEncaminhaValidacaoNegocialParaClient() {
-        FakeDossieProdutoClient client = new FakeDossieProdutoClient();
-        DossieProdutoGateway gateway = new DossieProdutoGateway(client);
-
-        gateway.registrarValidacaoNegocialDossieProduto(
-                        432L,
-                        TestFixtures.validacaoNegocialDto()
-                )
-                .await().indefinitely();
-        assertEquals(432L, client.idValidacaoNegocialRecebido);
-        assertEquals(6592L, client.validacaoNegocialRecebida.verificacoes().getFirst().identificadorChecklist());
-    }
-
-    @Test
-    void dossieGatewayPropagaFalhaDoClient() {
-        FakeDossieProdutoClient client = new FakeDossieProdutoClient();
-        client.falha = new IllegalStateException("falha dossie");
-        DossieProdutoGateway gateway = new DossieProdutoGateway(client);
-
-        assertSame(client.falha, assertThrows(IllegalStateException.class,
-                () -> gateway.registrarValidacaoNegocialDossieProduto(123L, null).await().indefinitely()));
-    }
 
     @Test
     void gestaoDocumentoGatewayEncaminhaCredencialContainerParaClient() {
@@ -116,25 +87,6 @@ class GatewayTest {
 
         assertSame(client.falha, assertThrows(IllegalStateException.class,
                 () -> gateway.consultarPorIdentificadorNegocialEVersao(100L, 1).await().indefinitely()));
-    }
-
-    static class FakeDossieProdutoClient implements DossieProdutoClient {
-        private Long idValidacaoNegocialRecebido;
-        private DossieProdutoValidacaoNegocialDto validacaoNegocialRecebida;
-        private RuntimeException falha;
-
-        @Override
-        public Uni<Void> registrarValidacaoNegocialDossieProduto(
-                Long id,
-                DossieProdutoValidacaoNegocialDto requisicao
-        ) {
-            idValidacaoNegocialRecebido = id;
-            validacaoNegocialRecebida = requisicao;
-            if (falha != null) {
-                return Uni.createFrom().failure(falha);
-            }
-            return Uni.createFrom().voidItem();
-        }
     }
 
     static class FakeProcessoClient implements ParametrizacaoProcessoClient {
