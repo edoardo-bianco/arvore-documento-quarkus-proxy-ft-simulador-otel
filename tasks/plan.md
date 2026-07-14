@@ -3,9 +3,9 @@
 ## Status
 
 - **Planejado:** 2026-07-11
-- **Implementacao:** Fases 0, 1 e 2 concluidas; C0, C1 e C2 em GO; Tasks 1.1 a 1.5,
-  2.1a a 2.1e, 2.2a a 2.2e, 2.3a a 2.3e, 2.4a a 2.4e e 2.5 concluidas; proximo
-  passo: Task 3.1, caracterizar `ConsultarProcessoParametrizado`
+- **Implementacao:** Fases 0, 1, 2 e 3 concluidas; C0, C1, C2 e C3 em GO; Tasks 1.1 a 1.5,
+  2.1a a 2.1e, 2.2a a 2.2e, 2.3a a 2.3e, 2.4a a 2.4e, 2.5 e 3.1 a 3.6 concluidas;
+  proximo passo: criar `refactor/ddd-fase-4-baseline` antes de iniciar a Task 4.1
 - **Branch de trabalho atual:** `refactor/ddd-fase-3-baseline`
 - **Documento arquitetural:** `../doc/arquitetura-ddd-integracoes-atomicas.md`
 - **Checklist operacional:** `todo.md`
@@ -662,6 +662,12 @@ observabilidade, properties/profiles e matriz FT estao no manifesto.
 
 **Dependencias:** C2. **Escopo:** M.
 
+**Status:** concluida em 2026-07-14; HTTP, JSON, validacao, OpenAPI, nulabilidade, wire MTR,
+headers/OIDC/trace, erros, retry, matriz FT, simulador, configuracao e observabilidade foram
+caracterizados contra o legado. O manifesto esta em `baseline-consulta-processo-parametrizado.md`;
+somente testes e documentacao foram alterados. A suite completa e o relatorio JaCoCo ficaram
+verdes, sem Docker ou Dev Services; a Task 3.2 nao foi iniciada.
+
 ### Task 3.2 - Criar nucleo da consulta de processo
 
 **Criterios de aceite:** modelo semantico, porta de entrada, porta de saida e caso de uso pertencem a
@@ -670,6 +676,11 @@ observabilidade, properties/profiles e matriz FT estao no manifesto.
 **Verificacao:** teste unitario e ArchUnit.
 
 **Dependencias:** 3.1. **Escopo:** M; subdividir a arvore de modelo por agregado de leitura.
+
+**Status:** concluida em 2026-07-14; agregado de leitura semantico, identificador, portas de
+entrada/saida e caso de uso delegador foram criados sob `arvoredocumento`, sem imports do legado
+`parametrizacao` ou de adapters. Nulabilidade e referencias de listas permanecem sem validacao,
+normalizacao ou copia nova. Testes unitarios, ArchUnit e suite completa passaram.
 
 ### Task 3.3 - Criar borda MTR de processo
 
@@ -680,6 +691,11 @@ wire, erros e ordem FT permanecem iguais.
 
 **Dependencias:** 3.2. **Escopo:** M, grupos de ate cinco arquivos.
 
+**Status:** concluida em 2026-07-14; DTOs, deserializer, erro de protocolo, REST Client, mapper,
+falha interna e adapter exclusivos preservam wire, nulabilidade, erros lossless, matriz FT,
+headers e telemetria. Testes focados, stub local, ArchUnit e suite completa passaram. Properties,
+caso de uso e Resource permaneceram inalterados; a Task 3.4 nao foi iniciada.
+
 ### Task 3.4 - Criar borda simulador de processo
 
 **Criterios de aceite:** fixture usa DTO/mapper proprio; properties atuais selecionam o adapter sem
@@ -688,6 +704,12 @@ condicional no caso de uso.
 **Verificacao:** fixture real, simulador ligado/desligado e CDI.
 
 **Dependencias:** 3.2. **Escopo:** M.
+
+**Status:** concluida em 2026-07-14; DTO, deserializer e mapper exclusivos leem as fixtures atuais
+e preservam a arvore, nulabilidade e o fallback padrao. Qualifiers e producer selecionam simulador
+ou MTR pela property existente, sem condicional no caso de uso e com telemetria equivalente.
+Testes focados, CDI nos dois estados, ArchUnit e suite completa passaram. Properties, fixtures,
+caso de uso e Resource permaneceram inalterados; a Task 3.5 nao foi iniciada.
 
 ### Task 3.5 - Migrar borda REST de processo
 
@@ -698,6 +720,10 @@ Resource chama somente a porta de entrada de `arvoredocumento`.
 
 **Dependencias:** 3.3 e 3.4. **Escopo:** M.
 
+**Status:** concluida em 2026-07-14; a Resource passou a depender somente da porta de entrada de
+`arvoredocumento`, com DTOs e mapper REST exclusivos. Path, JSON, validacao, erros, selecao de
+borda e telemetria foram preservados; o legado remanescente sera tratado apenas na Task 3.6.
+
 ### Task 3.6 - Ativar guardrails e remover legado de processo
 
 **Criterios de aceite:** ArchUnit proibe dependencias internas para `parametrizacao`/outros dominios;
@@ -707,12 +733,39 @@ Resource chama somente a porta de entrada de `arvoredocumento`.
 
 **Dependencias:** 3.5. **Escopo:** M.
 
+#### Task 3.6a - Inventariar legado e ativar isolamento arquitetural
+
+**Criterios de aceite:** inventario identifica consumidores remanescentes da cadeia legada de
+processo; ArchUnit proibe dependencia de `arvoredocumento` para `parametrizacao` e outros dominios,
+com prova controlada de deteccao.
+
+**Verificacao:** `rg` e ArchUnit focado.
+
+#### Task 3.6b - Remover a cadeia legada exclusiva de processo
+
+**Criterios de aceite:** referencias remanescentes sao migradas para `arvoredocumento` ou removidas
+somente quando houver cobertura equivalente; artefatos de checklist permanecem em `parametrizacao`.
+
+**Verificacao:** `rg` sem referencias de codigo, compilacao e testes focados equivalentes.
+
+#### Task 3.6c - Consolidar verificacoes da fase
+
+**Criterios de aceite:** consulta de processo pertence integralmente a `arvoredocumento`, sem
+alteracao de contrato observavel e sem iniciar a Fase 4.
+
+**Verificacao:** `rg`, ArchUnit, build, suite completa e revisao do diff.
+
+**Status:** concluida em 2026-07-14; guardrail explicito ativo, cadeia legada exclusiva de processo
+removida sem referencias e checklist preservado em `parametrizacao`. Build, suite, ArchUnit,
+JaCoCo e revisao do diff ficaram verdes; README e documentacao consolidada permanecem para o fim
+do plano. O Checkpoint C3 recebeu GO humano em 2026-07-14 e a Fase 4 nao foi iniciada.
+
 ### Checkpoint C3
 
-- [ ] Consulta de processo pertence integralmente a `arvoredocumento`.
-- [ ] Nao existe calculo de arvore ou IA nesta fase.
-- [ ] Manifesto comprova OpenAPI, config/profiles, wire, FT, simulador, erros e observabilidade.
-- [ ] Suite, build e ArchUnit estao verdes; GO humano registrado.
+- [x] Consulta de processo pertence integralmente a `arvoredocumento`.
+- [x] Nao existe calculo de arvore ou IA nesta fase.
+- [x] Manifesto comprova OpenAPI, config/profiles, wire, FT, simulador, erros e observabilidade.
+- [x] Suite, build e ArchUnit estao verdes; GO humano registrado.
 
 ## Fase 4 - `conformidade`
 

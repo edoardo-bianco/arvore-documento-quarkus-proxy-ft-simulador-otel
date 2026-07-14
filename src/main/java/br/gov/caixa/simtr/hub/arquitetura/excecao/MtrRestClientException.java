@@ -1,5 +1,6 @@
 package br.gov.caixa.simtr.hub.arquitetura.excecao;
 
+import br.gov.caixa.simtr.hub.arquitetura.excecao.dto.ErroMensagemDto;
 import br.gov.caixa.simtr.hub.arquitetura.excecao.dto.ErroPadraoDto;
 
 public abstract class MtrRestClientException extends RuntimeException {
@@ -35,6 +36,11 @@ public abstract class MtrRestClientException extends RuntimeException {
         if (erro == null || erro.erros() == null || erro.erros().isEmpty()) {
             return "Erro retornado pelo serviço MTR";
         }
-        return erro.erros().get(0).mensagem();
+        for (ErroMensagemDto mensagem : erro.erros()) {
+            if (mensagem != null && mensagem.mensagem() != null) {
+                return mensagem.mensagem();
+            }
+        }
+        return "Erro retornado pelo serviço MTR";
     }
 }

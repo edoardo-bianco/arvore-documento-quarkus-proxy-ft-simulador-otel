@@ -1,5 +1,6 @@
 package br.gov.caixa.simtr.hub.arquitetura.guardrails;
 
+import br.gov.caixa.simtr.hub.arvoredocumento.falso.DependenciaParametrizacaoViolacao;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.IdentificadorDossieProduto;
 import br.gov.caixa.simtr.hub.gestaodocumento.integracao.GestaoDocumentoGateway;
 import br.gov.caixa.simtr.hub.dominio.falso.ViolacaoGuardrail;
@@ -38,7 +39,10 @@ class ArchUnitProgressivoTest {
 
     static final ArchRule erro_rest_tecnico_pode_ser_usado_nas_bordas_permitidas = noClasses()
             .that().resideOutsideOfPackages(
-                    "..recurso..", "..integracao..", "..arquitetura.excecao..")
+                    "..recurso..",
+                    "..integracao..",
+                    "..adaptador.entrada.rest..",
+                    "..arquitetura.excecao..")
             .should().dependOnClassesThat()
             .resideInAPackage(PACOTE_DTO_ERRO_REST);
 
@@ -48,24 +52,39 @@ class ArchUnitProgressivoTest {
             .resideInAPackage(PACOTE_DTO_ERRO_REST);
 
     static final ArchRule dominios_nao_devem_dependender_uns_dos_outros = SlicesRuleDefinition.slices()
-            .matching("br.gov.caixa.simtr.hub.(parametrizacao|dossieproduto|gestaodocumento)..")
+            .matching("br.gov.caixa.simtr.hub.(parametrizacao|dossieproduto|arvoredocumento|gestaodocumento)..")
             .should().notDependOnEachOther();
 
+    static final ArchRule arvore_documento_nao_deve_depender_de_outros_dominios = noClasses()
+            .that().resideInAPackage("..arvoredocumento..")
+            .should().dependOnClassesThat()
+            .resideInAnyPackage("..parametrizacao..", "..dossieproduto..", "..gestaodocumento..");
+
     static final ArchRule aplicacao_migrada_nao_deve_depender_de_bordas = noClasses()
-            .that().resideInAPackage("..dossieproduto.aplicacao..")
+            .that().resideInAnyPackage(
+                    "..dossieproduto.aplicacao..", "..arvoredocumento.aplicacao..")
             .should().dependOnClassesThat()
             .resideInAnyPackage(
                     "..integracao..", "..adaptador..", "..recurso..", "..mapeamento..", "..fachada..");
 
     static final ArchRule porta_de_entrada_nao_deve_expor_implementacao = noClasses()
-            .that().resideInAPackage("..dossieproduto.aplicacao.porta.entrada..")
+            .that().resideInAnyPackage(
+                    "..dossieproduto.aplicacao.porta.entrada..",
+                    "..arvoredocumento.aplicacao.porta.entrada..")
             .should().dependOnClassesThat()
             .resideInAnyPackage("..aplicacao.porta.saida..", "..aplicacao.casodeuso..");
 
     static final ArchRule adapters_de_saida_migrados_nao_devem_reutilizar_contratos_de_outras_bordas = noClasses()
-            .that().resideInAPackage("..dossieproduto.adaptador.saida..")
+            .that().resideInAnyPackage(
+                    "..dossieproduto.adaptador.saida..",
+                    "..arvoredocumento.adaptador.saida..")
             .should().dependOnClassesThat()
             .resideInAnyPackage("..recurso..", "..integracao..", "..arquitetura.excecao.dto..");
+
+    static final ArchRule adapters_simulador_migrados_nao_devem_depender_da_borda_mtr = noClasses()
+            .that().resideInAPackage("..adaptador.saida.simulador..")
+            .should().dependOnClassesThat()
+            .resideInAPackage("..adaptador.saida.mtr..");
 
     @Test
     void dominioNaoDependeDeFrameworkOuBordas() {
@@ -88,6 +107,11 @@ class ArchUnitProgressivoTest {
     }
 
     @Test
+    void arvoreDocumentoNaoDependeDeOutrosDominios() {
+        arvore_documento_nao_deve_depender_de_outros_dominios.check(CODIGO_PRODUCAO);
+    }
+
+    @Test
     void aplicacaoMigradaNaoDependeDeBordas() {
         aplicacao_migrada_nao_deve_depender_de_bordas.check(CODIGO_PRODUCAO);
     }
@@ -101,6 +125,11 @@ class ArchUnitProgressivoTest {
     void adaptersDeSaidaMigradosNaoReutilizamContratosDeOutrasBordas() {
         adapters_de_saida_migrados_nao_devem_reutilizar_contratos_de_outras_bordas
                 .check(CODIGO_PRODUCAO);
+    }
+
+    @Test
+    void adaptersSimuladorMigradosNaoDependemDaBordaMtr() {
+        adapters_simulador_migrados_nao_devem_depender_da_borda_mtr.check(CODIGO_PRODUCAO);
     }
 
     @Test
@@ -128,13 +157,21 @@ class ArchUnitProgressivoTest {
     @Test
     void regraDeIsolamentoEntreDominiosDetectaDependenciaEntreSlices() {
         ArchRule regra = SlicesRuleDefinition.slices()
-                .matching("br.gov.caixa.simtr.hub.(parametrizacao|dossieproduto|gestaodocumento)..")
+                .matching("br.gov.caixa.simtr.hub.(parametrizacao|dossieproduto|arvoredocumento|gestaodocumento)..")
                 .should().notDependOnEachOther();
 
         assertThrows(AssertionError.class, () -> regra.check(
                 new ClassFileImporter().importClasses(
                         DependenciaEntreDominiosViolacao.class,
                         IdentificadorDossieProduto.class)));
+    }
+
+    @Test
+    void regraDeArvoreDocumentoDetectaDependenciaDeParametrizacao() {
+        assertThrows(AssertionError.class, () ->
+                arvore_documento_nao_deve_depender_de_outros_dominios.check(
+                        new ClassFileImporter().importClasses(
+                                DependenciaParametrizacaoViolacao.class)));
     }
 
     @Test
@@ -164,6 +201,15 @@ class ArchUnitProgressivoTest {
                 new ClassFileImporter().importClasses(AdapterMtrComDtoPublicoViolacao.class)));
     }
 
+    @Test
+    void regraDeAdapterSimuladorDetectaReusoDeDtoMtr() {
+        ArchRule regra = noClasses().should().dependOnClassesThat()
+                .resideInAPackage("..adaptador.saida.mtr..dto..");
+
+        assertThrows(AssertionError.class, () -> regra.check(
+                new ClassFileImporter().importClasses(AdapterSimuladorComDtoMtrViolacao.class)));
+    }
+
     private static final class AplicacaoComAdapterViolacao {
         private GestaoDocumentoGateway gateway;
     }
@@ -174,5 +220,10 @@ class ArchUnitProgressivoTest {
 
     private static final class AdapterMtrComDtoPublicoViolacao {
         private br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriadoDto dto;
+    }
+
+    private static final class AdapterSimuladorComDtoMtrViolacao {
+        private br.gov.caixa.simtr.hub.arvoredocumento.adaptador.saida.mtr.dto.v2.processo
+                .ProcessoParametrizadoMtrResponse dto;
     }
 }

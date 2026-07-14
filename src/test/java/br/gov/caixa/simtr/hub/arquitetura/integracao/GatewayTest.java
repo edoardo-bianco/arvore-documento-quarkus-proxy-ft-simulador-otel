@@ -1,15 +1,12 @@
 package br.gov.caixa.simtr.hub.arquitetura.integracao;
 
 import br.gov.caixa.simtr.hub.TestFixtures;
-import br.gov.caixa.simtr.hub.gestaodocumento.recurso.rest.v1.dto.GestaoDocumentoCredencialContainerDto;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.checklist.ChecklistDto;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.processo.ProcessoDto;
 import br.gov.caixa.simtr.hub.gestaodocumento.integracao.GestaoDocumentoClient;
 import br.gov.caixa.simtr.hub.gestaodocumento.integracao.GestaoDocumentoGateway;
+import br.gov.caixa.simtr.hub.gestaodocumento.recurso.rest.v1.dto.GestaoDocumentoCredencialContainerDto;
 import br.gov.caixa.simtr.hub.parametrizacao.integracao.ParametrizacaoChecklistClient;
 import br.gov.caixa.simtr.hub.parametrizacao.integracao.ParametrizacaoChecklistGateway;
-import br.gov.caixa.simtr.hub.parametrizacao.integracao.ParametrizacaoProcessoClient;
-import br.gov.caixa.simtr.hub.parametrizacao.integracao.ParametrizacaoProcessoGateway;
+import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.checklist.ChecklistDto;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Uni;
 import org.junit.jupiter.api.Test;
@@ -45,28 +42,6 @@ class GatewayTest {
     }
 
     @Test
-    void processoGatewayEncaminhaConsultaParaClient() {
-        FakeProcessoClient client = new FakeProcessoClient();
-        ParametrizacaoProcessoGateway gateway = new ParametrizacaoProcessoGateway(client);
-
-        ProcessoDto resposta = gateway.consultarPorIdentificadorNegocial(1000016487L)
-                .await().indefinitely();
-
-        assertEquals(TestFixtures.processoDto().nome(), resposta.nome());
-        assertEquals(1000016487L, client.identificadorRecebido);
-    }
-
-    @Test
-    void processoGatewayPropagaFalhaDoClient() {
-        FakeProcessoClient client = new FakeProcessoClient();
-        client.falha = new IllegalStateException("falha processo");
-        ParametrizacaoProcessoGateway gateway = new ParametrizacaoProcessoGateway(client);
-
-        assertSame(client.falha, assertThrows(IllegalStateException.class,
-                () -> gateway.consultarPorIdentificadorNegocial(100L).await().indefinitely()));
-    }
-
-    @Test
     void checklistGatewayEncaminhaConsultaParaClient() {
         FakeChecklistClient client = new FakeChecklistClient();
         ParametrizacaoChecklistGateway gateway = new ParametrizacaoChecklistGateway(client);
@@ -87,20 +62,6 @@ class GatewayTest {
 
         assertSame(client.falha, assertThrows(IllegalStateException.class,
                 () -> gateway.consultarPorIdentificadorNegocialEVersao(100L, 1).await().indefinitely()));
-    }
-
-    static class FakeProcessoClient implements ParametrizacaoProcessoClient {
-        private Long identificadorRecebido;
-        private RuntimeException falha;
-
-        @Override
-        public Uni<ProcessoDto> consultarPorIdentificadorNegocial(Long identificador) {
-            identificadorRecebido = identificador;
-            if (falha != null) {
-                return Uni.createFrom().failure(falha);
-            }
-            return Uni.createFrom().item(TestFixtures.processoDto());
-        }
     }
 
     static class FakeChecklistClient implements ParametrizacaoChecklistClient {

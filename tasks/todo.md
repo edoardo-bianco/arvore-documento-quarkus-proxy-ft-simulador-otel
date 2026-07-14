@@ -26,7 +26,7 @@ Antes de executar qualquer item:
 
 ## Ponto de retomada
 
-- **Ultima tarefa concluida:** C2 - GO da Fase 2 de `dossieproduto`.
+- **Ultima tarefa concluida:** 3.5 - migrar borda REST de processo.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
   produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
@@ -286,7 +286,28 @@ Antes de executar qualquer item:
   Nenhum endpoint, JSON, validacao, erro, simulador, FT, observabilidade, property, fixture,
   OpenAPI ou dependencia foi alterado.
 - **Checkpoint C2:** GO humano confirmado em 2026-07-14; Fase 3 desbloqueada.
-- **Proximo item pendente:** 3.1 - caracterizar `ConsultarProcessoParametrizado`.
+- **Task 3.1 concluida:** contratos da consulta legada registrados em
+  `tasks/baseline-consulta-processo-parametrizado.md`; testes focados e suite completa verdes,
+  com evidencia de cobertura em `target/jacoco-report`; producao permaneceu inalterada.
+- **Task 3.2 concluida:** nucleo semantico, portas, caso de uso e guardrails criados sob
+  `arvoredocumento`, sem ligar bordas ou alterar contratos observaveis.
+- **Task 3.3 concluida:** borda MTR exclusiva criada sob `arvoredocumento`, preservando contratos,
+  erros, fault tolerance e telemetria; verificacoes focadas, ArchUnit e suite completa verdes.
+- **Task 3.4 concluida:** DTO/mapper exclusivos, fallback de fixture, qualifiers e producer
+  preservam simulador, selecao por property e telemetria; verificacoes focadas, CDI, ArchUnit e
+  suite completa verdes.
+- **Task 3.5 concluida:** Resource, DTOs REST, mapper de resposta/erro e observabilidade pertencem
+  a `arvoredocumento`; path, JSON, validacao, erros e telemetria permanecem equivalentes.
+- **Task 3.6a concluida:** inventario da cadeia legada registrado no proprio recorte operacional;
+  guardrail explicito impede `arvoredocumento` de depender de outros dominios e possui prova
+  controlada de deteccao. ArchUnit focado verde e `rg` sem imports cruzados em producao.
+- **Task 3.6b concluida:** consumidores remanescentes foram migrados ou removidos com cobertura
+  equivalente; cadeia legada exclusiva de processo removida de `parametrizacao`, que preserva
+  integralmente checklist. `rg` sem referencias de codigo e verificacao focada verde.
+- **Task 3.6c concluida:** `rg`, ArchUnit, build, suite completa, JaCoCo e revisao do diff verdes;
+  README e documentacao consolidada permanecem adiados para o fim do plano.
+- **Checkpoint C3:** GO humano confirmado em 2026-07-14; Fase 3 concluida.
+- **Proximo item pendente:** criar `refactor/ddd-fase-4-baseline` antes de iniciar a Task 4.1.
 
 ## Fase 0 - Baseline e guardrails
 
@@ -384,13 +405,31 @@ Antes de executar qualquer item:
 
 ## Fase 3 - `arvoredocumento`
 
-- [ ] 3.1 Caracterizar consulta de processo.
-- [ ] 3.2 Criar nucleo da consulta de processo.
-- [ ] 3.3 Criar borda MTR de processo.
-- [ ] 3.4 Criar borda simulador de processo.
-- [ ] 3.5 Migrar borda REST de processo.
-- [ ] 3.6 Ativar guardrails e remover legado sem uso.
-- [ ] C3 Executar suite/build/ArchUnit, revisar diff e obter GO humano.
+- [x] 3.1 Caracterizar consulta de processo.
+- [x] 3.2 Criar nucleo da consulta de processo.
+- [x] 3.2a Criar identificador, referencia de checklist, opcao e tipo documental do agregado de leitura.
+- [x] 3.2b Criar funcao documental, documento e campo de formulario do agregado de leitura.
+- [x] 3.2c Criar macroprocesso, garantia e produto do agregado de leitura.
+- [x] 3.2d Criar relacionamento, fase e raiz do processo parametrizado.
+- [x] 3.2e Criar portas, caso de uso e teste unitario da consulta de processo.
+- [x] 3.2f Ativar o guardrail ArchUnit da nova fatia e concluir a verificacao do nucleo.
+- [x] 3.3 Criar borda MTR de processo.
+- [x] 3.3a Criar response, deserializer tolerante, erro de protocolo e REST Client MTR com teste.
+- [x] 3.3b Criar falha interna, mapper e adapter MTR com teste unitario.
+- [x] 3.3c Provar wire, erros, configuracao, observabilidade e matriz FT no stub local e ArchUnit.
+- [x] 3.4 Criar borda simulador de processo.
+- [x] 3.4a Criar DTO, deserializer e mapper exclusivos da fixture de processo com teste.
+- [x] 3.4b Criar qualifiers, adapter simulador e producer de selecao com teste unitario.
+- [x] 3.4c Provar fixture, fallback, selecao CDI, observabilidade e ArchUnit.
+- [x] 3.5 Migrar borda REST de processo.
+- [x] 3.5a Criar DTOs REST exclusivos e mapper de resposta/erro com testes.
+- [x] 3.5b Migrar observabilidade e Resource para a porta de entrada de `arvoredocumento`.
+- [x] 3.5c Provar HTTP, MTR/simulador, erros, telemetria, ArchUnit e suite completa.
+- [x] 3.6 Ativar guardrails e remover legado sem uso.
+- [x] 3.6a Inventariar legado e ativar isolamento arquitetural de `arvoredocumento`.
+- [x] 3.6b Remover a cadeia legada exclusiva de processo, preservando checklist.
+- [x] 3.6c Provar ausencia de referencias, ArchUnit, build, suite e revisar diff.
+- [x] C3 Executar suite/build/ArchUnit, revisar diff e obter GO humano.
 
 ## Fase 4 - `conformidade`
 
@@ -435,7 +474,7 @@ data, evidencias verificaveis e aprovador humano.
 | C2.3 | GO | 2026-07-13 | Tasks 2.3a-2.3e concluidas; `mvn -q clean test` com 215 elementos `testcase` em 55 relatorios, zero falhas, zero erros e zero ignorados; contratos HTTP/JSON/validacao, wire MTR v2, simulador, erros lossless, matriz FT, observabilidade e ArchUnit verdes; cadeia legada da inclusao de documento removida sem referencias; `diff --check` limpo; commit `099dd25` publicado | Usuario, GO registrado em conversa |
 | C2.4 | GO | 2026-07-14 | Tasks 2.4a-2.4e concluidas; `mvn -q clean test` com 236 testes em 62 relatorios, zero falhas, zero erros e zero ignorados; contratos HTTP/JSON/validacao, wire MTR v1, simulador, erros lossless, matriz FT, observabilidade e ArchUnit verdes; warning depreciado removido da capacidade; cadeia legada da validacao negocial removida sem referencias; `diff --check` limpo | Usuario, GO registrado em conversa |
 | C2 | GO | 2026-07-14 | Fase 2 consolidada; suite, build e ArchUnit verdes; diff revisado sem bloqueios | Usuario, GO registrado em conversa |
-| C3 | PENDENTE | - | - | - |
+| C3 | GO | 2026-07-14 | Fase 3 concluida; consulta de processo integralmente em `arvoredocumento`; legado removido sem referencias; suite, build, ArchUnit, JaCoCo e diff verdes | Usuario, GO registrado em conversa |
 | C4 | PENDENTE | - | - | - |
 | C5 | PENDENTE | - | - | - |
 | C6 | PENDENTE | - | - | - |

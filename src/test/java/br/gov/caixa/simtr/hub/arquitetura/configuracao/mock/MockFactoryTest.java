@@ -1,11 +1,9 @@
 package br.gov.caixa.simtr.hub.arquitetura.configuracao.mock;
 
-import br.gov.caixa.simtr.hub.gestaodocumento.recurso.rest.v1.dto.GestaoDocumentoCredencialContainerDto;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.checklist.ChecklistDto;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.processo.ProcessoDto;
 import br.gov.caixa.simtr.hub.gestaodocumento.integracao.mock.GestaoDocumentoMockFactory;
+import br.gov.caixa.simtr.hub.gestaodocumento.recurso.rest.v1.dto.GestaoDocumentoCredencialContainerDto;
 import br.gov.caixa.simtr.hub.parametrizacao.integracao.mock.ChecklistMockFactory;
-import br.gov.caixa.simtr.hub.parametrizacao.integracao.mock.ProcessoMockFactory;
+import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.checklist.ChecklistDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
@@ -17,16 +15,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class MockFactoryTest {
 
     private final MarkdownJsonMockReader reader = new MarkdownJsonMockReader(new ObjectMapper());
-
-    @Test
-    void deveLerMockDeProcessoComFallback() {
-        ProcessoMockFactory factory = new ProcessoMockFactory(reader);
-
-        ProcessoDto processo = factory.criarProcessoMock(999L);
-
-        assertNotNull(processo);
-        assertEquals(1000016487L, processo.identificadorNegocial());
-    }
 
     @Test
     void deveLerMockDeChecklistComFallback() {

@@ -6,7 +6,6 @@ import br.gov.caixa.simtr.hub.arquitetura.excecao.ClientErrorBodyReader;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.client.ValidacaoNegocialDossieProdutoMtrClient;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.erro.ValidacaoNegocialDossieProdutoMtrException;
 import br.gov.caixa.simtr.hub.parametrizacao.integracao.ParametrizacaoChecklistClient;
-import br.gov.caixa.simtr.hub.parametrizacao.integracao.ParametrizacaoProcessoClient;
 import br.gov.caixa.simtr.hub.arquitetura.excecao.MtrBusinessErrorException;
 import br.gov.caixa.simtr.hub.arquitetura.excecao.MtrClientTechnicalException;
 import br.gov.caixa.simtr.hub.arquitetura.excecao.MtrErrorType;
@@ -122,7 +121,7 @@ class ExceptionMapperTest {
         assertNull(ValidacaoNegocialDossieProdutoMtrClient.toException(statusSemPayload(200)));
 
         RuntimeException negocio = ValidacaoNegocialDossieProdutoMtrClient.toException(statusSemPayload(400));
-        RuntimeException tecnicoCliente = ParametrizacaoProcessoClient.toException(statusSemPayload(401));
+        RuntimeException tecnicoCliente = ParametrizacaoChecklistClient.toException(statusSemPayload(401));
         RuntimeException tecnicoServidor = ParametrizacaoChecklistClient.toException(statusSemPayload(500));
 
         assertInstanceOf(ValidacaoNegocialDossieProdutoMtrException.Negocio.class, negocio);

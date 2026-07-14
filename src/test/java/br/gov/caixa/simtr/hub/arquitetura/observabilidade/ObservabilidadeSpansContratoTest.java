@@ -1,5 +1,6 @@
 package br.gov.caixa.simtr.hub.arquitetura.observabilidade;
 
+import br.gov.caixa.simtr.hub.arvoredocumento.adaptador.saida.mtr.adapter.ProcessoParametrizadoMtrAdapter;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.CriacaoDossieProdutoMtrAdapter;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.DocumentoDossieProdutoMtrAdapter;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.FormularioDossieProdutoMtrAdapter;
@@ -7,7 +8,6 @@ import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.Validaca
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.WorkflowDossieProdutoMtrAdapter;
 import br.gov.caixa.simtr.hub.gestaodocumento.integracao.GestaoDocumentoGateway;
 import br.gov.caixa.simtr.hub.parametrizacao.integracao.ParametrizacaoChecklistGateway;
-import br.gov.caixa.simtr.hub.parametrizacao.integracao.ParametrizacaoProcessoGateway;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.instrumentation.annotations.SpanAttribute;
@@ -127,9 +127,8 @@ class ObservabilidadeSpansContratoTest {
                         "mtr.parametrizacao.checklist.consultar|CLIENT|"
                                 + "mtr.parametrizacao.checklist.identificador_negocial,"
                                 + "mtr.parametrizacao.checklist.versao"),
-                Map.entry("ParametrizacaoProcessoGateway#consultarPorIdentificadorNegocial",
-                        "mtr.parametrizacao.processo.consultar|CLIENT|"
-                                + "mtr.parametrizacao.processo.identificador_negocial")
+                Map.entry("ProcessoParametrizadoMtrAdapter#obter",
+                        "mtr.parametrizacao.processo.consultar|CLIENT|")
         );
 
         assertEquals(esperado, extrairSpansDeclarados(
@@ -140,7 +139,7 @@ class ObservabilidadeSpansContratoTest {
                 WorkflowDossieProdutoMtrAdapter.class,
                 GestaoDocumentoGateway.class,
                 ParametrizacaoChecklistGateway.class,
-                ParametrizacaoProcessoGateway.class
+                ProcessoParametrizadoMtrAdapter.class
         ));
     }
 

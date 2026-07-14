@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static br.gov.caixa.simtr.hub.contrato.JsonContractAssertions.assertErroValidacaoExato;
 import static br.gov.caixa.simtr.hub.contrato.JsonContractAssertions.assertFingerprint;
@@ -32,12 +34,13 @@ class ProcessoApiContractTest {
         assertFingerprint(FINGERPRINT_RESPOSTA, resposta);
     }
 
-    @Test
-    void preservaErroPublicoParaIdentificadorDeProcessoInvalido() {
+    @ParameterizedTest
+    @ValueSource(longs = {0L, -1L})
+    void preservaErroPublicoParaIdentificadorDeProcessoInvalido(long identificador) {
         JsonNode erro = given()
                 .accept(ContentType.JSON)
                 .when()
-                .get(PATH, 0)
+                .get(PATH, identificador)
                 .then()
                 .statusCode(400)
                 .contentType(ContentType.JSON)
