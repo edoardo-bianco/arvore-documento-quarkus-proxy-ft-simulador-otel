@@ -1,8 +1,8 @@
 package br.gov.caixa.simtr.hub.arvoredocumento.falso;
 
-import br.gov.caixa.simtr.hub.parametrizacao.dominio.checklist.ChecklistVo;
+import br.gov.caixa.simtr.hub.parametrizacao.falso.DependenciaEntreDominiosViolacao;
 
 public final class DependenciaParametrizacaoViolacao {
 
-    private ChecklistVo checklist;
+    private DependenciaEntreDominiosViolacao dependencia;
 }

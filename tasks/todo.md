@@ -23,10 +23,12 @@ Antes de executar qualquer item:
   atualizacao documental da branch; baseline `mvn -q test`: 100 testes, zero falhas.
 - [x] G2 Branch `refactor/ddd-fase-3-baseline` criada a partir do commit `4d24167`, que recebeu
   GO em C2, publicada e configurada para rastrear `origin/refactor/ddd-fase-3-baseline`.
+- [x] G3 Branch `refactor/ddd-fase-4-baseline` criada a partir do commit `7613fed`, que recebeu
+  GO em C3, publicada e configurada para rastrear `origin/refactor/ddd-fase-4-baseline`.
 
 ## Ponto de retomada
 
-- **Ultima tarefa concluida:** 3.5 - migrar borda REST de processo.
+- **Ultima tarefa concluida:** C4 - checkpoint da Fase 4 em GO.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
   produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
@@ -307,7 +309,51 @@ Antes de executar qualquer item:
 - **Task 3.6c concluida:** `rg`, ArchUnit, build, suite completa, JaCoCo e revisao do diff verdes;
   README e documentacao consolidada permanecem adiados para o fim do plano.
 - **Checkpoint C3:** GO humano confirmado em 2026-07-14; Fase 3 concluida.
-- **Proximo item pendente:** criar `refactor/ddd-fase-4-baseline` antes de iniciar a Task 4.1.
+- **Bootstrap da Fase 4:** `refactor/ddd-fase-4-baseline` criada no commit `7613fed`, publicada e
+  com upstream remoto configurado antes da primeira task de implementacao.
+- **Task 4.1 concluida:** `baseline-consulta-checklist.md` e caracterizacao executavel congelam
+  HTTP/JSON/validacao, identificador/versao, nulabilidade, wire MTR, resposta sem conteudo, erros,
+  retry, FT, simulador, configuracao e observabilidade sem alterar producao. Evidencia numerica
+  permanece somente no JaCoCo; OpenAPI segue gerado exclusivamente pelo Quarkus e nao foi testado
+  ou manipulado.
+- **Task 4.2 concluida:** comando, modelos, portas e caso de uso reativo pertencem a
+  `conformidade`; teste unitario e ArchUnit focados verdes; guardrails impedem compartilhamento de
+  modelo com outros dominios, dependencia de bordas e exposicao da porta de saida. REST, MTR,
+  simulador e CDI ainda nao foram ligados.
+- **Task 4.3 concluida:** DTO/mapper, cliente, erros, qualifier e adapter MTR pertencem a
+  `conformidade`; wire, nulabilidade, erros, ordem FT, headers, OIDC e observabilidade foram
+  preservados sem alterar a borda REST publica ou o simulador.
+- **Task 4.4 concluida:** DTO/mapper, qualifier, adapter e producer do simulador pertencem a
+  `conformidade`; fixture, fallback, property, telemetria e selecao CDI ligada/desligada foram
+  preservados sem alterar o caso de uso ou a borda REST publica.
+- **Task 4.5 concluida:** DTOs e mapper REST exclusivos, fronteira de observabilidade e Resource
+  pertencem a `conformidade`; path, JSON, validacao, nulabilidade, resposta sem conteudo, erros,
+  selecao MTR/simulador, FT e telemetria foram preservados. O legado remanescente sera inventariado
+  apenas na Task 4.6.
+- **Task 4.6 iniciada:** o inventario nao encontrou consumidor de producao da cadeia legada de
+  checklist. Testes historicos ainda referenciam client, gateway, service, mapper, mock factory,
+  DTOs e VOs antigos; eles serao migrados ou removidos somente quando houver cobertura equivalente.
+  A property e a fixture compartilhadas pela implementacao nova permanecem.
+- **Task 4.6a concluida:** o isolamento explicito de `conformidade` foi ativado e sua
+  eficacia foi provada por fixture arquitetural controlada. Nao ha import de outro dominio
+  no codigo de producao de `conformidade`.
+- **Task 4.6b.1 concluida:** caracterizacao HTTP/FT, classificacao de erro e contrato de spans
+  agora exercitam o client e o adapter ativos de `conformidade`.
+- **Task 4.6b.2 concluida:** os testes unitarios duplicados do legado foram removidos somente
+  apos a cobertura equivalente da implementacao nova passar. A fixture publica sem consumidores
+  tambem foi eliminada, e os testes compartilhados de gestao documental foram preservados.
+- **Task 4.6c concluida:** fachada, service, mapper, VOs, DTOs, gateway, client, exception mapper
+  e mock factory exclusivos do checklist legado foram removidos apos o inventario ficar sem
+  consumidores externos. A property do client e a fixture compartilhada pelo simulador novo
+  foram preservadas.
+- **Task 4.6d concluida:** ausencia de referencias, isolamento ArchUnit, build limpo, suite
+  completa e revisao multi-eixo passaram sem bloqueios. Contratos HTTP/JSON, validacao, wire MTR,
+  nulabilidade, erros, simulador, fault tolerance e observabilidade permanecem cobertos; nenhuma
+  manipulacao ou teste do OpenAPI gerado pelo Quarkus foi introduzido.
+- **Checkpoint C4:** GO humano registrado em 2026-07-14. A consulta de checklist pertence
+  integralmente a `conformidade`, e a cadeia legada exclusiva foi removida sem referencias.
+- **Proximo item pendente:** criar `refactor/ddd-fase-5-baseline` antes da Task 5.1. Nao iniciar a
+  Fase 5 na branch da Fase 4.
 
 ## Fase 0 - Baseline e guardrails
 
@@ -433,13 +479,35 @@ Antes de executar qualquer item:
 
 ## Fase 4 - `conformidade`
 
-- [ ] 4.1 Caracterizar consulta de checklist.
-- [ ] 4.2 Criar nucleo da consulta de checklist.
-- [ ] 4.3 Criar borda MTR de checklist.
-- [ ] 4.4 Criar borda simulador de checklist.
-- [ ] 4.5 Migrar borda REST de checklist.
-- [ ] 4.6 Ativar guardrails e remover legado sem uso.
-- [ ] C4 Executar suite/build/ArchUnit, revisar diff e obter GO humano.
+- [x] 4.1 Caracterizar consulta de checklist.
+- [x] 4.1a Congelar HTTP, JSON, validacao, identificador/versao e nulabilidade.
+- [x] 4.1b Congelar wire MTR, erros e matriz de fault tolerance contra stub localhost.
+- [x] 4.1c Congelar simulador, observabilidade e configuracao; fechar manifesto e verificacao.
+- [x] 4.2 Criar nucleo da consulta de checklist.
+- [x] 4.2a Criar comando e modelos proprios de checklist e apontamento em `conformidade`.
+- [x] 4.2b Criar portas de entrada/saida e caso de uso reativo com teste unitario.
+- [x] 4.2c Incluir `conformidade` nos guardrails progressivos e executar ArchUnit.
+- [x] 4.3 Criar borda MTR de checklist.
+- [x] 4.3a Criar DTO MTR v1 e mapper exclusivo com prova de nulabilidade/listas.
+- [x] 4.3b Criar erro tecnico e REST Client exclusivos com classificacao e matriz FT.
+- [x] 4.3c Criar erro interno, qualifier e adapter MTR com traducao lossless e telemetria.
+- [x] 4.3d Provar wire, headers, OIDC, retry e observabilidade contra stub localhost.
+- [x] 4.4 Criar borda simulador de checklist.
+- [x] 4.4a Criar DTO e mapper exclusivos do simulador com prova de nulabilidade/listas.
+- [x] 4.4b Criar qualifier e adapter simulador preservando fixture, fallback e telemetria.
+- [x] 4.4c Criar producer e provar selecao CDI com simulador ligado/desligado.
+- [x] 4.5 Migrar borda REST de checklist.
+- [x] 4.5a Criar DTOs e mapper REST exclusivos preservando JSON, nulabilidade e erros.
+- [x] 4.5b Ligar nova Resource a porta de entrada com observabilidade equivalente.
+- [x] 4.5c Provar HTTP e equivalencia ponta a ponta e executar a suite.
+- [x] 4.6 Ativar guardrails e remover legado sem uso.
+- [x] 4.6a Inventariar legado e ativar isolamento arquitetural explicito de `conformidade`.
+- [x] 4.6b Migrar consumidores de teste remanescentes para `conformidade`.
+- [x] 4.6b.1 Atualizar caracterizacao, erro e contrato de spans para a borda nova.
+- [x] 4.6b.2 Remover cenarios unitarios redundantes do legado e a fixture de teste sem uso.
+- [x] 4.6c Remover a cadeia legada exclusiva de checklist apos `rg` sem consumidores.
+- [x] 4.6d Provar ausencia de referencias, ArchUnit, build, suite e revisar o diff.
+- [x] C4 Executar suite/build/ArchUnit, revisar diff e obter GO humano.
 
 ## Fase 5 - `gestaodocumento`
 
@@ -475,7 +543,7 @@ data, evidencias verificaveis e aprovador humano.
 | C2.4 | GO | 2026-07-14 | Tasks 2.4a-2.4e concluidas; `mvn -q clean test` com 236 testes em 62 relatorios, zero falhas, zero erros e zero ignorados; contratos HTTP/JSON/validacao, wire MTR v1, simulador, erros lossless, matriz FT, observabilidade e ArchUnit verdes; warning depreciado removido da capacidade; cadeia legada da validacao negocial removida sem referencias; `diff --check` limpo | Usuario, GO registrado em conversa |
 | C2 | GO | 2026-07-14 | Fase 2 consolidada; suite, build e ArchUnit verdes; diff revisado sem bloqueios | Usuario, GO registrado em conversa |
 | C3 | GO | 2026-07-14 | Fase 3 concluida; consulta de processo integralmente em `arvoredocumento`; legado removido sem referencias; suite, build, ArchUnit, JaCoCo e diff verdes | Usuario, GO registrado em conversa |
-| C4 | PENDENTE | - | - | - |
+| C4 | GO | 2026-07-14 | Fase 4 concluida; consulta de checklist integralmente em `conformidade`; legado removido sem referencias; contratos, configuracao, wire MTR, simulador, erros, fault tolerance, observabilidade, suite, build, ArchUnit e diff revisados sem bloqueios | Usuario, GO registrado em conversa |
 | C5 | PENDENTE | - | - | - |
 | C6 | PENDENTE | - | - | - |
 

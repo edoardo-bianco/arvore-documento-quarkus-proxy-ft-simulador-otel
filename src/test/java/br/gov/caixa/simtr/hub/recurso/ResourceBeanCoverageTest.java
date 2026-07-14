@@ -5,6 +5,10 @@ import br.gov.caixa.simtr.hub.arvoredocumento.adaptador.entrada.rest.v1.Processo
 import br.gov.caixa.simtr.hub.arvoredocumento.aplicacao.porta.entrada.ConsultarProcessoParametrizado;
 import br.gov.caixa.simtr.hub.arvoredocumento.dominio.modelo.IdentificadorNegocialProcesso;
 import br.gov.caixa.simtr.hub.arvoredocumento.dominio.modelo.ProcessoParametrizado;
+import br.gov.caixa.simtr.hub.conformidade.adaptador.entrada.rest.v1.ChecklistResource;
+import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.entrada.ConsultarChecklist;
+import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.Checklist;
+import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.ComandoConsultaChecklist;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.DossieProdutoResource;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.CriacaoDossieProdutoRequest;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.CriacaoDossieProdutoResponse;
@@ -12,8 +16,6 @@ import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCri
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.InclusaoDocumentoDossieProdutoResponse;
 import br.gov.caixa.simtr.hub.gestaodocumento.recurso.rest.v1.dto.GestaoDocumentoCredencialContainerDto;
 import br.gov.caixa.simtr.hub.gestaodocumento.recurso.rest.v1.GestaoDocumentoResource;
-import br.gov.caixa.simtr.hub.parametrizacao.fachada.ParametrizacaoFachada;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.ChecklistResource;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.IniciarOuAvancarWorkflowDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.CriarDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.AtualizarFormularioDossieProduto;
@@ -27,7 +29,6 @@ import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoInclusaoDocu
 import br.gov.caixa.simtr.hub.gestaodocumento.fachada.GestaoDocumentoFachada;
 import br.gov.caixa.simtr.hub.gestaodocumento.dominio.GestaoDocumentoCredencialContainerVo;
 import br.gov.caixa.simtr.hub.gestaodocumento.mapeamento.GestaoDocumentoMapper;
-import br.gov.caixa.simtr.hub.parametrizacao.mapeamento.ChecklistMapper;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Uni;
@@ -56,16 +57,13 @@ class ResourceBeanCoverageTest {
     GestaoDocumentoResource gestaoDocumentoResource;
 
     @Inject
-    ChecklistMapper checklistMapper;
-
-    @Inject
     GestaoDocumentoMapper gestaoDocumentoMapper;
 
     @InjectMock
-    ParametrizacaoFachada parametrizacaoFachada;
+    ConsultarProcessoParametrizado consultarProcessoParametrizado;
 
     @InjectMock
-    ConsultarProcessoParametrizado consultarProcessoParametrizado;
+    ConsultarChecklist consultarChecklist;
 
     @InjectMock
     CriarDossieProduto criarDossieProduto;
@@ -104,15 +102,16 @@ class ResourceBeanCoverageTest {
 
     @Test
     void checklistResourceCobreSucessoEFalhaDoBeanCdi() {
-        when(parametrizacaoFachada.consultarChecklistPorIdentificadorNegocialEVersao(1L, 1))
-                .thenReturn(Uni.createFrom().item(checklistMapper.toVo(TestFixtures.checklistDto())));
-        when(parametrizacaoFachada.consultarChecklistPorIdentificadorNegocialEVersao(2L, 1))
+        when(consultarChecklist.executar(new ComandoConsultaChecklist(1L, 1)))
+                .thenReturn(Uni.createFrom().item(new Checklist(
+                        "Checklist", 1L, 1, null, null, false, null, null)));
+        when(consultarChecklist.executar(new ComandoConsultaChecklist(2L, 1)))
                 .thenReturn(Uni.createFrom().failure(new IllegalStateException("falha checklist")));
 
         var resposta = checklistResource.consultarPorIdentificadorNegocialEVersao(1L, 1)
                 .await().indefinitely();
 
-        assertEquals(TestFixtures.checklistDto().nome(), resposta.nome());
+        assertEquals("Checklist", resposta.nome());
         assertThrows(IllegalStateException.class, () -> checklistResource.consultarPorIdentificadorNegocialEVersao(2L, 1)
                 .await().indefinitely());
     }

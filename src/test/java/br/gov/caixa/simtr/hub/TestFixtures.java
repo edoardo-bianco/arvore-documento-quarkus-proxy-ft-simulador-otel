@@ -24,34 +24,12 @@ import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoVal
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialRespostaFormularioDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialVerificacaoDto;
 import br.gov.caixa.simtr.hub.gestaodocumento.recurso.rest.v1.dto.GestaoDocumentoCredencialContainerDto;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.checklist.ChecklistApontamentoDto;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.checklist.ChecklistDto;
 
 import java.util.List;
 
 public final class TestFixtures {
 
     private TestFixtures() {
-    }
-
-    public static ChecklistDto checklistDto() {
-        return new ChecklistDto(
-                "Checklist Habitacional",
-                1000012583L,
-                1,
-                "01/01/2026 10:00:00",
-                "02/01/2026 10:00:00",
-                true,
-                "Orientacao",
-                List.of(new ChecklistApontamentoDto(
-                        10L,
-                        "Apontamento",
-                        "Descricao",
-                        "Orientacao operador",
-                        true,
-                        1
-                ))
-        );
     }
 
     public static CriacaoDossieProdutoRequest criacaoDossieProdutoRequest() {

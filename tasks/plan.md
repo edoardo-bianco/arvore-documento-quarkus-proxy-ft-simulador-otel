@@ -3,10 +3,10 @@
 ## Status
 
 - **Planejado:** 2026-07-11
-- **Implementacao:** Fases 0, 1, 2 e 3 concluidas; C0, C1, C2 e C3 em GO; Tasks 1.1 a 1.5,
+- **Implementacao:** Fases 0, 1, 2, 3 e 4 concluidas; C0, C1, C2, C3 e C4 em GO; Tasks 1.1 a 1.5,
   2.1a a 2.1e, 2.2a a 2.2e, 2.3a a 2.3e, 2.4a a 2.4e, 2.5 e 3.1 a 3.6 concluidas;
-  proximo passo: criar `refactor/ddd-fase-4-baseline` antes de iniciar a Task 4.1
-- **Branch de trabalho atual:** `refactor/ddd-fase-3-baseline`
+  Tasks 4.1 a 4.6 concluidas; proximo passo e criar `refactor/ddd-fase-5-baseline` antes da Task 5.1
+- **Branch de trabalho atual:** `refactor/ddd-fase-4-baseline`
 - **Documento arquitetural:** `../doc/arquitetura-ddd-integracoes-atomicas.md`
 - **Checklist operacional:** `todo.md`
 
@@ -771,12 +771,19 @@ do plano. O Checkpoint C3 recebeu GO humano em 2026-07-14 e a Fase 4 nao foi ini
 
 ### Task 4.1 - Caracterizar `ConsultarChecklist`
 
-**Criterios de aceite:** HTTP/JSON/validacao/OpenAPI, wire MTR, simulador, erros,
-identificador/versao, observabilidade, configuracao e matriz FT estao no manifesto.
+**Criterios de aceite:** HTTP/JSON/validacao, wire MTR, simulador, erros, identificador/versao,
+observabilidade, configuracao e matriz FT estao no manifesto. O OpenAPI permanece integralmente
+gerado pelo Quarkus, sem teste, filtro ou manipulacao do artefato.
 
 **Verificacao:** testes focados contra `parametrizacao` legado.
 
 **Dependencias:** C3. **Escopo:** M.
+
+**Status:** concluida em 2026-07-14; HTTP, JSON, validacao, nulabilidade, identificador/versao,
+wire MTR, resposta sem conteudo, erros, retry, matriz FT, simulador, configuracao e observabilidade
+foram congelados em `baseline-consulta-checklist.md` e em caracterizacao executavel. O OpenAPI
+permaneceu sob geracao exclusiva do Quarkus, sem teste ou manipulacao do artefato. Nenhuma classe,
+property ou fixture de producao foi alterada.
 
 ### Task 4.2 - Criar nucleo da consulta de checklist
 
@@ -787,6 +794,12 @@ modelo de processo ou importar adapters.
 
 **Dependencias:** 4.1. **Escopo:** M.
 
+**Status:** concluida em 2026-07-14; comando semantico, modelos de checklist/apontamento, portas de
+entrada/saida e caso de uso reativo pertencem exclusivamente a `conformidade`. O caso de uso
+delega sem bloquear e preserva sucesso e falha; guardrails progressivos impedem dependencia entre
+dominios, uso de bordas pela aplicacao e exposicao da porta de saida pela API de entrada. Teste
+unitario e ArchUnit focados verdes, sem ligar REST, MTR, simulador ou CDI.
+
 ### Task 4.3 - Criar borda MTR de checklist
 
 **Criterios de aceite:** DTO/mapper/client/adapter exclusivos preservam wire, erros e ordem FT.
@@ -795,6 +808,12 @@ modelo de processo ou importar adapters.
 
 **Dependencias:** 4.2. **Escopo:** M, grupos de ate cinco arquivos.
 
+**Status:** concluida em 2026-07-14; DTO e mapper MTR v1, erro tecnico, REST Client, qualifier,
+adapter e erro interno pertencem exclusivamente a `conformidade`. Foram preservados o wire GET
+por identificador/versao, nulabilidade, classificacao e payload dos erros, timeout, retry, circuit
+breaker, headers, OIDC e observabilidade legada. A borda REST publica e o simulador permanecem no
+legado ate as Tasks 4.4 e 4.5.
+
 ### Task 4.4 - Criar borda simulador de checklist
 
 **Criterios de aceite:** fixture usa DTO/mapper proprio; properties atuais sao preservadas.
@@ -802,6 +821,12 @@ modelo de processo ou importar adapters.
 **Verificacao:** fixture, simulador ligado/desligado e CDI.
 
 **Dependencias:** 4.2. **Escopo:** M.
+
+**Status:** concluida em 2026-07-14; DTO, mapper, qualifier, adapter e producer exclusivos de
+`conformidade` leem a fixture existente e preservam nulabilidade, fallback silencioso,
+observabilidade e a property `simtr-hub.simulador.parametrizacao-checklist.habilitado`. A porta de
+saida seleciona simulador quando habilitado e MTR quando desabilitado, sem condicional no caso de
+uso. A fixture, as properties, o caso de uso e a borda REST publica permaneceram inalterados.
 
 ### Task 4.5 - Migrar borda REST de checklist
 
@@ -812,6 +837,37 @@ somente a porta de entrada de `conformidade`.
 
 **Dependencias:** 4.3 e 4.4. **Escopo:** M.
 
+**Status:** concluida em 2026-07-14; DTOs e mapper REST exclusivos, fronteira de
+observabilidade e Resource ligam o endpoint apenas a porta de entrada de `conformidade`. Path,
+JSON, validacao, nulabilidade, resposta sem conteudo, erros, selecao MTR/simulador, fault tolerance
+e telemetria permanecem equivalentes. O OpenAPI continua integralmente gerado pelo Quarkus, sem
+teste, filtro ou manipulacao. Fachada, service, mapper, VOs e DTOs legados permanecem para o
+inventario e a remocao controlada da Task 4.6.
+
+#### Task 4.5a - Criar contrato e mapper REST de checklist
+
+**Criterios de aceite:** DTOs pertencem a borda de entrada de `conformidade`; nomes JSON,
+omissao de nulos, listas e elementos nulos permanecem iguais; falhas internas sao traduzidas para
+o erro publico existente sem perda de payload.
+
+**Verificacao:** teste unitario do mapper e serializacao JSON.
+
+#### Task 4.5b - Ligar Resource e observabilidade pela porta de entrada
+
+**Criterios de aceite:** a nova Resource substitui somente a rota legada e injeta apenas
+`ConsultarChecklist`; path, validacoes, resposta sem conteudo, spans, atributos e logs permanecem
+iguais. Fachada, service, mapper, VOs e DTOs legados permanecem para o inventario da Task 4.6.
+
+**Verificacao:** teste HTTP com porta de entrada controlada e teste unitario da fronteira de
+observabilidade.
+
+#### Task 4.5c - Consolidar equivalencia da borda REST
+
+**Criterios de aceite:** caminhos de simulador e MTR, erros, nulabilidade, headers, FT e telemetria
+continuam cobertos sem teste, filtro ou manipulacao do OpenAPI gerado pelo Quarkus.
+
+**Verificacao:** contratos HTTP, stub MTR, observabilidade, ArchUnit e suite completa.
+
 ### Task 4.6 - Ativar guardrails e remover legado de checklist
 
 **Criterios de aceite:** ArchUnit proibe dependencias internas para `parametrizacao`/outros dominios;
@@ -819,14 +875,66 @@ somente a porta de entrada de `conformidade`.
 
 **Verificacao:** `rg`, ArchUnit, build e suite.
 
+**Status:** concluida. O dominio `conformidade` possui guardrail explicito contra dependencias de
+outros dominios; contratos remanescentes usam a borda ativa; e a cadeia legada exclusiva foi
+removida apos ausencia comprovada de consumidores. Configuracao do REST Client e fixture Markdown
+compartilhadas foram preservadas. Build limpo, suite completa e revisao multi-eixo passaram sem
+bloqueios; C4 permanece pendente de GO humano.
+
 **Dependencias:** 4.5. **Escopo:** M.
+
+#### Task 4.6a - Inventariar legado e ativar isolamento de `conformidade`
+
+**Criterios de aceite:** o inventario separa consumidores reais, testes historicos e artefatos
+compartilhados; ArchUnit proibe explicitamente `conformidade` de depender de `parametrizacao` ou
+de outros dominios, com prova controlada de deteccao.
+
+**Verificacao:** `rg` e ArchUnit focado.
+
+#### Task 4.6b - Migrar consumidores de teste remanescentes
+
+**Criterios de aceite:** caracterizacao HTTP/MTR, erros, spans e guardrails apontam para a borda de
+`conformidade`; cenarios exclusivos do legado so saem quando a cobertura nova equivalente estiver
+identificada e verde.
+
+**Verificacao:** testes focados da nova borda e busca sem imports dos tipos legados.
+
+##### Task 4.6b.1 - Atualizar contratos para a borda nova
+
+**Criterios de aceite:** caracterizacao ponta a ponta, classificacao de erro e declaracao de span
+nao dependem mais de client ou gateway legados.
+
+**Verificacao:** contratos de checklist, excecao e observabilidade focados.
+
+##### Task 4.6b.2 - Remover testes redundantes e fixture sem uso
+
+**Criterios de aceite:** testes exclusivos de service, mapper, gateway e mock factory legados sao
+removidos somente depois de confirmar cobertura equivalente nas bordas MTR, simulador, REST e CDI;
+`TestFixtures` deixa de expor DTO legado sem afetar outros dominios.
+
+**Verificacao:** `rg`, compilacao e testes focados equivalentes.
+
+#### Task 4.6c - Remover a cadeia legada exclusiva de checklist
+
+**Criterios de aceite:** fachada, service, mapper, VOs, DTOs REST antigos, gateway, REST Client,
+exception mapper e mock factory sao removidos somente depois de zero consumidores. Property do
+REST Client e fixture Markdown permanecem porque pertencem ao contrato da borda nova.
+
+**Verificacao:** `rg` sem referencias de codigo e compilacao.
+
+#### Task 4.6d - Consolidar verificacoes da fase
+
+**Criterios de aceite:** consulta de checklist pertence integralmente a `conformidade`, sem iniciar
+C4 ou a Fase 5 e sem alterar contratos externos ou o OpenAPI gerado pelo Quarkus.
+
+**Verificacao:** `rg`, ArchUnit, build, suite completa e revisao do diff.
 
 ### Checkpoint C4
 
-- [ ] Consulta de checklist pertence integralmente a `conformidade`.
-- [ ] Nao existe analise documental ou workflow nesta fase.
-- [ ] Manifesto comprova OpenAPI, config/profiles, wire, FT, simulador, erros e observabilidade.
-- [ ] Suite, build e ArchUnit estao verdes; GO humano registrado.
+- [x] Consulta de checklist pertence integralmente a `conformidade`.
+- [x] Nao existe analise documental ou workflow nesta fase.
+- [x] Manifesto comprova contratos externos, config/profiles, wire, FT, simulador, erros e observabilidade.
+- [x] Suite, build e ArchUnit estao verdes; GO humano registrado.
 
 ## Fase 5 - `gestaodocumento`
 

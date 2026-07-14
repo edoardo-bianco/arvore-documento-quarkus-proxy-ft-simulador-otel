@@ -1,6 +1,8 @@
 package br.gov.caixa.simtr.hub.arquitetura.guardrails;
 
 import br.gov.caixa.simtr.hub.arvoredocumento.falso.DependenciaParametrizacaoViolacao;
+import br.gov.caixa.simtr.hub.arvoredocumento.dominio.modelo.ProcessoParametrizado;
+import br.gov.caixa.simtr.hub.conformidade.falso.DependenciaArvoreDocumentoViolacao;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.IdentificadorDossieProduto;
 import br.gov.caixa.simtr.hub.gestaodocumento.integracao.GestaoDocumentoGateway;
 import br.gov.caixa.simtr.hub.dominio.falso.ViolacaoGuardrail;
@@ -52,7 +54,7 @@ class ArchUnitProgressivoTest {
             .resideInAPackage(PACOTE_DTO_ERRO_REST);
 
     static final ArchRule dominios_nao_devem_dependender_uns_dos_outros = SlicesRuleDefinition.slices()
-            .matching("br.gov.caixa.simtr.hub.(parametrizacao|dossieproduto|arvoredocumento|gestaodocumento)..")
+            .matching("br.gov.caixa.simtr.hub.(parametrizacao|dossieproduto|arvoredocumento|conformidade|gestaodocumento)..")
             .should().notDependOnEachOther();
 
     static final ArchRule arvore_documento_nao_deve_depender_de_outros_dominios = noClasses()
@@ -60,9 +62,20 @@ class ArchUnitProgressivoTest {
             .should().dependOnClassesThat()
             .resideInAnyPackage("..parametrizacao..", "..dossieproduto..", "..gestaodocumento..");
 
+    static final ArchRule conformidade_nao_deve_depender_de_outros_dominios = noClasses()
+            .that().resideInAPackage("..conformidade..")
+            .should().dependOnClassesThat()
+            .resideInAnyPackage(
+                    "..parametrizacao..",
+                    "..dossieproduto..",
+                    "..arvoredocumento..",
+                    "..gestaodocumento..");
+
     static final ArchRule aplicacao_migrada_nao_deve_depender_de_bordas = noClasses()
             .that().resideInAnyPackage(
-                    "..dossieproduto.aplicacao..", "..arvoredocumento.aplicacao..")
+                    "..dossieproduto.aplicacao..",
+                    "..arvoredocumento.aplicacao..",
+                    "..conformidade.aplicacao..")
             .should().dependOnClassesThat()
             .resideInAnyPackage(
                     "..integracao..", "..adaptador..", "..recurso..", "..mapeamento..", "..fachada..");
@@ -70,14 +83,16 @@ class ArchUnitProgressivoTest {
     static final ArchRule porta_de_entrada_nao_deve_expor_implementacao = noClasses()
             .that().resideInAnyPackage(
                     "..dossieproduto.aplicacao.porta.entrada..",
-                    "..arvoredocumento.aplicacao.porta.entrada..")
+                    "..arvoredocumento.aplicacao.porta.entrada..",
+                    "..conformidade.aplicacao.porta.entrada..")
             .should().dependOnClassesThat()
             .resideInAnyPackage("..aplicacao.porta.saida..", "..aplicacao.casodeuso..");
 
     static final ArchRule adapters_de_saida_migrados_nao_devem_reutilizar_contratos_de_outras_bordas = noClasses()
             .that().resideInAnyPackage(
                     "..dossieproduto.adaptador.saida..",
-                    "..arvoredocumento.adaptador.saida..")
+                    "..arvoredocumento.adaptador.saida..",
+                    "..conformidade.adaptador.saida..")
             .should().dependOnClassesThat()
             .resideInAnyPackage("..recurso..", "..integracao..", "..arquitetura.excecao.dto..");
 
@@ -109,6 +124,11 @@ class ArchUnitProgressivoTest {
     @Test
     void arvoreDocumentoNaoDependeDeOutrosDominios() {
         arvore_documento_nao_deve_depender_de_outros_dominios.check(CODIGO_PRODUCAO);
+    }
+
+    @Test
+    void conformidadeNaoDependeDeOutrosDominios() {
+        conformidade_nao_deve_depender_de_outros_dominios.check(CODIGO_PRODUCAO);
     }
 
     @Test
@@ -157,13 +177,31 @@ class ArchUnitProgressivoTest {
     @Test
     void regraDeIsolamentoEntreDominiosDetectaDependenciaEntreSlices() {
         ArchRule regra = SlicesRuleDefinition.slices()
-                .matching("br.gov.caixa.simtr.hub.(parametrizacao|dossieproduto|arvoredocumento|gestaodocumento)..")
+                .matching("br.gov.caixa.simtr.hub.(parametrizacao|dossieproduto|arvoredocumento|conformidade|gestaodocumento)..")
                 .should().notDependOnEachOther();
 
         assertThrows(AssertionError.class, () -> regra.check(
                 new ClassFileImporter().importClasses(
                         DependenciaEntreDominiosViolacao.class,
                         IdentificadorDossieProduto.class)));
+    }
+
+    @Test
+    void regraDeIsolamentoDetectaConformidadeCompartilhandoModeloDeArvoreDocumento() {
+        assertThrows(AssertionError.class, () ->
+                dominios_nao_devem_dependender_uns_dos_outros.check(
+                        new ClassFileImporter().importClasses(
+                                DependenciaArvoreDocumentoViolacao.class,
+                                ProcessoParametrizado.class)));
+    }
+
+    @Test
+    void regraDeConformidadeDetectaDependenciaDeArvoreDocumento() {
+        assertThrows(AssertionError.class, () ->
+                conformidade_nao_deve_depender_de_outros_dominios.check(
+                        new ClassFileImporter().importClasses(
+                                DependenciaArvoreDocumentoViolacao.class,
+                                ProcessoParametrizado.class)));
     }
 
     @Test

@@ -1,12 +1,8 @@
 package br.gov.caixa.simtr.hub.arquitetura.integracao;
 
-import br.gov.caixa.simtr.hub.TestFixtures;
 import br.gov.caixa.simtr.hub.gestaodocumento.integracao.GestaoDocumentoClient;
 import br.gov.caixa.simtr.hub.gestaodocumento.integracao.GestaoDocumentoGateway;
 import br.gov.caixa.simtr.hub.gestaodocumento.recurso.rest.v1.dto.GestaoDocumentoCredencialContainerDto;
-import br.gov.caixa.simtr.hub.parametrizacao.integracao.ParametrizacaoChecklistClient;
-import br.gov.caixa.simtr.hub.parametrizacao.integracao.ParametrizacaoChecklistGateway;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.checklist.ChecklistDto;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Uni;
 import org.junit.jupiter.api.Test;
@@ -39,45 +35,6 @@ class GatewayTest {
 
         assertSame(client.falha, assertThrows(IllegalStateException.class,
                 () -> gateway.gerarCredencialContainer().await().indefinitely()));
-    }
-
-    @Test
-    void checklistGatewayEncaminhaConsultaParaClient() {
-        FakeChecklistClient client = new FakeChecklistClient();
-        ParametrizacaoChecklistGateway gateway = new ParametrizacaoChecklistGateway(client);
-
-        ChecklistDto resposta = gateway.consultarPorIdentificadorNegocialEVersao(1000012583L, 1)
-                .await().indefinitely();
-
-        assertEquals(TestFixtures.checklistDto().nome(), resposta.nome());
-        assertEquals(1000012583L, client.identificadorRecebido);
-        assertEquals(1, client.versaoRecebida);
-    }
-
-    @Test
-    void checklistGatewayPropagaFalhaDoClient() {
-        FakeChecklistClient client = new FakeChecklistClient();
-        client.falha = new IllegalStateException("falha checklist");
-        ParametrizacaoChecklistGateway gateway = new ParametrizacaoChecklistGateway(client);
-
-        assertSame(client.falha, assertThrows(IllegalStateException.class,
-                () -> gateway.consultarPorIdentificadorNegocialEVersao(100L, 1).await().indefinitely()));
-    }
-
-    static class FakeChecklistClient implements ParametrizacaoChecklistClient {
-        private Long identificadorRecebido;
-        private Integer versaoRecebida;
-        private RuntimeException falha;
-
-        @Override
-        public Uni<ChecklistDto> consultarPorIdentificadorNegocialEVersao(Long identificador, Integer versao) {
-            identificadorRecebido = identificador;
-            versaoRecebida = versao;
-            if (falha != null) {
-                return Uni.createFrom().failure(falha);
-            }
-            return Uni.createFrom().item(TestFixtures.checklistDto());
-        }
     }
 
     static class FakeGestaoDocumentoClient implements GestaoDocumentoClient {

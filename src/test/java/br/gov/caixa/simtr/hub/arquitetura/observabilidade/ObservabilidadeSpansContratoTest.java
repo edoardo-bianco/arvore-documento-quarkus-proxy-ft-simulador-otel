@@ -6,8 +6,8 @@ import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.Document
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.FormularioDossieProdutoMtrAdapter;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.ValidacaoNegocialDossieProdutoMtrAdapter;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.WorkflowDossieProdutoMtrAdapter;
+import br.gov.caixa.simtr.hub.conformidade.adaptador.saida.mtr.adapter.ChecklistMtrAdapter;
 import br.gov.caixa.simtr.hub.gestaodocumento.integracao.GestaoDocumentoGateway;
-import br.gov.caixa.simtr.hub.parametrizacao.integracao.ParametrizacaoChecklistGateway;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.instrumentation.annotations.SpanAttribute;
@@ -123,10 +123,8 @@ class ObservabilidadeSpansContratoTest {
                         "mtr.dossie-produto.validacao-negocial.registrar|CLIENT|"),
                 Map.entry("GestaoDocumentoGateway#gerarCredencialContainer",
                         "mtr.gestao-documento.credencial-container.gerar|CLIENT|"),
-                Map.entry("ParametrizacaoChecklistGateway#consultarPorIdentificadorNegocialEVersao",
-                        "mtr.parametrizacao.checklist.consultar|CLIENT|"
-                                + "mtr.parametrizacao.checklist.identificador_negocial,"
-                                + "mtr.parametrizacao.checklist.versao"),
+                Map.entry("ChecklistMtrAdapter#obter",
+                        "mtr.parametrizacao.checklist.consultar|CLIENT|"),
                 Map.entry("ProcessoParametrizadoMtrAdapter#obter",
                         "mtr.parametrizacao.processo.consultar|CLIENT|")
         );
@@ -138,7 +136,7 @@ class ObservabilidadeSpansContratoTest {
                 ValidacaoNegocialDossieProdutoMtrAdapter.class,
                 WorkflowDossieProdutoMtrAdapter.class,
                 GestaoDocumentoGateway.class,
-                ParametrizacaoChecklistGateway.class,
+                ChecklistMtrAdapter.class,
                 ProcessoParametrizadoMtrAdapter.class
         ));
     }
