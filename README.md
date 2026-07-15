@@ -102,8 +102,8 @@ br.gov.caixa.simtr.hub
 |-- dossieproduto
 |   |-- dominio
 |   |-- aplicacao
-|   |-- adaptador
-|   `-- recurso/rest/v1
+|   `-- adaptador
+|       `-- entrada/rest/v1
 |-- gestaodocumento
 |   |-- dominio
 |   |-- aplicacao
@@ -115,12 +115,10 @@ br.gov.caixa.simtr.hub
     `-- seguranca
 ```
 
-Dois desvios internos foram preservados para nao misturar renomes amplos com a migracao funcional:
-
-- a borda REST de `dossieproduto` permanece fisicamente em `recurso/rest/v1`, mas e tratada pelos
-  guardrails como adapter de entrada;
-- o DTO tecnico compartilhado de erro REST permanece em `arquitetura.excecao.dto`, com excecao
-  formal e uso proibido no dominio, na aplicacao e nos adapters de saida.
+A borda REST de `dossieproduto` reside no package canonico `adaptador/entrada/rest/v1`. O DTO
+tecnico compartilhado de erro REST permanece em `arquitetura.excecao.dto` como unico desvio
+interno documentado, com excecao formal e uso proibido no dominio, na aplicacao e nos adapters de
+saida.
 
 ## Integracoes MTR
 
