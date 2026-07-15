@@ -37,12 +37,15 @@ Antes de executar qualquer item:
   GO em C8, publicada e configurada para rastrear `origin/refactor/ddd-fase-9-baseline`.
 - [x] G9 Branch `refactor/ddd-fase-10-baseline` criada a partir do commit `2e9641e`, que recebeu
   GO em C9, publicada e configurada para rastrear `origin/refactor/ddd-fase-10-baseline`.
+- [x] G10 Branch `refactor/ddd-fase-11-baseline` criada a partir do commit `6d57872`, que integrou
+  a Fase 10 aceita em C10 a `main`, publicada e configurada para rastrear
+  `origin/refactor/ddd-fase-11-baseline`.
 
 ## Ponto de retomada
 
 - **Ultimo marco concluido:** C10 - GO humano registrado e Fase 10 encerrada.
-- **Fase atual:** nenhuma; o plano esta encerrado.
-- **Proximo item:** nenhum; novo trabalho exige nova fase, nova branch e novo checkpoint.
+- **Fase atual:** Fase 11 - cascata Jakarta Validation de formulario e documento.
+- **Proximo item:** 11.1b - prova RED e contratos HTTP de documento.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
   produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
@@ -547,6 +550,11 @@ Antes de executar qualquer item:
 - **Checkpoint C10 (2026-07-15):** GO humano registrado. O uso pragmatico do Quarkus em qualquer
   componente, a preservacao das fronteiras estruturais e o alinhamento documental foram aceitos;
   a Fase 10 esta encerrada.
+- **Bootstrap da Fase 11:** `refactor/ddd-fase-11-baseline` criada e publicada a partir do commit
+  `6d57872` de `main`, com escopo restrito a metadados Jakarta Validation, contratos executaveis e
+  governanca. Renome do package REST e mudanca do contrato tecnico de erro nao estao autorizados.
+- **Task 11.1a concluida:** fase, branch, escopo, subtasks e checkpoint C11 registrados. A mudanca
+  seguira RED/GREEN antes de alterar as seis declaracoes depreciadas.
 
 ## Fase 0 - Baseline e guardrails
 
@@ -775,6 +783,16 @@ Antes de executar qualquer item:
 - [x] 10.1 Consolidar o uso pragmatico do Quarkus.
 - [x] C10 Obter aceite humano da decisao pragmatica.
 
+## Fase 11 - Cascata Jakarta Validation de formulario e documento
+
+- [x] 11.1a Registrar fase, branch, escopo e checkpoint na governanca.
+- [ ] 11.1b Criar prova RED e completar contratos HTTP de atributos/propriedades de documento.
+- [ ] 11.1c Migrar as seis listas para `List<@Valid T>` e executar testes focados.
+- [ ] 11.1d Executar suite limpa, verificar warnings, revisar diff e consolidar documentacao.
+- [ ] 11.1e Publicar o checkpoint e aguardar GO humano.
+- [ ] 11.1 Remover o uso depreciado de `@Valid` nas listas REST preservando os contratos.
+- [ ] C11 Obter aceite humano da cascata Jakarta Validation modernizada.
+
 ## Registro de checkpoints
 
 Esta tabela e a fonte autoritativa. Valores validos de status: `PENDENTE`, `GO` e `NO-GO`. Um
@@ -798,6 +816,7 @@ data, evidencias verificaveis e aprovador humano.
 | C8 | GO | 2026-07-15 | Task 8.1 concluida; introducao explicita solucao atual, fundamentos hexagonais e limites futuros; links, escopo documental e diff revisados sem bloqueios | Usuario, GO registrado em conversa |
 | C9 | GO | 2026-07-15 | Task 9.1 concluida; fundamentos gerais, tres papeis conceituais de orquestracao, microsservicos, uso pragmatico, links e diff documental revisados sem bloqueios | Usuario, GO registrado em conversa |
 | C10 | GO | 2026-07-15 | Task 10.1 concluida; permissao de Quarkus, fronteiras, documentacao, ArchUnit, suite, JaCoCo e diff revisados sem bloqueios | Usuario, GO registrado em conversa |
+| C11 | PENDENTE | - | Fase 11 em execucao; evidencias ainda nao consolidadas | - |
 
 ## Bloqueios que nao podem ser resolvidos por suposicao
 
