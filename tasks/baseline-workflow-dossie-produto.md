@@ -1,5 +1,9 @@
 # Baseline do workflow de dossie produto
 
+> Documento historico da capacidade antes e durante a migracao. Referencias a protecao ou
+> fingerprint OpenAPI foram substituidas pela geracao exclusiva do Quarkus. O estado final esta em
+> `equivalencia-final.md`; evidencias quantitativas permanecem somente no JaCoCo.
+
 ## Escopo
 
 Manifesto de caracterizacao da Task 1.1 para a capacidade

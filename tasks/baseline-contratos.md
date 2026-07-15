@@ -1,5 +1,9 @@
 # Manifesto de baseline dos contratos HTTP
 
+> Documento historico da Fase 0. A decisao posterior removeu testes e fingerprints do OpenAPI:
+> o artefato e gerado exclusivamente pelo Quarkus. Para o estado final, consulte
+> `equivalencia-final.md`; evidencias quantitativas permanecem somente no JaCoCo.
+
 ## Escopo e evidencia
 
 Este manifesto encerra somente a Task 0.1 da Fase 0. Ele descreve o comportamento observado na

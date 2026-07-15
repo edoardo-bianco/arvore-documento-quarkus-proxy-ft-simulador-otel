@@ -1,5 +1,8 @@
 # Baseline da criacao de dossie produto
 
+> Documento historico da capacidade antes e durante a migracao. O estado final esta em
+> `equivalencia-final.md`; evidencias quantitativas permanecem somente no JaCoCo.
+
 ## Escopo
 
 Manifesto da Task 2.1a para `CriarDossieProduto`. A caracterizacao observa a implementacao legada

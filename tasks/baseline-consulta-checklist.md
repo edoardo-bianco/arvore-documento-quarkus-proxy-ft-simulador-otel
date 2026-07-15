@@ -1,5 +1,9 @@
 # Baseline de `ConsultarChecklist`
 
+> Documento historico da capacidade antes e durante a migracao. O estado final pertence a
+> `conformidade` e esta em `equivalencia-final.md`; evidencias quantitativas permanecem somente no
+> JaCoCo.
+
 ## Escopo
 
 Este manifesto caracteriza a implementacao legada de `parametrizacao` exigida pela Task 4.1,

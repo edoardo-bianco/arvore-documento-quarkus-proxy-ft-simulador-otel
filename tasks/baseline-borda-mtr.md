@@ -1,5 +1,8 @@
 # Baseline da borda MTR com stub local
 
+> Documento historico de caracterizacao anterior a migracao. Para packages, adapters e gates
+> finais, consulte `equivalencia-final.md`; evidencias quantitativas permanecem somente no JaCoCo.
+
 ## Escopo e resultado
 
 Este documento registra a evidencia executavel da Task 0.3 da Fase 0. A criacao de dossie percorre

@@ -1,5 +1,8 @@
 # Baseline - Incluir documento no dossie de produto
 
+> Documento historico da capacidade antes e durante a migracao. O estado final esta em
+> `equivalencia-final.md`; evidencias quantitativas permanecem somente no JaCoCo.
+
 ## Escopo
 
 Manifesto executavel da Task 2.3a para a capacidade atomica

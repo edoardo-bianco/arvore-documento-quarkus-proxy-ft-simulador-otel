@@ -3,9 +3,9 @@
 ## Status
 
 - **Planejado:** 2026-07-11
-- **Implementacao:** Fases 0, 1, 2, 3, 4 e 5 concluidas; C0, C1, C2, C3, C4 e C5 em GO;
-  Fase 6 deliberadamente nao iniciada e adiada para nova instrucao humana
-- **Branch de trabalho atual:** `refactor/ddd-fase-5-baseline`
+- **Implementacao:** Fases 0 a 6 concluidas; C0, C1, C2, C3, C4, C5 e C6 em GO; refatoracao
+  formalmente encerrada em 2026-07-15
+- **Branch de trabalho atual:** `refactor/ddd-fase-6-baseline`
 - **Documento arquitetural:** `../doc/arquitetura-ddd-integracoes-atomicas.md`
 - **Checklist operacional:** `todo.md`
 
@@ -609,8 +609,8 @@ validacoes, resposta, erros, simulador, FT ou telemetria. A cadeia legada exclus
 VOs foram removidos somente depois da matriz de equivalencia verde e de busca global sem
 consumidores; os seis DTOs REST aninhados foram preservados. `mvn -q clean test` executou 236
 casos em 62 relatorios, sem falhas, erros ou ignorados, no profile `test`, sem Docker ou Dev
-Services. O warning `HV000271` nao aparece mais para a validacao negocial. C2.4 permanece
-pendente de GO humano.
+Services. O warning `HV000271` nao aparece mais para a validacao negocial. C2.4 recebeu GO
+humano em 2026-07-14.
 
 ### Checkpoint C2.4 - Validacao negocial
 
@@ -1054,8 +1054,8 @@ sensivel novos. O Checkpoint C5 recebeu GO humano em 2026-07-15 e encerrou a Fas
 
 ### Checkpoint C5
 
-**Status:** `GO` humano registrado em 2026-07-15; Fase 5 encerrada. A Fase 6 permanece nao
-iniciada e devera usar sua propria branch antes da primeira task de implementacao.
+**Status:** `GO` humano registrado em 2026-07-15; Fase 5 encerrada. A Fase 6 foi posteriormente
+aberta em sua propria branch e permanece aguardando o Checkpoint C6.
 
 - [x] Hub apenas obtem e devolve a credencial.
 - [x] Nao existe cache, renovacao ou upload.
@@ -1073,6 +1073,14 @@ documentacao ativa; somente entao o package e removido.
 
 **Dependencias:** C5. **Escopo:** S.
 
+**Status:** concluida em 2026-07-15. O inventario confirmou que nao existia mais package de
+producao `parametrizacao`; restava somente uma fixture negativa de ArchUnit sob o package legado.
+A prova foi migrada para uma dependencia controlada entre dominios ativos, sem reduzir os testes
+de isolamento, e o ultimo arquivo Java do package foi removido. Nomes `parametrizacao` que fazem
+parte dos contratos externos — paths, config keys, fixtures MTR e telemetria — foram
+deliberadamente preservados. Buscas de package/import, ArchUnit focado, build e suite limpa
+completa passaram; a evidencia quantitativa permanece exclusivamente no JaCoCo.
+
 ### Task 6.2 - Endurecer ArchUnit para todo o codigo migrado
 
 **Criterios de aceite:** regras finais cobrem dependencia por camada, DTOs por borda, excecao formal
@@ -1081,6 +1089,14 @@ do erro REST, REST Clients, API publica de aplicacao e imports cross-domain apen
 **Verificacao:** ArchUnit inclui provas negativas controladas e suite verde.
 
 **Dependencias:** 6.1. **Escopo:** M.
+
+**Status:** concluida em 2026-07-15. Os guardrails finais cobrem dominio, aplicacao, adapters REST,
+DTOs confinados por borda, excecao formal do erro REST tecnico, declaracao e consumo de REST
+Clients, API publica de entrada e dependencias cross-domain somente por adapters ACL. ACLs podem
+usar a porta de entrada e os tipos semanticos do fornecedor, mas nao seus casos de uso, portas de
+saida ou bordas. Provas negativas controladas foram mantidas ou adicionadas para cada fronteira
+nova. Ciclos RED/GREEN, ArchUnit focado, revisao multi-eixo e suite limpa completa passaram; a
+evidencia quantitativa permanece exclusivamente no JaCoCo.
 
 ### Task 6.3 - Executar verificacao de equivalencia completa
 
@@ -1091,6 +1107,13 @@ desabilitado sem GO; OpenAPI, configs/profiles, wire, FT, simulador, erros e obs
 
 **Dependencias:** 6.2. **Escopo:** M.
 
+**Status:** concluida em 2026-07-15. `equivalencia-final.md` indexa as oito capacidades e seus
+contratos executaveis de HTTP/JSON/validacao, wire MTR, FT, simulador, erros, configuracao e
+observabilidade. A suite limpa completa e o build passaram; os relatorios Surefire nao registram
+falha, erro ou teste pulado, e o JaCoCo foi regenerado. Buscas confirmaram ausencia de teste,
+filtro ou artefato OpenAPI proibido, de package Java legado e de credencial no diff. Nenhum arquivo
+de producao, property ou fixture funcional foi alterado na Fase 6 ate este ponto.
+
 ### Task 6.4 - Atualizar documentacao de retomada
 
 **Criterios de aceite:** packages finais, desvios, dividas e proximo checkpoint estao documentados;
@@ -1100,14 +1123,25 @@ desabilitado sem GO; OpenAPI, configs/profiles, wire, FT, simulador, erros e obs
 
 **Dependencias:** 6.3. **Escopo:** S.
 
+**Status:** concluida em 2026-07-15. README, documento operacional, `AGENTS.md`, plano e checklist
+foram consolidados na arquitetura final; baselines substituidos foram identificados como
+historicos e apontam para `equivalencia-final.md`. A colecao Postman ativa usa os paths publicos
+`/simtr-hub` e agrupamentos por capacidade, com JSON valido. Links locais e referencias
+obsoletas foram revisados; nenhuma mudanca de producao, configuracao funcional, OpenAPI, Docker
+ou Dev Services foi introduzida. Como somente documentacao e a colecao Postman mudaram desde a
+ultima suite limpa verde, o Maven nao foi repetido. A implementacao da Fase 6 foi encerrada e o
+Checkpoint C6 recebeu GO humano em 2026-07-15.
+
 ### Checkpoint C6 - Conclusao
 
-- [ ] Oito capacidades existentes migradas.
-- [ ] Nenhum comportamento externo mudou sem decisao explicita.
-- [ ] Nenhum endpoint, workflow ou upload novo foi implementado.
-- [ ] `mvn -q test` e build passam sem testes desabilitados.
-- [ ] ArchUnit protege as fronteiras finais.
-- [ ] Revisao humana confirma a conclusao.
+- [x] Oito capacidades existentes migradas.
+- [x] Nenhum comportamento externo mudou sem decisao explicita.
+- [x] Nenhum endpoint, workflow ou upload novo foi implementado.
+- [x] `mvn -q test` e build passam sem testes desabilitados.
+- [x] ArchUnit protege as fronteiras finais.
+- [x] Revisao humana confirma a conclusao.
+
+**Status:** `GO` humano registrado em 2026-07-15; Fase 6 e plano de refatoracao encerrados.
 
 ## Riscos e mitigacoes
 

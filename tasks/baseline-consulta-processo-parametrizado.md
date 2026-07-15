@@ -1,5 +1,9 @@
 # Baseline de `ConsultarProcessoParametrizado`
 
+> Documento historico da capacidade antes e durante a migracao. O estado final pertence a
+> `arvoredocumento` e esta em `equivalencia-final.md`; evidencias quantitativas permanecem somente
+> no JaCoCo.
+
 ## Escopo
 
 Este manifesto caracteriza a implementação legada de `parametrizacao` exigida pela Task 3.1,

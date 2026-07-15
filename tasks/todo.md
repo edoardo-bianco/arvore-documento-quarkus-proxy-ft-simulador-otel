@@ -27,10 +27,13 @@ Antes de executar qualquer item:
   GO em C3, publicada e configurada para rastrear `origin/refactor/ddd-fase-4-baseline`.
 - [x] G4 Branch `refactor/ddd-fase-5-baseline` criada a partir do commit `1f414fa`, que recebeu
   GO em C4, publicada e configurada para rastrear `origin/refactor/ddd-fase-5-baseline`.
+- [x] G5 Branch `refactor/ddd-fase-6-baseline` criada a partir do commit `32d8a45`, que recebeu
+  GO em C5, publicada e configurada para rastrear `origin/refactor/ddd-fase-6-baseline`.
 
 ## Ponto de retomada
 
-- **Ultima tarefa concluida:** C5 - Fase 5 encerrada com GO humano.
+- **Ultimo marco concluido:** C6 - GO humano registrado e refatoracao encerrada.
+- **Proximo item:** nenhum neste plano; novo trabalho exige novo plano, nova fase e nova branch.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
   produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
@@ -452,9 +455,34 @@ Antes de executar qualquer item:
   configuracao, wire MTR, simulador, erros, fault tolerance, observabilidade, ArchUnit, suite,
   build, JaCoCo e diff revisados sem bloqueios. O Maven nao foi repetido no fechamento porque
   somente documentacao mudou desde a ultima suite completa verde.
-- **Proximo item futuro:** 6.1, deliberadamente nao iniciado. A Fase 6 foi adiada por decisao
-  humana e devera comecar em `refactor/ddd-fase-6-baseline`, criada a partir do checkpoint
-  publicado da Fase 5, somente apos nova instrucao.
+- **Bootstrap da Fase 6:** `refactor/ddd-fase-6-baseline` criada no commit `32d8a45`, publicada e
+  com upstream remoto configurado antes da Task 6.1.
+- **Task 6.1 concluida:** nao existia mais package de producao `parametrizacao`; a ultima fixture
+  negativa de teste foi substituida por uma violacao controlada entre dominios ativos, mantendo
+  as provas de isolamento. Nao restam arquivos, declaracoes de package ou imports Java do
+  dominio legado. Paths, config keys, fixtures MTR e sinais de telemetria que usam
+  `parametrizacao` como nome do sistema externo foram preservados. `rg`, ArchUnit focado, build e
+  suite limpa completa passaram; a evidencia quantitativa permanece exclusivamente no JaCoCo.
+- **Task 6.2 concluida:** regras finais protegem dependencias de dominio, aplicacao e adapter REST;
+  confinam DTOs REST, MTR e simulador; formalizam a excecao do erro REST tecnico; limitam REST
+  Clients a borda MTR; e reservam imports cross-domain a adapters ACL que usam somente a API
+  publica de entrada do fornecedor. Provas negativas controladas, ArchUnit focado, revisao
+  multi-eixo e suite limpa completa passaram. A evidencia quantitativa permanece exclusivamente
+  no JaCoCo.
+- **Task 6.3 concluida:** `equivalencia-final.md` indexa os contratos executaveis das oito
+  capacidades e os gates transversais. Suite limpa, build, Surefire, JaCoCo, FT, simulador,
+  properties/profiles, erros, observabilidade, ausencia do package legado, OpenAPI sem manipulacao,
+  seguranca e revisao do diff passaram sem bloqueios. Nenhum arquivo de producao ou configuracao
+  funcional foi alterado na Fase 6.
+- **Task 6.4 concluida:** README, documento operacional, `AGENTS.md`, plano, checklist, baselines
+  historicos e colecao Postman foram consolidados para a arquitetura final. Os paths ativos usam
+  `/simtr-hub`, o JSON da colecao e valido e `equivalencia-final.md` e o indice atual dos contratos.
+  Links e referencias obsoletas foram revisados. Como somente documentacao e Postman mudaram desde
+  a ultima suite limpa verde, o Maven nao foi repetido. A implementacao terminou e C6 recebeu GO
+  humano apos a revisao final.
+- **Checkpoint C6 (2026-07-15):** GO humano registrado. As oito capacidades, contratos externos,
+  guardrails arquiteturais, equivalencia final, documentacao e colecao Postman foram aceitos; a
+  refatoracao esta formalmente encerrada.
 
 ## Fase 0 - Baseline e guardrails
 
@@ -637,11 +665,15 @@ Antes de executar qualquer item:
 
 ## Fase 6 - Consolidacao
 
-- [ ] 6.1 Remover package legado `parametrizacao` sem referencias.
-- [ ] 6.2 Endurecer ArchUnit para todo o codigo migrado.
-- [ ] 6.3 Executar verificacao completa de equivalencia.
-- [ ] 6.4 Atualizar documentacao e dividas adiadas.
-- [ ] C6 Obter aceite humano final.
+- [x] 6.1 Remover package legado `parametrizacao` sem referencias.
+- [x] 6.2 Endurecer ArchUnit para todo o codigo migrado.
+- [x] 6.3 Executar verificacao completa de equivalencia.
+- [x] 6.4a Consolidar README e documento complementar na arquitetura final.
+- [x] 6.4b Atualizar `AGENTS.md`, branch e orientacao para o checkpoint C6.
+- [x] 6.4c Marcar baselines historicos e corrigir a colecao Postman ativa.
+- [x] 6.4d Verificar links, referencias obsoletas e diff documental final.
+- [x] 6.4 Atualizar documentacao e dividas adiadas.
+- [x] C6 Obter aceite humano final.
 
 ## Registro de checkpoints
 
@@ -661,7 +693,7 @@ data, evidencias verificaveis e aprovador humano.
 | C3 | GO | 2026-07-14 | Fase 3 concluida; consulta de processo integralmente em `arvoredocumento`; legado removido sem referencias; suite, build, ArchUnit, JaCoCo e diff verdes | Usuario, GO registrado em conversa |
 | C4 | GO | 2026-07-14 | Fase 4 concluida; consulta de checklist integralmente em `conformidade`; legado removido sem referencias; contratos, configuracao, wire MTR, simulador, erros, fault tolerance, observabilidade, suite, build, ArchUnit e diff revisados sem bloqueios | Usuario, GO registrado em conversa |
 | C5 | GO | 2026-07-15 | Fase 5 concluida; `gestaodocumento` integralmente migrado; cadeia legada removida sem consumidores; guardrails impedem Azure Storage, cache, renovacao e upload no nucleo; contratos, configuracao, wire MTR, simulador, erros, FT, observabilidade, suite, build, ArchUnit, JaCoCo e diff verdes | Usuario, GO registrado em conversa |
-| C6 | PENDENTE | - | - | - |
+| C6 | GO | 2026-07-15 | Tasks 6.1-6.4 concluidas; oito capacidades migradas; contratos externos, FT, simulador, erros e observabilidade preservados; suite, build, ArchUnit, JaCoCo, documentacao, Postman e diff final revisados sem bloqueios | Usuario, GO registrado em conversa |
 
 ## Bloqueios que nao podem ser resolvidos por suposicao
 
