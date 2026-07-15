@@ -3,8 +3,8 @@
 ## Status
 
 - **Planejado:** 2026-07-11
-- **Implementacao:** Fases 0 a 11 concluidas; C0, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10 e
-  C11 em GO; Fase 12 tecnicamente concluida e aguardando GO humano no C12
+- **Implementacao:** Fases 0 a 12 concluidas; C0, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10,
+  C11 e C12 em GO; nenhuma nova fase iniciada
 - **Branch de trabalho atual:** `refactor/ddd-fase-12-baseline`
 - **Documento arquitetural:** `../doc/arquitetura-ddd-integracoes-atomicas.md`
 - **Checklist operacional:** `todo.md`
@@ -1412,9 +1412,9 @@ contratos REST de `dossieproduto`, `ResourceBeanCoverageTest`, `mvn -q clean tes
 
 **Dependencias:** C11. **Escopo:** M, refatoracao mecanica de package sem mudanca funcional.
 
-**Status:** concluida tecnicamente em 2026-07-15 na branch `refactor/ddd-fase-12-baseline`, criada
-e publicada a partir do commit `54569d7`, aceito em C11. O ciclo RED/GREEN, os contratos focados,
-a suite limpa, o build, a documentacao e o diff passaram; C12 aguarda aceite humano.
+**Status:** concluida e aceita em 2026-07-15 na branch `refactor/ddd-fase-12-baseline`, criada e
+publicada a partir do commit `54569d7`, aceito em C11. O ciclo RED/GREEN, os contratos focados, a
+suite limpa, o build, a documentacao e o diff passaram; GO humano registrado no C12.
 
 ### Checkpoint C12 - Package REST alinhado
 
@@ -1422,9 +1422,9 @@ a suite limpa, o build, a documentacao e o diff passaram; C12 aguarda aceite hum
 - [x] Package/FQCN antigo nao possui declaracoes, imports ou allowlists e esta proibido por guardrail.
 - [x] Contratos externos e package tecnico compartilhado de erro permanecem inalterados.
 - [x] Documentacao, testes focados, suite limpa, build e diff estao verdes.
-- [ ] Revisao humana aceita a renomeacao e autoriza o fechamento.
+- [x] Revisao humana aceita a renomeacao e autoriza o fechamento.
 
-**Status:** `PENDENTE`; implementacao concluida e publicada, aguardando GO humano.
+**Status:** `GO` humano registrado em 2026-07-15; Fase 12 encerrada. Nenhuma nova fase foi iniciada.
 
 ## Riscos e mitigacoes
 

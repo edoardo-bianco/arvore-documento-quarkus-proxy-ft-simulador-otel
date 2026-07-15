@@ -45,9 +45,9 @@ Antes de executar qualquer item:
 
 ## Ponto de retomada
 
-- **Ultimo marco concluido:** C11 - GO humano registrado e Fase 11 encerrada.
-- **Fase atual:** Fase 12 tecnicamente concluida; checkpoint C12 pendente de GO humano.
-- **Proximo item:** revisao humana do C12; nao iniciar nova fase.
+- **Ultimo marco concluido:** C12 - GO humano registrado e Fase 12 encerrada.
+- **Fase atual:** nenhuma; nova fase exige novo plano e nova branch dedicada.
+- **Proximo item:** nenhum; aguardar nova orientacao humana.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
   produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
@@ -575,6 +575,8 @@ Antes de executar qualquer item:
 - **Tasks 12.1d-12.1e concluidas:** contratos externos, package tecnico de erro e comportamento
   permaneceram inalterados; documentacao e gates passaram, e o checkpoint foi preparado para
   publicacao e aceite humano.
+- **Checkpoint C12 (2026-07-15):** GO humano registrado. O package REST alinhado e os contratos
+  preservados foram aceitos; a Fase 12 esta encerrada e nenhuma nova fase foi iniciada.
 
 ## Fase 0 - Baseline e guardrails
 
@@ -821,7 +823,7 @@ Antes de executar qualquer item:
 - [x] 12.1d Alinhar documentacao e executar verificacoes focadas/completas.
 - [x] 12.1e Publicar o checkpoint e aguardar GO humano.
 - [x] 12.1 Renomear a borda REST sem alterar contratos.
-- [ ] C12 Obter aceite humano do package REST alinhado.
+- [x] C12 Obter aceite humano do package REST alinhado.
 
 ## Registro de checkpoints
 
@@ -847,7 +849,7 @@ data, evidencias verificaveis e aprovador humano.
 | C9 | GO | 2026-07-15 | Task 9.1 concluida; fundamentos gerais, tres papeis conceituais de orquestracao, microsservicos, uso pragmatico, links e diff documental revisados sem bloqueios | Usuario, GO registrado em conversa |
 | C10 | GO | 2026-07-15 | Task 10.1 concluida; permissao de Quarkus, fronteiras, documentacao, ArchUnit, suite, JaCoCo e diff revisados sem bloqueios | Usuario, GO registrado em conversa |
 | C11 | GO | 2026-07-15 | Task 11.1 concluida; cascata no tipo dos elementos, contratos HTTP/nulabilidade, suite limpa, ArchUnit e diff verdes; `HV000271` eliminado; packages REST e tecnico de erro inalterados | Usuario, GO registrado em conversa |
-| C12 | PENDENTE | - | Task 12.1 concluida; checkpoint publicado e aguardando aceite humano | - |
+| C12 | GO | 2026-07-15 | Task 12.1 concluida; package REST alinhado, contratos preservados e checkpoint publicado | Usuario, GO registrado em conversa |
 
 ## Bloqueios que nao podem ser resolvidos por suposicao
 
