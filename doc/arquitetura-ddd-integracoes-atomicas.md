@@ -12,6 +12,81 @@
 Este e o documento arquitetural canonico para a refatoracao. Agentes e pessoas devem le-lo antes
 de alterar packages, portas, DTOs, adapters, tratamento de erros ou testes relacionados.
 
+## Visao da solucao
+
+O `simtr-hub` e um monolito modular organizado por dominios de negocio. A solucao implementada
+oferece oito capacidades atomicas por endpoints REST publicos e integra cada capacidade ao MTR ou
+ao simulador por adapters de saida independentes. Cada dominio concentra seus casos de uso,
+modelos internos e contratos de aplicacao; detalhes de HTTP, serializacao, CDI, fault tolerance e
+telemetria permanecem nas bordas.
+
+O fluxo executado atualmente pode ser lido assim:
+
+```text
+cliente HTTP
+    -> adapter REST de entrada
+        -> porta de entrada
+            -> caso de uso atomico
+                -> porta de saida
+                    -> adapter selecionado por configuracao
+                        |-- MTR
+                        `-- simulador
+```
+
+Nao existe nesta solucao um endpoint unico de pre-validacao, orquestrador local, motor de workflow
+ou comunicacao distribuida entre os dominios. A composicao por orquestradores e a extracao para
+microsservicos sao possibilidades futuras, explicitamente separadas do estado implementado. A
+secao de cobertura frente a especificacao identifica os oito endpoints existentes e os cinco que
+ainda nao existem no Hub.
+
+## Fundamentos de organizacao
+
+### Organizacao por dominio
+
+Ha duas formas comuns de agrupar o codigo: por tecnologia, reunindo Resources, services, clients e
+mappers de toda a solucao, ou por dominio, reunindo os artefatos que realizam uma capacidade de
+negocio. O `simtr-hub` adota **package by domain**.
+
+Assim, `arvoredocumento`, `conformidade`, `dossieproduto` e `gestaodocumento` possuem fronteiras
+proprias. Os nomes dos sistemas externos e das tecnologias aparecem nas bordas quando fazem parte
+do contrato, mas nao definem um dominio interno compartilhado. Essa organizacao reduz o
+acoplamento entre capacidades e torna explicito quem e responsavel por cada operacao.
+
+### Aplicacao e infraestrutura
+
+O codigo de aplicacao expressa as capacidades e coordena os casos de uso com seus modelos
+internos. O codigo de infraestrutura implementa os mecanismos necessarios para executa-los, como
+endpoints REST, chamadas HTTP ao MTR, leitura de fixtures do simulador, serializacao,
+autenticacao, resiliencia e observabilidade.
+
+Separar essas responsabilidades permite testar o nucleo sem acionar infraestrutura, trocar o
+mecanismo de integracao com impacto concentrado e diagnosticar problemas na fronteira correta. Na
+solucao atual, essa separacao nao elimina Quarkus das bordas; ela impede que detalhes do framework
+e dos contratos externos se tornem dependencias do dominio.
+
+## Portas e Adaptadores no `simtr-hub`
+
+A Arquitetura Hexagonal, ou Portas e Adaptadores, e o padrao tatico usado para proteger o interior
+de cada dominio. Portas sao contratos orientados a capacidades e nao dependem de tecnologia:
+
+- uma **porta de entrada** expressa uma capacidade oferecida pela aplicacao e e acionada pelo
+  adapter REST atual;
+- uma **porta de saida** expressa uma necessidade externa do caso de uso, sem expor protocolo,
+  fornecedor ou DTO de integracao;
+- um **adapter de entrada** traduz o contrato REST publico para os tipos internos;
+- um **adapter de saida** implementa a necessidade externa e traduz os tipos internos para o
+  contrato do MTR ou do simulador.
+
+As dependencias apontam das bordas para as portas e os modelos internos. O caso de uso nao conhece
+Resource, REST Client, URL, DTO MTR, fixture ou mecanismo de selecao CDI; adapters de tipos
+diferentes tambem nao dependem diretamente uns dos outros.
+
+Esse padrao organiza o interior do Hub, mas nao define por si so a arquitetura distribuida do
+sistema. O DDD estabelece responsabilidades e limites entre dominios; REST, mensageria, futuros
+orquestradores ou uma eventual extracao em microsservicos exigem decisoes arquiteturais proprias.
+A aplicacao do padrao e pragmatica: nao se criam portas, adapters ou pastas sem uma capacidade e um
+consumidor reais.
+
 ## Intencao confirmada
 
 Transformar o `simtr-hub` em um monolito modular DDD, composto por capacidades atomicas e

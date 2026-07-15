@@ -31,10 +31,12 @@ Antes de executar qualquer item:
   GO em C5, publicada e configurada para rastrear `origin/refactor/ddd-fase-6-baseline`.
 - [x] G6 Branch `refactor/ddd-fase-7-baseline` criada a partir do commit `639dc93`, que recebeu
   GO em C6, publicada e configurada para rastrear `origin/refactor/ddd-fase-7-baseline`.
+- [x] G7 Branch `refactor/ddd-fase-8-baseline` criada a partir do commit `1854d7a`, que recebeu
+  GO em C7, publicada e configurada para rastrear `origin/refactor/ddd-fase-8-baseline`.
 
 ## Ponto de retomada
 
-- **Ultimo marco concluido:** C7 - GO humano registrado e Fase 7 documental encerrada.
+- **Ultimo marco concluido:** C8 - GO humano registrado e Fase 8 documental encerrada.
 - **Proximo item:** nenhum neste plano; novo trabalho exige novo plano, nova fase e nova branch.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
@@ -498,6 +500,16 @@ Antes de executar qualquer item:
 - **Checkpoint C7 (2026-07-15):** GO humano registrado. A matriz de endpoints e o alinhamento entre
   README, decisao arquitetural, documento operacional, especificacao e codigo foram aceitos; a
   Fase 7 documental esta encerrada.
+- **Task 8.1 concluida:** o documento canonico explica na abertura a organizacao por dominio, a
+  separacao entre aplicacao e infraestrutura e o uso tatico de Portas e Adaptadores. O fluxo atual
+  REST -> porta de entrada -> caso de uso -> porta de saida -> MTR/simulador foi distinguido de
+  orquestradores, microsservicos e motores de workflow futuros. A copia historica da arquitetura
+  presente no documento-fonte nao foi incorporada. Links, consistencia, escopo exclusivamente
+  documental e `git diff --check` passaram; o Maven nao foi repetido porque producao, testes e
+  configuracao funcional permaneceram inalterados.
+- **Checkpoint C8 (2026-07-15):** GO humano registrado. A introducao conceitual, a separacao entre
+  estado atual e evolucao futura e o escopo exclusivamente documental foram aceitos; a Fase 8
+  esta encerrada.
 
 ## Fase 0 - Baseline e guardrails
 
@@ -698,6 +710,15 @@ Antes de executar qualquer item:
 - [x] 7.1 Confrontar a especificacao de pre-validacao com a solucao existente.
 - [x] C7 Obter aceite humano do alinhamento documental.
 
+## Fase 8 - Introducao conceitual da solucao
+
+- [x] 8.1a Selecionar os fundamentos introdutorios compativeis com a solucao atual.
+- [x] 8.1b Incorporar objetivo, organizacao por dominio, aplicacao/infraestrutura e Portas e
+  Adaptadores ao documento canonico.
+- [x] 8.1c Verificar estado atual versus conceitos futuros, links e diff exclusivamente documental.
+- [x] 8.1 Incorporar os fundamentos introdutorios ao documento canonico.
+- [x] C8 Obter aceite humano da introducao arquitetural.
+
 ## Registro de checkpoints
 
 Esta tabela e a fonte autoritativa. Valores validos de status: `PENDENTE`, `GO` e `NO-GO`. Um
@@ -718,6 +739,7 @@ data, evidencias verificaveis e aprovador humano.
 | C5 | GO | 2026-07-15 | Fase 5 concluida; `gestaodocumento` integralmente migrado; cadeia legada removida sem consumidores; guardrails impedem Azure Storage, cache, renovacao e upload no nucleo; contratos, configuracao, wire MTR, simulador, erros, FT, observabilidade, suite, build, ArchUnit, JaCoCo e diff verdes | Usuario, GO registrado em conversa |
 | C6 | GO | 2026-07-15 | Tasks 6.1-6.4 concluidas; oito capacidades migradas; contratos externos, FT, simulador, erros e observabilidade preservados; suite, build, ArchUnit, JaCoCo, documentacao, Postman e diff final revisados sem bloqueios | Usuario, GO registrado em conversa |
 | C7 | GO | 2026-07-15 | Task 7.1 concluida; todos os endpoints da especificacao inventariados; oito capacidades implementadas e cinco ausencias explicitadas; README, decisao arquitetural, documento operacional, codigo, links e diff documental revisados sem bloqueios | Usuario, GO registrado em conversa |
+| C8 | GO | 2026-07-15 | Task 8.1 concluida; introducao explicita solucao atual, fundamentos hexagonais e limites futuros; links, escopo documental e diff revisados sem bloqueios | Usuario, GO registrado em conversa |
 
 ## Bloqueios que nao podem ser resolvidos por suposicao
 

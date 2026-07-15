@@ -3,9 +3,9 @@
 ## Status
 
 - **Planejado:** 2026-07-11
-- **Implementacao:** Fases 0 a 7 concluidas; C0, C1, C2, C3, C4, C5, C6 e C7 em GO; alinhamento
-  documental formalmente encerrado em 2026-07-15
-- **Branch de trabalho atual:** `refactor/ddd-fase-7-baseline`
+- **Implementacao:** Fases 0 a 8 concluidas; C0, C1, C2, C3, C4, C5, C6, C7 e C8 em GO;
+  consolidacao introdutoria encerrada em 2026-07-15
+- **Branch de trabalho atual:** `refactor/ddd-fase-8-baseline`
 - **Documento arquitetural:** `../doc/arquitetura-ddd-integracoes-atomicas.md`
 - **Checklist operacional:** `todo.md`
 
@@ -1185,6 +1185,47 @@ ou configuracao funcional mudou; por isso o Maven nao foi repetido. C7 recebeu G
 - [x] Revisao humana confirma a clareza do escopo.
 
 **Status:** `GO` humano registrado em 2026-07-15; Fase 7 documental encerrada.
+
+## Fase 8 - Introducao conceitual da solucao
+
+### Task 8.1 - Incorporar os fundamentos introdutorios ao documento canonico
+
+**Descricao:** analisar `../doc/organizacao-arquitetural-da-solucao-simtr-hub-v2.md` e incorporar
+ao inicio de `../doc/arquitetura-ddd-integracoes-atomicas.md` somente o contexto que explica a
+organizacao por dominio, a separacao entre aplicacao e infraestrutura e o uso de Portas e
+Adaptadores no `simtr-hub`.
+
+**Criterios de aceite:**
+
+- a introducao explica a solucao atual antes das regras detalhadas;
+- conceitos futuros, como orquestradores, microsservicos e Quarkus Flow, nao sao apresentados
+  como componentes existentes;
+- a versao historica da arquitetura contida no documento-fonte nao substitui o estado canonico
+  verificado depois das Fases 6 e 7;
+- a alteracao fica restrita a documentacao e governanca da fase.
+
+**Verificacao:** comparacao com o documento-fonte e com o estado canonico atual, links locais,
+busca por afirmacoes divergentes, revisao multi-eixo e `git diff --check`.
+
+**Dependencias:** C7. **Escopo:** S, exclusivamente documental.
+
+**Status:** concluida em 2026-07-15. A introducao do documento canonico agora explica a solucao
+implementada como monolito modular organizado por dominio, distingue aplicacao de infraestrutura
+e descreve o fluxo atual por portas e adapters REST, MTR e simulador. Orquestradores,
+microsservicos e motores de workflow permanecem identificados apenas como possibilidades futuras.
+A copia historica da arquitetura presente no documento-fonte nao foi incorporada. Links, escopo
+documental, consistencia das afirmacoes e `git diff --check` passaram; nenhum arquivo de producao,
+teste ou configuracao funcional mudou, portanto o Maven nao foi repetido.
+
+### Checkpoint C8 - Introducao arquitetural
+
+- [x] A introducao explica objetivo, organizacao por dominio e separacao aplicacao/infraestrutura.
+- [x] Portas e Adaptadores sao descritos como organizacao interna da solucao atual.
+- [x] Elementos futuros permanecem explicitamente separados da implementacao existente.
+- [x] Nenhum arquivo de producao, teste ou configuracao funcional foi alterado.
+- [x] Revisao humana aceita a consolidacao introdutoria.
+
+**Status:** `GO` humano registrado em 2026-07-15; Fase 8 documental encerrada.
 
 ## Riscos e mitigacoes
 
