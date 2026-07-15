@@ -3,9 +3,9 @@
 ## Status
 
 - **Planejado:** 2026-07-11
-- **Implementacao:** Fases 0 a 8 concluidas; C0, C1, C2, C3, C4, C5, C6, C7 e C8 em GO;
-  consolidacao introdutoria encerrada em 2026-07-15
-- **Branch de trabalho atual:** `refactor/ddd-fase-8-baseline`
+- **Implementacao:** Fases 0 a 9 concluidas; C0, C1, C2, C3, C4, C5, C6, C7, C8 e C9 em GO;
+  consolidacao dos fundamentos hexagonais encerrada em 2026-07-15
+- **Branch de trabalho atual:** `refactor/ddd-fase-9-baseline`
 - **Documento arquitetural:** `../doc/arquitetura-ddd-integracoes-atomicas.md`
 - **Checklist operacional:** `todo.md`
 
@@ -1226,6 +1226,54 @@ teste ou configuracao funcional mudou, portanto o Maven nao foi repetido.
 - [x] Revisao humana aceita a consolidacao introdutoria.
 
 **Status:** `GO` humano registrado em 2026-07-15; Fase 8 documental encerrada.
+
+## Fase 9 - Fundamentos hexagonais e papel do orquestrador
+
+### Task 9.1 - Consolidar a explicacao geral antes da aplicacao ao Hub
+
+**Descricao:** reorganizar o inicio de `../doc/arquitetura-ddd-integracoes-atomicas.md` para
+apresentar a separacao entre aplicacao e infraestrutura, a Arquitetura Hexagonal em termos gerais,
+a direcao das dependencias, sua relacao com microsservicos e seu uso pragmatico antes de explicar
+como esses fundamentos aparecem no `simtr-hub`.
+
+**Criterios de aceite:**
+
+- a explicacao geral precede a descricao especifica da solucao;
+- o texto distingue aplicacao de infraestrutura e registra os beneficios esperados da separacao;
+- portas, adapters e direcao das dependencias sao explicados sem depender de tecnologia;
+- o exemplo diferencia orquestrador externo de entrada, orquestrador local da camada de aplicacao
+  e orquestrador externo consumido por uma porta de saida;
+- o texto afirma que Arquitetura Hexagonal nao define a topologia de microsservicos e deve ser
+  aplicada de forma pragmatica;
+- todos os papeis de orquestracao permanecem conceituais e futuros; a solucao atual continua sem
+  endpoint de pre-validacao, orquestrador local ou motor de workflow;
+- a alteracao fica restrita a documentacao e governanca da fase.
+
+**Verificacao:** comparacao com o documento-fonte, coerencia com as regras canonicas e o inventario
+de endpoints, links locais, busca por afirmacoes divergentes, revisao multi-eixo e
+`git diff --check`.
+
+**Dependencias:** C8. **Escopo:** S, exclusivamente documental.
+
+**Status:** concluida em 2026-07-15. O documento canonico apresenta primeiro organizacao por
+dominio, separacao entre aplicacao e infraestrutura e Arquitetura Hexagonal em termos gerais;
+depois explica sua aplicacao ao `simtr-hub`. A direcao da interacao distingue orquestrador externo
+de entrada, coordenacao local futura na camada de aplicacao e orquestrador externo consumido por
+porta de saida. Microsservicos e uso pragmatico foram contextualizados sem transformar evolucao
+futura em componente atual. Busca no codigo confirmou ausencia de implementacao de orquestrador;
+links, escopo documental, seguranca, revisao multi-eixo e `git diff --check` passaram. Producao,
+testes e configuracao funcional nao mudaram, portanto o Maven nao foi repetido.
+
+### Checkpoint C9 - Fundamentos hexagonais
+
+- [x] Aplicacao e infraestrutura estao separadas antes da descricao da solucao.
+- [x] Arquitetura Hexagonal, portas, adapters e direcao das dependencias estao explicados em geral.
+- [x] Os tres papeis conceituais de orquestracao estao distintos e marcados como futuros.
+- [x] Microsservicos e uso pragmatico estao contextualizados sem promessa de implementacao.
+- [x] Nenhum arquivo de producao, teste ou configuracao funcional foi alterado.
+- [x] Revisao humana aceita a consolidacao.
+
+**Status:** `GO` humano registrado em 2026-07-15; Fase 9 documental encerrada.
 
 ## Riscos e mitigacoes
 

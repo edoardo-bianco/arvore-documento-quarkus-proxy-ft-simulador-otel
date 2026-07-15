@@ -12,13 +12,159 @@
 Este e o documento arquitetural canonico para a refatoracao. Agentes e pessoas devem le-lo antes
 de alterar packages, portas, DTOs, adapters, tratamento de erros ou testes relacionados.
 
+## Fundamentos de organizacao
+
+### Organizacao por dominio
+
+Ha duas formas comuns de agrupar o codigo: por tecnologia, reunindo Resources, services, clients e
+mappers de toda a solucao, ou por dominio, reunindo os artefatos que realizam uma capacidade de
+negocio. O `simtr-hub` adota **package by domain**.
+
+Assim, `arvoredocumento`, `conformidade`, `dossieproduto` e `gestaodocumento` possuem fronteiras
+proprias. Os nomes dos sistemas externos e das tecnologias aparecem nas bordas quando fazem parte
+do contrato, mas nao definem um dominio interno compartilhado. Essa organizacao reduz o
+acoplamento entre capacidades e torna explicito quem e responsavel por cada operacao.
+
+### Codigo da aplicacao e codigo de infraestrutura
+
+O **codigo da aplicacao** representa a logica de negocio e as funcionalidades centrais do
+software. Ele expressa capacidades, coordena casos de uso e trabalha com portas e modelos internos.
+
+O **codigo de infraestrutura** implementa as tecnologias que apoiam essas funcionalidades. Em
+termos gerais, pode incluir consultas SQL, requisicoes HTTP, chamadas AMQP, persistencia,
+mensageria, armazenamento e integracoes externas. No `simtr-hub` atual, inclui principalmente os
+endpoints REST, as chamadas HTTP ao MTR, a leitura de fixtures do simulador, serializacao,
+autenticacao, fault tolerance e observabilidade.
+
+Essa separacao aplica o principio de separacao de responsabilidades e contribui para:
+
+- simplificar os testes;
+- reduzir o acoplamento com tecnologias especificas;
+- reutilizar a logica da aplicacao por entradas diferentes;
+- substituir mecanismos de integracao com menor impacto;
+- facilitar a manutencao e a identificacao de problemas.
+
+Na solucao atual, essa separacao nao elimina Quarkus das bordas. Ela impede que detalhes do
+framework e dos contratos externos se tornem dependencias do dominio e da logica de aplicacao.
+
+## Arquitetura Hexagonal
+
+A **Arquitetura Hexagonal**, tambem conhecida como **Portas e Adaptadores**, promove a separacao
+entre o nucleo da aplicacao e os detalhes de infraestrutura.
+
+```text
+Adapter de entrada
+        |
+        v
+Porta de entrada
+        |
+        v
+Aplicacao / Dominio
+        |
+        v
+Porta de saida
+        |
+        v
+Adapter de saida
+```
+
+A regra central e que o nucleo conheca contratos orientados a capacidades, sem depender
+diretamente de REST, banco de dados, mensageria, armazenamento, SDKs externos, simuladores ou
+outras tecnologias. As dependencias de codigo apontam das bordas para as portas e os modelos do
+nucleo.
+
+### Portas
+
+Uma **porta** e um contrato do codigo que nao depende de tecnologia.
+
+- A **porta de entrada** representa uma capacidade oferecida pela aplicacao. Ela permite que uma
+  requisicao HTTP, uma mensagem, uma tarefa agendada ou uma futura etapa de orquestracao acione um
+  caso de uso.
+- A **porta de saida** representa uma necessidade externa da aplicacao. Ela permite consultar ou
+  persistir dados, chamar outro sistema ou publicar uma mensagem sem acoplar o caso de uso ao
+  mecanismo utilizado.
+
+As portas expressam intencoes e capacidades, nao o protocolo ou o fornecedor que as implementa.
+
+### Adaptadores
+
+Um **adapter** conecta uma porta a um mecanismo especifico. Adapters de entrada traduzem uma
+interacao externa para uma porta de entrada. Adapters de saida implementam portas de saida e
+traduzem os tipos internos para os contratos exigidos pela infraestrutura.
+
+Adapters dependem das portas. O nucleo nao depende dos adapters, e adapters de tipos diferentes
+nao dependem diretamente uns dos outros.
+
+### Direcao da dependencia e papel do orquestrador
+
+O papel arquitetural de um orquestrador depende da direcao da interacao; o nome
+"orquestrador" sozinho nao determina sua camada.
+
+Quando um **orquestrador externo inicia uma operacao**, ele e um ator de entrada. O protocolo e
+tratado por um adapter de entrada, que aciona a porta da aplicacao:
+
+```text
+Orquestrador externo
+        -> adapter de entrada (REST ou mensagem)
+            -> porta de entrada
+                -> aplicacao
+```
+
+Quando existe um **orquestrador local que coordena casos de uso**, essa coordenacao pertence a
+camada de aplicacao. Ele permanece atras de sua propria porta de entrada, compoe capacidades do
+mesmo dominio por seus contratos de entrada e atravessa outro dominio somente por uma porta de
+saida do consumidor e uma camada anticorrupcao. Ele nao conhece Resources, REST Clients ou
+adapters:
+
+```text
+Adapter de entrada
+        -> porta de entrada do fluxo
+            -> orquestrador da aplicacao (futuro)
+                |-> porta de entrada de capacidade atomica do mesmo dominio
+                `-> porta de saida do consumidor
+                    -> adapter / camada anticorrupcao
+                        -> outro dominio
+```
+
+Quando a aplicacao precisa acionar um **orquestrador externo como dependencia**, a interacao
+pertence ao lado de saida:
+
+```text
+Aplicacao
+    -> porta de saida
+        -> adapter de saida
+            -> orquestrador externo
+```
+
+Esses tres desenhos explicam possibilidades arquiteturais, nao componentes existentes. O
+`simtr-hub` atual nao possui orquestrador local, motor de workflow nem adapter dedicado a um
+orquestrador externo.
+
+### Arquitetura Hexagonal no mundo dos microsservicos
+
+Embora tenha "arquitetura" no nome, a Arquitetura Hexagonal e adotada neste documento como um
+**padrao tatico para estruturar o codigo e os componentes dentro de um servico especifico**.
+
+Ela nao define a visao de alto nivel, nao determina como servicos devem se comunicar e nao
+estabelece a estrutura de um sistema composto por multiplos servicos. Comunicacao por REST,
+mensageria ou outro mecanismo pertence ao desenho arquitetural do sistema.
+
+No `simtr-hub`, o padrao hexagonal organiza o interior dos dominios e das capacidades. O DDD define
+os limites de negocio e as formas de colaboracao; uma eventual extracao para microsservicos exige
+decisoes proprias de contratos, comunicacao, consistencia e operacao.
+
+### Uso pragmatico
+
+A adocao deve considerar os beneficios obtidos e o custo das abstracoes. O padrao nao e uma
+solucao universal e nao justifica componentes sem uso real. Portas, adapters e pastas so devem
+existir quando houver uma capacidade e um consumidor concretos.
+
 ## Visao da solucao
 
 O `simtr-hub` e um monolito modular organizado por dominios de negocio. A solucao implementada
 oferece oito capacidades atomicas por endpoints REST publicos e integra cada capacidade ao MTR ou
 ao simulador por adapters de saida independentes. Cada dominio concentra seus casos de uso,
-modelos internos e contratos de aplicacao; detalhes de HTTP, serializacao, CDI, fault tolerance e
-telemetria permanecem nas bordas.
+modelos internos e contratos de aplicacao; os detalhes tecnologicos permanecem nas bordas.
 
 O fluxo executado atualmente pode ser lido assim:
 
@@ -33,59 +179,14 @@ cliente HTTP
                         `-- simulador
 ```
 
+No fluxo atual, a entrada e REST e as duas saidas alternativas sao MTR e simulador. O caso de uso
+nao conhece Resource, REST Client, URL, DTO MTR, fixture nem o mecanismo de selecao CDI.
+
 Nao existe nesta solucao um endpoint unico de pre-validacao, orquestrador local, motor de workflow
 ou comunicacao distribuida entre os dominios. A composicao por orquestradores e a extracao para
 microsservicos sao possibilidades futuras, explicitamente separadas do estado implementado. A
 secao de cobertura frente a especificacao identifica os oito endpoints existentes e os cinco que
 ainda nao existem no Hub.
-
-## Fundamentos de organizacao
-
-### Organizacao por dominio
-
-Ha duas formas comuns de agrupar o codigo: por tecnologia, reunindo Resources, services, clients e
-mappers de toda a solucao, ou por dominio, reunindo os artefatos que realizam uma capacidade de
-negocio. O `simtr-hub` adota **package by domain**.
-
-Assim, `arvoredocumento`, `conformidade`, `dossieproduto` e `gestaodocumento` possuem fronteiras
-proprias. Os nomes dos sistemas externos e das tecnologias aparecem nas bordas quando fazem parte
-do contrato, mas nao definem um dominio interno compartilhado. Essa organizacao reduz o
-acoplamento entre capacidades e torna explicito quem e responsavel por cada operacao.
-
-### Aplicacao e infraestrutura
-
-O codigo de aplicacao expressa as capacidades e coordena os casos de uso com seus modelos
-internos. O codigo de infraestrutura implementa os mecanismos necessarios para executa-los, como
-endpoints REST, chamadas HTTP ao MTR, leitura de fixtures do simulador, serializacao,
-autenticacao, resiliencia e observabilidade.
-
-Separar essas responsabilidades permite testar o nucleo sem acionar infraestrutura, trocar o
-mecanismo de integracao com impacto concentrado e diagnosticar problemas na fronteira correta. Na
-solucao atual, essa separacao nao elimina Quarkus das bordas; ela impede que detalhes do framework
-e dos contratos externos se tornem dependencias do dominio.
-
-## Portas e Adaptadores no `simtr-hub`
-
-A Arquitetura Hexagonal, ou Portas e Adaptadores, e o padrao tatico usado para proteger o interior
-de cada dominio. Portas sao contratos orientados a capacidades e nao dependem de tecnologia:
-
-- uma **porta de entrada** expressa uma capacidade oferecida pela aplicacao e e acionada pelo
-  adapter REST atual;
-- uma **porta de saida** expressa uma necessidade externa do caso de uso, sem expor protocolo,
-  fornecedor ou DTO de integracao;
-- um **adapter de entrada** traduz o contrato REST publico para os tipos internos;
-- um **adapter de saida** implementa a necessidade externa e traduz os tipos internos para o
-  contrato do MTR ou do simulador.
-
-As dependencias apontam das bordas para as portas e os modelos internos. O caso de uso nao conhece
-Resource, REST Client, URL, DTO MTR, fixture ou mecanismo de selecao CDI; adapters de tipos
-diferentes tambem nao dependem diretamente uns dos outros.
-
-Esse padrao organiza o interior do Hub, mas nao define por si so a arquitetura distribuida do
-sistema. O DDD estabelece responsabilidades e limites entre dominios; REST, mensageria, futuros
-orquestradores ou uma eventual extracao em microsservicos exigem decisoes arquiteturais proprias.
-A aplicacao do padrao e pragmatica: nao se criam portas, adapters ou pastas sem uma capacidade e um
-consumidor reais.
 
 ## Intencao confirmada
 

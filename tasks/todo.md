@@ -33,10 +33,12 @@ Antes de executar qualquer item:
   GO em C6, publicada e configurada para rastrear `origin/refactor/ddd-fase-7-baseline`.
 - [x] G7 Branch `refactor/ddd-fase-8-baseline` criada a partir do commit `1854d7a`, que recebeu
   GO em C7, publicada e configurada para rastrear `origin/refactor/ddd-fase-8-baseline`.
+- [x] G8 Branch `refactor/ddd-fase-9-baseline` criada a partir do commit `2cc2744`, que recebeu
+  GO em C8, publicada e configurada para rastrear `origin/refactor/ddd-fase-9-baseline`.
 
 ## Ponto de retomada
 
-- **Ultimo marco concluido:** C8 - GO humano registrado e Fase 8 documental encerrada.
+- **Ultimo marco concluido:** C9 - GO humano registrado e Fase 9 documental encerrada.
 - **Proximo item:** nenhum neste plano; novo trabalho exige novo plano, nova fase e nova branch.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
@@ -510,6 +512,16 @@ Antes de executar qualquer item:
 - **Checkpoint C8 (2026-07-15):** GO humano registrado. A introducao conceitual, a separacao entre
   estado atual e evolucao futura e o escopo exclusivamente documental foram aceitos; a Fase 8
   esta encerrada.
+- **Task 9.1 concluida:** o documento canonico agora explica aplicacao/infraestrutura, Portas e
+  Adaptadores, direcao das dependencias, microsservicos e uso pragmatico antes da aplicacao ao
+  `simtr-hub`. O texto separa orquestrador externo de entrada, coordenacao local futura na camada
+  de aplicacao e orquestrador externo consumido por porta de saida. Busca no codigo confirmou que
+  nenhum desses papeis esta implementado. Links, seguranca, escopo exclusivamente documental,
+  revisao multi-eixo e `git diff --check` passaram; o Maven nao foi repetido porque producao,
+  testes e configuracao funcional permaneceram inalterados.
+- **Checkpoint C9 (2026-07-15):** GO humano registrado. A explicacao geral da Arquitetura
+  Hexagonal, os tres papeis conceituais de orquestracao, a relacao com microsservicos e o uso
+  pragmatico foram aceitos; a Fase 9 esta encerrada.
 
 ## Fase 0 - Baseline e guardrails
 
@@ -719,6 +731,15 @@ Antes de executar qualquer item:
 - [x] 8.1 Incorporar os fundamentos introdutorios ao documento canonico.
 - [x] C8 Obter aceite humano da introducao arquitetural.
 
+## Fase 9 - Fundamentos hexagonais e papel do orquestrador
+
+- [x] 9.1a Reorganizar aplicacao/infraestrutura e a explicacao geral da Arquitetura Hexagonal.
+- [x] 9.1b Explicar direcao das dependencias e os tres papeis conceituais de orquestracao.
+- [x] 9.1c Contextualizar microsservicos, uso pragmatico e aplicacao especifica ao `simtr-hub`.
+- [x] 9.1d Verificar estado atual versus exemplos futuros, links e diff documental.
+- [x] 9.1 Consolidar a explicacao geral antes da aplicacao ao Hub.
+- [x] C9 Obter aceite humano dos fundamentos hexagonais.
+
 ## Registro de checkpoints
 
 Esta tabela e a fonte autoritativa. Valores validos de status: `PENDENTE`, `GO` e `NO-GO`. Um
@@ -740,6 +761,7 @@ data, evidencias verificaveis e aprovador humano.
 | C6 | GO | 2026-07-15 | Tasks 6.1-6.4 concluidas; oito capacidades migradas; contratos externos, FT, simulador, erros e observabilidade preservados; suite, build, ArchUnit, JaCoCo, documentacao, Postman e diff final revisados sem bloqueios | Usuario, GO registrado em conversa |
 | C7 | GO | 2026-07-15 | Task 7.1 concluida; todos os endpoints da especificacao inventariados; oito capacidades implementadas e cinco ausencias explicitadas; README, decisao arquitetural, documento operacional, codigo, links e diff documental revisados sem bloqueios | Usuario, GO registrado em conversa |
 | C8 | GO | 2026-07-15 | Task 8.1 concluida; introducao explicita solucao atual, fundamentos hexagonais e limites futuros; links, escopo documental e diff revisados sem bloqueios | Usuario, GO registrado em conversa |
+| C9 | GO | 2026-07-15 | Task 9.1 concluida; fundamentos gerais, tres papeis conceituais de orquestracao, microsservicos, uso pragmatico, links e diff documental revisados sem bloqueios | Usuario, GO registrado em conversa |
 
 ## Bloqueios que nao podem ser resolvidos por suposicao
 
