@@ -10,6 +10,6 @@ public record DossieProdutoVinculoGarantiaDto(
         @JsonProperty("codigo_bacen") Integer codigoBacen,
         @JsonProperty("produto_operacao") Integer produtoOperacao,
         @JsonProperty("produto_modalidade") Integer produtoModalidade,
-        @JsonProperty("clientes_avalistas") @Valid List<DossieProdutoClienteAvalistaDto> clientesAvalistas
+        @JsonProperty("clientes_avalistas") List<@Valid DossieProdutoClienteAvalistaDto> clientesAvalistas
 ) {
 }

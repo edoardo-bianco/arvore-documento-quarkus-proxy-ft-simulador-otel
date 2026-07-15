@@ -11,6 +11,6 @@ public record DossieProdutoVinculoDossieDto(
         @Valid DossieProdutoVinculoClienteDto cliente,
         @Valid DossieProdutoVinculoProdutoDto produto,
         @Valid DossieProdutoVinculoGarantiaDto garantia,
-        @JsonProperty("respostas_formulario") @Valid List<DossieProdutoRespostaFormularioDto> respostasFormulario
+        @JsonProperty("respostas_formulario") List<@Valid DossieProdutoRespostaFormularioDto> respostasFormulario
 ) {
 }

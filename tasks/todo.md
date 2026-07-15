@@ -44,8 +44,8 @@ Antes de executar qualquer item:
 ## Ponto de retomada
 
 - **Ultimo marco concluido:** C10 - GO humano registrado e Fase 10 encerrada.
-- **Fase atual:** Fase 11 - cascata Jakarta Validation de formulario e documento.
-- **Proximo item:** 11.1b - prova RED e contratos HTTP de documento.
+- **Fase atual:** Fase 11 - implementacao concluida, checkpoint C11 pendente.
+- **Proximo item:** revisao humana e GO/NO-GO de C11; nao iniciar nova fase.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
   produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
@@ -284,8 +284,9 @@ Antes de executar qualquer item:
   aninhados permanecem. O RED de compilacao e cinco testes novos substituem dez testes exclusivos
   do legado removido. `mvn -q clean test` executou 236 casos em 62 relatorios, com zero falhas,
   zero erros e zero ignorados, no profile `test`, sem Docker ou Dev Services. O warning `HV000271`
-  nao aparece mais para a capacidade; warnings restantes pertencem a formulario/documento. Nao
-  houve alteracao de OpenAPI, properties ou fixture.
+  nao aparecia mais para a capacidade; naquele checkpoint, os warnings restantes pertenciam a
+  formulario/documento e foram eliminados na Fase 11. Nao houve alteracao de OpenAPI, properties
+  ou fixture.
 - **Checkpoint C2.4:** GO humano confirmado em 2026-07-14; consolidacao de `dossieproduto`
   desbloqueada.
 - **Inicio da Task 2.5 (2026-07-14):** inventario global cruzou todas as classes de producao de
@@ -555,6 +556,11 @@ Antes de executar qualquer item:
   governanca. Renome do package REST e mudanca do contrato tecnico de erro nao estao autorizados.
 - **Task 11.1a concluida:** fase, branch, escopo, subtasks e checkpoint C11 registrados. A mudanca
   seguira RED/GREEN antes de alterar as seis declaracoes depreciadas.
+- **Tasks 11.1b-11.1d concluidas:** a prova estrutural registrou RED para `@Valid` no container; os
+  contratos HTTP passaram a proteger as quatro mensagens de atributos/propriedades; as seis listas
+  foram migradas para o argumento de tipo. Testes focados, nulabilidade, suite limpa, ArchUnit e
+  revisao do diff passaram sem `HV000271`; packages REST e tecnico de erro nao mudaram.
+- **Task 11.1e concluida:** checkpoint consolidado para publicacao e espera de GO humano.
 
 ## Fase 0 - Baseline e guardrails
 
@@ -786,11 +792,11 @@ Antes de executar qualquer item:
 ## Fase 11 - Cascata Jakarta Validation de formulario e documento
 
 - [x] 11.1a Registrar fase, branch, escopo e checkpoint na governanca.
-- [ ] 11.1b Criar prova RED e completar contratos HTTP de atributos/propriedades de documento.
-- [ ] 11.1c Migrar as seis listas para `List<@Valid T>` e executar testes focados.
-- [ ] 11.1d Executar suite limpa, verificar warnings, revisar diff e consolidar documentacao.
-- [ ] 11.1e Publicar o checkpoint e aguardar GO humano.
-- [ ] 11.1 Remover o uso depreciado de `@Valid` nas listas REST preservando os contratos.
+- [x] 11.1b Criar prova RED e completar contratos HTTP de atributos/propriedades de documento.
+- [x] 11.1c Migrar as seis listas para `List<@Valid T>` e executar testes focados.
+- [x] 11.1d Executar suite limpa, verificar warnings, revisar diff e consolidar documentacao.
+- [x] 11.1e Publicar o checkpoint e aguardar GO humano.
+- [x] 11.1 Remover o uso depreciado de `@Valid` nas listas REST preservando os contratos.
 - [ ] C11 Obter aceite humano da cascata Jakarta Validation modernizada.
 
 ## Registro de checkpoints
@@ -816,7 +822,7 @@ data, evidencias verificaveis e aprovador humano.
 | C8 | GO | 2026-07-15 | Task 8.1 concluida; introducao explicita solucao atual, fundamentos hexagonais e limites futuros; links, escopo documental e diff revisados sem bloqueios | Usuario, GO registrado em conversa |
 | C9 | GO | 2026-07-15 | Task 9.1 concluida; fundamentos gerais, tres papeis conceituais de orquestracao, microsservicos, uso pragmatico, links e diff documental revisados sem bloqueios | Usuario, GO registrado em conversa |
 | C10 | GO | 2026-07-15 | Task 10.1 concluida; permissao de Quarkus, fronteiras, documentacao, ArchUnit, suite, JaCoCo e diff revisados sem bloqueios | Usuario, GO registrado em conversa |
-| C11 | PENDENTE | - | Fase 11 em execucao; evidencias ainda nao consolidadas | - |
+| C11 | PENDENTE | 2026-07-15 | Task 11.1 concluida; cascata no tipo dos elementos, contratos HTTP/nulabilidade, suite limpa, ArchUnit e diff verdes; `HV000271` eliminado; packages REST e tecnico de erro inalterados | Aguardando usuario |
 
 ## Bloqueios que nao podem ser resolvidos por suposicao
 

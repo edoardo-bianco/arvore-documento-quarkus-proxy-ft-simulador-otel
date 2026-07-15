@@ -243,7 +243,7 @@ public class DossieProdutoResource {
             @Min(value = 1, message = "O identificador do dossie produto deve ser maior que zero.")
             Long id,
             @NotNull(message = "O corpo da requisicao deve ser informado.")
-            @Valid List<DossieProdutoFormularioDto> requisicao) {
+            List<@Valid DossieProdutoFormularioDto> requisicao) {
 
         Integer quantidadeVinculos = quantidadeVinculosFormulario(requisicao);
         Integer quantidadeRespostas = quantidadeRespostasFormulario(requisicao);

@@ -136,9 +136,9 @@ As evidencias executaveis permanecem em `ObservabilidadeSpansContratoTest`,
 ## Validacao de containers
 
 Os DTOs da validacao negocial ja usam `List<@Valid T>` para a cascata. Os warnings `HV000271`
-observados na suite pertencem a contratos ainda legados de formulario e documento, nao a esta
-capacidade. A futura migracao REST deve preservar as mesmas mensagens e nulabilidade sem inventar
-novas restricoes.
+observados naquele checkpoint pertenciam aos contratos de formulario e documento, nao a esta
+capacidade. A Fase 11 modernizou esses contratos preservando as mesmas mensagens e nulabilidade,
+sem inventar novas restricoes.
 
 ## Evidencia de execucao
 
@@ -274,8 +274,8 @@ A Task 2.4e concluiu a migracao vertical da validacao negocial:
 O ciclo TDD registrou RED de compilacao quando o teste passou a exigir o novo request e a nova
 porta. Depois do GREEN, contratos HTTP positivos e negativos, wire MTR, erros lossless, retry,
 simulador ligado/desligado, logs, spans e os 13 guardrails ArchUnit passaram. O warning
-`HV000271` deixou de apontar a validacao negocial; os avisos restantes pertencem aos contratos de
-formulario e documento.
+`HV000271` deixou de apontar a validacao negocial; naquele checkpoint, os avisos restantes
+pertenciam aos contratos de formulario e documento e foram eliminados posteriormente na Fase 11.
 
 `mvn -q clean test` terminou com codigo 0 em 2026-07-14: 236 testes em 62 relatorios, zero falhas,
 zero erros e zero ignorados, no profile `test`, sem Docker ou Dev Services. Cinco testes novos de

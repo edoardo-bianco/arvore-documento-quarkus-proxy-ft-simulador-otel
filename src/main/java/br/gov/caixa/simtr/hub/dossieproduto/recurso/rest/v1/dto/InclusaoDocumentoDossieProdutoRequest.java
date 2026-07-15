@@ -15,7 +15,7 @@ public record InclusaoDocumentoDossieProdutoRequest(
         @JsonProperty("tipo_documento") String tipoDocumento,
         @JsonProperty("vinculo_dossie")
         @Valid DossieProdutoDocumentoVinculoDossieDto vinculoDossie,
-        @Valid List<DossieProdutoDocumentoAtributoDto> atributos,
-        @Valid List<DossieProdutoDocumentoPropriedadeDto> propriedades
+        List<@Valid DossieProdutoDocumentoAtributoDto> atributos,
+        List<@Valid DossieProdutoDocumentoPropriedadeDto> propriedades
 ) {
 }

@@ -11,6 +11,6 @@ public record DossieProdutoDocumentoGarantiaDto(
         @JsonProperty("codigo_bacen") Integer codigoBacen,
         @JsonProperty("produto_operacao") Integer produtoOperacao,
         @JsonProperty("produto_modalidade") Integer produtoModalidade,
-        @JsonProperty("cliente_avalista") @Valid List<DossieProdutoDocumentoClienteDto> clienteAvalista
+        @JsonProperty("cliente_avalista") List<@Valid DossieProdutoDocumentoClienteDto> clienteAvalista
 ) {
 }

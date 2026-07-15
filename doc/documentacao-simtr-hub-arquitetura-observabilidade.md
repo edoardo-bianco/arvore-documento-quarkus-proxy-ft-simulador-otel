@@ -207,8 +207,10 @@ Se uma chamada MTR falhar, verificar nesta ordem:
 ## Limites e dividas conhecidas
 
 - retry em operacoes mutaveis exige prova de idempotencia antes de orquestracao futura;
-- warnings Jakarta Validation remanescentes de formulario e documento precisam de mudanca
-  separada e testes de contrato;
 - o package REST de `dossieproduto` e o package tecnico de erro sao desvios internos documentados;
 - Quarkus Flow, persistencia de workflow, os cinco endpoints ausentes listados acima, quaisquer
   outros endpoints novos, upload e lifecycle de SAS permanecem fora do escopo.
+
+A divida Jakarta Validation de formulario e documento foi encerrada na Fase 11. As seis listas
+REST usam `List<@Valid T>`; contratos executaveis preservam mensagens e nulabilidade sem introduzir
+novas restricoes.

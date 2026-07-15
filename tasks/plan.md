@@ -1363,18 +1363,20 @@ verificacao de segredos e revisao do diff.
 **Dependencias:** C10. **Escopo:** S, com alteracao restrita aos metadados de validacao REST,
 testes contratuais e governanca.
 
-**Status:** em execucao desde 2026-07-15 na branch `refactor/ddd-fase-11-baseline`, criada e
-publicada a partir do commit `6d57872`, aceito em C10 e integrado a `main`.
+**Status:** concluida em 2026-07-15 na branch `refactor/ddd-fase-11-baseline`, criada e publicada a
+partir do commit `6d57872`, aceito em C10 e integrado a `main`. O ciclo RED/GREEN comprovou a
+colocacao da cascata no tipo dos elementos; contratos HTTP e de nulabilidade permaneceram verdes,
+a suite limpa terminou sem `HV000271` e os dois desvios de package ficaram inalterados.
 
 ### Checkpoint C11 - Cascata Jakarta Validation
 
-- [ ] As seis listas usam `List<@Valid T>` e o warning depreciado foi eliminado.
-- [ ] Mensagens, nulabilidade, paths, status e JSON permanecem protegidos e equivalentes.
-- [ ] Package REST e contrato tecnico compartilhado de erro permanecem fora do escopo.
-- [ ] Testes focados, suite completa, build, ArchUnit e revisao do diff estao verdes.
+- [x] As seis listas usam `List<@Valid T>` e o warning depreciado foi eliminado.
+- [x] Mensagens, nulabilidade, paths, status e JSON permanecem protegidos e equivalentes.
+- [x] Package REST e contrato tecnico compartilhado de erro permanecem fora do escopo.
+- [x] Testes focados, suite completa, build, ArchUnit e revisao do diff estao verdes.
 - [ ] Revisao humana aceita a mudanca e autoriza o fechamento.
 
-**Status:** `PENDENTE`; Fase 11 em execucao.
+**Status:** `PENDENTE`; implementacao concluida e aguardando GO humano.
 
 ## Riscos e mitigacoes
 
