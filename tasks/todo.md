@@ -43,9 +43,9 @@ Antes de executar qualquer item:
 
 ## Ponto de retomada
 
-- **Ultimo marco concluido:** C10 - GO humano registrado e Fase 10 encerrada.
-- **Fase atual:** Fase 11 - implementacao concluida, checkpoint C11 pendente.
-- **Proximo item:** revisao humana e GO/NO-GO de C11; nao iniciar nova fase.
+- **Ultimo marco concluido:** C11 - GO humano registrado e Fase 11 encerrada.
+- **Fase atual:** nenhuma; a proxima mudanca exige nova fase e branch.
+- **Proximo item:** abrir fase propria para renomear o package REST de `dossieproduto`.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
   produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
@@ -561,6 +561,9 @@ Antes de executar qualquer item:
   foram migradas para o argumento de tipo. Testes focados, nulabilidade, suite limpa, ArchUnit e
   revisao do diff passaram sem `HV000271`; packages REST e tecnico de erro nao mudaram.
 - **Task 11.1e concluida:** checkpoint consolidado para publicacao e espera de GO humano.
+- **Checkpoint C11 (2026-07-15):** GO humano registrado. A cascata Jakarta Validation modernizada
+  e os contratos preservados foram aceitos; a Fase 11 esta encerrada. O renome do package REST foi
+  autorizado apenas como fase seguinte independente.
 
 ## Fase 0 - Baseline e guardrails
 
@@ -797,7 +800,7 @@ Antes de executar qualquer item:
 - [x] 11.1d Executar suite limpa, verificar warnings, revisar diff e consolidar documentacao.
 - [x] 11.1e Publicar o checkpoint e aguardar GO humano.
 - [x] 11.1 Remover o uso depreciado de `@Valid` nas listas REST preservando os contratos.
-- [ ] C11 Obter aceite humano da cascata Jakarta Validation modernizada.
+- [x] C11 Obter aceite humano da cascata Jakarta Validation modernizada.
 
 ## Registro de checkpoints
 
@@ -822,7 +825,7 @@ data, evidencias verificaveis e aprovador humano.
 | C8 | GO | 2026-07-15 | Task 8.1 concluida; introducao explicita solucao atual, fundamentos hexagonais e limites futuros; links, escopo documental e diff revisados sem bloqueios | Usuario, GO registrado em conversa |
 | C9 | GO | 2026-07-15 | Task 9.1 concluida; fundamentos gerais, tres papeis conceituais de orquestracao, microsservicos, uso pragmatico, links e diff documental revisados sem bloqueios | Usuario, GO registrado em conversa |
 | C10 | GO | 2026-07-15 | Task 10.1 concluida; permissao de Quarkus, fronteiras, documentacao, ArchUnit, suite, JaCoCo e diff revisados sem bloqueios | Usuario, GO registrado em conversa |
-| C11 | PENDENTE | 2026-07-15 | Task 11.1 concluida; cascata no tipo dos elementos, contratos HTTP/nulabilidade, suite limpa, ArchUnit e diff verdes; `HV000271` eliminado; packages REST e tecnico de erro inalterados | Aguardando usuario |
+| C11 | GO | 2026-07-15 | Task 11.1 concluida; cascata no tipo dos elementos, contratos HTTP/nulabilidade, suite limpa, ArchUnit e diff verdes; `HV000271` eliminado; packages REST e tecnico de erro inalterados | Usuario, GO registrado em conversa |
 
 ## Bloqueios que nao podem ser resolvidos por suposicao
 

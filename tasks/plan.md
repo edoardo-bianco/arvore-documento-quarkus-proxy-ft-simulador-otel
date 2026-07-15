@@ -1374,9 +1374,10 @@ a suite limpa terminou sem `HV000271` e os dois desvios de package ficaram inalt
 - [x] Mensagens, nulabilidade, paths, status e JSON permanecem protegidos e equivalentes.
 - [x] Package REST e contrato tecnico compartilhado de erro permanecem fora do escopo.
 - [x] Testes focados, suite completa, build, ArchUnit e revisao do diff estao verdes.
-- [ ] Revisao humana aceita a mudanca e autoriza o fechamento.
+- [x] Revisao humana aceita a mudanca e autoriza o fechamento.
 
-**Status:** `PENDENTE`; implementacao concluida e aguardando GO humano.
+**Status:** `GO` humano registrado em 2026-07-15; Fase 11 encerrada. A renomeacao opcional do
+package REST foi autorizada como trabalho separado para uma nova fase.
 
 ## Riscos e mitigacoes
 
