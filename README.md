@@ -25,6 +25,33 @@ Nao foram adicionados endpoints nem orquestradores. Em especial, `gestaodocument
 devolve a credencial opaca fornecida pelo MTR: o Hub nao envia arquivos ao Azure, nao interpreta a
 validade, nao reutiliza ou renova SAS e nao mantem cache.
 
+## Endpoints da especificacao que nao existem no Hub
+
+A especificacao funcional `doc/api-integracao-mtr-pre-validacao-v1.md` descreve APIs do MTR, nao
+somente as operacoes expostas por este Hub. As oito operacoes usadas pelo fluxo principal estao
+implementadas e aparecem na tabela anterior. Os cinco endpoints MTR abaixo estao documentados na
+especificacao, mas **NAO ESTAO IMPLEMENTADOS NESTA SOLUCAO**:
+
+| Endpoint MTR de referencia | Situacao no Hub |
+|---|---|
+| `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/garantia` | Nao existe endpoint publico, capacidade, REST Client, adapter ou simulador |
+| `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/produto` | Nao existe endpoint publico, capacidade, REST Client, adapter ou simulador |
+| `POST /simtr-dossie-produto/v1/dossie-produto/{id}/capturar` | Nao existe endpoint publico, capacidade, REST Client, adapter ou simulador |
+| `POST /simtr-dossie-produto/v1/dossie-produto/{id}/cancelar` | Nao existe endpoint publico, capacidade, REST Client, adapter ou simulador |
+| `GET /simtr-dossie-produto/v2/dossie-produto/{id}` | Nao existe endpoint publico, capacidade, REST Client, adapter ou simulador |
+
+"Nao implementado no Hub" nao significa que a API upstream nao exista no MTR. Esses cinco
+endpoints aparecem na especificacao como operacoes do ciclo de vida do dossie a serem mantidas,
+mas nao sao chamados pelo diagrama de sequencia principal e nao ganharam rota proxy nesta
+solucao. Tambem nao existe endpoint unico de pre-validacao nem orquestrador local. Uma eventual
+implementacao exige nova decisao de escopo, contrato, testes, fase e branch; esta documentacao nao
+representa compromisso de entrega.
+
+A especificacao identifica os servicos pelos prefixos `/simtr-parametrizacao`,
+`/simtr-dossie-produto` e `/simtr-gestao-documento`. O ambiente atualmente configurado usa uma
+base de gateway terminada em `/simtr`, somada aos paths `/parametrizacao`, `/dossie-produto` e
+`/gestao-documento` declarados nos REST Clients.
+
 ## Arquitetura
 
 ```text
@@ -182,9 +209,10 @@ target/jacoco-report/index.html
 ## Documentacao
 
 - decisao arquitetural canonica: `doc/arquitetura-ddd-integracoes-atomicas.md`;
+- especificacao funcional de referencia: `doc/api-integracao-mtr-pre-validacao-v1.md`;
 - verificacao final por capacidade: `tasks/equivalencia-final.md`;
 - plano e checkpoint: `tasks/plan.md` e `tasks/todo.md`;
 - observabilidade e operacao: `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`.
 
-Quarkus Flow, novos workflows, persistencia de orquestracao, novos endpoints, upload e lifecycle
-de SAS permanecem fora deste escopo.
+Quarkus Flow, novos workflows, persistencia de orquestracao, os cinco endpoints ausentes listados
+acima, quaisquer outros endpoints novos, upload e lifecycle de SAS permanecem fora deste escopo.

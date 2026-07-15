@@ -29,10 +29,12 @@ Antes de executar qualquer item:
   GO em C4, publicada e configurada para rastrear `origin/refactor/ddd-fase-5-baseline`.
 - [x] G5 Branch `refactor/ddd-fase-6-baseline` criada a partir do commit `32d8a45`, que recebeu
   GO em C5, publicada e configurada para rastrear `origin/refactor/ddd-fase-6-baseline`.
+- [x] G6 Branch `refactor/ddd-fase-7-baseline` criada a partir do commit `639dc93`, que recebeu
+  GO em C6, publicada e configurada para rastrear `origin/refactor/ddd-fase-7-baseline`.
 
 ## Ponto de retomada
 
-- **Ultimo marco concluido:** C6 - GO humano registrado e refatoracao encerrada.
+- **Ultimo marco concluido:** C7 - GO humano registrado e Fase 7 documental encerrada.
 - **Proximo item:** nenhum neste plano; novo trabalho exige novo plano, nova fase e nova branch.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
@@ -483,6 +485,19 @@ Antes de executar qualquer item:
 - **Checkpoint C6 (2026-07-15):** GO humano registrado. As oito capacidades, contratos externos,
   guardrails arquiteturais, equivalencia final, documentacao e colecao Postman foram aceitos; a
   refatoracao esta formalmente encerrada.
+- **Bootstrap da Fase 7:** `refactor/ddd-fase-7-baseline` criada no commit `639dc93`, publicada e
+  configurada com upstream remoto. A fase e exclusivamente documental e nao autoriza endpoint,
+  contrato ou mudanca de producao.
+- **Task 7.1 concluida:** os treze endpoints MTR da especificacao foram confrontados com Resources,
+  portas, casos de uso, REST Clients e simuladores. As oito capacidades existentes estao alinhadas
+  nos tres documentos; garantia, produto, captura, cancelamento e consulta de dossie por id estao
+  explicitamente marcados como nao implementados no Hub. A documentacao distingue API upstream de
+  rota publica, nao promete entrega e reflete package de erro, ArchUnit, OpenAPI, configuracao e
+  observabilidade reais. Comparacao automatica, links, buscas, seguranca e diff passaram; nenhum
+  codigo, teste ou configuracao funcional mudou e o Maven nao foi repetido.
+- **Checkpoint C7 (2026-07-15):** GO humano registrado. A matriz de endpoints e o alinhamento entre
+  README, decisao arquitetural, documento operacional, especificacao e codigo foram aceitos; a
+  Fase 7 documental esta encerrada.
 
 ## Fase 0 - Baseline e guardrails
 
@@ -675,6 +690,14 @@ Antes de executar qualquer item:
 - [x] 6.4 Atualizar documentacao e dividas adiadas.
 - [x] C6 Obter aceite humano final.
 
+## Fase 7 - Alinhamento documental de endpoints
+
+- [x] 7.1a Inventariar todos os endpoints da especificacao e alinhar a decisao arquitetural.
+- [x] 7.1b Alinhar README e documento operacional com matriz de implementados e ausentes.
+- [x] 7.1c Verificar codigo, links, referencias divergentes e diff exclusivamente documental.
+- [x] 7.1 Confrontar a especificacao de pre-validacao com a solucao existente.
+- [x] C7 Obter aceite humano do alinhamento documental.
+
 ## Registro de checkpoints
 
 Esta tabela e a fonte autoritativa. Valores validos de status: `PENDENTE`, `GO` e `NO-GO`. Um
@@ -694,6 +717,7 @@ data, evidencias verificaveis e aprovador humano.
 | C4 | GO | 2026-07-14 | Fase 4 concluida; consulta de checklist integralmente em `conformidade`; legado removido sem referencias; contratos, configuracao, wire MTR, simulador, erros, fault tolerance, observabilidade, suite, build, ArchUnit e diff revisados sem bloqueios | Usuario, GO registrado em conversa |
 | C5 | GO | 2026-07-15 | Fase 5 concluida; `gestaodocumento` integralmente migrado; cadeia legada removida sem consumidores; guardrails impedem Azure Storage, cache, renovacao e upload no nucleo; contratos, configuracao, wire MTR, simulador, erros, FT, observabilidade, suite, build, ArchUnit, JaCoCo e diff verdes | Usuario, GO registrado em conversa |
 | C6 | GO | 2026-07-15 | Tasks 6.1-6.4 concluidas; oito capacidades migradas; contratos externos, FT, simulador, erros e observabilidade preservados; suite, build, ArchUnit, JaCoCo, documentacao, Postman e diff final revisados sem bloqueios | Usuario, GO registrado em conversa |
+| C7 | GO | 2026-07-15 | Task 7.1 concluida; todos os endpoints da especificacao inventariados; oito capacidades implementadas e cinco ausencias explicitadas; README, decisao arquitetural, documento operacional, codigo, links e diff documental revisados sem bloqueios | Usuario, GO registrado em conversa |
 
 ## Bloqueios que nao podem ser resolvidos por suposicao
 

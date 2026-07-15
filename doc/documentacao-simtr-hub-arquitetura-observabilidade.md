@@ -5,6 +5,7 @@
 Este documento descreve o estado operacional depois da refatoracao DDD concluida em 2026-07-15.
 
 - decisao arquitetural: `arquitetura-ddd-integracoes-atomicas.md`;
+- especificacao funcional de referencia: `api-integracao-mtr-pre-validacao-v1.md`;
 - capacidades e equivalencia: `../tasks/equivalencia-final.md`;
 - configuracao executavel: `../src/main/resources/application.properties`;
 - inventario contratual de sinais: `../tasks/inventario-observabilidade.md`.
@@ -70,6 +71,31 @@ POST /simtr-hub/v1/storage/container/credencial
 
 O documento OpenAPI e gerado exclusivamente pelo Quarkus. Nao existe arquivo estatico, filtro,
 complemento ou teste do artefato gerado.
+
+## Limite frente aos endpoints da especificacao de pre-validacao
+
+Os endpoints locais acima correspondem as oito capacidades implementadas. A especificacao
+`api-integracao-mtr-pre-validacao-v1.md` tambem cataloga cinco operacoes do ciclo de vida do
+dossie que **NAO EXISTEM NESTE HUB**:
+
+| Endpoint MTR descrito na especificacao | Estado operacional no Hub |
+|---|---|
+| `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/garantia` | Nao implementado |
+| `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/produto` | Nao implementado |
+| `POST /simtr-dossie-produto/v1/dossie-produto/{id}/capturar` | Nao implementado |
+| `POST /simtr-dossie-produto/v1/dossie-produto/{id}/cancelar` | Nao implementado |
+| `GET /simtr-dossie-produto/v2/dossie-produto/{id}` | Nao implementado |
+
+Para essas operacoes nao ha Resource, rota `/simtr-hub`, porta ou caso de uso, REST Client,
+adapter MTR, simulador, configuracao, fault tolerance ou sinais de observabilidade no Hub. A
+ausencia e somente desta solucao; o documento funcional pode descrever uma API existente no MTR.
+Elas nao sao usadas nos diagramas de sequencia principais da pre-validacao e nao existe endpoint
+unico de pre-validacao ou orquestrador local.
+
+Os prefixos `/simtr-parametrizacao`, `/simtr-dossie-produto` e `/simtr-gestao-documento` usados
+pela especificacao representam os servicos MTR. Nesta implantacao, o gateway e configurado com
+base `/simtr`, e cada REST Client acrescenta seu segmento de servico. A matriz completa, incluindo
+as oito operacoes implementadas, esta em `arquitetura-ddd-integracoes-atomicas.md`.
 
 ## Configuracao de integracoes
 
@@ -177,5 +203,5 @@ Se uma chamada MTR falhar, verificar nesta ordem:
 - warnings Jakarta Validation remanescentes de formulario e documento precisam de mudanca
   separada e testes de contrato;
 - o package REST de `dossieproduto` e o package tecnico de erro sao desvios internos documentados;
-- Quarkus Flow, persistencia de workflow, novos endpoints, upload e lifecycle de SAS permanecem
-  fora do escopo.
+- Quarkus Flow, persistencia de workflow, os cinco endpoints ausentes listados acima, quaisquer
+  outros endpoints novos, upload e lifecycle de SAS permanecem fora do escopo.

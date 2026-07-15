@@ -4,6 +4,7 @@
 
 - **Status:** aceito
 - **Data:** 2026-07-11
+- **Estado verificado:** 2026-07-15, depois da conclusao da refatoracao e do inventario de endpoints
 - **Escopo:** refatoracao do comportamento atualmente implementado
 - **Plano executavel:** `../tasks/plan.md`
 - **Checklist de retomada:** `../tasks/todo.md`
@@ -83,8 +84,9 @@ Capacidades existentes:
 - `RegistrarValidacaoNegocialDossieProduto`
 - `IniciarOuAvancarWorkflowDossieProduto`
 
-Endpoints adicionais descritos em documentos funcionais, mas ainda nao implementados, nao entram
-nesta refatoracao. Eles serao adicionados futuramente como novas capacidades atomicas.
+Endpoints adicionais descritos em documentos funcionais, mas nao implementados, nao entraram na
+refatoracao. A secao seguinte identifica cada um explicitamente; sua eventual implementacao exige
+decisao, contrato, fase e capacidade atomica proprios.
 
 ### `gestaodocumento`
 
@@ -102,6 +104,44 @@ credencial ate a expiracao informada pelo contrato e solicitar outra quando nece
 
 O futuro dominio de pre-validacao sera dono do processo associado ao espelho da proposta do
 usuario. Ele coordenara outros dominios por suas portas, mas esta fora do escopo inicial.
+
+## Cobertura frente a especificacao de pre-validacao
+
+A fonte funcional de comparacao e `api-integracao-mtr-pre-validacao-v1.md`. Os paths da coluna
+"Endpoint MTR da especificacao" identificam APIs do sistema upstream; eles nao sao rotas publicas
+do Hub. Neste inventario:
+
+- **IMPLEMENTADO** significa que existem no Hub endpoint publico, porta/caso de uso, adapter MTR e
+  adapter de simulador para a operacao;
+- **NAO IMPLEMENTADO** significa que o Hub nao possui Resource, rota publica, capacidade, REST
+  Client, adapter nem simulador para a operacao. Isso nao afirma que a API upstream do MTR nao
+  exista.
+
+| Endpoint MTR da especificacao | Estado no Hub | Endpoint publico do Hub |
+|---|---|---|
+| `GET /simtr-parametrizacao/v2/patriarca/processo/identificador-negocial/{identificador}` | **IMPLEMENTADO** | `GET /simtr-hub/v1/processo/identificador-negocial/{identificador}` |
+| `GET /simtr-parametrizacao/v1/cadastro/checklist/identificador-negocial/{identificador}/versao/{versao}` | **IMPLEMENTADO** | `GET /simtr-hub/v1/checklist/identificador-negocial/{identificador}/versao/{versao}` |
+| `POST /simtr-dossie-produto/v1/dossie-produto` | **IMPLEMENTADO** | `POST /simtr-hub/v1/dossie-produto` |
+| `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/formulario` | **IMPLEMENTADO** | `PATCH /simtr-hub/v1/dossie-produto/{id}/formulario` |
+| `POST /simtr-dossie-produto/v2/dossie-produto/{id}/documento` | **IMPLEMENTADO** | `POST /simtr-hub/v1/dossie-produto/{id}/documento` |
+| `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/validacao-negocial` | **IMPLEMENTADO** | `PATCH /simtr-hub/v1/dossie-produto/{id}/validacao-negocial` |
+| `POST /simtr-dossie-produto/v1/dossie-produto/{id}/workflow` | **IMPLEMENTADO** | `POST /simtr-hub/v1/dossie-produto/{id}/workflow` |
+| `POST /simtr-gestao-documento/v1/storage/container/credencial` | **IMPLEMENTADO** | `POST /simtr-hub/v1/storage/container/credencial` |
+| `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/garantia` | **NAO IMPLEMENTADO** | Nao existe |
+| `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/produto` | **NAO IMPLEMENTADO** | Nao existe |
+| `POST /simtr-dossie-produto/v1/dossie-produto/{id}/capturar` | **NAO IMPLEMENTADO** | Nao existe |
+| `POST /simtr-dossie-produto/v1/dossie-produto/{id}/cancelar` | **NAO IMPLEMENTADO** | Nao existe |
+| `GET /simtr-dossie-produto/v2/dossie-produto/{id}` | **NAO IMPLEMENTADO** | Nao existe |
+
+Os cinco endpoints ausentes aparecem na especificacao como operacoes existentes do ciclo de vida
+do dossie que deveriam ser mantidas inalteradas; eles nao aparecem nas duas sequencias principais
+descritas. As oito operacoes dessas sequencias existem como capacidades atomicas, sem
+orquestracao: nao existe endpoint unico de pre-validacao nem orquestrador local nesta solucao.
+
+A especificacao usa os nomes de servico `/simtr-parametrizacao`, `/simtr-dossie-produto` e
+`/simtr-gestao-documento`. Na configuracao atual do Hub, o gateway fornece uma base terminada em
+`/simtr` e os REST Clients acrescentam, respectivamente, `/parametrizacao`, `/dossie-produto` e
+`/gestao-documento`. Essa diferenca de montagem nao muda a operacao nem sua versao funcional.
 
 ## Decisao sobre `parametrizacao`
 
@@ -168,8 +208,8 @@ pelos tipos semanticos de comando/resultado referenciados por elas. Casos de uso
 de saida e demais tipos internos nao fazem parte dessa API. A aplicacao de um dominio consumidor
 nao importa diretamente nem mesmo essa API: somente seu adapter local anticorrupcao pode importa-la.
 
-Essas regras serao adicionadas progressivamente ao build com ArchUnit. Uma regra so passa a ser
-obrigatoria para uma capacidade depois de sua migracao, evitando um big bang.
+Essas regras estao codificadas no build por ArchUnit para todas as capacidades migradas. A
+ativacao ocorreu progressivamente durante a refatoracao para evitar um big bang.
 
 ## Portas e granularidade
 
@@ -200,10 +240,11 @@ impede que um consumer dependa de uma interface ampla por conveniencia.
 - DTOs de negocio ficam exclusivamente no adapter REST de entrada do proprio dominio.
 - DTOs de topo usam nomes explicitos de request e response.
 - Tipos aninhados usam nomes semanticos dentro do package da operacao.
-- Paths, verbos, status, JSON, validacoes e OpenAPI observaveis permanecem iguais.
+- Paths, verbos, status, JSON e validacoes observaveis permanecem iguais.
+- O OpenAPI e gerado exclusivamente pelo Quarkus a partir do codigo; nao existe arquivo estatico,
+  filtro, complemento nem teste do documento gerado.
 - A unica excecao compartilhada permitida e o contrato tecnico de erro REST, localizado em
-  `arquitetura.adaptador.entrada.rest.erro.dto`. Ele e proibido no dominio, na aplicacao e nos
-  adapters MTR/simulador.
+  `arquitetura.excecao.dto`. Ele e proibido no dominio, na aplicacao e nos adapters MTR/simulador.
 
 ### MTR
 
@@ -274,7 +315,7 @@ Nomes de spans, eventos de log e atributos atuais sao contrato de compatibilidad
 
 ## Estrategia de testes
 
-Sera usado TDD leve:
+Foi usado TDD leve:
 
 1. caracterizar o comportamento observavel que ainda nao possui teste;
 2. provar que o teste protege a fronteira ou falha arquitetural pretendida;
@@ -293,20 +334,19 @@ Os testes devem cobrir, conforme a capacidade:
 - traducao de erros ponta a ponta;
 - matriz de retry, circuit breaker e timeout sem alterar os valores atuais;
 - nomes e atributos de observabilidade considerados contratuais;
-- equivalencia semantica do documento OpenAPI;
+- annotations e contratos Java que alimentam o OpenAPI gerado, sem testar ou manipular o artefato;
 - propriedades, defaults e profiles de configuracao usados pela capacidade;
 - regras ArchUnit das capacidades ja migradas.
 
-Baseline observado antes da refatoracao: `mvn -q test` com 100 testes, zero falhas.
-O numero isolado nao e criterio de preservacao. A Fase 0 deve gerar um manifesto por capacidade
-com os testes e contratos protegidos. Nenhum teste preexistente pode ser removido, desabilitado ou
-substituido sem justificativa e GO humano; testes novos apenas aumentam a protecao.
+O baseline anterior foi preservado por manifestos e contratos executaveis por capacidade. A
+evidencia quantitativa de cobertura permanece exclusivamente no relatorio JaCoCo. Nenhum teste
+preexistente foi removido, desabilitado ou substituido sem justificativa e GO humano.
 
-## Migracao progressiva
+## Migracao progressiva concluida
 
 A unidade de migracao e uma capacidade vertical, nao um package inteiro.
 
-Ordem aprovada:
+Ordem executada:
 
 1. guardrails e caracterizacao;
 2. piloto `IniciarOuAvancarWorkflowDossieProduto`, por possuir contrato pequeno;
@@ -316,12 +356,12 @@ Ordem aprovada:
 6. `ObterCredencialContainer` em `gestaodocumento`;
 7. remocao segura do antigo package `parametrizacao` e consolidacao final.
 
-Cada checkpoint exige suite verde, build valido, regras arquiteturais da fatia ativas e revisao do
-diff antes de continuar.
+Cada checkpoint exigiu suite verde, build valido, regras arquiteturais da fatia ativas e revisao
+do diff antes da continuidade.
 
 ## Fora de escopo
 
-- novos endpoints descritos na documentacao funcional;
+- os cinco endpoints marcados como **NAO IMPLEMENTADO** acima e quaisquer outros endpoints novos;
 - implementacao de qualquer workflow ou orquestrador;
 - escolha definitiva ou dependencia de Quarkus Flow;
 - Redis, Cosmos DB ou persistencia de estado de workflow;

@@ -3,9 +3,9 @@
 ## Status
 
 - **Planejado:** 2026-07-11
-- **Implementacao:** Fases 0 a 6 concluidas; C0, C1, C2, C3, C4, C5 e C6 em GO; refatoracao
-  formalmente encerrada em 2026-07-15
-- **Branch de trabalho atual:** `refactor/ddd-fase-6-baseline`
+- **Implementacao:** Fases 0 a 7 concluidas; C0, C1, C2, C3, C4, C5, C6 e C7 em GO; alinhamento
+  documental formalmente encerrado em 2026-07-15
+- **Branch de trabalho atual:** `refactor/ddd-fase-7-baseline`
 - **Documento arquitetural:** `../doc/arquitetura-ddd-integracoes-atomicas.md`
 - **Checklist operacional:** `todo.md`
 
@@ -1142,6 +1142,49 @@ Checkpoint C6 recebeu GO humano em 2026-07-15.
 - [x] Revisao humana confirma a conclusao.
 
 **Status:** `GO` humano registrado em 2026-07-15; Fase 6 e plano de refatoracao encerrados.
+
+## Fase 7 - Alinhamento documental do escopo de endpoints
+
+### Task 7.1 - Confrontar a especificacao de pre-validacao com a solucao existente
+
+**Descricao:** inventariar todos os endpoints MTR descritos em
+`../doc/api-integracao-mtr-pre-validacao-v1.md`, distinguir claramente os que possuem capacidade
+e endpoint publico no Hub daqueles que ainda nao existem nesta solucao e alinhar README,
+documento arquitetural e documento operacional ao codigo executavel.
+
+**Criterios de aceite:**
+
+- a matriz cobre todos os endpoints MTR da especificacao e indica, sem ambiguidade, implementado
+  ou nao implementado no Hub;
+- endpoints ausentes nao aparecem como capacidade pronta, promessa de entrega ou rota publica;
+- paths publicos e MTR implementados, packages, limites de escopo e decisao OpenAPI correspondem
+  ao codigo atual;
+- a alteracao fica restrita a documentacao e governanca da fase.
+
+**Verificacao:** inventario de Resources e REST Clients, comparacao com a especificacao, links
+locais, busca por afirmacoes divergentes e revisao multi-eixo do diff.
+
+**Dependencias:** C6. **Escopo:** S, subdividido por grupo documental.
+
+**Status:** concluida em 2026-07-15. A especificacao contem treze endpoints MTR: oito possuem
+capacidade e rota publica no Hub, enquanto garantia, produto, captura, cancelamento e consulta de
+dossie por identificador nao estao implementados nesta solucao. README, decisao arquitetural e
+documento operacional distinguem API upstream de rota do Hub, registram as cinco ausencias sem
+promessa de entrega e explicam a montagem de paths pelo gateway. O documento canonico tambem foi
+ajustado ao package real do erro REST, ao estado final do ArchUnit e a decisao de OpenAPI gerado
+exclusivamente pelo Quarkus. Inventario do codigo, comparacao automatica dos endpoints, links,
+buscas de divergencia, seguranca e `git diff --check` passaram. Nenhum arquivo de producao, teste
+ou configuracao funcional mudou; por isso o Maven nao foi repetido. C7 recebeu GO humano em
+2026-07-15.
+
+### Checkpoint C7 - Alinhamento documental
+
+- [x] Matriz diferencia todos os endpoints implementados e ausentes da especificacao.
+- [x] README, decisao arquitetural e documento operacional descrevem a mesma solucao.
+- [x] Nenhum arquivo de producao, teste ou configuracao funcional foi alterado.
+- [x] Revisao humana confirma a clareza do escopo.
+
+**Status:** `GO` humano registrado em 2026-07-15; Fase 7 documental encerrada.
 
 ## Riscos e mitigacoes
 
