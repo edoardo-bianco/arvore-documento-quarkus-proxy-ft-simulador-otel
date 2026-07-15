@@ -1,14 +1,23 @@
 package br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1;
 
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriacaoDto;
+import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.CriacaoDossieProdutoRequest;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.AtualizarFormularioDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.CriarDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.IncluirDocumentoDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.RegistrarValidacaoNegocialDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaCriacaoDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaAtualizacaoFormularioDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaInclusaoDocumentoDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaRegistroValidacaoNegocialDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriadoDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoCriadoDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoInclusaoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoFormularioDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialDto;
+import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.ValidacaoNegocialDossieProdutoRequest;
+import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.InclusaoDocumentoDossieProdutoRequest;
+import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.InclusaoDocumentoDossieProdutoResponse;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.IniciarOuAvancarWorkflowDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaWorkflowDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.IdentificadorDossieProduto;
 import br.gov.caixa.simtr.hub.arquitetura.excecao.dto.ErroPadraoDto;
-import br.gov.caixa.simtr.hub.dossieproduto.fachada.DossieProdutoFachada;
-import br.gov.caixa.simtr.hub.dossieproduto.mapeamento.DossieProdutoMapper;
 import br.gov.caixa.simtr.hub.arquitetura.observabilidade.ObservabilityLog;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
@@ -46,14 +55,23 @@ public class DossieProdutoResource {
 
     private static final Logger LOG = Logger.getLogger(DossieProdutoResource.class);
 
-    private final DossieProdutoFachada dossieProdutoFachada;
-    private final DossieProdutoMapper dossieProdutoMapper;
+    private final CriarDossieProduto criarDossieProduto;
+    private final AtualizarFormularioDossieProduto atualizarFormularioDossieProduto;
+    private final IncluirDocumentoDossieProduto incluirDocumentoDossieProduto;
+    private final IniciarOuAvancarWorkflowDossieProduto iniciarOuAvancarWorkflow;
+    private final RegistrarValidacaoNegocialDossieProduto registrarValidacaoNegocial;
 
     @Inject
-    public DossieProdutoResource(DossieProdutoFachada dossieProdutoFachada,
-                                 DossieProdutoMapper dossieProdutoMapper) {
-        this.dossieProdutoFachada = dossieProdutoFachada;
-        this.dossieProdutoMapper = dossieProdutoMapper;
+    public DossieProdutoResource(CriarDossieProduto criarDossieProduto,
+                                 AtualizarFormularioDossieProduto atualizarFormularioDossieProduto,
+                                 IncluirDocumentoDossieProduto incluirDocumentoDossieProduto,
+                                 IniciarOuAvancarWorkflowDossieProduto iniciarOuAvancarWorkflow,
+                                 RegistrarValidacaoNegocialDossieProduto registrarValidacaoNegocial) {
+        this.criarDossieProduto = criarDossieProduto;
+        this.atualizarFormularioDossieProduto = atualizarFormularioDossieProduto;
+        this.incluirDocumentoDossieProduto = incluirDocumentoDossieProduto;
+        this.iniciarOuAvancarWorkflow = iniciarOuAvancarWorkflow;
+        this.registrarValidacaoNegocial = registrarValidacaoNegocial;
     }
 
     @POST
@@ -101,7 +119,7 @@ public class DossieProdutoResource {
     })
     public Uni<Response> criarDossieProduto(
             @NotNull(message = "O corpo da requisicao deve ser informado.")
-            @Valid DossieProdutoCriacaoDto requisicao) {
+            @Valid CriacaoDossieProdutoRequest requisicao) {
 
         Long processo = processo(requisicao);
         Long chaveCorrelacaoCanal = chaveCorrelacaoCanal(requisicao);
@@ -127,8 +145,11 @@ public class DossieProdutoResource {
                 )
         );
 
-        return dossieProdutoFachada.criarDossieProduto(dossieProdutoMapper.toVo(requisicao))
-                .map(dossieProdutoMapper::toDto)
+        return criarDossieProduto.executar(CriacaoDossieProdutoRestMapper.paraComando(requisicao))
+                .onFailure(FalhaCriacaoDossieProduto.class)
+                .transform(erro -> CriacaoDossieProdutoRestMapper.paraExcecaoRest(
+                        (FalhaCriacaoDossieProduto) erro))
+                .map(CriacaoDossieProdutoRestMapper::paraResposta)
                 .invoke(resposta -> {
                     if (resposta != null && resposta.id() != null) {
                         span.setAttribute("dossie_produto.id", resposta.id());
@@ -247,11 +268,12 @@ public class DossieProdutoResource {
                 )
         );
 
-        return dossieProdutoFachada.atualizarFormularioDossieProduto(
-                        id,
-                        dossieProdutoMapper.toFormularioVo(requisicao)
-                )
-                .map(dossieProdutoMapper::toDto)
+        return atualizarFormularioDossieProduto.executar(
+                        FormularioDossieProdutoRestMapper.paraComando(id, requisicao))
+                .onFailure(FalhaAtualizacaoFormularioDossieProduto.class)
+                .transform(erro -> FormularioDossieProdutoRestMapper.paraExcecaoRest(
+                        (FalhaAtualizacaoFormularioDossieProduto) erro))
+                .map(FormularioDossieProdutoRestMapper::paraResposta)
                 .invoke(resposta -> {
                     if (resposta != null && resposta.id() != null) {
                         span.setAttribute("dossie_produto.id_resposta", resposta.id());
@@ -304,7 +326,7 @@ public class DossieProdutoResource {
             @APIResponse(
                     responseCode = "201",
                     description = "Documento criado com sucesso.",
-                    content = @Content(schema = @Schema(implementation = DossieProdutoDocumentoCriadoDto.class))
+                    content = @Content(schema = @Schema(implementation = InclusaoDocumentoDossieProdutoResponse.class))
             ),
             @APIResponse(
                     responseCode = "400",
@@ -343,7 +365,7 @@ public class DossieProdutoResource {
             @Min(value = 1, message = "O identificador do dossie produto deve ser maior que zero.")
             Long id,
             @NotNull(message = "O corpo da requisicao deve ser informado.")
-            @Valid DossieProdutoDocumentoInclusaoDto requisicao) {
+            @Valid InclusaoDocumentoDossieProdutoRequest requisicao) {
 
         Integer quantidadeAtributos = quantidadeAtributosDocumento(requisicao);
         Integer quantidadePropriedades = quantidadePropriedadesDocumento(requisicao);
@@ -371,11 +393,12 @@ public class DossieProdutoResource {
                 )
         );
 
-        return dossieProdutoFachada.incluirDocumentoDossieProduto(
-                        id,
-                        dossieProdutoMapper.toVo(requisicao)
-                )
-                .map(resposta -> dossieProdutoMapper.toDto(resposta))
+        return incluirDocumentoDossieProduto.executar(
+                        DocumentoDossieProdutoRestMapper.paraComando(id, requisicao))
+                .onFailure(FalhaInclusaoDocumentoDossieProduto.class)
+                .transform(erro -> DocumentoDossieProdutoRestMapper.paraExcecaoRest(
+                        (FalhaInclusaoDocumentoDossieProduto) erro))
+                .map(DocumentoDossieProdutoRestMapper::paraResposta)
                 .invoke(resposta -> {
                     if (resposta != null && resposta.idDocumento() != null) {
                         span.setAttribute("dossie_produto.documento.id", resposta.idDocumento());
@@ -476,7 +499,7 @@ public class DossieProdutoResource {
             @Min(value = 1, message = "O identificador do dossie produto deve ser maior que zero.")
             Long id,
             @NotNull(message = "O corpo da requisicao deve ser informado.")
-            @Valid DossieProdutoValidacaoNegocialDto requisicao) {
+            @Valid ValidacaoNegocialDossieProdutoRequest requisicao) {
 
         Integer quantidadeVerificacoes = quantidadeVerificacoesValidacao(requisicao);
         Integer quantidadeRespostasFormulario = quantidadeRespostasFormularioValidacao(requisicao);
@@ -501,10 +524,11 @@ public class DossieProdutoResource {
                 )
         );
 
-        return dossieProdutoFachada.registrarValidacaoNegocialDossieProduto(
-                        id,
-                        dossieProdutoMapper.toVo(requisicao)
-                )
+        return registrarValidacaoNegocial.executar(
+                        ValidacaoNegocialDossieProdutoRestMapper.paraComando(id, requisicao))
+                .onFailure(FalhaRegistroValidacaoNegocialDossieProduto.class)
+                .transform(erro -> ValidacaoNegocialDossieProdutoRestMapper.paraExcecaoRest(
+                        (FalhaRegistroValidacaoNegocialDossieProduto) erro))
                 .invoke(resposta -> ObservabilityLog.info(
                         LOG,
                         "simtr-hub.dossie-produto.validacao-negocial.resposta.enviada",
@@ -604,8 +628,11 @@ public class DossieProdutoResource {
                 )
         );
 
-        return dossieProdutoFachada.iniciarOuAvancarWorkflowDossieProduto(id)
-                .map(dossieProdutoMapper::toDto)
+        return iniciarOuAvancarWorkflow.executar(new IdentificadorDossieProduto(id))
+                .onFailure(FalhaWorkflowDossieProduto.class)
+                .transform(erro -> WorkflowDossieProdutoRestMapper.paraExcecaoRest(
+                        (FalhaWorkflowDossieProduto) erro))
+                .map(WorkflowDossieProdutoRestMapper::paraResposta)
                 .invoke(resposta -> {
                     if (resposta != null && resposta.id() != null) {
                         span.setAttribute("dossie_produto.workflow.id_resposta", resposta.id());
@@ -645,15 +672,15 @@ public class DossieProdutoResource {
                 });
     }
 
-    private static Long processo(DossieProdutoCriacaoDto requisicao) {
+    private static Long processo(CriacaoDossieProdutoRequest requisicao) {
         return requisicao != null ? requisicao.processo() : null;
     }
 
-    private static Long chaveCorrelacaoCanal(DossieProdutoCriacaoDto requisicao) {
+    private static Long chaveCorrelacaoCanal(CriacaoDossieProdutoRequest requisicao) {
         return requisicao != null ? requisicao.chaveCorrelacaoCanal() : null;
     }
 
-    private static Integer quantidadeClientes(DossieProdutoCriacaoDto requisicao) {
+    private static Integer quantidadeClientes(CriacaoDossieProdutoRequest requisicao) {
         if (requisicao == null || requisicao.clientes() == null) {
             return null;
         }
@@ -681,32 +708,34 @@ public class DossieProdutoResource {
                 .sum();
     }
 
-    private static String tipoDocumento(DossieProdutoDocumentoInclusaoDto requisicao) {
+    private static String tipoDocumento(InclusaoDocumentoDossieProdutoRequest requisicao) {
         return requisicao != null ? requisicao.tipoDocumento() : null;
     }
 
-    private static Integer quantidadeAtributosDocumento(DossieProdutoDocumentoInclusaoDto requisicao) {
+    private static Integer quantidadeAtributosDocumento(
+            InclusaoDocumentoDossieProdutoRequest requisicao) {
         if (requisicao == null || requisicao.atributos() == null) {
             return null;
         }
         return requisicao.atributos().size();
     }
 
-    private static Integer quantidadePropriedadesDocumento(DossieProdutoDocumentoInclusaoDto requisicao) {
+    private static Integer quantidadePropriedadesDocumento(
+            InclusaoDocumentoDossieProdutoRequest requisicao) {
         if (requisicao == null || requisicao.propriedades() == null) {
             return null;
         }
         return requisicao.propriedades().size();
     }
 
-    private static Integer quantidadeVerificacoesValidacao(DossieProdutoValidacaoNegocialDto requisicao) {
+    private static Integer quantidadeVerificacoesValidacao(ValidacaoNegocialDossieProdutoRequest requisicao) {
         if (requisicao == null || requisicao.verificacoes() == null) {
             return null;
         }
         return requisicao.verificacoes().size();
     }
 
-    private static Integer quantidadeRespostasFormularioValidacao(DossieProdutoValidacaoNegocialDto requisicao) {
+    private static Integer quantidadeRespostasFormularioValidacao(ValidacaoNegocialDossieProdutoRequest requisicao) {
         if (requisicao == null || requisicao.respostasFormulario() == null) {
             return null;
         }

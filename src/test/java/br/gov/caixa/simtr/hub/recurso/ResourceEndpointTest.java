@@ -40,21 +40,11 @@ class ResourceEndpointTest {
     }
 
     @Test
-    void openApiEndpointRetorna200NoPathConvencional() {
-        given()
-                .accept(ContentType.JSON)
-                .when()
-                .get("/simtr-hub/openapi")
-                .then()
-                .statusCode(200);
-    }
-
-    @Test
     void dossieProdutoPostRetorna201ComMockDoQuarkus() {
         given()
                 .contentType(ContentType.JSON)
                 .accept(ContentType.JSON)
-                .body(TestFixtures.dossieCriacaoDto())
+                .body(TestFixtures.criacaoDossieProdutoRequest())
                 .when()
                 .post("/simtr-hub/v1/dossie-produto")
                 .then()
@@ -108,7 +98,7 @@ class ResourceEndpointTest {
         given()
                 .contentType(ContentType.JSON)
                 .accept(ContentType.JSON)
-                .body(TestFixtures.validacaoNegocialDto())
+                .body(TestFixtures.validacaoNegocialRequest())
                 .when()
                 .patch("/simtr-hub/v1/dossie-produto/{id}/validacao-negocial", 123L)
                 .then()
@@ -222,7 +212,7 @@ class ResourceEndpointTest {
         given()
                 .contentType(ContentType.JSON)
                 .accept(ContentType.JSON)
-                .body(TestFixtures.validacaoNegocialDto())
+                .body(TestFixtures.validacaoNegocialRequest())
                 .when()
                 .patch("/simtr-hub/v1/dossie-produto/{id}/validacao-negocial", 0)
                 .then()

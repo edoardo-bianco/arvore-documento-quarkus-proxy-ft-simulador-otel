@@ -1,10 +1,19 @@
 package br.gov.caixa.simtr.hub.arquitetura.observabilidade;
 
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.testing.exporter.InMemorySpanExporter;
+import io.opentelemetry.sdk.trace.data.SpanData;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.client.ClientRequestContext;
 import jakarta.ws.rs.client.ClientResponseContext;
 import jakarta.ws.rs.core.MediaType;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -14,8 +23,11 @@ import java.lang.reflect.Method;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,6 +47,18 @@ class RestClientObservabilityFilterTest {
             "simtr-hub.observabilidade.rest-client.payload.input.max-length";
     private static final String OUTPUT_MAX_LENGTH_PROPERTY =
             "simtr-hub.observabilidade.rest-client.payload.output.max-length";
+
+    @Inject
+    InMemorySpanExporter exporter;
+
+    @Inject
+    OpenTelemetry openTelemetry;
+
+    @BeforeEach
+    void limparSpans() {
+        ((OpenTelemetrySdk) openTelemetry).getSdkTracerProvider().forceFlush().join(10, TimeUnit.SECONDS);
+        exporter.reset();
+    }
 
     @AfterEach
     void limparProperties() {
@@ -64,6 +88,46 @@ class RestClientObservabilityFilterTest {
 
         verify(request).setProperty(anyString(), any());
         verify(response).setEntityStream(any(ByteArrayInputStream.class));
+    }
+
+    @Test
+    void preservaEventosEAtributosDerivadosDaInvocacaoRestClient() throws Exception {
+        System.setProperty(PAYLOAD_ENABLED_PROPERTY, "false");
+
+        Map<String, Object> properties = new HashMap<>();
+        properties.put(INVOKED_METHOD_PROPERTY, metodoRestClientFake());
+        ClientRequestContext request = requestContext(
+                properties,
+                "POST",
+                "http://localhost/simtr/recurso",
+                null
+        );
+        ClientResponseContext response = responseContext(201, null, MediaType.APPLICATION_JSON_TYPE);
+        RestClientObservabilityFilter filter = new RestClientObservabilityFilter();
+        Span span = openTelemetry.getTracer("simtr-hub-test")
+                .spanBuilder("rest-client-observability-contract")
+                .startSpan();
+
+        try (Scope ignored = span.makeCurrent()) {
+            filter.filter(request);
+            filter.filter(request, response);
+        } finally {
+            span.end();
+        }
+        ((OpenTelemetrySdk) openTelemetry).getSdkTracerProvider().forceFlush().join(10, TimeUnit.SECONDS);
+
+        SpanData observado = exporter.getFinishedSpanItems().stream()
+                .filter(item -> item.getName().equals("rest-client-observability-contract"))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("POST", observado.getAttributes().get(AttributeKey.stringKey("rest_client.request.method")));
+        assertEquals("/simtr/recurso", observado.getAttributes().get(AttributeKey.stringKey("rest_client.url.path")));
+        assertEquals("RestClientFake", observado.getAttributes().get(AttributeKey.stringKey("rest_client.class")));
+        assertEquals("executar", observado.getAttributes().get(AttributeKey.stringKey("rest_client.operation")));
+        assertEquals(false, observado.getAttributes().get(AttributeKey.booleanKey("rest_client.payload.enabled")));
+        assertEquals(201L, observado.getAttributes().get(AttributeKey.longKey("rest_client.response.status_code")));
+        assertEquals(List.of("mtr.rest-client.request.enviada", "mtr.rest-client.response.recebida"),
+                observado.getEvents().stream().map(evento -> evento.getName()).toList());
     }
 
     @Test

@@ -3,9 +3,10 @@ package br.gov.caixa.simtr.hub.arquitetura.excecao;
 import br.gov.caixa.simtr.hub.arquitetura.excecao.dto.ErroMensagemDto;
 import br.gov.caixa.simtr.hub.arquitetura.excecao.dto.ErroPadraoDto;
 import br.gov.caixa.simtr.hub.arquitetura.excecao.ClientErrorBodyReader;
-import br.gov.caixa.simtr.hub.dossieproduto.integracao.DossieProdutoClient;
-import br.gov.caixa.simtr.hub.parametrizacao.integracao.ParametrizacaoChecklistClient;
-import br.gov.caixa.simtr.hub.parametrizacao.integracao.ParametrizacaoProcessoClient;
+import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.client.ValidacaoNegocialDossieProdutoMtrClient;
+import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.erro.ValidacaoNegocialDossieProdutoMtrException;
+import br.gov.caixa.simtr.hub.conformidade.adaptador.saida.mtr.client.ParametrizacaoChecklistClient;
+import br.gov.caixa.simtr.hub.conformidade.adaptador.saida.mtr.erro.ChecklistMtrException;
 import br.gov.caixa.simtr.hub.arquitetura.excecao.MtrBusinessErrorException;
 import br.gov.caixa.simtr.hub.arquitetura.excecao.MtrClientTechnicalException;
 import br.gov.caixa.simtr.hub.arquitetura.excecao.MtrErrorType;
@@ -118,17 +119,19 @@ class ExceptionMapperTest {
 
     @Test
     void clientExceptionMappersClassificamStatusHttp() {
-        assertNull(DossieProdutoClient.toException(statusSemPayload(200)));
+        assertNull(ValidacaoNegocialDossieProdutoMtrClient.toException(statusSemPayload(200)));
 
-        RuntimeException negocio = DossieProdutoClient.toException(statusSemPayload(400));
-        RuntimeException tecnicoCliente = ParametrizacaoProcessoClient.toException(statusSemPayload(401));
+        RuntimeException negocio = ValidacaoNegocialDossieProdutoMtrClient.toException(statusSemPayload(400));
+        RuntimeException tecnicoCliente = ParametrizacaoChecklistClient.toException(statusSemPayload(401));
         RuntimeException tecnicoServidor = ParametrizacaoChecklistClient.toException(statusSemPayload(500));
 
-        assertInstanceOf(MtrBusinessErrorException.class, negocio);
-        assertInstanceOf(MtrClientTechnicalException.class, tecnicoCliente);
-        assertInstanceOf(MtrServerErrorException.class, tecnicoServidor);
-        assertEquals("simtr-dossie-produto", ((MtrBusinessErrorException) negocio).erro().recurso());
-        assertEquals("simtr-parametrizacao", ((MtrClientTechnicalException) tecnicoCliente).erro().recurso());
+        assertInstanceOf(ValidacaoNegocialDossieProdutoMtrException.Negocio.class, negocio);
+        assertInstanceOf(ChecklistMtrException.TecnicaCliente.class, tecnicoCliente);
+        assertInstanceOf(ChecklistMtrException.Servidor.class, tecnicoServidor);
+        assertEquals("simtr-dossie-produto",
+                ((ValidacaoNegocialDossieProdutoMtrException.Negocio) negocio).erro().recurso());
+        assertEquals("simtr-parametrizacao",
+                ((ChecklistMtrException.TecnicaCliente) tecnicoCliente).erro().recurso());
     }
 
     @Test

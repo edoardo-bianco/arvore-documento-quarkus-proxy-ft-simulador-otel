@@ -1,23 +1,33 @@
 package br.gov.caixa.simtr.hub.recurso;
 
 import br.gov.caixa.simtr.hub.TestFixtures;
+import br.gov.caixa.simtr.hub.arvoredocumento.adaptador.entrada.rest.v1.ProcessoResource;
+import br.gov.caixa.simtr.hub.arvoredocumento.aplicacao.porta.entrada.ConsultarProcessoParametrizado;
+import br.gov.caixa.simtr.hub.arvoredocumento.dominio.modelo.IdentificadorNegocialProcesso;
+import br.gov.caixa.simtr.hub.arvoredocumento.dominio.modelo.ProcessoParametrizado;
+import br.gov.caixa.simtr.hub.conformidade.adaptador.entrada.rest.v1.ChecklistResource;
+import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.entrada.ConsultarChecklist;
+import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.Checklist;
+import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.ComandoConsultaChecklist;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.DossieProdutoResource;
+import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.CriacaoDossieProdutoRequest;
+import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.CriacaoDossieProdutoResponse;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriadoDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoCriadoDto;
-import br.gov.caixa.simtr.hub.gestaodocumento.recurso.rest.v1.dto.GestaoDocumentoCredencialContainerDto;
-import br.gov.caixa.simtr.hub.gestaodocumento.recurso.rest.v1.GestaoDocumentoResource;
-import br.gov.caixa.simtr.hub.parametrizacao.fachada.ParametrizacaoFachada;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.ChecklistResource;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.ProcessoResource;
-import br.gov.caixa.simtr.hub.dossieproduto.fachada.DossieProdutoFachada;
-import br.gov.caixa.simtr.hub.gestaodocumento.fachada.GestaoDocumentoFachada;
-import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoCriadoVo;
-import br.gov.caixa.simtr.hub.dossieproduto.dominio.DossieProdutoDocumentoCriadoVo;
-import br.gov.caixa.simtr.hub.gestaodocumento.dominio.GestaoDocumentoCredencialContainerVo;
-import br.gov.caixa.simtr.hub.dossieproduto.mapeamento.DossieProdutoMapper;
-import br.gov.caixa.simtr.hub.gestaodocumento.mapeamento.GestaoDocumentoMapper;
-import br.gov.caixa.simtr.hub.parametrizacao.mapeamento.ChecklistMapper;
-import br.gov.caixa.simtr.hub.parametrizacao.mapeamento.ProcessoMapper;
+import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.InclusaoDocumentoDossieProdutoResponse;
+import br.gov.caixa.simtr.hub.gestaodocumento.adaptador.entrada.rest.v1.GestaoDocumentoResource;
+import br.gov.caixa.simtr.hub.gestaodocumento.adaptador.entrada.rest.v1.dto.GestaoDocumentoCredencialContainerResponse;
+import br.gov.caixa.simtr.hub.gestaodocumento.aplicacao.porta.entrada.ObterCredencialContainer;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.IniciarOuAvancarWorkflowDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.CriarDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.AtualizarFormularioDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.IncluirDocumentoDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.RegistrarValidacaoNegocialDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.IdentificadorDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoAtualizacaoFormularioDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoWorkflowDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoCriacaoDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoInclusaoDocumentoDossieProduto;
+import br.gov.caixa.simtr.hub.gestaodocumento.dominio.modelo.CredencialContainer;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Uni;
@@ -28,7 +38,6 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
@@ -46,78 +55,89 @@ class ResourceBeanCoverageTest {
     @Inject
     GestaoDocumentoResource gestaoDocumentoResource;
 
-    @Inject
-    ProcessoMapper processoMapper;
-
-    @Inject
-    ChecklistMapper checklistMapper;
-
-    @Inject
-    DossieProdutoMapper dossieProdutoMapper;
-
-    @Inject
-    GestaoDocumentoMapper gestaoDocumentoMapper;
+    @InjectMock
+    ConsultarProcessoParametrizado consultarProcessoParametrizado;
 
     @InjectMock
-    ParametrizacaoFachada parametrizacaoFachada;
+    ConsultarChecklist consultarChecklist;
 
     @InjectMock
-    DossieProdutoFachada dossieProdutoFachada;
+    CriarDossieProduto criarDossieProduto;
 
     @InjectMock
-    GestaoDocumentoFachada gestaoDocumentoFachada;
+    AtualizarFormularioDossieProduto atualizarFormularioDossieProduto;
+
+    @InjectMock
+    IncluirDocumentoDossieProduto incluirDocumentoDossieProduto;
+
+    @InjectMock
+    IniciarOuAvancarWorkflowDossieProduto iniciarOuAvancarWorkflow;
+
+    @InjectMock
+    RegistrarValidacaoNegocialDossieProduto registrarValidacaoNegocial;
+
+    @InjectMock
+    ObterCredencialContainer obterCredencialContainer;
 
     @Test
     void processoResourceCobreSucessoEFalhaDoBeanCdi() {
-        when(parametrizacaoFachada.consultarProcessoPorIdentificadorNegocial(1L))
-                .thenReturn(Uni.createFrom().item(processoMapper.toVo(TestFixtures.processoDto())));
-        when(parametrizacaoFachada.consultarProcessoPorIdentificadorNegocial(2L))
+        when(consultarProcessoParametrizado.executar(new IdentificadorNegocialProcesso(1L)))
+                .thenReturn(Uni.createFrom().item(new ProcessoParametrizado(
+                        1L, "Processo", true, null, false,
+                        null, null, null, null, null, null)));
+        when(consultarProcessoParametrizado.executar(new IdentificadorNegocialProcesso(2L)))
                 .thenReturn(Uni.createFrom().failure(new IllegalStateException("falha processo")));
 
         var resposta = processoResource.consultarPorIdentificadorNegocial(1L)
                 .await().indefinitely();
 
-        assertEquals(TestFixtures.processoDto().nome(), resposta.nome());
+        assertEquals("Processo", resposta.nome());
         assertThrows(IllegalStateException.class, () -> processoResource.consultarPorIdentificadorNegocial(2L)
                 .await().indefinitely());
     }
 
     @Test
     void checklistResourceCobreSucessoEFalhaDoBeanCdi() {
-        when(parametrizacaoFachada.consultarChecklistPorIdentificadorNegocialEVersao(1L, 1))
-                .thenReturn(Uni.createFrom().item(checklistMapper.toVo(TestFixtures.checklistDto())));
-        when(parametrizacaoFachada.consultarChecklistPorIdentificadorNegocialEVersao(2L, 1))
+        when(consultarChecklist.executar(new ComandoConsultaChecklist(1L, 1)))
+                .thenReturn(Uni.createFrom().item(new Checklist(
+                        "Checklist", 1L, 1, null, null, false, null, null)));
+        when(consultarChecklist.executar(new ComandoConsultaChecklist(2L, 1)))
                 .thenReturn(Uni.createFrom().failure(new IllegalStateException("falha checklist")));
 
         var resposta = checklistResource.consultarPorIdentificadorNegocialEVersao(1L, 1)
                 .await().indefinitely();
 
-        assertEquals(TestFixtures.checklistDto().nome(), resposta.nome());
+        assertEquals("Checklist", resposta.nome());
         assertThrows(IllegalStateException.class, () -> checklistResource.consultarPorIdentificadorNegocialEVersao(2L, 1)
                 .await().indefinitely());
     }
 
     @Test
     void dossieProdutoResourceCobrePostSucessoEFalhaDoBeanCdi() {
-        when(dossieProdutoFachada.criarDossieProduto(any()))
-                .thenReturn(Uni.createFrom().item(new DossieProdutoCriadoVo(77L)))
+        when(criarDossieProduto.executar(any()))
+                .thenReturn(Uni.createFrom().item(new ResultadoCriacaoDossieProduto(77L)))
                 .thenReturn(Uni.createFrom().failure(new IllegalStateException("falha dossie")));
 
-        Response response = dossieProdutoResource.criarDossieProduto(TestFixtures.dossieCriacaoDto())
+        var fixture = TestFixtures.criacaoDossieProdutoRequest();
+        var request = new CriacaoDossieProdutoRequest(
+                fixture.processo(), fixture.chaveCorrelacaoCanal(), fixture.numeroNegocio(), fixture.clientes());
+
+        Response response = dossieProdutoResource.criarDossieProduto(request)
                 .await().indefinitely();
 
         assertEquals(Response.Status.CREATED.getStatusCode(), response.getStatus());
-        assertEquals(77L, ((DossieProdutoCriadoDto) response.getEntity()).id());
-        assertThrows(IllegalStateException.class, () -> dossieProdutoResource.criarDossieProduto(TestFixtures.dossieCriacaoDto())
+        assertEquals(77L, ((CriacaoDossieProdutoResponse) response.getEntity()).id());
+        assertThrows(IllegalStateException.class, () -> dossieProdutoResource.criarDossieProduto(request)
                 .await().indefinitely());
     }
 
     @Test
     void dossieProdutoResourceCobrePatchSucessoEFalhaDoBeanCdi() {
-        when(dossieProdutoFachada.atualizarFormularioDossieProduto(eq(123L), any()))
-                .thenReturn(Uni.createFrom().item(new DossieProdutoCriadoVo(123L)));
-        when(dossieProdutoFachada.atualizarFormularioDossieProduto(eq(124L), any()))
-                .thenReturn(Uni.createFrom().failure(new IllegalStateException("falha formulario")));
+        when(atualizarFormularioDossieProduto.executar(any()))
+                .thenReturn(Uni.createFrom().item(
+                        new ResultadoAtualizacaoFormularioDossieProduto(123L)))
+                .thenReturn(Uni.createFrom().failure(
+                        new IllegalStateException("falha formulario")));
 
         Response response = dossieProdutoResource.atualizarFormularioDossieProduto(123L, TestFixtures.formularioDto())
                 .await().indefinitely();
@@ -131,17 +151,20 @@ class ResourceBeanCoverageTest {
 
     @Test
     void dossieProdutoResourceCobreDocumentoSucessoEFalhaDoBeanCdi() {
-        when(dossieProdutoFachada.incluirDocumentoDossieProduto(eq(123L), any()))
-                .thenReturn(Uni.createFrom().item(new DossieProdutoDocumentoCriadoVo(456L, 789L)));
-        when(dossieProdutoFachada.incluirDocumentoDossieProduto(eq(124L), any()))
-                .thenReturn(Uni.createFrom().failure(new IllegalStateException("falha documento")));
+        when(incluirDocumentoDossieProduto.executar(any()))
+                .thenReturn(Uni.createFrom().item(
+                        new ResultadoInclusaoDocumentoDossieProduto(456L, 789L)))
+                .thenReturn(Uni.createFrom().failure(
+                        new IllegalStateException("falha documento")));
 
         Response response = dossieProdutoResource.incluirDocumentoDossieProduto(123L, TestFixtures.documentoInclusaoDto())
                 .await().indefinitely();
 
         assertEquals(Response.Status.CREATED.getStatusCode(), response.getStatus());
-        assertEquals(456L, ((DossieProdutoDocumentoCriadoDto) response.getEntity()).idDocumento());
-        assertEquals(789L, ((DossieProdutoDocumentoCriadoDto) response.getEntity()).idInstanciaDocumento());
+        assertEquals(456L, ((InclusaoDocumentoDossieProdutoResponse)
+                response.getEntity()).idDocumento());
+        assertEquals(789L, ((InclusaoDocumentoDossieProdutoResponse)
+                response.getEntity()).idInstanciaDocumento());
         assertThrows(IllegalStateException.class,
                 () -> dossieProdutoResource.incluirDocumentoDossieProduto(124L, TestFixtures.documentoInclusaoDto())
                         .await().indefinitely());
@@ -149,14 +172,13 @@ class ResourceBeanCoverageTest {
 
     @Test
     void dossieProdutoResourceCobreValidacaoNegocialSucessoEFalhaDoBeanCdi() {
-        when(dossieProdutoFachada.registrarValidacaoNegocialDossieProduto(eq(123L), any()))
-                .thenReturn(Uni.createFrom().voidItem());
-        when(dossieProdutoFachada.registrarValidacaoNegocialDossieProduto(eq(124L), any()))
+        when(registrarValidacaoNegocial.executar(any()))
+                .thenReturn(Uni.createFrom().voidItem())
                 .thenReturn(Uni.createFrom().failure(new IllegalStateException("falha validacao negocial")));
 
         Response response = dossieProdutoResource.registrarValidacaoNegocialDossieProduto(
                         123L,
-                        TestFixtures.validacaoNegocialDto()
+                        TestFixtures.validacaoNegocialRequest()
                 )
                 .await().indefinitely();
 
@@ -165,16 +187,16 @@ class ResourceBeanCoverageTest {
         assertThrows(IllegalStateException.class,
                 () -> dossieProdutoResource.registrarValidacaoNegocialDossieProduto(
                                 124L,
-                                TestFixtures.validacaoNegocialDto()
+                                TestFixtures.validacaoNegocialRequest()
                         )
                         .await().indefinitely());
     }
 
     @Test
     void dossieProdutoResourceCobreWorkflowSucessoEFalhaDoBeanCdi() {
-        when(dossieProdutoFachada.iniciarOuAvancarWorkflowDossieProduto(123L))
-                .thenReturn(Uni.createFrom().item(new DossieProdutoCriadoVo(123L)));
-        when(dossieProdutoFachada.iniciarOuAvancarWorkflowDossieProduto(124L))
+        when(iniciarOuAvancarWorkflow.executar(new IdentificadorDossieProduto(123L)))
+                .thenReturn(Uni.createFrom().item(new ResultadoWorkflowDossieProduto(123L)));
+        when(iniciarOuAvancarWorkflow.executar(new IdentificadorDossieProduto(124L)))
                 .thenReturn(Uni.createFrom().failure(new IllegalStateException("falha workflow")));
 
         Response response = dossieProdutoResource.iniciarOuAvancarWorkflowDossieProduto(123L)
@@ -189,9 +211,9 @@ class ResourceBeanCoverageTest {
 
     @Test
     void gestaoDocumentoResourceCobreCredencialContainerSucessoEFalhaDoBeanCdi() {
-        when(gestaoDocumentoFachada.gerarCredencialContainer())
-                .thenReturn(Uni.createFrom().item(new GestaoDocumentoCredencialContainerVo(
-                        "sas-sensivel",
+        when(obterCredencialContainer.executar())
+                .thenReturn(Uni.createFrom().item(new CredencialContainer(
+                        "sas-opaca-teste",
                         "10/07/2026 18:00:00",
                         "https://storage.example",
                         "pre-validacao"
@@ -202,7 +224,8 @@ class ResourceBeanCoverageTest {
                 .await().indefinitely();
 
         assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-        GestaoDocumentoCredencialContainerDto entity = (GestaoDocumentoCredencialContainerDto) response.getEntity();
+        GestaoDocumentoCredencialContainerResponse entity =
+                (GestaoDocumentoCredencialContainerResponse) response.getEntity();
         assertEquals("pre-validacao", entity.nomeContainer());
         assertEquals("https://storage.example", entity.urlStorage());
         assertThrows(IllegalStateException.class,

@@ -1,25 +1,128 @@
 # simtr-hub
 
-Microsservico Quarkus usado como proxy/adapter entre consumidores internos e APIs MTR relacionadas a parametrizacao, dossie produto e gestao de documentos.
+Microsservico Quarkus que funciona como camada anticorrupcao entre consumidores internos e APIs
+MTR de parametrizacao, dossie produto e gestao documental.
 
-O projeto nao faz apenas repasse HTTP. Ele cria uma fronteira com DTOs, VOs, mappers, fachadas, services, gateways, tratamento de erro, resiliencia, simulador e observabilidade.
+O codigo esta organizado como monolito modular DDD. Cada capacidade possui nucleo proprio,
+portas de aplicacao e adapters independentes para REST publico, MTR e simulador. A refatoracao das
+oito capacidades existentes e seu aceite humano final foram concluidos no checkpoint C6 de
+`tasks/todo.md`.
 
-## Endpoints implementados
+## Capacidades e endpoints
 
-### API exposta pelo `simtr-hub`
+| Dominio | Capacidade | Endpoint publico preservado |
+|---|---|---|
+| `arvoredocumento` | `ConsultarProcessoParametrizado` | `GET /simtr-hub/v1/processo/identificador-negocial/{identificador}` |
+| `conformidade` | `ConsultarChecklist` | `GET /simtr-hub/v1/checklist/identificador-negocial/{identificador}/versao/{versao}` |
+| `dossieproduto` | `CriarDossieProduto` | `POST /simtr-hub/v1/dossie-produto` |
+| `dossieproduto` | `AtualizarFormularioDossieProduto` | `PATCH /simtr-hub/v1/dossie-produto/{id}/formulario` |
+| `dossieproduto` | `IncluirDocumentoDossieProduto` | `POST /simtr-hub/v1/dossie-produto/{id}/documento` |
+| `dossieproduto` | `RegistrarValidacaoNegocialDossieProduto` | `PATCH /simtr-hub/v1/dossie-produto/{id}/validacao-negocial` |
+| `dossieproduto` | `IniciarOuAvancarWorkflowDossieProduto` | `POST /simtr-hub/v1/dossie-produto/{id}/workflow` |
+| `gestaodocumento` | `ObterCredencialContainer` | `POST /simtr-hub/v1/storage/container/credencial` |
 
-```http
-GET /hub/v1/processo/identificador-negocial/{identificador}
-GET /hub/v1/checklist/identificador-negocial/{identificador}/versao/{versao}
-POST /hub/v1/dossie-produto
-PATCH /hub/v1/dossie-produto/{id}/formulario
-POST /hub/v1/dossie-produto/{id}/documento
-PATCH /hub/v1/dossie-produto/{id}/validacao-negocial
-POST /hub/v1/dossie-produto/{id}/workflow
-POST /hub/v1/storage/container/credencial
+Nao foram adicionados endpoints nem orquestradores. Em especial, `gestaodocumento` apenas obtem e
+devolve a credencial opaca fornecida pelo MTR: o Hub nao envia arquivos ao Azure, nao interpreta a
+validade, nao reutiliza ou renova SAS e nao mantem cache.
+
+## Endpoints da especificacao que nao existem no Hub
+
+A especificacao funcional `doc/api-integracao-mtr-pre-validacao-v1.md` descreve APIs do MTR, nao
+somente as operacoes expostas por este Hub. As oito operacoes usadas pelo fluxo principal estao
+implementadas e aparecem na tabela anterior. Os cinco endpoints MTR abaixo estao documentados na
+especificacao, mas **NAO ESTAO IMPLEMENTADOS NESTA SOLUCAO**:
+
+| Endpoint MTR de referencia | Situacao no Hub |
+|---|---|
+| `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/garantia` | Nao existe endpoint publico, capacidade, REST Client, adapter ou simulador |
+| `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/produto` | Nao existe endpoint publico, capacidade, REST Client, adapter ou simulador |
+| `POST /simtr-dossie-produto/v1/dossie-produto/{id}/capturar` | Nao existe endpoint publico, capacidade, REST Client, adapter ou simulador |
+| `POST /simtr-dossie-produto/v1/dossie-produto/{id}/cancelar` | Nao existe endpoint publico, capacidade, REST Client, adapter ou simulador |
+| `GET /simtr-dossie-produto/v2/dossie-produto/{id}` | Nao existe endpoint publico, capacidade, REST Client, adapter ou simulador |
+
+"Nao implementado no Hub" nao significa que a API upstream nao exista no MTR. Esses cinco
+endpoints aparecem na especificacao como operacoes do ciclo de vida do dossie a serem mantidas,
+mas nao sao chamados pelo diagrama de sequencia principal e nao ganharam rota proxy nesta
+solucao. Tambem nao existe endpoint unico de pre-validacao nem orquestrador local. Uma eventual
+implementacao exige nova decisao de escopo, contrato, testes, fase e branch; esta documentacao nao
+representa compromisso de entrega.
+
+A especificacao identifica os servicos pelos prefixos `/simtr-parametrizacao`,
+`/simtr-dossie-produto` e `/simtr-gestao-documento`. O ambiente atualmente configurado usa uma
+base de gateway terminada em `/simtr`, somada aos paths `/parametrizacao`, `/dossie-produto` e
+`/gestao-documento` declarados nos REST Clients.
+
+## Arquitetura
+
+```text
+REST atual --------------------------+
+                                     |
+orquestrador futuro do dominio ------+--> porta de entrada
+                                           -> caso de uso atomico
+                                           -> porta de saida do consumidor
+                                           -> adapter selecionado
+                                              |-- MTR
+                                              `-- simulador
 ```
 
-### APIs consumidas no MTR
+As dependencias fluem para dentro. Essa direcao e aplicada de forma pragmatica: **Quarkus pode ser
+usado em qualquer componente, inclusive dominio, aplicacao, portas e casos de uso, e nao e
+bloqueado por camada**. Os guardrails protegem fronteiras e responsabilidades; eles nao exigem
+pureza de framework.
+
+- `dominio` concentra tipos e regras do proprio dominio e nao depende das bordas;
+- `aplicacao` coordena tipos internos e portas e usa atualmente Mutiny `Uni`;
+- o adapter REST converte DTO publico para tipos internos e chama somente a porta de entrada;
+- os adapters MTR e simulador implementam a mesma porta de saida, com DTOs e mappers exclusivos;
+- qualifiers e producers CDI selecionam MTR ou simulador pelas properties existentes;
+- falhas de protocolo sao traduzidas depois da politica de fault tolerance e nao atravessam as
+  portas;
+- imports entre dominios sao reservados a futuros adapters locais ACL, limitados a API publica de
+  entrada do dominio fornecedor.
+
+Uma API especifica ainda pode ser confinada por seu papel — REST Clients, por exemplo, pertencem
+ao adapter MTR. Isso restringe a responsabilidade do componente, nao o uso do Quarkus como
+framework.
+
+O dominio interno `parametrizacao` foi removido. O nome continua presente somente onde representa
+o sistema externo: paths MTR, config keys, fixtures e sinais de telemetria contratuais.
+
+### Organizacao de packages
+
+```text
+br.gov.caixa.simtr.hub
+|-- arvoredocumento
+|   |-- dominio
+|   |-- aplicacao
+|   `-- adaptador
+|-- conformidade
+|   |-- dominio
+|   |-- aplicacao
+|   `-- adaptador
+|-- dossieproduto
+|   |-- dominio
+|   |-- aplicacao
+|   |-- adaptador
+|   `-- recurso/rest/v1
+|-- gestaodocumento
+|   |-- dominio
+|   |-- aplicacao
+|   `-- adaptador
+`-- arquitetura
+    |-- configuracao/mock
+    |-- excecao
+    |-- observabilidade
+    `-- seguranca
+```
+
+Dois desvios internos foram preservados para nao misturar renomes amplos com a migracao funcional:
+
+- a borda REST de `dossieproduto` permanece fisicamente em `recurso/rest/v1`, mas e tratada pelos
+  guardrails como adapter de entrada;
+- o DTO tecnico compartilhado de erro REST permanece em `arquitetura.excecao.dto`, com excecao
+  formal e uso proibido no dominio, na aplicacao e nos adapters de saida.
+
+## Integracoes MTR
 
 ```http
 GET /simtr/parametrizacao/v2/patriarca/processo/identificador-negocial/{identificador}
@@ -32,195 +135,59 @@ POST /simtr/dossie-produto/v1/dossie-produto/{id}/workflow
 POST /simtr/gestao-documento/v1/storage/container/credencial
 ```
 
-Os endpoints de dossie produto implementam criacao basica, formulario, inclusao de documento, validacao negocial e workflow. Gestao de Documentos implementa a geracao de credencial SAS de container para upload documental.
-
-Criacao basica e formulario retornam HTTP `201` com o id do dossie:
-
-```json
-{
-  "id": 1
-}
-```
-
-## Decisao arquitetural
-
-Fluxo padrao por dominio:
-
-```text
-Resource
-  -> Mapper DTO/VO
-  -> Fachada
-      -> Service
-      -> se simulador=true
-          -> MockFactory
-      -> se simulador=false
-          -> Gateway
-              -> REST Client MTR
-      -> Mapper.toVo(...)
-  -> Mapper.toDto(...)
-  -> DTO de resposta
-```
-
-Fluxos implementados:
-
-```text
-ProcessoResource
-  -> ParametrizacaoFachada
-  -> ProcessoService
-  -> ParametrizacaoProcessoGateway ou ProcessoMockFactory
-  -> ProcessoMapper
-
-ChecklistResource
-  -> ParametrizacaoFachada
-  -> ChecklistService
-  -> ParametrizacaoChecklistGateway ou ChecklistMockFactory
-  -> ChecklistMapper
-
-DossieProdutoResource
-  -> DossieProdutoFachada
-  -> DossieProdutoService
-  -> DossieProdutoGateway ou DossieProdutoMockFactory
-  -> DossieProdutoMapper
-
-GestaoDocumentoResource
-  -> GestaoDocumentoFachada
-  -> GestaoDocumentoService
-  -> GestaoDocumentoGateway ou GestaoDocumentoMockFactory
-  -> GestaoDocumentoMapper
-```
-
-O ciclo `DTO -> VO -> DTO` e intencional: o VO cria uma fronteira para regras futuras, enriquecimento e adaptacao de contrato sem acoplar a API externa diretamente ao contrato MTR. A fachada e a fronteira interna de cada dominio, preparada para futura substituicao por chamada HTTP, mensageria ou extracao como microservico.
-
-## Organizacao de pacotes
-
-```text
-br.gov.caixa.simtr.hub
-|-- parametrizacao
-|   |-- fachada
-|   |-- recurso/rest/v1
-|   |-- servico
-|   |-- dominio
-|   |-- integracao
-|   `-- mapeamento
-|-- dossieproduto
-|   |-- fachada
-|   |-- recurso/rest/v1
-|   |-- servico
-|   |-- dominio
-|   |-- integracao
-|   `-- mapeamento
-|-- gestaodocumento
-|   |-- fachada
-|   |-- recurso/rest/v1
-|   |-- servico
-|   |-- dominio
-|   |-- integracao
-|   `-- mapeamento
-`-- arquitetura
-    |-- configuracao/mock
-    |-- seguranca
-    |-- observabilidade
-    `-- excecao
-```
-
-Utilitarios compartilhados:
-
-- `arquitetura.excecao.ClientErrorBodyReader`: leitura e normalizacao do corpo de erro retornado pelo MTR.
-- `arquitetura.configuracao.mock.MarkdownJsonMockReader`: leitura de mocks Markdown com secao `## dados do mock corpo do retorno json`.
-- `arquitetura.observabilidade.RestClientObservabilityFilter`: log e atributos de trace para chamadas REST Client.
-- `arquitetura.seguranca.RequestHeaderFactory`: propagacao do header `apikey`.
+Os REST Clients permanecem na borda `adaptador.saida.mtr.client` e conservam timeout, retry,
+circuit breaker, headers, OIDC, propagacao de trace e classificacao de erros observados no
+baseline. Operacoes mutaveis com retry continuam exigindo validacao de idempotencia antes de
+qualquer workflow futuro.
 
 ## Configuracao
 
-As URLs atuais usam `https://api.des.caixa:8443/simtr` como base:
+As URLs podem ser sobrescritas pelas variaveis abaixo:
 
-```properties
-quarkus.rest-client.parametrizacao-processo.url=https://api.des.caixa:8443/simtr
-quarkus.rest-client.parametrizacao-processo.connect-timeout=3000
-quarkus.rest-client.parametrizacao-processo.read-timeout=10000
-
-quarkus.rest-client.parametrizacao-checklist.url=https://api.des.caixa:8443/simtr
-quarkus.rest-client.parametrizacao-checklist.connect-timeout=3000
-quarkus.rest-client.parametrizacao-checklist.read-timeout=10000
-
-quarkus.rest-client.dossie-produto.url=https://api.des.caixa:8443/simtr
-quarkus.rest-client.dossie-produto.connect-timeout=3000
-quarkus.rest-client.dossie-produto.read-timeout=10000
-
-quarkus.rest-client.gestao-documento.url=https://api.des.caixa:8443/simtr
-quarkus.rest-client.gestao-documento.connect-timeout=3000
-quarkus.rest-client.gestao-documento.read-timeout=10000
+```text
+QUARKUS_REST_CLIENT_PARAMETRIZACAO_PROCESSO_URL
+QUARKUS_REST_CLIENT_PARAMETRIZACAO_CHECKLIST_URL
+QUARKUS_REST_CLIENT_DOSSIE_PRODUTO_URL
+QUARKUS_REST_CLIENT_GESTAO_DOCUMENTO_URL
 ```
 
-Em ambiente real, as URLs podem ser sobrescritas por variaveis de ambiente:
+Credenciais sao recebidas somente por ambiente:
 
-```bash
-export QUARKUS_REST_CLIENT_PARAMETRIZACAO_PROCESSO_URL=https://api.des.caixa:8443/simtr
-export QUARKUS_REST_CLIENT_PARAMETRIZACAO_CHECKLIST_URL=https://api.des.caixa:8443/simtr
-export QUARKUS_REST_CLIENT_DOSSIE_PRODUTO_URL=https://api.des.caixa:8443/simtr
-export QUARKUS_REST_CLIENT_GESTAO_DOCUMENTO_URL=https://api.des.caixa:8443/simtr
+```text
+SIMTR_API_KEY
+SIMTR_OIDC_CLIENT_SECRET
+SIMTR_OIDC_INTERNET_CLIENT_SECRET
 ```
 
-Credenciais e apikey:
-
-```properties
-simtr.apikey=${SIMTR_API_KEY}
-%dev.quarkus.oidc.credentials.secret=${SIMTR_OIDC_CLIENT_SECRET}
-%dev.quarkus.oidc.internet.credentials.secret=${SIMTR_OIDC_INTERNET_CLIENT_SECRET}
-```
-
-## Simulador e mocks
-
-Propriedades atuais:
+### Simulador
 
 ```properties
 simtr-hub.simulador.parametrizacao-processo.habilitado=false
-%dev.simtr-hub.simulador.parametrizacao-processo.habilitado=true
 simtr-hub.simulador.parametrizacao-checklist.habilitado=false
-%dev.simtr-hub.simulador.parametrizacao-checklist.habilitado=true
 simtr-hub.simulador.dossie-produto.habilitado=false
-%dev.simtr-hub.simulador.dossie-produto.habilitado=true
 simtr-hub.simulador.gestao-documento.habilitado=false
-%dev.simtr-hub.simulador.gestao-documento.habilitado=true
 ```
 
-Com isso, processo, checklist, dossie produto e gestao de documentos usam mock por padrao em dev mode. Para chamar o MTR real de dossie produto em dev mode, desabilite explicitamente o simulador:
+O profile `dev` habilita os quatro simuladores pelas properties correspondentes. O profile de
+teste nao depende de Docker nem de Dev Services.
 
-```bash
-mvn quarkus:dev -Ddebug=false "-Dsimtr-hub.simulador.dossie-produto.habilitado=false"
-```
+## Erros, fault tolerance e observabilidade
 
-Para chamar o MTR real de Gestao de Documentos em dev mode:
-
-```bash
-mvn quarkus:dev -Ddebug=false "-Dsimtr-hub.simulador.gestao-documento.habilitado=false"
-```
-
-Mocks em runtime:
+O fluxo de falha e:
 
 ```text
-src/main/resources/mock/parametrizacao/1000016487-consulta-processo-parametrizacao-v2-identificador-negocial.md
-src/main/resources/mock/parametrizacao/1000009990-consulta-processo-parametrizacao-v2-identificador-negocial.md
-src/main/resources/mock/parametrizacao/1000012583-v1-checklist-parametrizacao-versao-1.md
-src/main/resources/mock/dossieproduto/criacao-basica-dossie-produto.md
-src/main/resources/mock/dossieproduto/formulario-dossie-produto.md
-src/main/resources/mock/dossieproduto/documento-dossie-produto.md
-src/main/resources/mock/dossieproduto/validacao-negocial-dossie-produto.md
-src/main/resources/mock/dossieproduto/workflow-dossie-produto.md
-src/main/resources/mock/gestaodocumento/credencial-container.md
+REST Client MTR
+  -> erro de protocolo classificado dentro da chamada interceptada
+  -> timeout/retry/circuit breaker
+  -> adapter MTR traduz para falha interna lossless
+  -> adapter REST traduz para status e JSON publicos preservados
 ```
 
-Copias documentais:
+Logs estruturados e spans mantem os nomes e atributos inventariados antes da migracao. Payloads de
+REST Client sao mascarados para campos sensiveis; a obtencao de credencial nao registra SAS nem
+validade. Por padrao, o projeto grava logs JSON e nao exporta OpenTelemetry para fora.
 
-```text
-doc/mock/parametrizacao
-doc/mock/dossie-produto/criacao-basica-dossie-produto.md
-doc/mock/dossie-produto/formulario-dossie-produto.md
-doc/mock/dossie-produto/documento-dossie-produto.md
-doc/mock/dossie-produto/validacao-negocial-dossie-produto.md
-doc/mock/dossie-produto/workflow-dossie-produto.md
-doc/mock/gestao-documento/credencial-container.md
-```
+Consulte `tasks/inventario-observabilidade.md` para os sinais contratuais completos.
 
 ## Execucao local
 
@@ -228,170 +195,31 @@ doc/mock/gestao-documento/credencial-container.md
 mvn quarkus:dev -Ddebug=false
 ```
 
-Swagger UI:
+- Swagger UI: `http://localhost:8080/simtr-hub/doc`
+- OpenAPI gerado pelo Quarkus: `http://localhost:8080/simtr-hub/openapi`
 
-```http
-GET /hub/doc
-```
+O OpenAPI nao possui arquivo estatico, filtro ou teste de documento nesta refatoracao.
 
-OpenAPI:
-
-```http
-GET /hub/openapi
-```
-
-## Chamadas de exemplo
+## Testes e cobertura
 
 ```bash
-curl -X GET \
-  'http://localhost:8080/hub/v1/processo/identificador-negocial/202114235' \
-  -H 'Accept: application/json'
-
-curl -X GET \
-  'http://localhost:8080/hub/v1/checklist/identificador-negocial/1000012583/versao/1' \
-  -H 'Accept: application/json'
-
-curl -X POST \
-  'http://localhost:8080/hub/v1/dossie-produto' \
-  -H 'Accept: application/json' \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "processo": 0,
-    "chave_correlacao_canal": 0,
-    "numero_negocio": 0,
-    "clientes": [
-      {
-        "cpf": "string",
-        "cnpj": "string",
-        "tipo_vinculo": 0,
-        "cliente_relacionado": {
-          "cpf": "string",
-          "cnpj": "string"
-        },
-        "sequencia_titularidade": 0
-      }
-    ]
-  }'
-
-curl -X POST \
-  'http://localhost:8080/hub/v1/storage/container/credencial' \
-  -H 'Accept: application/json'
+mvn -q clean test
 ```
 
-## Tratamento de erro
-
-1. O REST Client chama o MTR.
-2. Para respostas HTTP `4xx` ou `5xx`, o metodo anotado com `@ClientExceptionMapper` le o corpo de erro no padrao MTR.
-3. O client lanca `MtrRestClientException` contendo status HTTP e `ErroPadraoDto`.
-4. O `MtrRestClientExceptionMapper` da API REST do `simtr-hub` transforma a excecao novamente no objeto de erro padrao.
-5. Se o MTR retornar erro fora do contrato esperado, a API gera um erro padronizado `ARVDOCP0002`.
-
-Erros de negocio (`400`, `404`, `409`, `422`) nao entram em retry nem contam como falha do circuito. Demais `4xx` sao tratados como erro tecnico de cliente. Erros `5xx`, timeout e falha de comunicacao sao tratados como falhas potencialmente transitorias.
-
-## Fault tolerance
-
-Os REST Clients usam:
-
-- `@Timeout` de 2 segundos;
-- `@Retry` com 3 retentativas para erro 5xx, timeout e falha de comunicacao;
-- `@CircuitBreaker` para abertura do circuito quando houver falhas recorrentes;
-- `@ClientExceptionMapper` para classificar erro de negocio, erro tecnico de cliente e erro tecnico de servidor.
-
-## Observabilidade
-
-O projeto registra logs estruturados JSON no console e em `target/logs/simtr-hub.json`.
-
-Spans explicitos:
-
-- `simtr-hub.api.processo.consultar`
-- `simtr-hub.service.processo.consultar`
-- `mtr.parametrizacao.processo.consultar`
-- `simtr-hub.api.checklist.consultar`
-- `simtr-hub.service.checklist.consultar`
-- `mtr.parametrizacao.checklist.consultar`
-- `simtr-hub.api.dossie-produto.criar`
-- `simtr-hub.service.dossie-produto.criar`
-- `mtr.dossie-produto.criar`
-- `simtr-hub.api.dossie-produto.formulario.atualizar`
-- `simtr-hub.service.dossie-produto.formulario.atualizar`
-- `mtr.dossie-produto.formulario.atualizar`
-- `simtr-hub.api.dossie-produto.documento.incluir`
-- `simtr-hub.service.dossie-produto.documento.incluir`
-- `mtr.dossie-produto.documento.incluir`
-- `simtr-hub.api.dossie-produto.validacao-negocial.registrar`
-- `simtr-hub.service.dossie-produto.validacao-negocial.registrar`
-- `mtr.dossie-produto.validacao-negocial.registrar`
-- `simtr-hub.api.dossie-produto.workflow.avancar`
-- `simtr-hub.service.dossie-produto.workflow.avancar`
-- `mtr.dossie-produto.workflow.avancar`
-- `simtr-hub.api.gestao-documento.credencial-container.gerar`
-- `simtr-hub.service.gestao-documento.credencial-container.gerar`
-- `mtr.gestao-documento.credencial-container.gerar`
-
-Campos comuns nos logs:
-
-- `evento`
-- `traceId`
-- `spanId`
-- `camada`
-- `componente`
-- `operacao`
-- `identificador_negocial`
-- `processo`
-- `chave_correlacao_canal`
-- `dossie_produto_id`
-- `nome_container`
-- `resultado`
-- `erro_tipo`
-- `url`
-- `status_http`
-- `request_body`
-- `request_body_truncado`
-- `response_body`
-- `response_body_truncado`
-
-Payloads de REST Client sao mascarados antes do log para campos sensiveis como `sas`, `token`, `client_secret`, `apikey` e `password`.
-
-Por padrao, o projeto nao exporta OpenTelemetry para fora. Isso evita erro ou ruido em maquinas sem Docker, Jaeger ou OpenTelemetry Collector.
-
-Configuracao padrao:
-
-```properties
-simtr-hub.observabilidade.rest-client.payload.habilitado=true
-simtr-hub.observabilidade.rest-client.payload.input.max-length=2000
-simtr-hub.observabilidade.rest-client.payload.output.max-length=4000
-
-quarkus.otel.traces.sampler=always_on
-quarkus.otel.traces.sampler.arg=1.0
-quarkus.otel.traces.exporter=none
-quarkus.otel.logs.enabled=false
-quarkus.otel.logs.handler.enabled=false
-quarkus.otel.logs.exporter=none
-
-quarkus.log.console.json.enabled=true
-quarkus.log.console.json.mdc.flat-fields=true
-quarkus.log.console.json.exception-output-type=formatted
-quarkus.log.file.enabled=true
-quarkus.log.file.path=target/logs/simtr-hub.json
-quarkus.log.file.json.enabled=true
-```
-
-Para enviar traces e logs OpenTelemetry ao Jaeger, suba Jaeger/OTLP em `localhost:4317` e rode com o profile opcional:
-
-```bash
-mvn quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,jaeger"
-```
-
-Para usar Grafana/Tempo/Loki via OpenTelemetry Collector em `localhost:4317`:
-
-```bash
-mvn quarkus:dev -Ddebug=false "-Dquarkus.profile=dev,grafana"
-```
-
-## Documentacao complementar
-
-Detalhes completos de arquitetura, mock, observabilidade e troubleshooting ficam em:
+A suite usa stubs HTTP locais para exercitar o caminho MTR sem rede externa. A evidencia
+quantitativa de cobertura fica exclusivamente em:
 
 ```text
-doc/documentacao-simtr-hub-arquitetura-observabilidade.md
+target/jacoco-report/index.html
 ```
+
+## Documentacao
+
+- decisao arquitetural canonica: `doc/arquitetura-ddd-integracoes-atomicas.md`;
+- especificacao funcional de referencia: `doc/api-integracao-mtr-pre-validacao-v1.md`;
+- verificacao final por capacidade: `tasks/equivalencia-final.md`;
+- plano e checkpoint: `tasks/plan.md` e `tasks/todo.md`;
+- observabilidade e operacao: `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`.
+
+Quarkus Flow, novos workflows, persistencia de orquestracao, os cinco endpoints ausentes listados
+acima, quaisquer outros endpoints novos, upload e lifecycle de SAS permanecem fora deste escopo.

@@ -1,7 +1,0 @@
-package br.gov.caixa.simtr.hub.dossieproduto.dominio;
-
-public record DossieProdutoValidacaoNegocialProdutoVo(
-        Integer codigoOperacao,
-        Integer codigoModalidade
-) {
-}

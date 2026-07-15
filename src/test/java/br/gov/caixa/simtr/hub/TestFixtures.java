@@ -3,11 +3,11 @@ package br.gov.caixa.simtr.hub;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoClienteAvalistaDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoClienteDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoClienteRelacionadoDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriacaoDto;
+import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.CriacaoDossieProdutoRequest;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoAtributoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoClienteDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoGarantiaDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoInclusaoDto;
+import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.InclusaoDocumentoDossieProdutoRequest;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoPropriedadeDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoDocumentoVinculoDossieDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoFormularioDto;
@@ -17,27 +17,12 @@ import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoVin
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoVinculoGarantiaDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoVinculoProdutoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialClienteAvalistaDto;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialDto;
+import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.ValidacaoNegocialDossieProdutoRequest;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialGarantiaDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialParecerApontamentoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialProdutoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialRespostaFormularioDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialVerificacaoDto;
-import br.gov.caixa.simtr.hub.gestaodocumento.recurso.rest.v1.dto.GestaoDocumentoCredencialContainerDto;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.checklist.ChecklistApontamentoDto;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.checklist.ChecklistDto;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.processo.CampoFormularioDto;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.processo.ChecklistReferenciaDto;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.processo.DocumentoDto;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.processo.FaseDto;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.processo.FuncaoDocumentalDto;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.processo.GarantiaDto;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.processo.MacroprocessoDto;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.processo.OpcaoDisponivelDto;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.processo.ProcessoDto;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.processo.ProdutoDto;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.processo.RelacionamentoDto;
-import br.gov.caixa.simtr.hub.parametrizacao.recurso.rest.v1.dto.processo.TipoDocumentoDto;
 
 import java.util.List;
 
@@ -46,119 +31,8 @@ public final class TestFixtures {
     private TestFixtures() {
     }
 
-    public static ProcessoDto processoDto() {
-        ChecklistReferenciaDto checklist = new ChecklistReferenciaDto(700L, 1);
-        OpcaoDisponivelDto opcao = new OpcaoDisponivelDto("SIM", "Sim", true);
-        CampoFormularioDto campoFormulario = new CampoFormularioDto(
-                600L,
-                "Campo formulario",
-                true,
-                true,
-                "cliente.tipo == PF",
-                12,
-                1,
-                "TEXTO",
-                "99999999999",
-                "Informe o valor",
-                1,
-                50,
-                "Orientacao de preenchimento",
-                false,
-                List.of(opcao)
-        );
-        TipoDocumentoDto tipoDocumento = new TipoDocumentoDto(
-                "RG",
-                "Registro Geral",
-                true,
-                true,
-                true,
-                checklist
-        );
-        FuncaoDocumentalDto funcaoDocumental = new FuncaoDocumentalDto(
-                "Identificacao",
-                List.of(tipoDocumento),
-                checklist
-        );
-        DocumentoDto documento = new DocumentoDto(funcaoDocumental, tipoDocumento, true);
-        GarantiaDto garantia = new GarantiaDto(
-                10L,
-                "Garantia fidejussoria",
-                true,
-                List.of(campoFormulario),
-                List.of(documento),
-                checklist
-        );
-        ProdutoDto produto = new ProdutoDto(
-                100L,
-                200L,
-                "Produto Habitacional",
-                List.of(campoFormulario),
-                List.of(documento),
-                List.of(garantia),
-                checklist
-        );
-        RelacionamentoDto relacionamento = new RelacionamentoDto(
-                300L,
-                "Titular",
-                "PF",
-                true,
-                true,
-                false,
-                true,
-                List.of(campoFormulario),
-                List.of(documento)
-        );
-        FaseDto fase = new FaseDto(
-                400L,
-                "Contratacao",
-                true,
-                "01/01/2026 10:00:00",
-                1,
-                "Orientacao da fase",
-                List.of(produto),
-                List.of(garantia),
-                List.of(campoFormulario),
-                List.of(documento),
-                List.of(checklist)
-        );
-
-        return new ProcessoDto(
-                1000016487L,
-                "Concessao Habitacional",
-                true,
-                "01/01/2026 10:00:00",
-                false,
-                new MacroprocessoDto(900L, "Macro Habitacional", true, "01/01/2026 09:00:00"),
-                List.of(relacionamento),
-                List.of(produto),
-                List.of(fase),
-                List.of(documento),
-                checklist
-        );
-    }
-
-    public static ChecklistDto checklistDto() {
-        return new ChecklistDto(
-                "Checklist Habitacional",
-                1000012583L,
-                1,
-                "01/01/2026 10:00:00",
-                "02/01/2026 10:00:00",
-                true,
-                "Orientacao",
-                List.of(new ChecklistApontamentoDto(
-                        10L,
-                        "Apontamento",
-                        "Descricao",
-                        "Orientacao operador",
-                        true,
-                        1
-                ))
-        );
-    }
-
-    public static DossieProdutoCriacaoDto dossieCriacaoDto() {
-        return new DossieProdutoCriacaoDto(
+    public static CriacaoDossieProdutoRequest criacaoDossieProdutoRequest() {
+        return new CriacaoDossieProdutoRequest(
                 100L,
                 200L,
                 300L,
@@ -194,8 +68,8 @@ public final class TestFixtures {
         ));
     }
 
-    public static DossieProdutoDocumentoInclusaoDto documentoInclusaoDto() {
-        return new DossieProdutoDocumentoInclusaoDto(
+    public static InclusaoDocumentoDossieProdutoRequest documentoInclusaoDto() {
+        return new InclusaoDocumentoDossieProdutoRequest(
                 null,
                 "container/documento.pdf",
                 "GED123",
@@ -225,8 +99,8 @@ public final class TestFixtures {
         );
     }
 
-    public static DossieProdutoDocumentoInclusaoDto documentoInclusaoSemObjetoAtributoDto() {
-        return new DossieProdutoDocumentoInclusaoDto(
+    public static InclusaoDocumentoDossieProdutoRequest documentoInclusaoSemObjetoAtributoDto() {
+        return new InclusaoDocumentoDossieProdutoRequest(
                 null,
                 "cli-web-mtr/TESTE_DEFENDER_01_20251104.pdf",
                 null,
@@ -246,8 +120,8 @@ public final class TestFixtures {
         );
     }
 
-    public static DossieProdutoValidacaoNegocialDto validacaoNegocialDto() {
-        return new DossieProdutoValidacaoNegocialDto(
+    public static ValidacaoNegocialDossieProdutoRequest validacaoNegocialRequest() {
+        return new ValidacaoNegocialDossieProdutoRequest(
                 List.of(new DossieProdutoValidacaoNegocialVerificacaoDto(
                         1122928L,
                         6592L,
@@ -301,12 +175,4 @@ public final class TestFixtures {
         );
     }
 
-    public static GestaoDocumentoCredencialContainerDto gestaoDocumentoCredencialContainerDto() {
-        return new GestaoDocumentoCredencialContainerDto(
-                "sv=mock&ss=b&srt=o&sp=rw&se=2026-07-10T18:00:00Z&sig=mock",
-                "10/07/2026 18:00:00",
-                "https://dossiedigitaldes.blob.core.windows.net",
-                "pre-validacao"
-        );
-    }
 }
