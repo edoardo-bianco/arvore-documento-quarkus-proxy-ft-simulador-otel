@@ -4,9 +4,12 @@ import br.gov.caixa.simtr.hub.arvoredocumento.adaptador.saida.acl.falso.AcessoIn
 import br.gov.caixa.simtr.hub.arvoredocumento.dominio.modelo.ProcessoParametrizado;
 import br.gov.caixa.simtr.hub.arvoredocumento.falso.DependenciaDossieProdutoViolacao;
 import br.gov.caixa.simtr.hub.conformidade.falso.DependenciaArvoreDocumentoViolacao;
+import br.gov.caixa.simtr.hub.dominio.falso.DependenciaAdapterNoDominioViolacao;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.IdentificadorDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.falso.DependenciaAdapterNaAplicacaoViolacao;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.falso.UsoQuarkusNaAplicacaoPermitido;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.falso.AdapterEntradaComPortaSaidaViolacao;
-import br.gov.caixa.simtr.hub.gestaodocumento.adaptador.saida.mtr.adapter.GestaoDocumentoMtrAdapter;
+import br.gov.caixa.simtr.hub.dominio.falso.UsoQuarkusNoDominioPermitido;
 import br.gov.caixa.simtr.hub.dominio.falso.ViolacaoGuardrail;
 import com.azure.storage.falso.BlobClientViolacao;
 import com.tngtech.archunit.core.domain.JavaClasses;
@@ -20,6 +23,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noFields;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ArchUnitProgressivoTest {
@@ -35,7 +39,7 @@ class ArchUnitProgressivoTest {
             .withImportOption(new DoNotIncludeTests())
             .importPackages("br.gov.caixa.simtr.hub");
 
-    static final ArchRule dominio_nao_deve_dependender_de_framework_ou_bordas = noClasses()
+    static final ArchRule dominio_nao_deve_depender_de_bordas = noClasses()
             .that().resideInAPackage("..dominio..")
             .should().dependOnClassesThat()
             .resideInAnyPackage(
@@ -44,13 +48,7 @@ class ArchUnitProgressivoTest {
                     "..adaptador..",
                     "..mapeamento..",
                     "..fachada..",
-                    "..aplicacao..",
-                    "jakarta.enterprise..",
-                    "jakarta.inject..",
-                    "io.quarkus..",
-                    "io.smallrye.mutiny..",
-                    "org.eclipse.microprofile..",
-                    "com.fasterxml.jackson..");
+                    "..aplicacao..");
 
     static final ArchRule erro_rest_tecnico_pode_ser_usado_nas_bordas_permitidas = noClasses()
             .that().resideOutsideOfPackages(
@@ -93,11 +91,7 @@ class ArchUnitProgressivoTest {
                     "..adaptador..",
                     "..recurso..",
                     "..mapeamento..",
-                    "..fachada..",
-                    "jakarta..",
-                    "io.quarkus..",
-                    "org.eclipse.microprofile..",
-                    "com.fasterxml.jackson..");
+                    "..fachada..");
 
     static final ArchRule porta_de_entrada_nao_deve_expor_implementacao = noClasses()
             .that().resideInAnyPackage(
@@ -236,8 +230,8 @@ class ArchUnitProgressivoTest {
     }
 
     @Test
-    void dominioNaoDependeDeFrameworkOuBordas() {
-        dominio_nao_deve_dependender_de_framework_ou_bordas.check(CODIGO_PRODUCAO);
+    void dominioNaoDependeDeBordas() {
+        dominio_nao_deve_depender_de_bordas.check(CODIGO_PRODUCAO);
     }
 
     @Test
@@ -335,14 +329,19 @@ class ArchUnitProgressivoTest {
     }
 
     @Test
-    void regraDeFrameworkDetectaUsoProibidoNoDominio() {
-        ArchRule regra = noClasses()
-                .that().resideInAPackage("..dominio..")
-                .should().dependOnClassesThat()
-                .resideInAnyPackage("jakarta.enterprise..", "jakarta.inject..", "io.quarkus..");
+    void quarkusPodeSerUsadoNoDominio() {
+        JavaClasses classes = new ClassFileImporter()
+                .importClasses(UsoQuarkusNoDominioPermitido.class);
 
-        assertThrows(AssertionError.class, () -> regra.check(
-                new ClassFileImporter().importClasses(ViolacaoGuardrail.class)));
+        assertDoesNotThrow(() -> dominio_nao_deve_depender_de_bordas.check(classes));
+    }
+
+    @Test
+    void quarkusPodeSerUsadoNaAplicacao() {
+        JavaClasses classes = new ClassFileImporter()
+                .importClasses(UsoQuarkusNaAplicacaoPermitido.class);
+
+        assertDoesNotThrow(() -> aplicacao_migrada_nao_deve_depender_de_bordas.check(classes));
     }
 
     @Test
@@ -382,12 +381,11 @@ class ArchUnitProgressivoTest {
     }
 
     @Test
-    void regraDeAplicacaoDetectaDependenciaDeAdapter() {
-        ArchRule regra = noClasses().should().dependOnClassesThat()
-                .resideInAnyPackage("..integracao..", "..adaptador..");
-
-        assertThrows(AssertionError.class, () -> regra.check(
-                new ClassFileImporter().importClasses(AplicacaoComAdapterViolacao.class)));
+    void regrasDeCamadaDetectamDependenciaDeAdapterNoDominioENaAplicacao() {
+        assertThrows(AssertionError.class, () -> dominio_nao_deve_depender_de_bordas.check(
+                new ClassFileImporter().importClasses(DependenciaAdapterNoDominioViolacao.class)));
+        assertThrows(AssertionError.class, () -> aplicacao_migrada_nao_deve_depender_de_bordas.check(
+                new ClassFileImporter().importClasses(DependenciaAdapterNaAplicacaoViolacao.class)));
     }
 
     @Test
@@ -482,10 +480,6 @@ class ArchUnitProgressivoTest {
         assertThrows(AssertionError.class, () -> regraDeTipo.check(classes));
         assertThrows(AssertionError.class, () -> regraDeMetodo.check(classes));
         assertThrows(AssertionError.class, () -> regraDeCampo.check(classes));
-    }
-
-    private static final class AplicacaoComAdapterViolacao {
-        private GestaoDocumentoMtrAdapter adapter;
     }
 
     private static final class PortaEntradaComSaidaViolacao {

@@ -3,9 +3,9 @@
 ## Status
 
 - **Planejado:** 2026-07-11
-- **Implementacao:** Fases 0 a 9 concluidas; C0, C1, C2, C3, C4, C5, C6, C7, C8 e C9 em GO;
-  consolidacao dos fundamentos hexagonais encerrada em 2026-07-15
-- **Branch de trabalho atual:** `refactor/ddd-fase-9-baseline`
+- **Implementacao:** Fases 0 a 10 concluidas; C0, C1, C2, C3, C4, C5, C6, C7, C8, C9 e C10
+  em GO; uso pragmatico do Quarkus consolidado em 2026-07-15
+- **Branch de trabalho atual:** `refactor/ddd-fase-10-baseline`
 - **Documento arquitetural:** `../doc/arquitetura-ddd-integracoes-atomicas.md`
 - **Checklist operacional:** `todo.md`
 
@@ -1274,6 +1274,57 @@ testes e configuracao funcional nao mudaram, portanto o Maven nao foi repetido.
 - [x] Revisao humana aceita a consolidacao.
 
 **Status:** `GO` humano registrado em 2026-07-15; Fase 9 documental encerrada.
+
+## Fase 10 - Uso pragmatico do Quarkus
+
+### Task 10.1 - Permitir framework em qualquer componente sem relaxar as fronteiras
+
+**Descricao:** explicitar que a Arquitetura Hexagonal e uma orientacao de organizacao e direcao de
+dependencias, nao uma politica de pureza tecnologica. Quarkus e suas APIs associadas podem ser
+usados em qualquer componente quando forem uteis; nenhum guardrail deve rejeitar uma classe
+somente pelo framework utilizado.
+
+**Criterios de aceite:**
+
+- Quarkus, Jakarta, MicroProfile, Mutiny, Jackson e OpenTelemetry nao sao proibidos por camada;
+- ArchUnit continua impedindo dominio e aplicacao de depender de Resources, adapters, fachadas,
+  mapeamentos e demais bordas proibidas;
+- isolamento entre dominios, confinamento de DTOs, API publica de aplicacao e regras especificas
+  de escopo permanecem ativos;
+- uma prova executavel demonstra que o uso de Quarkus e aceito no dominio e na aplicacao;
+- documento canonico, README e documento operacional descrevem a mesma decisao pragmatica;
+- nenhum endpoint, contrato, comportamento ou arquivo de producao e alterado.
+
+**Subtasks:**
+
+- **10.1a:** registrar fase, branch, escopo e checkpoint na governanca;
+- **10.1b:** criar a prova RED de que Quarkus deve ser aceito no dominio e na aplicacao;
+- **10.1c:** remover dos guardrails somente as proibicoes por tecnologia e manter as fronteiras;
+- **10.1d:** alinhar documento canonico, README e documento operacional;
+- **10.1e:** executar ArchUnit, suite completa, buscas de contradicao e revisao multi-eixo.
+
+**Verificacao:** ciclo RED/GREEN do `ArchUnitProgressivoTest`, `mvn -q clean test`, buscas de
+afirmacoes divergentes, `git diff --check`, verificacao de segredos e revisao multi-eixo.
+
+**Dependencias:** C9. **Escopo:** M, sem alteracao de producao.
+
+**Status:** concluida em 2026-07-15 na branch `refactor/ddd-fase-10-baseline`, criada e publicada a
+partir do commit `2e9641e` aceito em C9. O ciclo RED/GREEN confirmou a permissao de Quarkus e a
+preservacao das fronteiras; ArchUnit, suite limpa completa, JaCoCo, buscas, seguranca e revisao
+multi-eixo passaram. Referencias a codigo `framework-free` nas fases anteriores sao registro
+historico dos criterios executados naquela data e ficam superadas pela decisao normativa desta
+Fase 10. Nenhum arquivo de producao foi alterado. C10 recebeu GO humano em 2026-07-15.
+
+### Checkpoint C10 - Pragmatismo de framework
+
+- [x] Quarkus e suas APIs associadas podem ser usados em qualquer componente sem bloqueio por camada.
+- [x] Fronteiras de dominio, aplicacao, adapters, DTOs e integracoes entre dominios permanecem protegidas.
+- [x] Documento canonico, README e documento operacional estao alinhados.
+- [x] ArchUnit, suite completa, build e revisao multi-eixo estao verdes.
+- [x] Nenhum arquivo de producao, endpoint, contrato ou comportamento foi alterado.
+- [x] Revisao humana aceita a decisao e autoriza o fechamento.
+
+**Status:** `GO` humano registrado em 2026-07-15; Fase 10 encerrada.
 
 ## Riscos e mitigacoes
 

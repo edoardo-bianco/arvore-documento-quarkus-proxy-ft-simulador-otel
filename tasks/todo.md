@@ -35,11 +35,14 @@ Antes de executar qualquer item:
   GO em C7, publicada e configurada para rastrear `origin/refactor/ddd-fase-8-baseline`.
 - [x] G8 Branch `refactor/ddd-fase-9-baseline` criada a partir do commit `2cc2744`, que recebeu
   GO em C8, publicada e configurada para rastrear `origin/refactor/ddd-fase-9-baseline`.
+- [x] G9 Branch `refactor/ddd-fase-10-baseline` criada a partir do commit `2e9641e`, que recebeu
+  GO em C9, publicada e configurada para rastrear `origin/refactor/ddd-fase-10-baseline`.
 
 ## Ponto de retomada
 
-- **Ultimo marco concluido:** C9 - GO humano registrado e Fase 9 documental encerrada.
-- **Proximo item:** nenhum neste plano; novo trabalho exige novo plano, nova fase e nova branch.
+- **Ultimo marco concluido:** C10 - GO humano registrado e Fase 10 encerrada.
+- **Fase atual:** nenhuma; o plano esta encerrado.
+- **Proximo item:** nenhum; novo trabalho exige nova fase, nova branch e novo checkpoint.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
   produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
@@ -522,6 +525,28 @@ Antes de executar qualquer item:
 - **Checkpoint C9 (2026-07-15):** GO humano registrado. A explicacao geral da Arquitetura
   Hexagonal, os tres papeis conceituais de orquestracao, a relacao com microsservicos e o uso
   pragmatico foram aceitos; a Fase 9 esta encerrada.
+- **Bootstrap da Fase 10:** `refactor/ddd-fase-10-baseline` criada no commit `2e9641e`, publicada
+  e configurada com upstream remoto antes da Task 10.1. A fase pode alterar documentacao,
+  governanca e guardrails de teste, mas nao autoriza mudanca de producao ou contrato externo.
+- **Task 10.1a concluida:** fase, branch, escopo, subtasks e checkpoint C10 registrados. A decisao
+  sera implementada por TDD: permitir tecnologia em qualquer camada sem remover os limites de
+  dependencia entre nucleo, bordas e dominios.
+- **Task 10.1b concluida:** duas fixtures controladas usam `@RegisterForReflection` em packages de
+  dominio e aplicacao. O teste focado registrou o RED esperado nas regras existentes.
+- **Task 10.1c concluida:** as blacklists de Quarkus, Jakarta, MicroProfile, Mutiny e Jackson foram
+  removidas dos guardrails de dominio e aplicacao. As restricoes de dependencia para Resources,
+  adapters, integracao, mapeamento, fachada e outras camadas proibidas permaneceram; duas fixtures
+  negativas exercitam as regras reais, e o ciclo passou a GREEN.
+- **Task 10.1d concluida:** documento canonico, README e documento operacional afirmam que Quarkus
+  pode ser usado em qualquer componente sem bloqueio por camada. Restricoes de papeis especificos
+  e fronteiras estruturais continuam explicitas. Registros `framework-free` de fases anteriores
+  permanecem historicos e sao superados pela decisao normativa da Fase 10.
+- **Task 10.1e concluida:** ArchUnit, suite Maven limpa, JaCoCo, buscas de contradicao e escopo,
+  verificacao de segredos, `git diff --check` e revisao multi-eixo passaram. Nao houve alteracao em
+  `src/main`, endpoint, contrato, configuracao funcional ou comportamento.
+- **Checkpoint C10 (2026-07-15):** GO humano registrado. O uso pragmatico do Quarkus em qualquer
+  componente, a preservacao das fronteiras estruturais e o alinhamento documental foram aceitos;
+  a Fase 10 esta encerrada.
 
 ## Fase 0 - Baseline e guardrails
 
@@ -740,6 +765,16 @@ Antes de executar qualquer item:
 - [x] 9.1 Consolidar a explicacao geral antes da aplicacao ao Hub.
 - [x] C9 Obter aceite humano dos fundamentos hexagonais.
 
+## Fase 10 - Uso pragmatico do Quarkus
+
+- [x] 10.1a Registrar fase, branch, escopo e checkpoint na governanca.
+- [x] 10.1b Criar prova RED de Quarkus permitido no dominio e na aplicacao.
+- [x] 10.1c Remover bloqueios por tecnologia e preservar guardrails de fronteira.
+- [x] 10.1d Alinhar documento canonico, README e documento operacional.
+- [x] 10.1e Executar ArchUnit, suite completa, buscas e revisao multi-eixo.
+- [x] 10.1 Consolidar o uso pragmatico do Quarkus.
+- [x] C10 Obter aceite humano da decisao pragmatica.
+
 ## Registro de checkpoints
 
 Esta tabela e a fonte autoritativa. Valores validos de status: `PENDENTE`, `GO` e `NO-GO`. Um
@@ -762,6 +797,7 @@ data, evidencias verificaveis e aprovador humano.
 | C7 | GO | 2026-07-15 | Task 7.1 concluida; todos os endpoints da especificacao inventariados; oito capacidades implementadas e cinco ausencias explicitadas; README, decisao arquitetural, documento operacional, codigo, links e diff documental revisados sem bloqueios | Usuario, GO registrado em conversa |
 | C8 | GO | 2026-07-15 | Task 8.1 concluida; introducao explicita solucao atual, fundamentos hexagonais e limites futuros; links, escopo documental e diff revisados sem bloqueios | Usuario, GO registrado em conversa |
 | C9 | GO | 2026-07-15 | Task 9.1 concluida; fundamentos gerais, tres papeis conceituais de orquestracao, microsservicos, uso pragmatico, links e diff documental revisados sem bloqueios | Usuario, GO registrado em conversa |
+| C10 | GO | 2026-07-15 | Task 10.1 concluida; permissao de Quarkus, fronteiras, documentacao, ArchUnit, suite, JaCoCo e diff revisados sem bloqueios | Usuario, GO registrado em conversa |
 
 ## Bloqueios que nao podem ser resolvidos por suposicao
 

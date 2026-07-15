@@ -65,10 +65,13 @@ orquestrador futuro do dominio ------+--> porta de entrada
                                               `-- simulador
 ```
 
-As dependencias fluem para dentro:
+As dependencias fluem para dentro. Essa direcao e aplicada de forma pragmatica: **Quarkus pode ser
+usado em qualquer componente, inclusive dominio, aplicacao, portas e casos de uso, e nao e
+bloqueado por camada**. Os guardrails protegem fronteiras e responsabilidades; eles nao exigem
+pureza de framework.
 
-- `dominio` usa Java e tipos do proprio dominio;
-- `aplicacao` usa tipos internos, portas e Mutiny `Uni`;
+- `dominio` concentra tipos e regras do proprio dominio e nao depende das bordas;
+- `aplicacao` coordena tipos internos e portas e usa atualmente Mutiny `Uni`;
 - o adapter REST converte DTO publico para tipos internos e chama somente a porta de entrada;
 - os adapters MTR e simulador implementam a mesma porta de saida, com DTOs e mappers exclusivos;
 - qualifiers e producers CDI selecionam MTR ou simulador pelas properties existentes;
@@ -76,6 +79,10 @@ As dependencias fluem para dentro:
   portas;
 - imports entre dominios sao reservados a futuros adapters locais ACL, limitados a API publica de
   entrada do dominio fornecedor.
+
+Uma API especifica ainda pode ser confinada por seu papel — REST Clients, por exemplo, pertencem
+ao adapter MTR. Isso restringe a responsabilidade do componente, nao o uso do Quarkus como
+framework.
 
 O dominio interno `parametrizacao` foi removido. O nome continua presente somente onde representa
 o sistema externo: paths MTR, config keys, fixtures e sinais de telemetria contratuais.

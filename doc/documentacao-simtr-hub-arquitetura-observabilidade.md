@@ -29,6 +29,13 @@ Cada dominio possui modelos, falhas, portas e adapters proprios. DTO REST, DTO M
 simulador nao sao compartilhados. Producers CDI selecionam o adapter de saida e o caso de uso nao
 conhece a property do simulador.
 
+A organizacao hexagonal e pragmatica: Quarkus pode ser usado em qualquer componente, incluindo
+dominio, aplicacao, portas e casos de uso, sem bloqueio arquitetural por framework. ArchUnit
+protege a direcao das dependencias, o isolamento dos dominios e o confinamento dos contratos de
+borda; ele nao rejeita uma classe somente por usar Quarkus, Jakarta, MicroProfile, Mutiny, Jackson
+ou OpenTelemetry. Restricoes de papeis especificos, como manter REST Clients no adapter MTR,
+continuam validas.
+
 O package interno `parametrizacao` nao existe mais. `parametrizacao` continua aparecendo em nomes
 externos que nao podem ser renomeados silenciosamente: URLs, config keys, fixtures, spans e logs.
 

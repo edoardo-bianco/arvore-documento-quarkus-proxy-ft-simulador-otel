@@ -4,7 +4,7 @@
 
 - **Status:** aceito
 - **Data:** 2026-07-11
-- **Estado verificado:** 2026-07-15, depois da conclusao da refatoracao e do inventario de endpoints
+- **Estado verificado:** 2026-07-15, incluindo a decisao pragmatica de uso do Quarkus da Fase 10
 - **Escopo:** refatoracao do comportamento atualmente implementado
 - **Plano executavel:** `../tasks/plan.md`
 - **Checklist de retomada:** `../tasks/todo.md`
@@ -44,8 +44,9 @@ Essa separacao aplica o principio de separacao de responsabilidades e contribui 
 - substituir mecanismos de integracao com menor impacto;
 - facilitar a manutencao e a identificacao de problemas.
 
-Na solucao atual, essa separacao nao elimina Quarkus das bordas. Ela impede que detalhes do
-framework e dos contratos externos se tornem dependencias do dominio e da logica de aplicacao.
+Na solucao atual, essa separacao define responsabilidades; ela nao separa codigo "com Quarkus" de
+codigo "sem Quarkus". O framework pode apoiar qualquer componente. O que permanece isolado sao
+as dependencias entre nucleo, bordas e contratos externos.
 
 ## Arquitetura Hexagonal
 
@@ -68,14 +69,17 @@ Porta de saida
 Adapter de saida
 ```
 
-A regra central e que o nucleo conheca contratos orientados a capacidades, sem depender
-diretamente de REST, banco de dados, mensageria, armazenamento, SDKs externos, simuladores ou
-outras tecnologias. As dependencias de codigo apontam das bordas para as portas e os modelos do
-nucleo.
+A regra central e que o nucleo expresse capacidades sem depender dos adapters que realizam REST,
+persistencia, mensageria, armazenamento, integracoes externas ou simulacao. Essa direcao de
+dependencia nao exige um nucleo livre de framework: Quarkus e suas APIs podem ser usados no
+dominio, na aplicacao, nas portas e nos casos de uso. As dependencias estruturais continuam
+apontando das bordas para as portas e os modelos do nucleo.
 
 ### Portas
 
-Uma **porta** e um contrato do codigo que nao depende de tecnologia.
+Uma **porta** e um contrato orientado a uma capacidade. Ela pode usar Quarkus ou outra API de
+framework quando isso for util, sem deixar de representar a linguagem da aplicacao. O que ela nao
+deve expor por conveniencia sao DTOs e detalhes exclusivos de uma borda externa.
 
 - A **porta de entrada** representa uma capacidade oferecida pela aplicacao. Ela permite que uma
   requisicao HTTP, uma mensagem, uma tarefa agendada ou uma futura etapa de orquestracao acione um
@@ -159,12 +163,27 @@ A adocao deve considerar os beneficios obtidos e o custo das abstracoes. O padra
 solucao universal e nao justifica componentes sem uso real. Portas, adapters e pastas so devem
 existir quando houver uma capacidade e um consumidor concretos.
 
+Arquitetura Hexagonal nao e adotada como politica de pureza tecnologica. **Quarkus pode ser usado
+em qualquer componente ou package da solucao e nao deve ser impedido pela arquitetura ou pelo
+build**, inclusive em dominio, aplicacao, portas e casos de uso. A mesma orientacao vale para APIs
+associadas, como Jakarta, MicroProfile, Mutiny, Jackson e OpenTelemetry: o simples uso de uma
+dessas tecnologias nao caracteriza violacao de camada.
+
+Essa liberdade e uma permissao, nao uma obrigacao. Ela tambem nao autoriza o dominio a depender de
+um Resource ou adapter, a aplicacao a consumir DTO de borda, ou um dominio a acessar internamente
+outro dominio. Uma regra pode restringir um papel arquitetural especifico — por exemplo, REST
+Clients continuam confinados ao adapter MTR —, mas nao pode rejeitar uma classe somente porque
+ela usa Quarkus. Os guardrails protegem responsabilidades e direcao de dependencias, nao pureza de
+framework.
+
 ## Visao da solucao
 
 O `simtr-hub` e um monolito modular organizado por dominios de negocio. A solucao implementada
 oferece oito capacidades atomicas por endpoints REST publicos e integra cada capacidade ao MTR ou
 ao simulador por adapters de saida independentes. Cada dominio concentra seus casos de uso,
-modelos internos e contratos de aplicacao; os detalhes tecnologicos permanecem nas bordas.
+modelos internos e contratos de aplicacao; os detalhes exclusivos de protocolo e dos contratos
+externos permanecem nas bordas. Quarkus, como framework da solucao, pode apoiar qualquer desses
+componentes.
 
 O fluxo executado atualmente pode ser lido assim:
 
@@ -367,16 +386,17 @@ Nao se criam pastas vazias nem abstracoes sem consumidor real.
 
 ## Regras de dependencia
 
-1. `dominio` usa somente Java e outros tipos do proprio dominio.
-2. `dominio` nao importa Quarkus, Mutiny, CDI, Jackson, Jakarta, REST, OpenTelemetry ou adapters.
-3. `aplicacao` pode usar Mutiny `Uni`, tipos do proprio dominio e suas portas.
-4. `aplicacao` nao importa `adaptador`, DTO, REST Client ou outro dominio.
-5. Adapters de entrada dependem de portas de entrada e mapeiam DTOs para tipos internos.
-6. Adapters de saida implementam portas de saida e mapeiam tipos internos para seus contratos.
-7. DTO publico, DTO MTR e DTO do simulador sao contratos independentes.
-8. Nenhum mapper converte diretamente DTO publico em DTO MTR.
-9. `arquitetura` nao importa dominios e nao possui regra, modelo ou erro especifico de negocio.
-10. Um adapter local entre dominios fica na borda do consumidor; ele pode importar a API de
+1. `dominio` pode usar Java, tipos do proprio dominio e APIs do Quarkus ou de outros frameworks;
+   ele nao depende de `aplicacao`, Resources, adapters, fachadas ou mapeamentos de borda.
+2. `aplicacao` pode usar tipos do proprio dominio, suas portas e APIs do Quarkus ou de outros
+   frameworks, incluindo Mutiny `Uni`; ela nao importa adapters, DTOs de borda, REST Clients ou
+   outro dominio.
+3. Adapters de entrada dependem de portas de entrada e mapeiam DTOs para tipos internos.
+4. Adapters de saida implementam portas de saida e mapeiam tipos internos para seus contratos.
+5. DTO publico, DTO MTR e DTO do simulador sao contratos independentes.
+6. Nenhum mapper converte diretamente DTO publico em DTO MTR.
+7. `arquitetura` nao importa dominios e nao possui regra, modelo ou erro especifico de negocio.
+8. Um adapter local entre dominios fica na borda do consumidor; ele pode importar a API de
     aplicacao publica do fornecedor e realiza a traducao entre modelos.
 
 A **API publica de aplicacao** de um dominio e formada exclusivamente por suas portas de entrada e
@@ -384,8 +404,10 @@ pelos tipos semanticos de comando/resultado referenciados por elas. Casos de uso
 de saida e demais tipos internos nao fazem parte dessa API. A aplicacao de um dominio consumidor
 nao importa diretamente nem mesmo essa API: somente seu adapter local anticorrupcao pode importa-la.
 
-Essas regras estao codificadas no build por ArchUnit para todas as capacidades migradas. A
-ativacao ocorreu progressivamente durante a refatoracao para evitar um big bang.
+Essas regras estao codificadas no build por ArchUnit para todas as capacidades migradas. ArchUnit
+protege as fronteiras estruturais e nao mantem blacklist de Quarkus, Jakarta, MicroProfile,
+Mutiny, Jackson ou OpenTelemetry por camada. A ativacao ocorreu progressivamente durante a
+refatoracao para evitar um big bang.
 
 ## Portas e granularidade
 
@@ -460,8 +482,8 @@ informal.
 
 ## Reatividade e chamadas bloqueantes
 
-- `Uni` e permitido na camada de aplicacao para representar uma operacao assincrona com zero ou um
-  resultado.
+- `Uni` e usado na camada de aplicacao para representar uma operacao assincrona com zero ou um
+  resultado; isso e uma escolha atual, nao a unica API de framework permitida no nucleo.
 - Nenhum caso de uso chama `await`, bloqueia event loop ou cria thread por conta propria.
 - Adapters bloqueantes devem deslocar a execucao para worker thread sem expor esse detalhe ao
   dominio.
