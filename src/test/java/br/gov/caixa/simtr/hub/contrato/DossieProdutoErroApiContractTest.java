@@ -64,13 +64,16 @@ class DossieProdutoErroApiContractTest {
     }
 
     @Test
-    void preservaErroDeValidacaoCascataDoAtributoDeDocumento() {
+    void preservaTodasAsValidacoesObrigatoriasDeAtributosEPropriedadesDoDocumento() {
         validarErro(given()
                         .contentType(ContentType.JSON)
                         .accept(ContentType.JSON)
-                        .body("{\"atributos\":[{\"valor\":\"123\"}]}")
+                        .body("{\"atributos\":[{}],\"propriedades\":[{}]}")
                         .post("/simtr-hub/v1/dossie-produto/{id}/documento", 123L),
-                "A chave do atributo do documento deve ser informada.");
+                "A chave do atributo do documento deve ser informada.",
+                "O valor do atributo do documento deve ser informado.",
+                "A chave da propriedade do documento deve ser informada.",
+                "O valor da propriedade do documento deve ser informado.");
     }
 
     @Test

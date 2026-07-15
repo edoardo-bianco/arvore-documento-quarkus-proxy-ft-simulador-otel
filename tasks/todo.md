@@ -37,12 +37,17 @@ Antes de executar qualquer item:
   GO em C8, publicada e configurada para rastrear `origin/refactor/ddd-fase-9-baseline`.
 - [x] G9 Branch `refactor/ddd-fase-10-baseline` criada a partir do commit `2e9641e`, que recebeu
   GO em C9, publicada e configurada para rastrear `origin/refactor/ddd-fase-10-baseline`.
+- [x] G10 Branch `refactor/ddd-fase-11-baseline` criada a partir do commit `6d57872`, que integrou
+  a Fase 10 aceita em C10 a `main`, publicada e configurada para rastrear
+  `origin/refactor/ddd-fase-11-baseline`.
+- [x] G11 Branch `refactor/ddd-fase-12-baseline` criada a partir do commit `54569d7`, que recebeu
+  GO em C11, publicada e configurada para rastrear `origin/refactor/ddd-fase-12-baseline`.
 
 ## Ponto de retomada
 
-- **Ultimo marco concluido:** C10 - GO humano registrado e Fase 10 encerrada.
-- **Fase atual:** nenhuma; o plano esta encerrado.
-- **Proximo item:** nenhum; novo trabalho exige nova fase, nova branch e novo checkpoint.
+- **Ultimo marco concluido:** C12 - GO humano registrado e Fase 12 encerrada.
+- **Fase atual:** nenhuma; nova fase exige novo plano e nova branch dedicada.
+- **Proximo item:** nenhum; aguardar nova orientacao humana.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
   produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
@@ -281,8 +286,9 @@ Antes de executar qualquer item:
   aninhados permanecem. O RED de compilacao e cinco testes novos substituem dez testes exclusivos
   do legado removido. `mvn -q clean test` executou 236 casos em 62 relatorios, com zero falhas,
   zero erros e zero ignorados, no profile `test`, sem Docker ou Dev Services. O warning `HV000271`
-  nao aparece mais para a capacidade; warnings restantes pertencem a formulario/documento. Nao
-  houve alteracao de OpenAPI, properties ou fixture.
+  nao aparecia mais para a capacidade; naquele checkpoint, os warnings restantes pertenciam a
+  formulario/documento e foram eliminados na Fase 11. Nao houve alteracao de OpenAPI, properties
+  ou fixture.
 - **Checkpoint C2.4:** GO humano confirmado em 2026-07-14; consolidacao de `dossieproduto`
   desbloqueada.
 - **Inicio da Task 2.5 (2026-07-14):** inventario global cruzou todas as classes de producao de
@@ -547,6 +553,30 @@ Antes de executar qualquer item:
 - **Checkpoint C10 (2026-07-15):** GO humano registrado. O uso pragmatico do Quarkus em qualquer
   componente, a preservacao das fronteiras estruturais e o alinhamento documental foram aceitos;
   a Fase 10 esta encerrada.
+- **Bootstrap da Fase 11:** `refactor/ddd-fase-11-baseline` criada e publicada a partir do commit
+  `6d57872` de `main`, com escopo restrito a metadados Jakarta Validation, contratos executaveis e
+  governanca. Renome do package REST e mudanca do contrato tecnico de erro nao estao autorizados.
+- **Task 11.1a concluida:** fase, branch, escopo, subtasks e checkpoint C11 registrados. A mudanca
+  seguira RED/GREEN antes de alterar as seis declaracoes depreciadas.
+- **Tasks 11.1b-11.1d concluidas:** a prova estrutural registrou RED para `@Valid` no container; os
+  contratos HTTP passaram a proteger as quatro mensagens de atributos/propriedades; as seis listas
+  foram migradas para o argumento de tipo. Testes focados, nulabilidade, suite limpa, ArchUnit e
+  revisao do diff passaram sem `HV000271`; packages REST e tecnico de erro nao mudaram.
+- **Task 11.1e concluida:** checkpoint consolidado para publicacao e espera de GO humano.
+- **Checkpoint C11 (2026-07-15):** GO humano registrado. A cascata Jakarta Validation modernizada
+  e os contratos preservados foram aceitos; a Fase 11 esta encerrada. O renome do package REST foi
+  autorizado apenas como fase seguinte independente.
+- **Bootstrap da Fase 12:** `refactor/ddd-fase-12-baseline` criada e publicada a partir do commit
+  `54569d7` aceito em C11. O escopo e exclusivamente o alinhamento de package da borda REST de
+  `dossieproduto`; contratos externos e package tecnico de erro permanecem congelados.
+- **Task 12.1a concluida:** fase, branch, subtasks, criterios e checkpoint C12 registrados.
+- **Tasks 12.1b-12.1c concluidas:** o guardrail comprovou o desvio em RED; producao, testes e
+  fixtures foram movidos para `dossieproduto.adaptador.entrada.rest`, com FQCNs e regras alinhados.
+- **Tasks 12.1d-12.1e concluidas:** contratos externos, package tecnico de erro e comportamento
+  permaneceram inalterados; documentacao e gates passaram, e o checkpoint foi preparado para
+  publicacao e aceite humano.
+- **Checkpoint C12 (2026-07-15):** GO humano registrado. O package REST alinhado e os contratos
+  preservados foram aceitos; a Fase 12 esta encerrada e nenhuma nova fase foi iniciada.
 
 ## Fase 0 - Baseline e guardrails
 
@@ -775,6 +805,26 @@ Antes de executar qualquer item:
 - [x] 10.1 Consolidar o uso pragmatico do Quarkus.
 - [x] C10 Obter aceite humano da decisao pragmatica.
 
+## Fase 11 - Cascata Jakarta Validation de formulario e documento
+
+- [x] 11.1a Registrar fase, branch, escopo e checkpoint na governanca.
+- [x] 11.1b Criar prova RED e completar contratos HTTP de atributos/propriedades de documento.
+- [x] 11.1c Migrar as seis listas para `List<@Valid T>` e executar testes focados.
+- [x] 11.1d Executar suite limpa, verificar warnings, revisar diff e consolidar documentacao.
+- [x] 11.1e Publicar o checkpoint e aguardar GO humano.
+- [x] 11.1 Remover o uso depreciado de `@Valid` nas listas REST preservando os contratos.
+- [x] C11 Obter aceite humano da cascata Jakarta Validation modernizada.
+
+## Fase 12 - Alinhamento do package REST de `dossieproduto`
+
+- [x] 12.1a Registrar fase, branch, escopo e checkpoint C12.
+- [x] 12.1b Criar guardrail RED que rejeita `dossieproduto.recurso.rest`.
+- [x] 12.1c Mover producao/testes e atualizar FQCNs, imports e guardrails.
+- [x] 12.1d Alinhar documentacao e executar verificacoes focadas/completas.
+- [x] 12.1e Publicar o checkpoint e aguardar GO humano.
+- [x] 12.1 Renomear a borda REST sem alterar contratos.
+- [x] C12 Obter aceite humano do package REST alinhado.
+
 ## Registro de checkpoints
 
 Esta tabela e a fonte autoritativa. Valores validos de status: `PENDENTE`, `GO` e `NO-GO`. Um
@@ -798,6 +848,8 @@ data, evidencias verificaveis e aprovador humano.
 | C8 | GO | 2026-07-15 | Task 8.1 concluida; introducao explicita solucao atual, fundamentos hexagonais e limites futuros; links, escopo documental e diff revisados sem bloqueios | Usuario, GO registrado em conversa |
 | C9 | GO | 2026-07-15 | Task 9.1 concluida; fundamentos gerais, tres papeis conceituais de orquestracao, microsservicos, uso pragmatico, links e diff documental revisados sem bloqueios | Usuario, GO registrado em conversa |
 | C10 | GO | 2026-07-15 | Task 10.1 concluida; permissao de Quarkus, fronteiras, documentacao, ArchUnit, suite, JaCoCo e diff revisados sem bloqueios | Usuario, GO registrado em conversa |
+| C11 | GO | 2026-07-15 | Task 11.1 concluida; cascata no tipo dos elementos, contratos HTTP/nulabilidade, suite limpa, ArchUnit e diff verdes; `HV000271` eliminado; packages REST e tecnico de erro inalterados | Usuario, GO registrado em conversa |
+| C12 | GO | 2026-07-15 | Task 12.1 concluida; package REST alinhado, contratos preservados e checkpoint publicado | Usuario, GO registrado em conversa |
 
 ## Bloqueios que nao podem ser resolvidos por suposicao
 

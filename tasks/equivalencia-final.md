@@ -49,6 +49,10 @@ transversais permanecem protegidos por `ObservabilidadeSpansContratoTest`,
 ## Dividas mantidas fora do escopo
 
 - validar idempotencia das operacoes mutaveis antes de qualquer workflow futuro;
-- decidir separadamente eventual adocao de Quarkus Flow e persistencia de orquestracao;
-- tratar os warnings Jakarta Validation remanescentes de formulario e documento sem misturar
-  mudanca de contrato com esta refatoracao.
+- decidir separadamente eventual adocao de Quarkus Flow e persistencia de orquestracao.
+
+## Evolucao posterior
+
+A Fase 11 tratou separadamente os warnings Jakarta Validation de formulario e documento. A
+colocacao de `@Valid` foi modernizada com contratos proprios, sem mudar o comportamento publico
+consolidado neste documento.

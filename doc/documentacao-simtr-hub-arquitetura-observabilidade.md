@@ -52,8 +52,8 @@ Dono de `ConsultarChecklist`. Nao analisa documentos nem orquestra conformidade.
 ### `dossieproduto`
 
 Dono das capacidades atomicas de criacao, formulario, documento, validacao negocial e avanco de
-workflow. A borda REST permanece no package de compatibilidade `recurso.rest.v1`; os demais
-componentes seguem `dominio`, `aplicacao` e `adaptador`.
+workflow. A borda REST segue o package canonico `adaptador.entrada.rest.v1`; os demais componentes
+seguem `dominio`, `aplicacao` e `adaptador`.
 
 ### `gestaodocumento`
 
@@ -207,8 +207,14 @@ Se uma chamada MTR falhar, verificar nesta ordem:
 ## Limites e dividas conhecidas
 
 - retry em operacoes mutaveis exige prova de idempotencia antes de orquestracao futura;
-- warnings Jakarta Validation remanescentes de formulario e documento precisam de mudanca
-  separada e testes de contrato;
-- o package REST de `dossieproduto` e o package tecnico de erro sao desvios internos documentados;
+- o package tecnico compartilhado de erro `arquitetura.excecao.dto` permanece como desvio interno
+  documentado e confinado as bordas REST permitidas;
 - Quarkus Flow, persistencia de workflow, os cinco endpoints ausentes listados acima, quaisquer
   outros endpoints novos, upload e lifecycle de SAS permanecem fora do escopo.
+
+A divida Jakarta Validation de formulario e documento foi encerrada na Fase 11. As seis listas
+REST usam `List<@Valid T>`; contratos executaveis preservam mensagens e nulabilidade sem introduzir
+novas restricoes.
+
+O desvio historico do package REST de `dossieproduto` foi encerrado na Fase 12: Resource, mappers,
+DTOs e testes residem em `dossieproduto.adaptador.entrada.rest`, sem mudanca nos contratos HTTP.

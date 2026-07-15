@@ -125,12 +125,16 @@ Eventos de log protegidos incluem:
 As evidencias executaveis permanecem em `ObservabilidadeSpansContratoTest`,
 `ObservabilidadeLogsContratoTest` e no teste MTR contra o stub local.
 
-## Divida observada, sem correcao nesta task
+## Divida observada na task, resolvida na Fase 11
 
-O Hibernate Validator avisa sobre `@Valid` aplicado aos containers `List`. A borda REST continua
-usando Jakarta Validation para rejeitar entradas invalidas antes do caso de uso e preservar status,
-mensagens e paths do contrato atual. A migracao futura deve avaliar `List<@Valid T>` somente com
-equivalencia comprovada; dominio e aplicacao devem permanecer sem annotations de validacao.
+Naquele momento, o Hibernate Validator avisava sobre `@Valid` aplicado aos containers `List`. A
+borda REST continuava usando Jakarta Validation para rejeitar entradas invalidas antes do caso de
+uso e preservar status, mensagens e paths do contrato. A migracao posterior deveria avaliar
+`List<@Valid T>` somente com equivalencia comprovada.
+
+Esse registro descreve o estado historico da task. A Fase 11 adotou `List<@Valid T>` depois de
+proteger as quatro mensagens de atributos/propriedades e a nulabilidade, eliminando o aviso sem
+alterar o comportamento publico.
 
 ## Evidencia de execucao
 

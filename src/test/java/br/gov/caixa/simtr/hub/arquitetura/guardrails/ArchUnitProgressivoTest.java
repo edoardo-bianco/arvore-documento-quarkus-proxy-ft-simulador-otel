@@ -8,7 +8,7 @@ import br.gov.caixa.simtr.hub.dominio.falso.DependenciaAdapterNoDominioViolacao;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.IdentificadorDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.falso.DependenciaAdapterNaAplicacaoViolacao;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.falso.UsoQuarkusNaAplicacaoPermitido;
-import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.falso.AdapterEntradaComPortaSaidaViolacao;
+import br.gov.caixa.simtr.hub.dossieproduto.adaptador.entrada.rest.falso.AdapterEntradaComPortaSaidaViolacao;
 import br.gov.caixa.simtr.hub.dominio.falso.UsoQuarkusNoDominioPermitido;
 import br.gov.caixa.simtr.hub.dominio.falso.ViolacaoGuardrail;
 import com.azure.storage.falso.BlobClientViolacao;
@@ -52,7 +52,6 @@ class ArchUnitProgressivoTest {
 
     static final ArchRule erro_rest_tecnico_pode_ser_usado_nas_bordas_permitidas = noClasses()
             .that().resideOutsideOfPackages(
-                    "..recurso.rest..",
                     "..adaptador.entrada.rest..",
                     "..arquitetura.excecao..")
             .should().dependOnClassesThat()
@@ -103,12 +102,15 @@ class ArchUnitProgressivoTest {
             .resideInAnyPackage("..aplicacao.porta.saida..", "..aplicacao.casodeuso..");
 
     static final ArchRule adapters_rest_nao_devem_acessar_internos_ou_bordas_de_saida = noClasses()
-            .that().resideInAnyPackage("..adaptador.entrada.rest..", "..recurso.rest..")
+            .that().resideInAPackage("..adaptador.entrada.rest..")
             .should().dependOnClassesThat()
             .resideInAnyPackage(
                     "..aplicacao.porta.saida..",
                     "..aplicacao.casodeuso..",
                     "..adaptador.saida..");
+
+    static final ArchRule dossie_produto_nao_deve_usar_package_rest_historico = noClasses()
+            .should().resideInAPackage("..dossieproduto.recurso.rest..");
 
     static final ArchRule adapters_de_saida_migrados_nao_devem_reutilizar_contratos_de_outras_bordas = noClasses()
             .that().resideInAnyPackage(
@@ -125,9 +127,9 @@ class ArchUnitProgressivoTest {
             .resideInAPackage("..adaptador.saida.mtr..");
 
     static final ArchRule dto_rest_nao_deve_vazar_da_borda_de_entrada = noClasses()
-            .that().resideOutsideOfPackages("..adaptador.entrada.rest..", "..recurso.rest..")
+            .that().resideOutsideOfPackage("..adaptador.entrada.rest..")
             .should().dependOnClassesThat()
-            .resideInAnyPackage("..adaptador.entrada.rest..dto..", "..recurso.rest..dto..");
+            .resideInAPackage("..adaptador.entrada.rest..dto..");
 
     static final ArchRule dto_mtr_nao_deve_vazar_da_borda_mtr = noClasses()
             .that().resideOutsideOfPackage("..adaptador.saida.mtr..")
@@ -286,6 +288,11 @@ class ArchUnitProgressivoTest {
     }
 
     @Test
+    void dossieProdutoUsaPackagePadraoDoAdapterRestDeEntrada() {
+        dossie_produto_nao_deve_usar_package_rest_historico.check(CODIGO_PRODUCAO);
+    }
+
+    @Test
     void adaptersDeSaidaMigradosNaoReutilizamContratosDeOutrasBordas() {
         adapters_de_saida_migrados_nao_devem_reutilizar_contratos_de_outras_bordas
                 .check(CODIGO_PRODUCAO);
@@ -407,7 +414,7 @@ class ArchUnitProgressivoTest {
     @Test
     void regraDeAdapterMtrDetectaReusoDeDtoPublico() {
         ArchRule regra = noClasses().should().dependOnClassesThat()
-                .resideInAPackage("..recurso.rest..dto..");
+                .resideInAPackage("..adaptador.entrada.rest..dto..");
 
         assertThrows(AssertionError.class, () -> regra.check(
                 new ClassFileImporter().importClasses(AdapterMtrComDtoPublicoViolacao.class)));
@@ -487,7 +494,7 @@ class ArchUnitProgressivoTest {
     }
 
     private static final class AdapterMtrComDtoPublicoViolacao {
-        private br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriadoDto dto;
+        private br.gov.caixa.simtr.hub.dossieproduto.adaptador.entrada.rest.v1.dto.DossieProdutoCriadoDto dto;
     }
 
     private static final class AdapterSimuladorComDtoMtrViolacao {

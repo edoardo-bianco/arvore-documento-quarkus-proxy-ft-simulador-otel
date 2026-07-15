@@ -3,9 +3,9 @@
 ## Status
 
 - **Planejado:** 2026-07-11
-- **Implementacao:** Fases 0 a 10 concluidas; C0, C1, C2, C3, C4, C5, C6, C7, C8, C9 e C10
-  em GO; uso pragmatico do Quarkus consolidado em 2026-07-15
-- **Branch de trabalho atual:** `refactor/ddd-fase-10-baseline`
+- **Implementacao:** Fases 0 a 12 concluidas; C0, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10,
+  C11 e C12 em GO; nenhuma nova fase iniciada
+- **Branch de trabalho atual:** `refactor/ddd-fase-12-baseline`
 - **Documento arquitetural:** `../doc/arquitetura-ddd-integracoes-atomicas.md`
 - **Checklist operacional:** `todo.md`
 
@@ -1325,6 +1325,106 @@ Fase 10. Nenhum arquivo de producao foi alterado. C10 recebeu GO humano em 2026-
 - [x] Revisao humana aceita a decisao e autoriza o fechamento.
 
 **Status:** `GO` humano registrado em 2026-07-15; Fase 10 encerrada.
+
+## Fase 11 - Cascata Jakarta Validation de formulario e documento
+
+### Task 11.1 - Remover o uso depreciado de `@Valid` em listas REST
+
+**Descricao:** mover `@Valid` do container `List` para o argumento de tipo nas seis listas da
+borda REST de formulario e documento. A mudanca deve eliminar `HV000271` sem alterar paths,
+status, JSON, mensagens de validacao, nulabilidade ou propagacao para MTR/simulador.
+
+**Criterios de aceite:**
+
+- as seis declaracoes usam `List<@Valid T>` e nenhuma delas mantem `@Valid List<T>`;
+- contratos HTTP protegem as mensagens de chave e valor de atributos e propriedades de documento;
+- listas nulas, elementos nulos, objetos vazios e campos internos nulos continuam aceitos onde ja
+  pertencem ao contrato;
+- o teste focado inicializa o Hibernate Validator sem `HV000271` para formulario ou documento;
+- a suite completa, ArchUnit e o build permanecem verdes;
+- o package REST `dossieproduto.recurso.rest.v1` nao e renomeado nesta fase;
+- o contrato tecnico compartilhado em `arquitetura.excecao.dto` permanece inalterado.
+
+**Subtasks:**
+
+- **11.1a:** registrar fase, branch, escopo e checkpoint na governanca;
+- **11.1b:** adicionar uma prova RED da colocacao depreciada e completar os contratos HTTP de
+  documento;
+- **11.1c:** migrar as seis listas para anotacao no argumento de tipo e executar testes focados;
+- **11.1d:** executar suite limpa, revisar warnings, diff, segredos e alinhamento documental;
+- **11.1e:** publicar o checkpoint e aguardar GO humano.
+
+**Verificacao:** ciclo RED/GREEN do contrato de metadados Jakarta Validation,
+`DossieProdutoErroApiContractTest`, contratos MTR de formulario/documento,
+`ArchUnitProgressivoTest`, `mvn -q clean test`, ausencia de `HV000271`, `git diff --check`,
+verificacao de segredos e revisao do diff.
+
+**Dependencias:** C10. **Escopo:** S, com alteracao restrita aos metadados de validacao REST,
+testes contratuais e governanca.
+
+**Status:** concluida em 2026-07-15 na branch `refactor/ddd-fase-11-baseline`, criada e publicada a
+partir do commit `6d57872`, aceito em C10 e integrado a `main`. O ciclo RED/GREEN comprovou a
+colocacao da cascata no tipo dos elementos; contratos HTTP e de nulabilidade permaneceram verdes,
+a suite limpa terminou sem `HV000271` e os dois desvios de package ficaram inalterados.
+
+### Checkpoint C11 - Cascata Jakarta Validation
+
+- [x] As seis listas usam `List<@Valid T>` e o warning depreciado foi eliminado.
+- [x] Mensagens, nulabilidade, paths, status e JSON permanecem protegidos e equivalentes.
+- [x] Package REST e contrato tecnico compartilhado de erro permanecem fora do escopo.
+- [x] Testes focados, suite completa, build, ArchUnit e revisao do diff estao verdes.
+- [x] Revisao humana aceita a mudanca e autoriza o fechamento.
+
+**Status:** `GO` humano registrado em 2026-07-15; Fase 11 encerrada. A renomeacao opcional do
+package REST foi autorizada como trabalho separado para uma nova fase.
+
+## Fase 12 - Alinhamento do package REST de `dossieproduto`
+
+### Task 12.1 - Renomear `recurso.rest` para `adaptador.entrada.rest`
+
+**Descricao:** mover integralmente a borda REST de `dossieproduto` e seus testes do package
+historico `dossieproduto.recurso.rest` para `dossieproduto.adaptador.entrada.rest`. A mudanca e
+organizacional: paths, verbos, status, JSON, validacoes, erros, observabilidade e integracoes nao
+podem mudar.
+
+**Criterios de aceite:**
+
+- Resource, mappers e DTOs residem sob `dossieproduto.adaptador.entrada.rest.v1`;
+- testes e fixtures arquiteturais usam o mesmo package de adapter de entrada;
+- nao restam declaracoes, imports, paths Java ou allowlists para `dossieproduto.recurso.rest`;
+- ArchUnit protege apenas o padrao `adaptador.entrada.rest` e impede regressao para o package antigo;
+- endpoints HTTP e contratos de validacao permanecem equivalentes;
+- o contrato tecnico compartilhado em `arquitetura.excecao.dto` permanece inalterado;
+- README, documento operacional, AGENTS e governanca descrevem o estado novo;
+- testes focados, suite limpa, build e diff permanecem verdes.
+
+**Subtasks:**
+
+- **12.1a:** registrar fase, branch, escopo e checkpoint C12;
+- **12.1b:** criar guardrail RED que rejeita o package historico;
+- **12.1c:** mover producao/testes e atualizar FQCNs, imports e guardrails;
+- **12.1d:** alinhar documentacao e executar verificacoes focadas/completas;
+- **12.1e:** publicar o checkpoint e aguardar GO humano.
+
+**Verificacao:** ciclo RED/GREEN do `ArchUnitProgressivoTest`, busca global pelo FQCN antigo,
+contratos REST de `dossieproduto`, `ResourceBeanCoverageTest`, `mvn -q clean test`,
+`git diff --check`, verificacao de segredos e revisao do diff.
+
+**Dependencias:** C11. **Escopo:** M, refatoracao mecanica de package sem mudanca funcional.
+
+**Status:** concluida e aceita em 2026-07-15 na branch `refactor/ddd-fase-12-baseline`, criada e
+publicada a partir do commit `54569d7`, aceito em C11. O ciclo RED/GREEN, os contratos focados, a
+suite limpa, o build, a documentacao e o diff passaram; GO humano registrado no C12.
+
+### Checkpoint C12 - Package REST alinhado
+
+- [x] Borda REST e testes residem em `dossieproduto.adaptador.entrada.rest`.
+- [x] Package/FQCN antigo nao possui declaracoes, imports ou allowlists e esta proibido por guardrail.
+- [x] Contratos externos e package tecnico compartilhado de erro permanecem inalterados.
+- [x] Documentacao, testes focados, suite limpa, build e diff estao verdes.
+- [x] Revisao humana aceita a renomeacao e autoriza o fechamento.
+
+**Status:** `GO` humano registrado em 2026-07-15; Fase 12 encerrada. Nenhuma nova fase foi iniciada.
 
 ## Riscos e mitigacoes
 
