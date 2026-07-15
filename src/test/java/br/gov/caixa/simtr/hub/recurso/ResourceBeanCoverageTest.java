@@ -14,8 +14,9 @@ import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.CriacaoDossiePro
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.CriacaoDossieProdutoResponse;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoCriadoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.InclusaoDocumentoDossieProdutoResponse;
-import br.gov.caixa.simtr.hub.gestaodocumento.recurso.rest.v1.dto.GestaoDocumentoCredencialContainerDto;
-import br.gov.caixa.simtr.hub.gestaodocumento.recurso.rest.v1.GestaoDocumentoResource;
+import br.gov.caixa.simtr.hub.gestaodocumento.adaptador.entrada.rest.v1.GestaoDocumentoResource;
+import br.gov.caixa.simtr.hub.gestaodocumento.adaptador.entrada.rest.v1.dto.GestaoDocumentoCredencialContainerResponse;
+import br.gov.caixa.simtr.hub.gestaodocumento.aplicacao.porta.entrada.ObterCredencialContainer;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.IniciarOuAvancarWorkflowDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.CriarDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.AtualizarFormularioDossieProduto;
@@ -26,9 +27,7 @@ import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoAtualizacaoF
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoWorkflowDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoCriacaoDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoInclusaoDocumentoDossieProduto;
-import br.gov.caixa.simtr.hub.gestaodocumento.fachada.GestaoDocumentoFachada;
-import br.gov.caixa.simtr.hub.gestaodocumento.dominio.GestaoDocumentoCredencialContainerVo;
-import br.gov.caixa.simtr.hub.gestaodocumento.mapeamento.GestaoDocumentoMapper;
+import br.gov.caixa.simtr.hub.gestaodocumento.dominio.modelo.CredencialContainer;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Uni;
@@ -56,9 +55,6 @@ class ResourceBeanCoverageTest {
     @Inject
     GestaoDocumentoResource gestaoDocumentoResource;
 
-    @Inject
-    GestaoDocumentoMapper gestaoDocumentoMapper;
-
     @InjectMock
     ConsultarProcessoParametrizado consultarProcessoParametrizado;
 
@@ -81,7 +77,7 @@ class ResourceBeanCoverageTest {
     RegistrarValidacaoNegocialDossieProduto registrarValidacaoNegocial;
 
     @InjectMock
-    GestaoDocumentoFachada gestaoDocumentoFachada;
+    ObterCredencialContainer obterCredencialContainer;
 
     @Test
     void processoResourceCobreSucessoEFalhaDoBeanCdi() {
@@ -215,9 +211,9 @@ class ResourceBeanCoverageTest {
 
     @Test
     void gestaoDocumentoResourceCobreCredencialContainerSucessoEFalhaDoBeanCdi() {
-        when(gestaoDocumentoFachada.gerarCredencialContainer())
-                .thenReturn(Uni.createFrom().item(new GestaoDocumentoCredencialContainerVo(
-                        "sas-sensivel",
+        when(obterCredencialContainer.executar())
+                .thenReturn(Uni.createFrom().item(new CredencialContainer(
+                        "sas-opaca-teste",
                         "10/07/2026 18:00:00",
                         "https://storage.example",
                         "pre-validacao"
@@ -228,7 +224,8 @@ class ResourceBeanCoverageTest {
                 .await().indefinitely();
 
         assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-        GestaoDocumentoCredencialContainerDto entity = (GestaoDocumentoCredencialContainerDto) response.getEntity();
+        GestaoDocumentoCredencialContainerResponse entity =
+                (GestaoDocumentoCredencialContainerResponse) response.getEntity();
         assertEquals("pre-validacao", entity.nomeContainer());
         assertEquals("https://storage.example", entity.urlStorage());
         assertThrows(IllegalStateException.class,

@@ -23,7 +23,6 @@ import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoVal
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialProdutoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialRespostaFormularioDto;
 import br.gov.caixa.simtr.hub.dossieproduto.recurso.rest.v1.dto.DossieProdutoValidacaoNegocialVerificacaoDto;
-import br.gov.caixa.simtr.hub.gestaodocumento.recurso.rest.v1.dto.GestaoDocumentoCredencialContainerDto;
 
 import java.util.List;
 
@@ -176,12 +175,4 @@ public final class TestFixtures {
         );
     }
 
-    public static GestaoDocumentoCredencialContainerDto gestaoDocumentoCredencialContainerDto() {
-        return new GestaoDocumentoCredencialContainerDto(
-                "sv=mock&ss=b&srt=o&sp=rw&se=2026-07-10T18:00:00Z&sig=mock",
-                "10/07/2026 18:00:00",
-                "https://dossiedigitaldes.blob.core.windows.net",
-                "pre-validacao"
-        );
-    }
 }

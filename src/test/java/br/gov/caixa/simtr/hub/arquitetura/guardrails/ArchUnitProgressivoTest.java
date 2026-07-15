@@ -4,9 +4,10 @@ import br.gov.caixa.simtr.hub.arvoredocumento.falso.DependenciaParametrizacaoVio
 import br.gov.caixa.simtr.hub.arvoredocumento.dominio.modelo.ProcessoParametrizado;
 import br.gov.caixa.simtr.hub.conformidade.falso.DependenciaArvoreDocumentoViolacao;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.IdentificadorDossieProduto;
-import br.gov.caixa.simtr.hub.gestaodocumento.integracao.GestaoDocumentoGateway;
+import br.gov.caixa.simtr.hub.gestaodocumento.adaptador.saida.mtr.adapter.GestaoDocumentoMtrAdapter;
 import br.gov.caixa.simtr.hub.dominio.falso.ViolacaoGuardrail;
 import br.gov.caixa.simtr.hub.parametrizacao.falso.DependenciaEntreDominiosViolacao;
+import com.azure.storage.falso.BlobClientViolacao;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption.DoNotIncludeTests;
@@ -15,11 +16,19 @@ import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition;
 import org.junit.jupiter.api.Test;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noFields;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ArchUnitProgressivoTest {
 
     private static final String PACOTE_DTO_ERRO_REST = "..arquitetura.excecao.dto..";
+    private static final String[] PACOTES_NUCLEO_GESTAO_DOCUMENTO = {
+            "..gestaodocumento.dominio..",
+            "..gestaodocumento.aplicacao.."
+    };
+    private static final String PADRAO_OPERACAO_FORA_ESCOPO_GESTAO_DOCUMENTO =
+            "(?i).*(cache|renew|refresh|renov|upload|blob|armazen|reutiliz).*";
     private static final JavaClasses CODIGO_PRODUCAO = new ClassFileImporter()
             .withImportOption(new DoNotIncludeTests())
             .importPackages("br.gov.caixa.simtr.hub");
@@ -75,7 +84,8 @@ class ArchUnitProgressivoTest {
             .that().resideInAnyPackage(
                     "..dossieproduto.aplicacao..",
                     "..arvoredocumento.aplicacao..",
-                    "..conformidade.aplicacao..")
+                    "..conformidade.aplicacao..",
+                    "..gestaodocumento.aplicacao..")
             .should().dependOnClassesThat()
             .resideInAnyPackage(
                     "..integracao..", "..adaptador..", "..recurso..", "..mapeamento..", "..fachada..");
@@ -84,7 +94,8 @@ class ArchUnitProgressivoTest {
             .that().resideInAnyPackage(
                     "..dossieproduto.aplicacao.porta.entrada..",
                     "..arvoredocumento.aplicacao.porta.entrada..",
-                    "..conformidade.aplicacao.porta.entrada..")
+                    "..conformidade.aplicacao.porta.entrada..",
+                    "..gestaodocumento.aplicacao.porta.entrada..")
             .should().dependOnClassesThat()
             .resideInAnyPackage("..aplicacao.porta.saida..", "..aplicacao.casodeuso..");
 
@@ -92,7 +103,8 @@ class ArchUnitProgressivoTest {
             .that().resideInAnyPackage(
                     "..dossieproduto.adaptador.saida..",
                     "..arvoredocumento.adaptador.saida..",
-                    "..conformidade.adaptador.saida..")
+                    "..conformidade.adaptador.saida..",
+                    "..gestaodocumento.adaptador.saida..")
             .should().dependOnClassesThat()
             .resideInAnyPackage("..recurso..", "..integracao..", "..arquitetura.excecao.dto..");
 
@@ -100,6 +112,30 @@ class ArchUnitProgressivoTest {
             .that().resideInAPackage("..adaptador.saida.simulador..")
             .should().dependOnClassesThat()
             .resideInAPackage("..adaptador.saida.mtr..");
+
+    static final ArchRule nucleo_gestao_documento_nao_deve_depender_de_storage_ou_cache = noClasses()
+            .that().resideInAnyPackage(PACOTES_NUCLEO_GESTAO_DOCUMENTO)
+            .should().dependOnClassesThat()
+            .resideInAnyPackage(
+                    "com.azure.storage..",
+                    "io.quarkus.cache..",
+                    "jakarta.cache..",
+                    "javax.cache..",
+                    "com.github.benmanes.caffeine..",
+                    "org.infinispan..",
+                    "redis.clients..");
+
+    static final ArchRule nucleo_gestao_documento_nao_deve_declarar_tipos_fora_do_escopo = noClasses()
+            .that().resideInAnyPackage(PACOTES_NUCLEO_GESTAO_DOCUMENTO)
+            .should().haveNameMatching(PADRAO_OPERACAO_FORA_ESCOPO_GESTAO_DOCUMENTO);
+
+    static final ArchRule nucleo_gestao_documento_nao_deve_declarar_metodos_fora_do_escopo = noMethods()
+            .that().areDeclaredInClassesThat().resideInAnyPackage(PACOTES_NUCLEO_GESTAO_DOCUMENTO)
+            .should().haveNameMatching(PADRAO_OPERACAO_FORA_ESCOPO_GESTAO_DOCUMENTO);
+
+    static final ArchRule nucleo_gestao_documento_nao_deve_declarar_campos_fora_do_escopo = noFields()
+            .that().areDeclaredInClassesThat().resideInAnyPackage(PACOTES_NUCLEO_GESTAO_DOCUMENTO)
+            .should().haveNameMatching(PADRAO_OPERACAO_FORA_ESCOPO_GESTAO_DOCUMENTO);
 
     @Test
     void dominioNaoDependeDeFrameworkOuBordas() {
@@ -150,6 +186,14 @@ class ArchUnitProgressivoTest {
     @Test
     void adaptersSimuladorMigradosNaoDependemDaBordaMtr() {
         adapters_simulador_migrados_nao_devem_depender_da_borda_mtr.check(CODIGO_PRODUCAO);
+    }
+
+    @Test
+    void nucleoGestaoDocumentoNaoImplementaStorageCacheRenovacaoOuUpload() {
+        nucleo_gestao_documento_nao_deve_depender_de_storage_ou_cache.check(CODIGO_PRODUCAO);
+        nucleo_gestao_documento_nao_deve_declarar_tipos_fora_do_escopo.check(CODIGO_PRODUCAO);
+        nucleo_gestao_documento_nao_deve_declarar_metodos_fora_do_escopo.check(CODIGO_PRODUCAO);
+        nucleo_gestao_documento_nao_deve_declarar_campos_fora_do_escopo.check(CODIGO_PRODUCAO);
     }
 
     @Test
@@ -215,7 +259,7 @@ class ArchUnitProgressivoTest {
     @Test
     void regraDeAplicacaoDetectaDependenciaDeAdapter() {
         ArchRule regra = noClasses().should().dependOnClassesThat()
-                .resideInAPackage("..integracao..");
+                .resideInAnyPackage("..integracao..", "..adaptador..");
 
         assertThrows(AssertionError.class, () -> regra.check(
                 new ClassFileImporter().importClasses(AplicacaoComAdapterViolacao.class)));
@@ -248,8 +292,36 @@ class ArchUnitProgressivoTest {
                 new ClassFileImporter().importClasses(AdapterSimuladorComDtoMtrViolacao.class)));
     }
 
+    @Test
+    void regraDeEscopoGestaoDocumentoDetectaAzureBlobNoNucleo() {
+        ArchRule regra = noClasses().should().dependOnClassesThat()
+                .resideInAPackage("com.azure.storage..");
+
+        assertThrows(AssertionError.class, () -> regra.check(
+                new ClassFileImporter().importClasses(
+                        NucleoComAzureBlobViolacao.class,
+                        BlobClientViolacao.class)));
+    }
+
+    @Test
+    void regraDeEscopoGestaoDocumentoDetectaCacheRenovacaoEUpload() {
+        ArchRule regraDeTipo = noClasses().should()
+                .haveNameMatching(PADRAO_OPERACAO_FORA_ESCOPO_GESTAO_DOCUMENTO);
+        ArchRule regraDeMetodo = noMethods().should()
+                .haveNameMatching(PADRAO_OPERACAO_FORA_ESCOPO_GESTAO_DOCUMENTO);
+        ArchRule regraDeCampo = noFields().should()
+                .haveNameMatching(PADRAO_OPERACAO_FORA_ESCOPO_GESTAO_DOCUMENTO);
+        JavaClasses classes = new ClassFileImporter().importClasses(
+                CacheCredencialViolacao.class,
+                OperacoesCredencialViolacao.class);
+
+        assertThrows(AssertionError.class, () -> regraDeTipo.check(classes));
+        assertThrows(AssertionError.class, () -> regraDeMetodo.check(classes));
+        assertThrows(AssertionError.class, () -> regraDeCampo.check(classes));
+    }
+
     private static final class AplicacaoComAdapterViolacao {
-        private GestaoDocumentoGateway gateway;
+        private GestaoDocumentoMtrAdapter adapter;
     }
 
     private static final class PortaEntradaComSaidaViolacao {
@@ -263,5 +335,22 @@ class ArchUnitProgressivoTest {
     private static final class AdapterSimuladorComDtoMtrViolacao {
         private br.gov.caixa.simtr.hub.arvoredocumento.adaptador.saida.mtr.dto.v2.processo
                 .ProcessoParametrizadoMtrResponse dto;
+    }
+
+    private static final class NucleoComAzureBlobViolacao {
+        private BlobClientViolacao blobClient;
+    }
+
+    private static final class CacheCredencialViolacao {
+    }
+
+    private static final class OperacoesCredencialViolacao {
+        private Object blobClient;
+
+        void renovarSas() {
+        }
+
+        void uploadArquivo() {
+        }
     }
 }

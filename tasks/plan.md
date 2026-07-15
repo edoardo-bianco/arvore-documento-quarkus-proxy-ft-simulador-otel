@@ -3,10 +3,9 @@
 ## Status
 
 - **Planejado:** 2026-07-11
-- **Implementacao:** Fases 0, 1, 2, 3 e 4 concluidas; C0, C1, C2, C3 e C4 em GO; Tasks 1.1 a 1.5,
-  2.1a a 2.1e, 2.2a a 2.2e, 2.3a a 2.3e, 2.4a a 2.4e, 2.5 e 3.1 a 3.6 concluidas;
-  Tasks 4.1 a 4.6 concluidas; proximo passo e criar `refactor/ddd-fase-5-baseline` antes da Task 5.1
-- **Branch de trabalho atual:** `refactor/ddd-fase-4-baseline`
+- **Implementacao:** Fases 0, 1, 2, 3, 4 e 5 concluidas; C0, C1, C2, C3, C4 e C5 em GO;
+  Fase 6 deliberadamente nao iniciada e adiada para nova instrucao humana
+- **Branch de trabalho atual:** `refactor/ddd-fase-5-baseline`
 - **Documento arquitetural:** `../doc/arquitetura-ddd-integracoes-atomicas.md`
 - **Checklist operacional:** `todo.md`
 
@@ -879,7 +878,7 @@ continuam cobertos sem teste, filtro ou manipulacao do OpenAPI gerado pelo Quark
 outros dominios; contratos remanescentes usam a borda ativa; e a cadeia legada exclusiva foi
 removida apos ausencia comprovada de consumidores. Configuracao do REST Client e fixture Markdown
 compartilhadas foram preservadas. Build limpo, suite completa e revisao multi-eixo passaram sem
-bloqueios; C4 permanece pendente de GO humano.
+bloqueios; C4 recebeu GO humano em 2026-07-14.
 
 **Dependencias:** 4.5. **Escopo:** M.
 
@@ -947,6 +946,12 @@ configuracao e matriz FT estao no manifesto sem assumir duracao fixa.
 
 **Dependencias:** C4. **Escopo:** M.
 
+**Status:** concluida em 2026-07-14; `baseline-obter-credencial-container.md` e caracterizacao
+executavel congelam HTTP/JSON/nulabilidade, wire MTR, headers/OIDC/trace, validade opaca, erros,
+retry, matriz FT, simulador, configuracao e observabilidade sem alterar producao. O OpenAPI segue
+gerado exclusivamente pelo Quarkus, sem teste, filtro ou manipulacao. Nenhuma duracao de SAS foi
+inferida.
+
 ### Task 5.2 - Criar nucleo de credencial
 
 **Criterios de aceite:** modelo, portas e caso de uso representam somente obtencao de credencial;
@@ -956,6 +961,11 @@ nao importam Azure SDK, cache ou adapters.
 
 **Dependencias:** 5.1. **Escopo:** S/M.
 
+**Status:** concluida em 2026-07-14; `CredencialContainer`, portas de entrada/saida e caso de uso
+reativo pertencem ao novo nucleo de `gestaodocumento`. SAS e validade permanecem opacos e
+nulaveis, sem calculo, normalizacao ou copia; a aplicacao nao importa DTOs ou adapters. Os
+guardrails do nucleo foram ativados.
+
 ### Task 5.3 - Criar borda MTR de credencial
 
 **Criterios de aceite:** DTO/mapper/client/adapter preservam wire, expiracao, erros e ordem FT.
@@ -964,6 +974,12 @@ nao importam Azure SDK, cache ou adapters.
 
 **Dependencias:** 5.2. **Escopo:** M.
 
+**Status:** concluida em 2026-07-14; DTO de resposta, erro protocolar, REST Client, falha interna,
+mapper, qualifier e adapter MTR exclusivos de `gestaodocumento` preservam o POST sem corpo, JSON,
+nulabilidade, validade opaca, headers, OIDC, propagacao de trace, classificacao lossless de erros,
+ordem de fault tolerance e observabilidade contratual. A porta de saida ainda nao foi ligada ao
+caso de uso, ao producer, ao Resource ou ao simulador; a Task 5.4 nao foi iniciada.
+
 ### Task 5.4 - Criar borda simulador de credencial
 
 **Criterios de aceite:** fixture usa DTO/mapper proprio e properties atuais sao preservadas.
@@ -971,6 +987,13 @@ nao importam Azure SDK, cache ou adapters.
 **Verificacao:** simulador ligado/desligado e CDI.
 
 **Dependencias:** 5.2. **Escopo:** S/M.
+
+**Status:** concluida em 2026-07-14; DTO, mapper, qualifier, adapter e producer exclusivos de
+`gestaodocumento` leem a fixture existente sem reutilizar DTO publico ou MTR. SAS e validade
+permanecem opacos, inclusive quando nulos ou estruturados; fixture ausente continua falhando sem
+fallback. A property existente seleciona simulador ou MTR sem condicional no caso de uso, e os
+mesmos sinais do legado — atributo de origem e evento estruturado — foram preservados. Fixture, properties,
+caso de uso e Resource permaneceram inalterados; a Task 5.5 nao foi iniciada.
 
 ### Task 5.5 - Migrar borda REST de credencial
 
@@ -981,6 +1004,37 @@ porta de entrada e devolve expiracao contratual.
 
 **Dependencias:** 5.3 e 5.4. **Escopo:** S/M.
 
+**Status:** concluida em 2026-07-14; response e mapper REST exclusivos, fronteira de
+observabilidade e Resource ligam o endpoint somente a `ObterCredencialContainer`. Path, resposta,
+campos JSON inclusive nulos, validade opaca, erros, selecao MTR/simulador, fault tolerance e
+telemetria permanecem equivalentes. A Resource legada foi substituida, enquanto a cadeia restante
+permanece para o inventario da Task 5.6. Testes RED/GREEN, contratos HTTP ponta a ponta, ArchUnit e
+suite completa passaram; a evidencia de cobertura permanece exclusivamente no JaCoCo. O OpenAPI
+continua gerado pelo Quarkus, sem teste, filtro ou manipulacao.
+
+#### Task 5.5a - Criar contrato e mapper REST de credencial
+
+**Criterios de aceite:** response e mapper pertencem a borda REST de `gestaodocumento`; os quatro
+campos, nulos e validade opaca permanecem iguais; falhas internas viram os erros publicos atuais
+sem perda de payload.
+
+**Verificacao:** teste unitario de mapeamento, JSON e erros.
+
+#### Task 5.5b - Ligar Resource e observabilidade pela porta de entrada
+
+**Criterios de aceite:** a Resource substitui somente a rota legada e injeta apenas
+`ObterCredencialContainer`; spans, atributos e logs permanecem iguais sem registrar SAS ou
+validade. A cadeia legada restante permanece para a Task 5.6.
+
+**Verificacao:** testes da fronteira de observabilidade, Resource e bean CDI compartilhado.
+
+#### Task 5.5c - Consolidar equivalencia da borda REST
+
+**Criterios de aceite:** HTTP, JSON, nulos, validade, erros, MTR, simulador, FT e telemetria
+continuam cobertos sem teste, filtro ou manipulacao do OpenAPI gerado pelo Quarkus.
+
+**Verificacao:** contratos focados, ArchUnit, suite completa e revisao do diff.
+
 ### Task 5.6 - Provar limites de escopo
 
 **Criterios de aceite:** ArchUnit/testes impedem Azure Blob SDK, cache/renovacao de SAS e upload no
@@ -990,12 +1044,23 @@ nucleo; artefatos legados so saem depois de `rg` sem referencias.
 
 **Dependencias:** 5.5. **Escopo:** S/M.
 
+**Status:** concluida em 2026-07-14; guardrails bloqueiam Azure Storage, bibliotecas de cache e
+declaracoes de cache, renovacao, upload ou Blob no nucleo de `gestaodocumento`, com fixtures
+negativas controladas. Contratos compartilhados de fault tolerance e spans foram migrados para o
+client/adapter novos; testes exclusivamente legados e a cadeia antiga foram removidos somente
+apos inventario e `rg` sem consumidores. Buscas finais, ArchUnit, matriz focada, suite Maven
+completa, JaCoCo, seguranca e diff passaram sem dependencia, configuracao, OpenAPI ou telemetria
+sensivel novos. O Checkpoint C5 recebeu GO humano em 2026-07-15 e encerrou a Fase 5.
+
 ### Checkpoint C5
 
-- [ ] Hub apenas obtem e devolve a credencial.
-- [ ] Nao existe cache, renovacao ou upload.
-- [ ] Manifesto comprova OpenAPI, config/profiles, wire, FT, simulador, erros e observabilidade.
-- [ ] Suite, build e ArchUnit estao verdes; GO humano registrado.
+**Status:** `GO` humano registrado em 2026-07-15; Fase 5 encerrada. A Fase 6 permanece nao
+iniciada e devera usar sua propria branch antes da primeira task de implementacao.
+
+- [x] Hub apenas obtem e devolve a credencial.
+- [x] Nao existe cache, renovacao ou upload.
+- [x] Manifesto comprova contratos externos, config/profiles, wire, FT, simulador, erros e observabilidade.
+- [x] Suite, build e ArchUnit estao verdes; GO humano registrado.
 
 ## Fase 6 - Consolidacao final
 

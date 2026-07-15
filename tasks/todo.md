@@ -25,10 +25,12 @@ Antes de executar qualquer item:
   GO em C2, publicada e configurada para rastrear `origin/refactor/ddd-fase-3-baseline`.
 - [x] G3 Branch `refactor/ddd-fase-4-baseline` criada a partir do commit `7613fed`, que recebeu
   GO em C3, publicada e configurada para rastrear `origin/refactor/ddd-fase-4-baseline`.
+- [x] G4 Branch `refactor/ddd-fase-5-baseline` criada a partir do commit `1f414fa`, que recebeu
+  GO em C4, publicada e configurada para rastrear `origin/refactor/ddd-fase-5-baseline`.
 
 ## Ponto de retomada
 
-- **Ultima tarefa concluida:** C4 - checkpoint da Fase 4 em GO.
+- **Ultima tarefa concluida:** C5 - Fase 5 encerrada com GO humano.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
   produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
@@ -352,8 +354,107 @@ Antes de executar qualquer item:
   manipulacao ou teste do OpenAPI gerado pelo Quarkus foi introduzido.
 - **Checkpoint C4:** GO humano registrado em 2026-07-14. A consulta de checklist pertence
   integralmente a `conformidade`, e a cadeia legada exclusiva foi removida sem referencias.
-- **Proximo item pendente:** criar `refactor/ddd-fase-5-baseline` antes da Task 5.1. Nao iniciar a
-  Fase 5 na branch da Fase 4.
+- **Bootstrap da Fase 5:** `refactor/ddd-fase-5-baseline` criada no commit `1f414fa`, publicada e
+  com upstream remoto configurado antes da primeira task de implementacao.
+- **Task 5.1 concluida:** `baseline-obter-credencial-container.md` e caracterizacao executavel
+  congelam HTTP/JSON/nulabilidade, wire MTR, validade opaca, erros, fault tolerance, simulador,
+  configuracao e observabilidade sem alterar producao. A evidencia de cobertura permanece no
+  JaCoCo; OpenAPI segue gerado exclusivamente pelo Quarkus e nao foi testado ou manipulado.
+- **Task 5.2 concluida:** modelo, portas e caso de uso reativo pertencem ao novo nucleo de
+  `gestaodocumento`; SAS, validade e nulos sao preservados sem regra funcional nova. A aplicacao
+  nao importa bordas, e a porta de entrada nao expoe implementacao nem porta de saida.
+- **Task 5.2a concluida:** modelo, portas e caso de uso reativo foram criados sem framework no
+  dominio, sem DTOs ou adapters na aplicacao e sem interpretar SAS ou validade.
+- **Task 5.2b concluida:** os guardrails progressivos agora incluem a aplicacao e a porta de entrada
+  de `gestaodocumento`.
+- **Task 5.3 concluida:** a borda MTR exigiu sete arquivos de producao e foi subdividida antes da
+  primeira edicao. A 5.3a cria DTO, erro protocolar e REST Client; a 5.3b cria falha interna e
+  mapper; a 5.3c cria qualifier e adapter com guardrail; a 5.3d consolida o stub real e a
+  observabilidade.
+- **Task 5.3a concluida:** DTO de resposta, erro protocolar e REST Client MTR exclusivos preservam
+  paths, providers, classificacao de status e matriz de fault tolerance do legado.
+- **Task 5.3b concluida:** falha interna e mapper MTR preservam classificacao, payload, causa,
+  validade textual ou estruturada e nulabilidade sem conversao ou copia.
+- **Task 5.3c concluida:** qualifier e adapter MTR implementam a porta de saida, traduzem falhas
+  somente apos o client e preservam spans, atributos e eventos legados. O guardrail de adapters
+  inclui a nova borda.
+- **Task 5.3d concluida:** o stub localhost prova POST sem corpo, JSON e validade opacos, headers,
+  OIDC, `traceparent`, erro negocial sem retry, recuperacao de erro de servidor com retry e
+  observabilidade da nova borda. A evidencia de cobertura permanece exclusivamente no JaCoCo.
+- **Task 5.4 concluida:** `GestaoDocumentoSimuladorResponse`, `GestaoDocumentoSimuladorMapper`,
+  `GestaoDocumentoSimulador`, `GestaoDocumentoSimuladorAdapter` e
+  `GestaoDocumentoPortasProducer` formam a borda simulador exclusiva. A fixture e as properties
+  existentes permanecem inalteradas; SAS, validade e nulos atravessam sem conversao, a ausencia de
+  JSON continua falhando sem fallback, e a porta seleciona simulador ou MTR sem ambiguidade CDI.
+  Origem `mock` e evento estruturado legado foram preservados. A evidencia de cobertura permanece
+  exclusivamente no JaCoCo.
+- **Inicio da Task 5.5 (2026-07-14):** a migracao da borda REST foi subdividida antes da primeira
+  edicao de producao. A 5.5a cria response e mapper REST exclusivos com teste unitario; a 5.5b
+  cria a fronteira de observabilidade, substitui a Resource legada por uma Resource que injeta
+  somente `ObterCredencialContainer` e adiciona testes focados; a 5.5c comprova equivalencia HTTP,
+  MTR/simulador, erros e telemetria, executa ArchUnit e a suite completa. Fachada, service, mapper,
+  DTO, VO, gateway, client e mock factory legados permanecem para o inventario controlado da
+  Task 5.6. Nenhum contrato, property, fixture ou OpenAPI sera manipulado.
+- **Task 5.5a concluida:** response e mapper REST exclusivos preservam os quatro campos JSON,
+  inclusive nulos, e atravessam SAS e validade sem interpretacao ou copia. Falhas internas sao
+  traduzidas para as mesmas excecoes publicas com status, mensagens e payload externo lossless.
+  O teste unitario registrou RED de compilacao pela ausencia do mapper e passou a GREEN.
+- **Refinamento da Task 5.5b:** o primeiro GREEN localizou `ResourceBeanCoverageTest` como
+  consumidor de teste da package e da cadeia REST legadas. A 5.5b foi separada em 5.5b.1 para a
+  nova observabilidade/Resource e 5.5b.2 para migrar esse consumidor compartilhado para a porta de
+  entrada e o response novos, antes de repetir os testes. Nenhum consumidor de producao adicional
+  foi encontrado.
+- **Task 5.5b concluida:** a fronteira de observabilidade instancia o caso de uso sobre a porta de
+  saida selecionada e preserva span, flag do simulador, origem, nome de container e eventos
+  estruturados sem registrar SAS ou validade. A nova Resource substituiu a rota legada e injeta
+  somente `ObterCredencialContainer`; o teste compartilhado agora usa a mesma porta e o response
+  novos. Os testes registraram RED somente pela ausencia das duas classes e passaram a GREEN apos
+  o ajuste do consumidor estrutural.
+- **Task 5.5 concluida:** a matriz focada comprovou HTTP/JSON/nulabilidade, validade opaca, erro
+  lossless, caminho MTR pelo stub, retry, simulador e contratos de spans/logs; ArchUnit e a suite
+  completa passaram. A evidencia de cobertura permanece exclusivamente no JaCoCo. Nao houve
+  dependencia nova, registro de SAS/validade, alteracao de property/fixture ou teste/manipulacao
+  do OpenAPI gerado pelo Quarkus. A cadeia legada restante nao foi removida nesta task.
+- **Inicio da Task 5.6 (2026-07-14):** o inventario encontrou nove artefatos de producao legados,
+  quatro testes exclusivamente legados e tres consumidores compartilhados ainda acoplados a
+  tipos antigos. Como a task ultrapassa cinco arquivos nao mecanicos, ela foi subdividida antes
+  da primeira alteracao: a 5.6a prova por guardrails que o nucleo nao aceita Azure Blob SDK,
+  cache/renovacao de SAS ou upload; a 5.6b migra os contratos compartilhados de fault tolerance e
+  observabilidade para a borda nova; a 5.6c remove testes redundantes e a cadeia legada somente
+  depois de `rg` sem consumidores; a 5.6d executa busca, ArchUnit, testes focados, suite completa,
+  JaCoCo e revisao do diff. README e documentacao consolidada permanecem adiados para a Fase 6.
+- **Task 5.6a concluida:** guardrails do nucleo bloqueiam dependencias de Azure Storage e
+  bibliotecas de cache, alem de tipos, metodos e campos associados a cache, renovacao, upload ou
+  Blob. Fixtures negativas controladas comprovam que as regras falham diante dessas violacoes, e
+  o teste ArchUnit focado passou para o codigo de producao atual.
+- **Task 5.6b concluida:** a caracterizacao de fault tolerance referencia o REST Client MTR novo
+  e suas falhas protocolares; o contrato global de spans inspeciona
+  `GestaoDocumentoMtrAdapter#obter`; e a fixture negativa de aplicacao usa o adapter novo. A
+  matriz focada registrou RED na regra negativa ainda limitada a `integracao`, foi corrigida para
+  cobrir tambem `adaptador` e passou a GREEN sem alteracao de producao.
+- **Task 5.6c concluida:** quatro testes exclusivamente legados e a fixture compartilhada sem
+  outros consumidores foram removidos. A busca seguinte encontrou apenas as nove definicoes de
+  producao antigas e strings contratuais de telemetria; fachada, service, mapper, VO, DTO,
+  gateway, REST Client, exception mapper e mock factory foram entao removidos. Nova busca ficou
+  sem imports ou tipos antigos; os nomes legados restantes sao somente valores de telemetria
+  preservados e suas assercoes. A matriz focada da capacidade, ArchUnit, spans globais e CDI
+  passou apos a remocao.
+- **Task 5.6d concluida:** buscas finais confirmaram ausencia de imports e tipos antigos, de
+  dependencias Azure/cache e de operacoes de cache, renovacao ou upload no nucleo. ArchUnit,
+  matriz focada e suite Maven completa passaram; JaCoCo foi regenerado no artefato local. A
+  revisao de correcao, legibilidade, arquitetura, seguranca e desempenho nao encontrou bloqueios.
+  Nao houve mudanca de dependencia/configuracao, acesso a SAS/validade em telemetria, nem teste,
+  filtro ou manipulacao do OpenAPI gerado pelo Quarkus.
+- **Task 5.6 concluida:** o Hub apenas obtem e devolve a credencial opaca; a cadeia legada foi
+  removida sem consumidores, e guardrails impedem cache, renovacao, upload e Azure Storage no
+  nucleo. A evidencia numerica de cobertura permanece exclusivamente no JaCoCo.
+- **Checkpoint C5 (2026-07-15):** GO humano registrado. A Fase 5 foi encerrada com contratos,
+  configuracao, wire MTR, simulador, erros, fault tolerance, observabilidade, ArchUnit, suite,
+  build, JaCoCo e diff revisados sem bloqueios. O Maven nao foi repetido no fechamento porque
+  somente documentacao mudou desde a ultima suite completa verde.
+- **Proximo item futuro:** 6.1, deliberadamente nao iniciado. A Fase 6 foi adiada por decisao
+  humana e devera comecar em `refactor/ddd-fase-6-baseline`, criada a partir do checkpoint
+  publicado da Fase 5, somente apos nova instrucao.
 
 ## Fase 0 - Baseline e guardrails
 
@@ -511,13 +612,28 @@ Antes de executar qualquer item:
 
 ## Fase 5 - `gestaodocumento`
 
-- [ ] 5.1 Caracterizar obtencao de credencial.
-- [ ] 5.2 Criar nucleo de credencial.
-- [ ] 5.3 Criar borda MTR de credencial.
-- [ ] 5.4 Criar borda simulador de credencial.
-- [ ] 5.5 Migrar borda REST de credencial.
-- [ ] 5.6 Provar ausencia de cache, renovacao e upload.
-- [ ] C5 Executar suite/build/ArchUnit, revisar diff e obter GO humano.
+- [x] 5.1 Caracterizar obtencao de credencial.
+- [x] 5.2 Criar nucleo de credencial.
+- [x] 5.2a Criar modelo, portas e caso de uso de obtencao da credencial com teste unitario.
+- [x] 5.2b Ativar guardrails do nucleo de `gestaodocumento` e executar ArchUnit.
+- [x] 5.3 Criar borda MTR de credencial.
+- [x] 5.3a Criar DTO de resposta, erro protocolar e REST Client MTR com teste.
+- [x] 5.3b Criar falha interna e mapper MTR preservando validade, nulos e erros.
+- [x] 5.3c Criar qualifier e adapter MTR com traducao, telemetria e guardrail.
+- [x] 5.3d Provar wire, headers, OIDC, retry e observabilidade contra stub localhost.
+- [x] 5.4 Criar borda simulador de credencial.
+- [x] 5.5a Criar response e mapper REST exclusivos preservando JSON, validade, nulos e erros.
+- [x] 5.5b.1 Criar observabilidade e substituir a Resource legada preservando rota e telemetria.
+- [x] 5.5b.2 Migrar o teste compartilhado da Resource para a porta de entrada e o response novos.
+- [x] 5.5b Ligar nova Resource somente a porta de entrada com observabilidade equivalente.
+- [x] 5.5c Provar HTTP e equivalencia ponta a ponta e executar os gates da task.
+- [x] 5.5 Migrar borda REST de credencial.
+- [x] 5.6a Impedir Azure Blob SDK, cache/renovacao de SAS e upload no nucleo por guardrails.
+- [x] 5.6b Migrar contratos compartilhados de FT e observabilidade para a borda nova.
+- [x] 5.6c Remover testes redundantes e cadeia legada apos `rg` sem consumidores.
+- [x] 5.6d Provar ausencia de referencias, ArchUnit, build, suite e revisar o diff.
+- [x] 5.6 Provar ausencia de cache, renovacao e upload.
+- [x] C5 Executar suite/build/ArchUnit, revisar diff e obter GO humano.
 
 ## Fase 6 - Consolidacao
 
@@ -544,7 +660,7 @@ data, evidencias verificaveis e aprovador humano.
 | C2 | GO | 2026-07-14 | Fase 2 consolidada; suite, build e ArchUnit verdes; diff revisado sem bloqueios | Usuario, GO registrado em conversa |
 | C3 | GO | 2026-07-14 | Fase 3 concluida; consulta de processo integralmente em `arvoredocumento`; legado removido sem referencias; suite, build, ArchUnit, JaCoCo e diff verdes | Usuario, GO registrado em conversa |
 | C4 | GO | 2026-07-14 | Fase 4 concluida; consulta de checklist integralmente em `conformidade`; legado removido sem referencias; contratos, configuracao, wire MTR, simulador, erros, fault tolerance, observabilidade, suite, build, ArchUnit e diff revisados sem bloqueios | Usuario, GO registrado em conversa |
-| C5 | PENDENTE | - | - | - |
+| C5 | GO | 2026-07-15 | Fase 5 concluida; `gestaodocumento` integralmente migrado; cadeia legada removida sem consumidores; guardrails impedem Azure Storage, cache, renovacao e upload no nucleo; contratos, configuracao, wire MTR, simulador, erros, FT, observabilidade, suite, build, ArchUnit, JaCoCo e diff verdes | Usuario, GO registrado em conversa |
 | C6 | PENDENTE | - | - | - |
 
 ## Bloqueios que nao podem ser resolvidos por suposicao

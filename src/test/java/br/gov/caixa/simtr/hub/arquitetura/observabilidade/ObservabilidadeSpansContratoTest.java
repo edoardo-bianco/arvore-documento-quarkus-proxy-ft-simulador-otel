@@ -7,7 +7,7 @@ import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.Formular
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.ValidacaoNegocialDossieProdutoMtrAdapter;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.WorkflowDossieProdutoMtrAdapter;
 import br.gov.caixa.simtr.hub.conformidade.adaptador.saida.mtr.adapter.ChecklistMtrAdapter;
-import br.gov.caixa.simtr.hub.gestaodocumento.integracao.GestaoDocumentoGateway;
+import br.gov.caixa.simtr.hub.gestaodocumento.adaptador.saida.mtr.adapter.GestaoDocumentoMtrAdapter;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.instrumentation.annotations.SpanAttribute;
@@ -121,7 +121,7 @@ class ObservabilidadeSpansContratoTest {
                         "mtr.dossie-produto.workflow.avancar|CLIENT|"),
                 Map.entry("ValidacaoNegocialDossieProdutoMtrAdapter#registrar",
                         "mtr.dossie-produto.validacao-negocial.registrar|CLIENT|"),
-                Map.entry("GestaoDocumentoGateway#gerarCredencialContainer",
+                Map.entry("GestaoDocumentoMtrAdapter#obter",
                         "mtr.gestao-documento.credencial-container.gerar|CLIENT|"),
                 Map.entry("ChecklistMtrAdapter#obter",
                         "mtr.parametrizacao.checklist.consultar|CLIENT|"),
@@ -135,7 +135,7 @@ class ObservabilidadeSpansContratoTest {
                 FormularioDossieProdutoMtrAdapter.class,
                 ValidacaoNegocialDossieProdutoMtrAdapter.class,
                 WorkflowDossieProdutoMtrAdapter.class,
-                GestaoDocumentoGateway.class,
+                GestaoDocumentoMtrAdapter.class,
                 ChecklistMtrAdapter.class,
                 ProcessoParametrizadoMtrAdapter.class
         ));
