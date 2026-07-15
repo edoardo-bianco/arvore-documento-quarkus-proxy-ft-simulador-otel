@@ -40,12 +40,14 @@ Antes de executar qualquer item:
 - [x] G10 Branch `refactor/ddd-fase-11-baseline` criada a partir do commit `6d57872`, que integrou
   a Fase 10 aceita em C10 a `main`, publicada e configurada para rastrear
   `origin/refactor/ddd-fase-11-baseline`.
+- [x] G11 Branch `refactor/ddd-fase-12-baseline` criada a partir do commit `54569d7`, que recebeu
+  GO em C11, publicada e configurada para rastrear `origin/refactor/ddd-fase-12-baseline`.
 
 ## Ponto de retomada
 
 - **Ultimo marco concluido:** C11 - GO humano registrado e Fase 11 encerrada.
-- **Fase atual:** nenhuma; a proxima mudanca exige nova fase e branch.
-- **Proximo item:** abrir fase propria para renomear o package REST de `dossieproduto`.
+- **Fase atual:** Fase 12 - alinhamento do package REST de `dossieproduto`.
+- **Proximo item:** 12.1b - guardrail RED para o package historico.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
   produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
@@ -564,6 +566,10 @@ Antes de executar qualquer item:
 - **Checkpoint C11 (2026-07-15):** GO humano registrado. A cascata Jakarta Validation modernizada
   e os contratos preservados foram aceitos; a Fase 11 esta encerrada. O renome do package REST foi
   autorizado apenas como fase seguinte independente.
+- **Bootstrap da Fase 12:** `refactor/ddd-fase-12-baseline` criada e publicada a partir do commit
+  `54569d7` aceito em C11. O escopo e exclusivamente o alinhamento de package da borda REST de
+  `dossieproduto`; contratos externos e package tecnico de erro permanecem congelados.
+- **Task 12.1a concluida:** fase, branch, subtasks, criterios e checkpoint C12 registrados.
 
 ## Fase 0 - Baseline e guardrails
 
@@ -802,6 +808,16 @@ Antes de executar qualquer item:
 - [x] 11.1 Remover o uso depreciado de `@Valid` nas listas REST preservando os contratos.
 - [x] C11 Obter aceite humano da cascata Jakarta Validation modernizada.
 
+## Fase 12 - Alinhamento do package REST de `dossieproduto`
+
+- [x] 12.1a Registrar fase, branch, escopo e checkpoint C12.
+- [ ] 12.1b Criar guardrail RED que rejeita `dossieproduto.recurso.rest`.
+- [ ] 12.1c Mover producao/testes e atualizar FQCNs, imports e guardrails.
+- [ ] 12.1d Alinhar documentacao e executar verificacoes focadas/completas.
+- [ ] 12.1e Publicar o checkpoint e aguardar GO humano.
+- [ ] 12.1 Renomear a borda REST sem alterar contratos.
+- [ ] C12 Obter aceite humano do package REST alinhado.
+
 ## Registro de checkpoints
 
 Esta tabela e a fonte autoritativa. Valores validos de status: `PENDENTE`, `GO` e `NO-GO`. Um
@@ -826,6 +842,7 @@ data, evidencias verificaveis e aprovador humano.
 | C9 | GO | 2026-07-15 | Task 9.1 concluida; fundamentos gerais, tres papeis conceituais de orquestracao, microsservicos, uso pragmatico, links e diff documental revisados sem bloqueios | Usuario, GO registrado em conversa |
 | C10 | GO | 2026-07-15 | Task 10.1 concluida; permissao de Quarkus, fronteiras, documentacao, ArchUnit, suite, JaCoCo e diff revisados sem bloqueios | Usuario, GO registrado em conversa |
 | C11 | GO | 2026-07-15 | Task 11.1 concluida; cascata no tipo dos elementos, contratos HTTP/nulabilidade, suite limpa, ArchUnit e diff verdes; `HV000271` eliminado; packages REST e tecnico de erro inalterados | Usuario, GO registrado em conversa |
+| C12 | PENDENTE | - | Fase 12 em execucao; evidencias ainda nao consolidadas | - |
 
 ## Bloqueios que nao podem ser resolvidos por suposicao
 

@@ -3,10 +3,9 @@
 ## Status
 
 - **Planejado:** 2026-07-11
-- **Implementacao:** Fases 0 a 10 concluidas; C0, C1, C2, C3, C4, C5, C6, C7, C8, C9 e C10
-  em GO; Fase 11 em execucao para modernizar a cascata Jakarta Validation de formulario e
-  documento sem alterar seus contratos
-- **Branch de trabalho atual:** `refactor/ddd-fase-11-baseline`
+- **Implementacao:** Fases 0 a 11 concluidas; C0, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10 e
+  C11 em GO; Fase 12 em execucao para alinhar o package do adapter REST de `dossieproduto`
+- **Branch de trabalho atual:** `refactor/ddd-fase-12-baseline`
 - **Documento arquitetural:** `../doc/arquitetura-ddd-integracoes-atomicas.md`
 - **Checklist operacional:** `todo.md`
 
@@ -1378,6 +1377,53 @@ a suite limpa terminou sem `HV000271` e os dois desvios de package ficaram inalt
 
 **Status:** `GO` humano registrado em 2026-07-15; Fase 11 encerrada. A renomeacao opcional do
 package REST foi autorizada como trabalho separado para uma nova fase.
+
+## Fase 12 - Alinhamento do package REST de `dossieproduto`
+
+### Task 12.1 - Renomear `recurso.rest` para `adaptador.entrada.rest`
+
+**Descricao:** mover integralmente a borda REST de `dossieproduto` e seus testes do package
+historico `dossieproduto.recurso.rest` para `dossieproduto.adaptador.entrada.rest`. A mudanca e
+organizacional: paths, verbos, status, JSON, validacoes, erros, observabilidade e integracoes nao
+podem mudar.
+
+**Criterios de aceite:**
+
+- Resource, mappers e DTOs residem sob `dossieproduto.adaptador.entrada.rest.v1`;
+- testes e fixtures arquiteturais usam o mesmo package de adapter de entrada;
+- nao restam declaracoes, imports, paths Java ou allowlists para `dossieproduto.recurso.rest`;
+- ArchUnit protege apenas o padrao `adaptador.entrada.rest` e impede regressao para o package antigo;
+- endpoints HTTP e contratos de validacao permanecem equivalentes;
+- o contrato tecnico compartilhado em `arquitetura.excecao.dto` permanece inalterado;
+- README, documento operacional, AGENTS e governanca descrevem o estado novo;
+- testes focados, suite limpa, build e diff permanecem verdes.
+
+**Subtasks:**
+
+- **12.1a:** registrar fase, branch, escopo e checkpoint C12;
+- **12.1b:** criar guardrail RED que rejeita o package historico;
+- **12.1c:** mover producao/testes e atualizar FQCNs, imports e guardrails;
+- **12.1d:** alinhar documentacao e executar verificacoes focadas/completas;
+- **12.1e:** publicar o checkpoint e aguardar GO humano.
+
+**Verificacao:** ciclo RED/GREEN do `ArchUnitProgressivoTest`, busca global pelo FQCN antigo,
+contratos REST de `dossieproduto`, `ResourceBeanCoverageTest`, `mvn -q clean test`,
+`git diff --check`, verificacao de segredos e revisao do diff.
+
+**Dependencias:** C11. **Escopo:** M, refatoracao mecanica de package sem mudanca funcional.
+
+**Status:** em execucao desde 2026-07-15 na branch `refactor/ddd-fase-12-baseline`, criada e
+publicada a partir do commit `54569d7`, aceito em C11.
+
+### Checkpoint C12 - Package REST alinhado
+
+- [ ] Borda REST e testes residem em `dossieproduto.adaptador.entrada.rest`.
+- [ ] Package/FQCN antigo nao possui referencias e esta proibido por guardrail.
+- [ ] Contratos externos e package tecnico compartilhado de erro permanecem inalterados.
+- [ ] Documentacao, testes focados, suite limpa, build e diff estao verdes.
+- [ ] Revisao humana aceita a renomeacao e autoriza o fechamento.
+
+**Status:** `PENDENTE`; Fase 12 em execucao.
 
 ## Riscos e mitigacoes
 
