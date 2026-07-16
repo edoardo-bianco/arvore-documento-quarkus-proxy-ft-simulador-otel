@@ -19,6 +19,9 @@ import org.jboss.logging.Logger;
 public class ChecklistObservabilidade implements ConsultarChecklist {
 
     private static final Logger LOG = Logger.getLogger(ChecklistObservabilidade.class);
+    private static final String CAMADA = "application";
+    private static final String COMPONENTE = "ChecklistService";
+    private static final String OPERACAO = "consultar-checklist";
 
     private final ConsultarChecklist casoDeUso;
     private final boolean simuladorHabilitado;
@@ -57,9 +60,9 @@ public class ChecklistObservabilidade implements ConsultarChecklist {
                 LOG,
                 "simtr-hub.checklist.service.iniciado",
                 ObservabilityLog.fields(
-                        "camada", "application",
-                        "componente", "ChecklistService",
-                        "operacao", "consultar-checklist",
+                        "camada", CAMADA,
+                        "componente", COMPONENTE,
+                        "operacao", OPERACAO,
                         "identificador_negocial", identificador,
                         "versao", versao,
                         "simulador_habilitado", simuladorHabilitado
@@ -77,9 +80,9 @@ public class ChecklistObservabilidade implements ConsultarChecklist {
                             LOG,
                             "simtr-hub.checklist.service.concluido",
                             ObservabilityLog.fields(
-                                    "camada", "application",
-                                    "componente", "ChecklistService",
-                                    "operacao", "consultar-checklist",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
+                                    "operacao", OPERACAO,
                                     "identificador_negocial", identificador,
                                     "versao", versao,
                                     "resultado", "sucesso",
@@ -98,9 +101,9 @@ public class ChecklistObservabilidade implements ConsultarChecklist {
                             "simtr-hub.checklist.service.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", "application",
-                                    "componente", "ChecklistService",
-                                    "operacao", "consultar-checklist",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
+                                    "operacao", OPERACAO,
                                     "identificador_negocial", identificador,
                                     "versao", versao,
                                     "erro_tipo", erro.getClass().getSimpleName(),
