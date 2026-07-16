@@ -261,8 +261,8 @@ public class DossieProdutoResource {
                 LOG,
                 "simtr-hub.dossie-produto.formulario.requisicao.recebida",
                 ObservabilityLog.fields(
-                        "camada", "api",
-                        "componente", "DossieProdutoResource",
+                        "camada", CAMADA,
+                        "componente", COMPONENTE,
                         "operacao", "atualizar-formulario-dossie-produto",
                         "dossie_produto_id", id,
                         "formulario_vinculos_quantidade", quantidadeVinculos,
@@ -285,8 +285,8 @@ public class DossieProdutoResource {
                             LOG,
                             "simtr-hub.dossie-produto.formulario.resposta.enviada",
                             ObservabilityLog.fields(
-                                    "camada", "api",
-                                    "componente", "DossieProdutoResource",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
                                     "operacao", "atualizar-formulario-dossie-produto",
                                     "dossie_produto_id", id,
                                     "dossie_produto_id_resposta", resposta != null ? resposta.id() : null,
@@ -306,8 +306,8 @@ public class DossieProdutoResource {
                             "simtr-hub.dossie-produto.formulario.requisicao.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", "api",
-                                    "componente", "DossieProdutoResource",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
                                     "operacao", "atualizar-formulario-dossie-produto",
                                     "dossie_produto_id", id,
                                     "erro_tipo", erro.getClass().getSimpleName(),
@@ -385,8 +385,8 @@ public class DossieProdutoResource {
                 LOG,
                 "simtr-hub.dossie-produto.documento.requisicao.recebida",
                 ObservabilityLog.fields(
-                        "camada", "api",
-                        "componente", "DossieProdutoResource",
+                        "camada", CAMADA,
+                        "componente", COMPONENTE,
                         "operacao", "incluir-documento-dossie-produto",
                         "dossie_produto_id", id,
                         "tipo_documento", tipoDocumento,
@@ -413,8 +413,8 @@ public class DossieProdutoResource {
                             LOG,
                             "simtr-hub.dossie-produto.documento.resposta.enviada",
                             ObservabilityLog.fields(
-                                    "camada", "api",
-                                    "componente", "DossieProdutoResource",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
                                     "operacao", "incluir-documento-dossie-produto",
                                     "dossie_produto_id", id,
                                     "id_documento", resposta != null ? resposta.idDocumento() : null,
@@ -435,8 +435,8 @@ public class DossieProdutoResource {
                             "simtr-hub.dossie-produto.documento.requisicao.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", "api",
-                                    "componente", "DossieProdutoResource",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
                                     "operacao", "incluir-documento-dossie-produto",
                                     "dossie_produto_id", id,
                                     "tipo_documento", tipoDocumento,
@@ -517,8 +517,8 @@ public class DossieProdutoResource {
                 LOG,
                 "simtr-hub.dossie-produto.validacao-negocial.requisicao.recebida",
                 ObservabilityLog.fields(
-                        "camada", "api",
-                        "componente", "DossieProdutoResource",
+                        "camada", CAMADA,
+                        "componente", COMPONENTE,
                         "operacao", "registrar-validacao-negocial-dossie-produto",
                         "dossie_produto_id", id,
                         "validacao_verificacoes_quantidade", quantidadeVerificacoes,
@@ -535,8 +535,8 @@ public class DossieProdutoResource {
                         LOG,
                         "simtr-hub.dossie-produto.validacao-negocial.resposta.enviada",
                         ObservabilityLog.fields(
-                                "camada", "api",
-                                "componente", "DossieProdutoResource",
+                                "camada", CAMADA,
+                                "componente", COMPONENTE,
                                 "operacao", "registrar-validacao-negocial-dossie-produto",
                                 "dossie_produto_id", id,
                                 "resultado", "sucesso"
@@ -552,8 +552,8 @@ public class DossieProdutoResource {
                             "simtr-hub.dossie-produto.validacao-negocial.requisicao.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", "api",
-                                    "componente", "DossieProdutoResource",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
                                     "operacao", "registrar-validacao-negocial-dossie-produto",
                                     "dossie_produto_id", id,
                                     "erro_tipo", erro.getClass().getSimpleName(),
@@ -623,8 +623,8 @@ public class DossieProdutoResource {
                 LOG,
                 "simtr-hub.dossie-produto.workflow.requisicao.recebida",
                 ObservabilityLog.fields(
-                        "camada", "api",
-                        "componente", "DossieProdutoResource",
+                        "camada", CAMADA,
+                        "componente", COMPONENTE,
                         "operacao", "iniciar-ou-avancar-workflow-dossie-produto",
                         "dossie_produto_id", id
                 )
@@ -644,8 +644,8 @@ public class DossieProdutoResource {
                             LOG,
                             "simtr-hub.dossie-produto.workflow.resposta.enviada",
                             ObservabilityLog.fields(
-                                    "camada", "api",
-                                    "componente", "DossieProdutoResource",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
                                     "operacao", "iniciar-ou-avancar-workflow-dossie-produto",
                                     "dossie_produto_id", id,
                                     "dossie_produto_id_resposta", resposta != null ? resposta.id() : null,
@@ -663,8 +663,8 @@ public class DossieProdutoResource {
                             "simtr-hub.dossie-produto.workflow.requisicao.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", "api",
-                                    "componente", "DossieProdutoResource",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
                                     "operacao", "iniciar-ou-avancar-workflow-dossie-produto",
                                     "dossie_produto_id", id,
                                     "erro_tipo", erro.getClass().getSimpleName(),
