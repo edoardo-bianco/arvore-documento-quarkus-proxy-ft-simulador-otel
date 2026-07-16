@@ -30,6 +30,14 @@ public class DocumentoDossieProdutoMtrAdapter
         implements SolicitarInclusaoDocumentoDossieProduto {
 
     private static final Logger LOG = Logger.getLogger(DocumentoDossieProdutoMtrAdapter.class);
+    private static final String CAMADA = "camada";
+    private static final String INFRASTRUCTURE = "infrastructure";
+    private static final String COMPONENTE = "componente";
+    private static final String GATEWAY = "DossieProdutoGateway";
+    private static final String DEPENDENCIA = "dependencia";
+    private static final String DOSSIE = "simtr-dossie-produto";
+    private static final String OPERACAO = "operacao";
+    private static final String INCLUIR = "incluir-documento-dossie-produto-v2";
 
     private final DocumentoDossieProdutoMtrClient client;
     private final DocumentoDossieProdutoMtrMapper mapper;
@@ -70,10 +78,8 @@ public class DocumentoDossieProdutoMtrAdapter
 
         ObservabilityLog.info(LOG, "mtr.dossie-produto.documento.chamada.iniciada",
                 ObservabilityLog.fields(
-                        "camada", "infrastructure",
-                        "componente", "DossieProdutoGateway",
-                        "dependencia", "simtr-dossie-produto",
-                        "operacao", "incluir-documento-dossie-produto-v2",
+                        CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
+                        DEPENDENCIA, DOSSIE, OPERACAO, INCLUIR,
                         "dossie_produto_id", identificador,
                         "tipo_documento", tipoDocumento,
                         "documento_atributos_quantidade", quantidadeAtributos,
@@ -112,8 +118,8 @@ public class DocumentoDossieProdutoMtrAdapter
             span.setAttribute("dossie_produto.documento.instancia.id", resposta.idInstanciaDocumento());
         }
         ObservabilityLog.info(LOG, "mtr.dossie-produto.documento.chamada.concluida",
-                ObservabilityLog.fields("camada", "infrastructure", "componente", "DossieProdutoGateway",
-                        "dependencia", "simtr-dossie-produto", "operacao", "incluir-documento-dossie-produto-v2",
+                ObservabilityLog.fields(CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
+                        DEPENDENCIA, DOSSIE, OPERACAO, INCLUIR,
                         "dossie_produto_id", identificador, "id_documento",
                         resposta != null ? resposta.idDocumento() : null, "id_instancia_documento",
                         resposta != null ? resposta.idInstanciaDocumento() : null, "resultado", "sucesso"));
@@ -125,8 +131,8 @@ public class DocumentoDossieProdutoMtrAdapter
         span.setAttribute("mtr.resposta.sucesso", false);
         span.setAttribute("erro.tipo", erro.getClass().getName());
         ObservabilityLog.error(LOG, "mtr.dossie-produto.documento.chamada.falhou", erro,
-                ObservabilityLog.fields("camada", "infrastructure", "componente", "DossieProdutoGateway",
-                        "dependencia", "simtr-dossie-produto", "operacao", "incluir-documento-dossie-produto-v2",
+                ObservabilityLog.fields(CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
+                        DEPENDENCIA, DOSSIE, OPERACAO, INCLUIR,
                         "dossie_produto_id", identificador, "tipo_documento", tipoDocumento,
                         "erro_tipo", erro.getClass().getSimpleName(), "resultado", "erro"));
     }
