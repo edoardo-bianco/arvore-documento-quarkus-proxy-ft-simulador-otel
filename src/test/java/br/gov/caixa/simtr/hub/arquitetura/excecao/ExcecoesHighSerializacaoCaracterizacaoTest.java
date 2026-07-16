@@ -3,17 +3,41 @@ package br.gov.caixa.simtr.hub.arquitetura.excecao;
 import br.gov.caixa.simtr.hub.arquitetura.excecao.dto.ErroMensagemDto;
 import br.gov.caixa.simtr.hub.arquitetura.excecao.dto.ErroPadraoDto;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.erro.DocumentoDossieProdutoMtrException;
+import br.gov.caixa.simtr.hub.arvoredocumento.adaptador.saida.mtr.erro.ProcessoParametrizadoMtrException;
+import br.gov.caixa.simtr.hub.conformidade.adaptador.saida.mtr.erro.ChecklistMtrException;
+import br.gov.caixa.simtr.hub.gestaodocumento.adaptador.saida.mtr.erro.GestaoDocumentoMtrException;
+import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.erro.CriacaoDossieProdutoMtrException;
+import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.erro.FormularioDossieProdutoMtrException;
+import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.erro.ValidacaoNegocialDossieProdutoMtrException;
+import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.erro.WorkflowDossieProdutoMtrException;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
 import java.io.ObjectInputStream;
+import java.io.Serializable;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class ExcecoesHighSerializacaoCaracterizacaoTest {
+
+    @Test
+    void familiasRestantesAindaPossuemPayloadNaoSerializavel() throws Exception {
+        for (Class<?> tipo : List.of(
+                GestaoDocumentoMtrException.class,
+                ChecklistMtrException.class,
+                ProcessoParametrizadoMtrException.class,
+                ValidacaoNegocialDossieProdutoMtrException.class,
+                FormularioDossieProdutoMtrException.class,
+                CriacaoDossieProdutoMtrException.class,
+                WorkflowDossieProdutoMtrException.class)) {
+            var campoErro = tipo.getDeclaredField("erro");
+            assertFalse(Serializable.class.isAssignableFrom(campoErro.getType()), tipo.getName());
+        }
+    }
 
     @Test
     void excecoesMtrNaoSaoSerializaveisPorJavaEDevemSerTratadasComoContratoJson()
