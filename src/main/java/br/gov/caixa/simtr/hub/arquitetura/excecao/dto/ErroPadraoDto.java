@@ -2,6 +2,7 @@ package br.gov.caixa.simtr.hub.arquitetura.excecao.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.io.Serializable;
 import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -13,5 +14,5 @@ public record ErroPadraoDto(
         List<ErroMensagemDto> erros,
         String detalhe,
         String stacktrace
-) {
+) implements Serializable {
 }
