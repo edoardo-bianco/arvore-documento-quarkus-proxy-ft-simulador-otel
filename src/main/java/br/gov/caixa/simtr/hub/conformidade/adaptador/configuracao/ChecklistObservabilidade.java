@@ -22,6 +22,8 @@ public class ChecklistObservabilidade implements ConsultarChecklist {
     private static final String CAMADA = "application";
     private static final String COMPONENTE = "ChecklistService";
     private static final String OPERACAO = "consultar-checklist";
+    private static final String CAMADA_KEY = "camada";
+    private static final String COMPONENTE_KEY = "componente";
 
     private final ConsultarChecklist casoDeUso;
     private final boolean simuladorHabilitado;
@@ -60,8 +62,8 @@ public class ChecklistObservabilidade implements ConsultarChecklist {
                 LOG,
                 "simtr-hub.checklist.service.iniciado",
                 ObservabilityLog.fields(
-                        "camada", CAMADA,
-                        "componente", COMPONENTE,
+                        CAMADA_KEY, CAMADA,
+                        COMPONENTE_KEY, COMPONENTE,
                         "operacao", OPERACAO,
                         "identificador_negocial", identificador,
                         "versao", versao,
@@ -80,8 +82,8 @@ public class ChecklistObservabilidade implements ConsultarChecklist {
                             LOG,
                             "simtr-hub.checklist.service.concluido",
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
                                     "operacao", OPERACAO,
                                     "identificador_negocial", identificador,
                                     "versao", versao,
@@ -101,8 +103,8 @@ public class ChecklistObservabilidade implements ConsultarChecklist {
                             "simtr-hub.checklist.service.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
                                     "operacao", OPERACAO,
                                     "identificador_negocial", identificador,
                                     "versao", versao,
