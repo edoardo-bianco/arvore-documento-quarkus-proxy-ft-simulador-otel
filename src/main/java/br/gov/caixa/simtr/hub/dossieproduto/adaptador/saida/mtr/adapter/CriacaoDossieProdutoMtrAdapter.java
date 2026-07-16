@@ -28,6 +28,14 @@ import java.util.List;
 public class CriacaoDossieProdutoMtrAdapter implements SolicitarCriacaoDossieProduto {
 
     private static final Logger LOG = Logger.getLogger(CriacaoDossieProdutoMtrAdapter.class);
+    private static final String CAMADA = "camada";
+    private static final String INFRASTRUCTURE = "infrastructure";
+    private static final String COMPONENTE = "componente";
+    private static final String GATEWAY = "DossieProdutoGateway";
+    private static final String DEPENDENCIA = "dependencia";
+    private static final String DOSSIe = "simtr-dossie-produto";
+    private static final String OPERACAO = "operacao";
+    private static final String CRIAR = "criar-dossie-produto-v1";
 
     private final CriacaoDossieProdutoMtrClient client;
     private final CriacaoDossieProdutoMtrMapper mapper;
@@ -60,10 +68,8 @@ public class CriacaoDossieProdutoMtrAdapter implements SolicitarCriacaoDossiePro
 
         ObservabilityLog.info(LOG, "mtr.dossie-produto.criacao.chamada.iniciada",
                 ObservabilityLog.fields(
-                        "camada", "infrastructure",
-                        "componente", "DossieProdutoGateway",
-                        "dependencia", "simtr-dossie-produto",
-                        "operacao", "criar-dossie-produto-v1",
+                        CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
+                        DEPENDENCIA, DOSSIe, OPERACAO, CRIAR,
                         "processo", processo,
                         "chave_correlacao_canal", chaveCorrelacaoCanal,
                         "clientes_quantidade", quantidadeClientes));
@@ -76,10 +82,8 @@ public class CriacaoDossieProdutoMtrAdapter implements SolicitarCriacaoDossiePro
                     }
                     ObservabilityLog.info(LOG, "mtr.dossie-produto.criacao.chamada.concluida",
                             ObservabilityLog.fields(
-                                    "camada", "infrastructure",
-                                    "componente", "DossieProdutoGateway",
-                                    "dependencia", "simtr-dossie-produto",
-                                    "operacao", "criar-dossie-produto-v1",
+                                    CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
+                                    DEPENDENCIA, DOSSIe, OPERACAO, CRIAR,
                                     "processo", processo,
                                     "chave_correlacao_canal", chaveCorrelacaoCanal,
                                     "dossie_produto_id", resposta != null ? resposta.id() : null,
@@ -92,10 +96,8 @@ public class CriacaoDossieProdutoMtrAdapter implements SolicitarCriacaoDossiePro
                     span.setAttribute("erro.tipo", erro.getClass().getName());
                     ObservabilityLog.error(LOG, "mtr.dossie-produto.criacao.chamada.falhou", erro,
                             ObservabilityLog.fields(
-                                    "camada", "infrastructure",
-                                    "componente", "DossieProdutoGateway",
-                                    "dependencia", "simtr-dossie-produto",
-                                    "operacao", "criar-dossie-produto-v1",
+                                    CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
+                                    DEPENDENCIA, DOSSIe, OPERACAO, CRIAR,
                                     "processo", processo,
                                     "chave_correlacao_canal", chaveCorrelacaoCanal,
                                     "erro_tipo", erro.getClass().getSimpleName(),
