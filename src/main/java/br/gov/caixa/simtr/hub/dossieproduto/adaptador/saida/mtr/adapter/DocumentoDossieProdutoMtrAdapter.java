@@ -87,12 +87,8 @@ public class DocumentoDossieProdutoMtrAdapter
                         "documento_propriedades_quantidade", quantidadePropriedades));
 
         return client.incluir(identificador, mapper.paraMtr(comando))
-                .invoke(resposta -> {
-                    registrarConclusao(span, identificador, resposta);
-                })
-                .onFailure().invoke(erro -> {
-                    registrarFalha(span, identificador, tipoDocumento, erro);
-                })
+                .invoke(resposta -> registrarConclusao(span, identificador, resposta))
+                .onFailure().invoke(erro -> registrarFalha(span, identificador, tipoDocumento, erro))
                 .map(mapper::paraResultado)
                 .onFailure().transform(DocumentoDossieProdutoMtrAdapter::traduzir);
     }

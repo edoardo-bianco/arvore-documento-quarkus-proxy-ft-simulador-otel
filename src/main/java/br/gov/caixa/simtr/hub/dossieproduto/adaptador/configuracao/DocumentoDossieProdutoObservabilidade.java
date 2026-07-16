@@ -79,12 +79,8 @@ public class DocumentoDossieProdutoObservabilidade
                         "simulador_habilitado", simuladorHabilitado));
 
         return casoDeUso.executar(comando)
-                .invoke(resposta -> {
-                    registrarConclusao(span, id, resposta);
-                })
-                .onFailure().invoke(erro -> {
-                    registrarFalha(span, id, tipoDocumento, erro);
-                });
+                .invoke(resposta -> registrarConclusao(span, id, resposta))
+                .onFailure().invoke(erro -> registrarFalha(span, id, tipoDocumento, erro));
     }
 
     private static void registrarConclusao(Span span, Long id,
