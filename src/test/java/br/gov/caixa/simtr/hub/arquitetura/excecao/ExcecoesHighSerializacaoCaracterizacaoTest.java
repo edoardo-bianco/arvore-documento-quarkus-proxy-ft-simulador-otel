@@ -53,7 +53,6 @@ class ExcecoesHighSerializacaoCaracterizacaoTest {
     @Test
     void familiasRestantesAindaPossuemPayloadNaoSerializavel() throws Exception {
         for (Class<?> tipo : List.of(
-                ChecklistMtrException.class,
                 ProcessoParametrizadoMtrException.class,
                 ValidacaoNegocialDossieProdutoMtrException.class,
                 FormularioDossieProdutoMtrException.class,
