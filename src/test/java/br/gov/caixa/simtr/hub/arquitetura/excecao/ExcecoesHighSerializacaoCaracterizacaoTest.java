@@ -25,6 +25,20 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 class ExcecoesHighSerializacaoCaracterizacaoTest {
 
     @Test
+    void familiaFormularioPreservaPayloadNoRoundTrip() throws Exception {
+        var erro = new FormularioDossieProdutoMtrException.Erro(
+                422, "formulario", "id-6", "codigo-6",
+                List.of(new FormularioDossieProdutoMtrException.Mensagem("invalido")),
+                "detalhe", "stacktrace");
+        var excecao = new FormularioDossieProdutoMtrException.Negocio(422, erro);
+
+        var restaurada = (FormularioDossieProdutoMtrException.Negocio)
+                desserializar(serializar(excecao));
+        assertEquals(excecao.getMessage(), restaurada.getMessage());
+        assertEquals(excecao.erro(), restaurada.erro());
+    }
+
+    @Test
     void familiaValidacaoNegocialPreservaPayloadNoRoundTrip() throws Exception {
         var erro = new ValidacaoNegocialDossieProdutoMtrException.Erro(
                 422, "validacao", "id-5", "codigo-5",
@@ -80,7 +94,6 @@ class ExcecoesHighSerializacaoCaracterizacaoTest {
     @Test
     void familiasRestantesAindaPossuemPayloadNaoSerializavel() throws Exception {
         for (Class<?> tipo : List.of(
-                FormularioDossieProdutoMtrException.class,
                 CriacaoDossieProdutoMtrException.class,
                 WorkflowDossieProdutoMtrException.class)) {
             var campoErro = tipo.getDeclaredField("erro");
