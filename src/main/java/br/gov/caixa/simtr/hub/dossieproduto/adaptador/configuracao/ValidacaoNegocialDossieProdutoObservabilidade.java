@@ -20,6 +20,9 @@ public class ValidacaoNegocialDossieProdutoObservabilidade
 
     private static final Logger LOG = Logger.getLogger(
             ValidacaoNegocialDossieProdutoObservabilidade.class);
+    private static final String CAMADA = "application";
+    private static final String COMPONENTE = "DossieProdutoService";
+    private static final String OPERACAO = "registrar-validacao-negocial-dossie-produto";
 
     private final RegistrarValidacaoNegocialDossieProduto casoDeUso;
     private final boolean simuladorHabilitado;
@@ -57,9 +60,9 @@ public class ValidacaoNegocialDossieProdutoObservabilidade
                 LOG,
                 "simtr-hub.dossie-produto.validacao-negocial.service.iniciado",
                 ObservabilityLog.fields(
-                        "camada", "application",
-                        "componente", "DossieProdutoService",
-                        "operacao", "registrar-validacao-negocial-dossie-produto",
+                        "camada", CAMADA,
+                        "componente", COMPONENTE,
+                        "operacao", OPERACAO,
                         "dossie_produto_id", id,
                         "validacao_verificacoes_quantidade", quantidadeVerificacoes,
                         "validacao_respostas_formulario_quantidade", quantidadeRespostas,
@@ -70,9 +73,9 @@ public class ValidacaoNegocialDossieProdutoObservabilidade
                         LOG,
                         "simtr-hub.dossie-produto.validacao-negocial.service.concluido",
                         ObservabilityLog.fields(
-                                "camada", "application",
-                                "componente", "DossieProdutoService",
-                                "operacao", "registrar-validacao-negocial-dossie-produto",
+                                "camada", CAMADA,
+                                "componente", COMPONENTE,
+                                "operacao", OPERACAO,
                                 "dossie_produto_id", id,
                                 "resultado", "sucesso")))
                 .onFailure().invoke(erro -> {
@@ -83,10 +86,10 @@ public class ValidacaoNegocialDossieProdutoObservabilidade
                             "simtr-hub.dossie-produto.validacao-negocial.service.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", "application",
-                                    "componente", "DossieProdutoService",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
                                     "operacao",
-                                    "registrar-validacao-negocial-dossie-produto",
+                                    OPERACAO,
                                     "dossie_produto_id", id,
                                     "erro_tipo", erro.getClass().getSimpleName(),
                                     "resultado", "erro"));
