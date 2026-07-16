@@ -20,6 +20,9 @@ public class ProcessoParametrizadoObservabilidade implements ConsultarProcessoPa
 
     private static final Logger LOG = Logger.getLogger(
             ProcessoParametrizadoObservabilidade.class);
+    private static final String CAMADA = "application";
+    private static final String COMPONENTE = "ProcessoService";
+    private static final String OPERACAO = "consultar-processo";
 
     private final ConsultarProcessoParametrizado casoDeUso;
     private final boolean simuladorHabilitado;
@@ -53,9 +56,9 @@ public class ProcessoParametrizadoObservabilidade implements ConsultarProcessoPa
                 LOG,
                 "simtr-hub.processo.service.iniciado",
                 ObservabilityLog.fields(
-                        "camada", "application",
-                        "componente", "ProcessoService",
-                        "operacao", "consultar-processo",
+                        "camada", CAMADA,
+                        "componente", COMPONENTE,
+                        "operacao", OPERACAO,
                         "identificador_negocial", valor,
                         "simulador_habilitado", simuladorHabilitado
                 )
@@ -72,9 +75,9 @@ public class ProcessoParametrizadoObservabilidade implements ConsultarProcessoPa
                             LOG,
                             "simtr-hub.processo.service.concluido",
                             ObservabilityLog.fields(
-                                    "camada", "application",
-                                    "componente", "ProcessoService",
-                                    "operacao", "consultar-processo",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
+                                    "operacao", OPERACAO,
                                     "identificador_negocial", valor,
                                     "resultado", "sucesso",
                                     "processo_nome", processo != null ? processo.nome() : null
@@ -90,9 +93,9 @@ public class ProcessoParametrizadoObservabilidade implements ConsultarProcessoPa
                             "simtr-hub.processo.service.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", "application",
-                                    "componente", "ProcessoService",
-                                    "operacao", "consultar-processo",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
+                                    "operacao", OPERACAO,
                                     "identificador_negocial", valor,
                                     "erro_tipo", erro.getClass().getSimpleName(),
                                     "resultado", "erro"
