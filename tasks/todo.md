@@ -1147,6 +1147,7 @@ suite e ArchUnit verdes; nenhum segredo no diff.
 
 | C15-SPEC | GO | 2026-07-16 | Especificação aprovada e branch dedicada criada | Usuario, GO registrado em conversa |
 | C15-PLAN | GO | 2026-07-16 | Ordem, dependências e checkpoints registrados; tasks aguardam GO | Usuario, GO registrado em conversa |
+| C15-CHECKPOINT-QUALITY-01 | REGISTRADO | 2026-07-16 | Branch limpa no commit `150c802`; suíte e scanner Maven executados; cobertura 80,0%; HIGH 82 (todos S1192); BLOCKER 0; duplicação 5,9% | Usuario autorizou continuidade sem novas confirmações |
 
 ## Bloqueios que nao podem ser resolvidos por suposicao
 
