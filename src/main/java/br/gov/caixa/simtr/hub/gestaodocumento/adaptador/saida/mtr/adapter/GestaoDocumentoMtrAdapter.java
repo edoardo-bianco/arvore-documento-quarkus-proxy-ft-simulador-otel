@@ -29,6 +29,10 @@ public class GestaoDocumentoMtrAdapter implements SolicitarCredencialContainer {
     private static final Logger LOG = Logger.getLogger(GestaoDocumentoMtrAdapter.class);
     private static final String PACOTE_EXCECAO_MTR_LEGADA =
             "br.gov.caixa.simtr.hub.arquitetura.excecao.";
+    private static final String CAMADA = "infrastructure";
+    private static final String COMPONENTE = "GestaoDocumentoGateway";
+    private static final String DEPENDENCIA = "simtr-gestao-documento";
+    private static final String OPERACAO = "gerar-credencial-container-v1";
 
     private final GestaoDocumentoClient client;
     private final CredencialContainerMtrMapper mapper;
@@ -46,7 +50,7 @@ public class GestaoDocumentoMtrAdapter implements SolicitarCredencialContainer {
     @WithSpan(value = "mtr.gestao-documento.credencial-container.gerar", kind = SpanKind.CLIENT)
     public Uni<CredencialContainer> obter() {
         Span span = Span.current();
-        span.setAttribute("mtr.servico", "simtr-gestao-documento");
+        span.setAttribute("mtr.servico", DEPENDENCIA);
         span.setAttribute("mtr.api", "gestao-documento-v1");
         span.setAttribute("http.request.method", "POST");
         span.setAttribute(
@@ -58,10 +62,10 @@ public class GestaoDocumentoMtrAdapter implements SolicitarCredencialContainer {
                 LOG,
                 "mtr.gestao-documento.credencial-container.chamada.iniciada",
                 ObservabilityLog.fields(
-                        "camada", "infrastructure",
-                        "componente", "GestaoDocumentoGateway",
-                        "dependencia", "simtr-gestao-documento",
-                        "operacao", "gerar-credencial-container-v1"
+                        "camada", CAMADA,
+                        "componente", COMPONENTE,
+                        "dependencia", DEPENDENCIA,
+                        "operacao", OPERACAO
                 )
         );
 
@@ -78,10 +82,10 @@ public class GestaoDocumentoMtrAdapter implements SolicitarCredencialContainer {
                             LOG,
                             "mtr.gestao-documento.credencial-container.chamada.concluida",
                             ObservabilityLog.fields(
-                                    "camada", "infrastructure",
-                                    "componente", "GestaoDocumentoGateway",
-                                    "dependencia", "simtr-gestao-documento",
-                                    "operacao", "gerar-credencial-container-v1",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
+                                    "dependencia", DEPENDENCIA,
+                                    "operacao", OPERACAO,
                                     "nome_container",
                                     resposta != null ? resposta.nomeContainer() : null,
                                     "resultado", "sucesso"
@@ -99,10 +103,10 @@ public class GestaoDocumentoMtrAdapter implements SolicitarCredencialContainer {
                             "mtr.gestao-documento.credencial-container.chamada.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", "infrastructure",
-                                    "componente", "GestaoDocumentoGateway",
-                                    "dependencia", "simtr-gestao-documento",
-                                    "operacao", "gerar-credencial-container-v1",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
+                                    "dependencia", DEPENDENCIA,
+                                    "operacao", OPERACAO,
                                     "erro_tipo", tipoErroSimplesTelemetria(erro),
                                     "resultado", "erro"
                             )
@@ -146,7 +150,7 @@ public class GestaoDocumentoMtrAdapter implements SolicitarCredencialContainer {
         return new FalhaObtencaoCredencialContainer(
                 tipo,
                 null,
-                "simtr-gestao-documento",
+                DEPENDENCIA,
                 null,
                 null,
                 null,
