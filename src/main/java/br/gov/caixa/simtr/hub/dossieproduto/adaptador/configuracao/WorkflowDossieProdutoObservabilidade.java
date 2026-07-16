@@ -20,6 +20,9 @@ public class WorkflowDossieProdutoObservabilidade
         implements IniciarOuAvancarWorkflowDossieProduto {
 
     private static final Logger LOG = Logger.getLogger(WorkflowDossieProdutoObservabilidade.class);
+    private static final String CAMADA = "application";
+    private static final String COMPONENTE = "DossieProdutoService";
+    private static final String OPERACAO = "iniciar-ou-avancar-workflow-dossie-produto";
 
     private final IniciarOuAvancarWorkflowDossieProduto casoDeUso;
     private final boolean simuladorHabilitado;
@@ -49,9 +52,9 @@ public class WorkflowDossieProdutoObservabilidade
                 LOG,
                 "simtr-hub.dossie-produto.workflow.service.iniciado",
                 ObservabilityLog.fields(
-                        "camada", "application",
-                        "componente", "DossieProdutoService",
-                        "operacao", "iniciar-ou-avancar-workflow-dossie-produto",
+                        "camada", CAMADA,
+                        "componente", COMPONENTE,
+                        "operacao", OPERACAO,
                         "dossie_produto_id", id,
                         "simulador_habilitado", simuladorHabilitado));
 
@@ -66,9 +69,9 @@ public class WorkflowDossieProdutoObservabilidade
                             LOG,
                             "simtr-hub.dossie-produto.workflow.service.concluido",
                             ObservabilityLog.fields(
-                                    "camada", "application",
-                                    "componente", "DossieProdutoService",
-                                    "operacao", "iniciar-ou-avancar-workflow-dossie-produto",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
+                                    "operacao", OPERACAO,
                                     "dossie_produto_id", id,
                                     "dossie_produto_id_resposta",
                                     resposta != null ? resposta.identificadorDossieProduto() : null,
@@ -82,9 +85,9 @@ public class WorkflowDossieProdutoObservabilidade
                             "simtr-hub.dossie-produto.workflow.service.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", "application",
-                                    "componente", "DossieProdutoService",
-                                    "operacao", "iniciar-ou-avancar-workflow-dossie-produto",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
+                                    "operacao", OPERACAO,
                                     "dossie_produto_id", id,
                                     "erro_tipo", erro.getClass().getSimpleName(),
                                     "resultado", "erro"));
