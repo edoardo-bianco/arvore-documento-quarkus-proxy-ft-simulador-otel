@@ -32,7 +32,7 @@ public class WorkflowDossieProdutoMtrAdapter implements AvancarWorkflowDossiePro
     private static final String COMPONENTE = "componente";
     private static final String GATEWAY = "DossieProdutoGateway";
     private static final String DEPENDENCIA = "dependencia";
-    private static final String DOSSIe = "simtr-dossie-produto";
+    private static final String DOSSIE = "simtr-dossie-produto";
     private static final String OPERACAO = "operacao";
     private static final String WORKFLOW = "iniciar-ou-avancar-workflow-dossie-produto-v1";
 
@@ -61,7 +61,7 @@ public class WorkflowDossieProdutoMtrAdapter implements AvancarWorkflowDossiePro
                 "mtr.dossie-produto.workflow.chamada.iniciada",
                 ObservabilityLog.fields(
                         CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
-                        DEPENDENCIA, DOSSIe, OPERACAO, WORKFLOW,
+                        DEPENDENCIA, DOSSIE, OPERACAO, WORKFLOW,
                         "dossie_produto_id", id));
 
         return client.iniciarOuAvancar(id)
@@ -75,7 +75,7 @@ public class WorkflowDossieProdutoMtrAdapter implements AvancarWorkflowDossiePro
                             "mtr.dossie-produto.workflow.chamada.concluida",
                             ObservabilityLog.fields(
                                     CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
-                                    DEPENDENCIA, DOSSIe, OPERACAO, WORKFLOW,
+                                    DEPENDENCIA, DOSSIE, OPERACAO, WORKFLOW,
                                     "dossie_produto_id", id,
                                     "dossie_produto_id_resposta", resposta != null ? resposta.id() : null,
                                     "resultado", "sucesso"));
@@ -91,7 +91,7 @@ public class WorkflowDossieProdutoMtrAdapter implements AvancarWorkflowDossiePro
                             erro,
                             ObservabilityLog.fields(
                                     CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
-                                    DEPENDENCIA, DOSSIe, OPERACAO, WORKFLOW,
+                                    DEPENDENCIA, DOSSIE, OPERACAO, WORKFLOW,
                                     "dossie_produto_id", id,
                                     "erro_tipo", erro.getClass().getSimpleName(),
                                     "resultado", "erro"));

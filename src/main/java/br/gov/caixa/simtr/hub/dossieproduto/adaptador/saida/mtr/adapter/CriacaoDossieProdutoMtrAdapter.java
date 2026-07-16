@@ -33,7 +33,7 @@ public class CriacaoDossieProdutoMtrAdapter implements SolicitarCriacaoDossiePro
     private static final String COMPONENTE = "componente";
     private static final String GATEWAY = "DossieProdutoGateway";
     private static final String DEPENDENCIA = "dependencia";
-    private static final String DOSSIe = "simtr-dossie-produto";
+    private static final String DOSSIE = "simtr-dossie-produto";
     private static final String OPERACAO = "operacao";
     private static final String CRIAR = "criar-dossie-produto-v1";
 
@@ -69,7 +69,7 @@ public class CriacaoDossieProdutoMtrAdapter implements SolicitarCriacaoDossiePro
         ObservabilityLog.info(LOG, "mtr.dossie-produto.criacao.chamada.iniciada",
                 ObservabilityLog.fields(
                         CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
-                        DEPENDENCIA, DOSSIe, OPERACAO, CRIAR,
+                        DEPENDENCIA, DOSSIE, OPERACAO, CRIAR,
                         "processo", processo,
                         "chave_correlacao_canal", chaveCorrelacaoCanal,
                         "clientes_quantidade", quantidadeClientes));
@@ -83,7 +83,7 @@ public class CriacaoDossieProdutoMtrAdapter implements SolicitarCriacaoDossiePro
                     ObservabilityLog.info(LOG, "mtr.dossie-produto.criacao.chamada.concluida",
                             ObservabilityLog.fields(
                                     CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
-                                    DEPENDENCIA, DOSSIe, OPERACAO, CRIAR,
+                                    DEPENDENCIA, DOSSIE, OPERACAO, CRIAR,
                                     "processo", processo,
                                     "chave_correlacao_canal", chaveCorrelacaoCanal,
                                     "dossie_produto_id", resposta != null ? resposta.id() : null,
@@ -97,7 +97,7 @@ public class CriacaoDossieProdutoMtrAdapter implements SolicitarCriacaoDossiePro
                     ObservabilityLog.error(LOG, "mtr.dossie-produto.criacao.chamada.falhou", erro,
                             ObservabilityLog.fields(
                                     CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
-                                    DEPENDENCIA, DOSSIe, OPERACAO, CRIAR,
+                                    DEPENDENCIA, DOSSIE, OPERACAO, CRIAR,
                                     "processo", processo,
                                     "chave_correlacao_canal", chaveCorrelacaoCanal,
                                     "erro_tipo", erro.getClass().getSimpleName(),
