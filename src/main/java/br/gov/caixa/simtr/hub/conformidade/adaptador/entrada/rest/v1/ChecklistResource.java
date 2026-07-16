@@ -41,6 +41,11 @@ public class ChecklistResource {
     private static final String CAMADA = "api";
     private static final String COMPONENTE = "ChecklistResource";
     private static final String OPERACAO = "consultar-checklist";
+    private static final String CAMADA_KEY = "camada";
+    private static final String COMPONENTE_KEY = "componente";
+    private static final String OPERACAO_KEY = "operacao";
+    private static final String IDENTIFICADOR_NEGOCIAL_KEY = "identificador_negocial";
+    private static final String VERSAO_KEY = "versao";
 
     private final ConsultarChecklist consultarChecklist;
 
@@ -98,11 +103,11 @@ public class ChecklistResource {
                 LOG,
                 "simtr-hub.checklist.requisicao.recebida",
                 ObservabilityLog.fields(
-                        "camada", CAMADA,
-                        "componente", COMPONENTE,
-                        "operacao", OPERACAO,
-                        "identificador_negocial", identificador,
-                        "versao", versao
+                        CAMADA_KEY, CAMADA,
+                        COMPONENTE_KEY, COMPONENTE,
+                        OPERACAO_KEY, OPERACAO,
+                        IDENTIFICADOR_NEGOCIAL_KEY, identificador,
+                        VERSAO_KEY, versao
                 )
         );
 
@@ -121,11 +126,11 @@ public class ChecklistResource {
                             LOG,
                             "simtr-hub.checklist.resposta.enviada",
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
-                                    "operacao", OPERACAO,
-                                    "identificador_negocial", identificador,
-                                    "versao", versao,
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    OPERACAO_KEY, OPERACAO,
+                                    IDENTIFICADOR_NEGOCIAL_KEY, identificador,
+                                    VERSAO_KEY, versao,
                                     "resultado", "sucesso",
                                     "checklist_nome", checklist != null
                                             ? checklist.nome()
@@ -142,11 +147,11 @@ public class ChecklistResource {
                             "simtr-hub.checklist.requisicao.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
-                                    "operacao", OPERACAO,
-                                    "identificador_negocial", identificador,
-                                    "versao", versao,
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    OPERACAO_KEY, OPERACAO,
+                                    IDENTIFICADOR_NEGOCIAL_KEY, identificador,
+                                    VERSAO_KEY, versao,
                                     "erro_tipo", erro.getClass().getSimpleName(),
                                     "resultado", "erro"
                             )

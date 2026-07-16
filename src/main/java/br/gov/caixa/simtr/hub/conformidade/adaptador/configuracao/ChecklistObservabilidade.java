@@ -24,6 +24,9 @@ public class ChecklistObservabilidade implements ConsultarChecklist {
     private static final String OPERACAO = "consultar-checklist";
     private static final String CAMADA_KEY = "camada";
     private static final String COMPONENTE_KEY = "componente";
+    private static final String OPERACAO_KEY = "operacao";
+    private static final String IDENTIFICADOR_NEGOCIAL_KEY = "identificador_negocial";
+    private static final String VERSAO_KEY = "versao";
 
     private final ConsultarChecklist casoDeUso;
     private final boolean simuladorHabilitado;
@@ -64,9 +67,9 @@ public class ChecklistObservabilidade implements ConsultarChecklist {
                 ObservabilityLog.fields(
                         CAMADA_KEY, CAMADA,
                         COMPONENTE_KEY, COMPONENTE,
-                        "operacao", OPERACAO,
-                        "identificador_negocial", identificador,
-                        "versao", versao,
+                        OPERACAO_KEY, OPERACAO,
+                        IDENTIFICADOR_NEGOCIAL_KEY, identificador,
+                        VERSAO_KEY, versao,
                         "simulador_habilitado", simuladorHabilitado
                 )
         );
@@ -84,9 +87,9 @@ public class ChecklistObservabilidade implements ConsultarChecklist {
                             ObservabilityLog.fields(
                                     CAMADA_KEY, CAMADA,
                                     COMPONENTE_KEY, COMPONENTE,
-                                    "operacao", OPERACAO,
-                                    "identificador_negocial", identificador,
-                                    "versao", versao,
+                                    OPERACAO_KEY, OPERACAO,
+                                    IDENTIFICADOR_NEGOCIAL_KEY, identificador,
+                                    VERSAO_KEY, versao,
                                     "resultado", "sucesso",
                                     "checklist_nome", checklist != null
                                             ? checklist.nome()
@@ -105,9 +108,9 @@ public class ChecklistObservabilidade implements ConsultarChecklist {
                             ObservabilityLog.fields(
                                     CAMADA_KEY, CAMADA,
                                     COMPONENTE_KEY, COMPONENTE,
-                                    "operacao", OPERACAO,
-                                    "identificador_negocial", identificador,
-                                    "versao", versao,
+                                    OPERACAO_KEY, OPERACAO,
+                                    IDENTIFICADOR_NEGOCIAL_KEY, identificador,
+                                    VERSAO_KEY, versao,
                                     "erro_tipo", erro.getClass().getSimpleName(),
                                     "resultado", "erro"
                             )

@@ -37,6 +37,8 @@ public class ChecklistMtrAdapter implements ObterChecklist {
     private static final String PARAMETRIZACAO = "simtr-parametrizacao";
     private static final String OPERACAO = "operacao";
     private static final String CONSULTAR = "consultar-checklist-parametrizacao-v1";
+    private static final String IDENTIFICADOR_NEGOCIAL = "identificador_negocial";
+    private static final String VERSAO = "versao";
 
     private final ParametrizacaoChecklistClient client;
     private final ChecklistMtrMapper mapper;
@@ -56,7 +58,7 @@ public class ChecklistMtrAdapter implements ObterChecklist {
         Long identificador = comando.identificadorNegocial();
         Integer versao = comando.versao();
         Span span = Span.current();
-        span.setAttribute("mtr.servico", "simtr-parametrizacao");
+        span.setAttribute("mtr.servico", PARAMETRIZACAO);
         span.setAttribute("mtr.api", "cadastro-checklist-v1");
         span.setAttribute("http.request.method", "GET");
         span.setAttribute(
@@ -79,8 +81,8 @@ public class ChecklistMtrAdapter implements ObterChecklist {
                         COMPONENTE, GATEWAY,
                         DEPENDENCIA, PARAMETRIZACAO,
                         OPERACAO, CONSULTAR,
-                        "identificador_negocial", identificador,
-                        "versao", versao
+                        IDENTIFICADOR_NEGOCIAL, identificador,
+                        VERSAO, versao
                 )
         );
 
@@ -113,8 +115,8 @@ public class ChecklistMtrAdapter implements ObterChecklist {
                                     COMPONENTE, GATEWAY,
                                     DEPENDENCIA, PARAMETRIZACAO,
                                     OPERACAO, CONSULTAR,
-                                    "identificador_negocial", identificador,
-                                    "versao", versao,
+                                    IDENTIFICADOR_NEGOCIAL, identificador,
+                                    VERSAO, versao,
                                     "checklist_nome", resposta != null ? resposta.nome() : null,
                                     "resultado", "sucesso"
                             )
@@ -135,8 +137,8 @@ public class ChecklistMtrAdapter implements ObterChecklist {
                                     COMPONENTE, GATEWAY,
                                     DEPENDENCIA, PARAMETRIZACAO,
                                     OPERACAO, CONSULTAR,
-                                    "identificador_negocial", identificador,
-                                    "versao", versao,
+                                    IDENTIFICADOR_NEGOCIAL, identificador,
+                                    VERSAO, versao,
                                     "erro_tipo", tipoErroSimplesTelemetria(erro),
                                     "resultado", "erro"
                             )
@@ -174,7 +176,7 @@ public class ChecklistMtrAdapter implements ObterChecklist {
         return new FalhaConsultaChecklist(
                 tipo,
                 null,
-                "simtr-parametrizacao",
+                PARAMETRIZACAO,
                 null,
                 null,
                 null,
