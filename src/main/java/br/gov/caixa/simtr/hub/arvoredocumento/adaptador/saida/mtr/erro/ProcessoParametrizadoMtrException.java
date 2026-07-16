@@ -2,6 +2,7 @@ package br.gov.caixa.simtr.hub.arvoredocumento.adaptador.saida.mtr.erro;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.io.Serializable;
 import java.util.List;
 
 public abstract class ProcessoParametrizadoMtrException extends RuntimeException {
@@ -50,11 +51,11 @@ public abstract class ProcessoParametrizadoMtrException extends RuntimeException
             List<Mensagem> erros,
             String detalhe,
             String stacktrace
-    ) {
+    ) implements Serializable {
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record Mensagem(String mensagem) {
+    public record Mensagem(String mensagem) implements Serializable {
     }
 
     private static String mensagem(Erro erro) {
