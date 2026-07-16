@@ -29,6 +29,12 @@ public class ValidacaoNegocialDossieProdutoMtrAdapter
 
     private static final Logger LOG = Logger.getLogger(
             ValidacaoNegocialDossieProdutoMtrAdapter.class);
+    private static final String CAMADA = "camada";
+    private static final String INFRASTRUCTURE = "infrastructure";
+    private static final String COMPONENTE = "componente";
+    private static final String GATEWAY = "DossieProdutoGateway";
+    private static final String DEPENDENCIA = "dependencia";
+    private static final String DOSSIE = "simtr-dossie-produto";
 
     private final ValidacaoNegocialDossieProdutoMtrClient client;
     private final ValidacaoNegocialDossieProdutoMtrMapper mapper;
@@ -67,9 +73,8 @@ public class ValidacaoNegocialDossieProdutoMtrAdapter
         ObservabilityLog.info(LOG,
                 "mtr.dossie-produto.validacao-negocial.chamada.iniciada",
                 ObservabilityLog.fields(
-                        "camada", "infrastructure",
-                        "componente", "DossieProdutoGateway",
-                        "dependencia", "simtr-dossie-produto",
+                        CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
+                        DEPENDENCIA, DOSSIE,
                         "operacao", "registrar-validacao-negocial-dossie-produto-v1",
                         "dossie_produto_id", identificador,
                         "validacao_verificacoes_quantidade", quantidadeVerificacoes,
@@ -81,9 +86,8 @@ public class ValidacaoNegocialDossieProdutoMtrAdapter
                     ObservabilityLog.info(LOG,
                             "mtr.dossie-produto.validacao-negocial.chamada.concluida",
                             ObservabilityLog.fields(
-                                    "camada", "infrastructure",
-                                    "componente", "DossieProdutoGateway",
-                                    "dependencia", "simtr-dossie-produto",
+                                    CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
+                                    DEPENDENCIA, DOSSIE,
                                     "operacao",
                                     "registrar-validacao-negocial-dossie-produto-v1",
                                     "dossie_produto_id", identificador,
@@ -98,9 +102,8 @@ public class ValidacaoNegocialDossieProdutoMtrAdapter
                             "mtr.dossie-produto.validacao-negocial.chamada.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", "infrastructure",
-                                    "componente", "DossieProdutoGateway",
-                                    "dependencia", "simtr-dossie-produto",
+                                    CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
+                                    DEPENDENCIA, DOSSIE,
                                     "operacao",
                                     "registrar-validacao-negocial-dossie-produto-v1",
                                     "dossie_produto_id", identificador,
