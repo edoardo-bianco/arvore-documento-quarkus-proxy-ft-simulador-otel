@@ -23,6 +23,10 @@ public class WorkflowDossieProdutoObservabilidade
     private static final String CAMADA = "application";
     private static final String COMPONENTE = "DossieProdutoService";
     private static final String OPERACAO = "iniciar-ou-avancar-workflow-dossie-produto";
+    private static final String CAMADA_KEY = "camada";
+    private static final String COMPONENTE_KEY = "componente";
+    private static final String OPERACAO_KEY = "operacao";
+    private static final String DOSSIE_PRODUTO_ID_KEY = "dossie_produto_id";
 
     private final IniciarOuAvancarWorkflowDossieProduto casoDeUso;
     private final boolean simuladorHabilitado;
@@ -52,10 +56,10 @@ public class WorkflowDossieProdutoObservabilidade
                 LOG,
                 "simtr-hub.dossie-produto.workflow.service.iniciado",
                 ObservabilityLog.fields(
-                        "camada", CAMADA,
-                        "componente", COMPONENTE,
-                        "operacao", OPERACAO,
-                        "dossie_produto_id", id,
+                        CAMADA_KEY, CAMADA,
+                        COMPONENTE_KEY, COMPONENTE,
+                        OPERACAO_KEY, OPERACAO,
+                        DOSSIE_PRODUTO_ID_KEY, id,
                         "simulador_habilitado", simuladorHabilitado));
 
         return casoDeUso.executar(identificador)
@@ -69,10 +73,10 @@ public class WorkflowDossieProdutoObservabilidade
                             LOG,
                             "simtr-hub.dossie-produto.workflow.service.concluido",
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
-                                    "operacao", OPERACAO,
-                                    "dossie_produto_id", id,
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    OPERACAO_KEY, OPERACAO,
+                                    DOSSIE_PRODUTO_ID_KEY, id,
                                     "dossie_produto_id_resposta",
                                     resposta != null ? resposta.identificadorDossieProduto() : null,
                                     "resultado", "sucesso"));
@@ -85,10 +89,10 @@ public class WorkflowDossieProdutoObservabilidade
                             "simtr-hub.dossie-produto.workflow.service.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
-                                    "operacao", OPERACAO,
-                                    "dossie_produto_id", id,
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    OPERACAO_KEY, OPERACAO,
+                                    DOSSIE_PRODUTO_ID_KEY, id,
                                     "erro_tipo", erro.getClass().getSimpleName(),
                                     "resultado", "erro"));
                 });

@@ -27,6 +27,10 @@ public class FormularioDossieProdutoObservabilidade
     private static final String CAMADA = "application";
     private static final String COMPONENTE = "DossieProdutoService";
     private static final String OPERACAO = "atualizar-formulario-dossie-produto";
+    private static final String CAMADA_KEY = "camada";
+    private static final String COMPONENTE_KEY = "componente";
+    private static final String OPERACAO_KEY = "operacao";
+    private static final String DOSSIE_PRODUTO_ID_KEY = "dossie_produto_id";
 
     private final AtualizarFormularioDossieProduto casoDeUso;
     private final boolean simuladorHabilitado;
@@ -61,10 +65,10 @@ public class FormularioDossieProdutoObservabilidade
                 LOG,
                 "simtr-hub.dossie-produto.formulario.service.iniciado",
                 ObservabilityLog.fields(
-                        "camada", CAMADA,
-                        "componente", COMPONENTE,
-                        "operacao", OPERACAO,
-                        "dossie_produto_id", id,
+                        CAMADA_KEY, CAMADA,
+                        COMPONENTE_KEY, COMPONENTE,
+                        OPERACAO_KEY, OPERACAO,
+                        DOSSIE_PRODUTO_ID_KEY, id,
                         "formulario_vinculos_quantidade", quantidadeVinculos,
                         "formulario_respostas_quantidade", quantidadeRespostas,
                         "simulador_habilitado", simuladorHabilitado));
@@ -80,10 +84,10 @@ public class FormularioDossieProdutoObservabilidade
                             LOG,
                             "simtr-hub.dossie-produto.formulario.service.concluido",
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
-                                    "operacao", OPERACAO,
-                                    "dossie_produto_id", id,
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    OPERACAO_KEY, OPERACAO,
+                                    DOSSIE_PRODUTO_ID_KEY, id,
                                     "dossie_produto_id_resposta",
                                     resposta != null ? resposta.identificadorDossieProduto() : null,
                                     "resultado", "sucesso"));
@@ -96,10 +100,10 @@ public class FormularioDossieProdutoObservabilidade
                             "simtr-hub.dossie-produto.formulario.service.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
-                                    "operacao", OPERACAO,
-                                    "dossie_produto_id", id,
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    OPERACAO_KEY, OPERACAO,
+                                    DOSSIE_PRODUTO_ID_KEY, id,
                                     "erro_tipo", erro.getClass().getSimpleName(),
                                     "resultado", "erro"));
                 });

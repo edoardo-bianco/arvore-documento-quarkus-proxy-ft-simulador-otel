@@ -24,6 +24,10 @@ public class DocumentoDossieProdutoObservabilidade
     private static final String CAMADA = "application";
     private static final String COMPONENTE = "DossieProdutoService";
     private static final String OPERACAO = "incluir-documento-dossie-produto";
+    private static final String CAMADA_KEY = "camada";
+    private static final String COMPONENTE_KEY = "componente";
+    private static final String OPERACAO_KEY = "operacao";
+    private static final String DOSSIE_PRODUTO_ID_KEY = "dossie_produto_id";
 
     private final IncluirDocumentoDossieProduto casoDeUso;
     private final boolean simuladorHabilitado;
@@ -65,10 +69,10 @@ public class DocumentoDossieProdutoObservabilidade
                 LOG,
                 "simtr-hub.dossie-produto.documento.service.iniciado",
                 ObservabilityLog.fields(
-                        "camada", CAMADA,
-                        "componente", COMPONENTE,
-                        "operacao", OPERACAO,
-                        "dossie_produto_id", id,
+                        CAMADA_KEY, CAMADA,
+                        COMPONENTE_KEY, COMPONENTE,
+                        OPERACAO_KEY, OPERACAO,
+                        DOSSIE_PRODUTO_ID_KEY, id,
                         "tipo_documento", tipoDocumento,
                         "documento_atributos_quantidade", quantidadeAtributos,
                         "documento_propriedades_quantidade", quantidadePropriedades,
@@ -93,8 +97,8 @@ public class DocumentoDossieProdutoObservabilidade
                     resposta.identificadorInstanciaDocumento());
         }
         ObservabilityLog.info(LOG, "simtr-hub.dossie-produto.documento.service.concluido",
-                ObservabilityLog.fields("camada", CAMADA, "componente", COMPONENTE,
-                        "operacao", OPERACAO, "dossie_produto_id", id,
+                ObservabilityLog.fields(CAMADA_KEY, CAMADA, COMPONENTE_KEY, COMPONENTE,
+                        OPERACAO_KEY, OPERACAO, DOSSIE_PRODUTO_ID_KEY, id,
                         "id_documento", resposta != null ? resposta.identificadorDocumento() : null,
                         "id_instancia_documento", resposta != null
                                 ? resposta.identificadorInstanciaDocumento() : null,
@@ -105,8 +109,8 @@ public class DocumentoDossieProdutoObservabilidade
         span.recordException(erro);
         span.setStatus(StatusCode.ERROR, String.valueOf(erro.getMessage()));
         ObservabilityLog.error(LOG, "simtr-hub.dossie-produto.documento.service.falhou", erro,
-                ObservabilityLog.fields("camada", CAMADA, "componente", COMPONENTE,
-                        "operacao", OPERACAO, "dossie_produto_id", id,
+                ObservabilityLog.fields(CAMADA_KEY, CAMADA, COMPONENTE_KEY, COMPONENTE,
+                        OPERACAO_KEY, OPERACAO, DOSSIE_PRODUTO_ID_KEY, id,
                         "tipo_documento", tipoDocumento, "erro_tipo", erro.getClass().getSimpleName(),
                         "resultado", "erro"));
     }

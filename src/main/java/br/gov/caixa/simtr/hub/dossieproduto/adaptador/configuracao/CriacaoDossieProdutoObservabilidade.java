@@ -22,6 +22,11 @@ public class CriacaoDossieProdutoObservabilidade implements CriarDossieProduto {
     private static final String CAMADA = "application";
     private static final String COMPONENTE = "DossieProdutoService";
     private static final String OPERACAO = "criar-dossie-produto";
+    private static final String CAMADA_KEY = "camada";
+    private static final String COMPONENTE_KEY = "componente";
+    private static final String OPERACAO_KEY = "operacao";
+    private static final String PROCESSO_KEY = "processo";
+    private static final String CHAVE_CORRELACAO_CANAL_KEY = "chave_correlacao_canal";
 
     private final CriarDossieProduto casoDeUso;
     private final boolean simuladorHabilitado;
@@ -53,11 +58,11 @@ public class CriacaoDossieProdutoObservabilidade implements CriarDossieProduto {
 
         ObservabilityLog.info(LOG, "simtr-hub.dossie-produto.service.iniciado",
                 ObservabilityLog.fields(
-                        "camada", CAMADA,
-                        "componente", COMPONENTE,
-                        "operacao", OPERACAO,
-                        "processo", processo,
-                        "chave_correlacao_canal", chaveCorrelacaoCanal,
+                        CAMADA_KEY, CAMADA,
+                        COMPONENTE_KEY, COMPONENTE,
+                        OPERACAO_KEY, OPERACAO,
+                        PROCESSO_KEY, processo,
+                        CHAVE_CORRELACAO_CANAL_KEY, chaveCorrelacaoCanal,
                         "clientes_quantidade", quantidadeClientes,
                         "simulador_habilitado", simuladorHabilitado));
 
@@ -68,11 +73,11 @@ public class CriacaoDossieProdutoObservabilidade implements CriarDossieProduto {
                     }
                     ObservabilityLog.info(LOG, "simtr-hub.dossie-produto.service.concluido",
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
-                                    "operacao", OPERACAO,
-                                    "processo", processo,
-                                    "chave_correlacao_canal", chaveCorrelacaoCanal,
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    OPERACAO_KEY, OPERACAO,
+                                    PROCESSO_KEY, processo,
+                                    CHAVE_CORRELACAO_CANAL_KEY, chaveCorrelacaoCanal,
                                     "dossie_produto_id", resposta != null
                                             ? resposta.identificadorDossieProduto() : null,
                                     "resultado", "sucesso"));
@@ -82,11 +87,11 @@ public class CriacaoDossieProdutoObservabilidade implements CriarDossieProduto {
                     span.setStatus(StatusCode.ERROR, String.valueOf(erro.getMessage()));
                     ObservabilityLog.error(LOG, "simtr-hub.dossie-produto.service.falhou", erro,
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
-                                    "operacao", OPERACAO,
-                                    "processo", processo,
-                                    "chave_correlacao_canal", chaveCorrelacaoCanal,
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    OPERACAO_KEY, OPERACAO,
+                                    PROCESSO_KEY, processo,
+                                    CHAVE_CORRELACAO_CANAL_KEY, chaveCorrelacaoCanal,
                                     "erro_tipo", erro.getClass().getSimpleName(),
                                     "resultado", "erro"));
                 });
