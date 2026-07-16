@@ -41,6 +41,10 @@ public class ProcessoResource {
     private static final String CAMADA = "api";
     private static final String COMPONENTE = "ProcessoResource";
     private static final String OPERACAO = "consultar-processo";
+    private static final String CAMADA_KEY = "camada";
+    private static final String COMPONENTE_KEY = "componente";
+    private static final String OPERACAO_KEY = "operacao";
+    private static final String IDENTIFICADOR_NEGOCIAL_KEY = "identificador_negocial";
 
     private final ConsultarProcessoParametrizado consultarProcesso;
 
@@ -94,10 +98,10 @@ public class ProcessoResource {
                 LOG,
                 "simtr-hub.processo.requisicao.recebida",
                 ObservabilityLog.fields(
-                        "camada", CAMADA,
-                        "componente", COMPONENTE,
-                        "operacao", OPERACAO,
-                        "identificador_negocial", identificador
+                        CAMADA_KEY, CAMADA,
+                        COMPONENTE_KEY, COMPONENTE,
+                        OPERACAO_KEY, OPERACAO,
+                        IDENTIFICADOR_NEGOCIAL_KEY, identificador
                 )
         );
 
@@ -116,10 +120,10 @@ public class ProcessoResource {
                             LOG,
                             "simtr-hub.processo.resposta.enviada",
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
-                                    "operacao", OPERACAO,
-                                    "identificador_negocial", identificador,
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    OPERACAO_KEY, OPERACAO,
+                                    IDENTIFICADOR_NEGOCIAL_KEY, identificador,
                                     "resultado", "sucesso",
                                     "processo_nome", processo != null ? processo.nome() : null
                             )
@@ -134,10 +138,10 @@ public class ProcessoResource {
                             "simtr-hub.processo.requisicao.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
-                                    "operacao", OPERACAO,
-                                    "identificador_negocial", identificador,
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    OPERACAO_KEY, OPERACAO,
+                                    IDENTIFICADOR_NEGOCIAL_KEY, identificador,
                                     "erro_tipo", erro.getClass().getSimpleName(),
                                     "resultado", "erro"
                             )

@@ -23,6 +23,10 @@ public class ProcessoParametrizadoObservabilidade implements ConsultarProcessoPa
     private static final String CAMADA = "application";
     private static final String COMPONENTE = "ProcessoService";
     private static final String OPERACAO = "consultar-processo";
+    private static final String CAMADA_KEY = "camada";
+    private static final String COMPONENTE_KEY = "componente";
+    private static final String OPERACAO_KEY = "operacao";
+    private static final String IDENTIFICADOR_NEGOCIAL_KEY = "identificador_negocial";
 
     private final ConsultarProcessoParametrizado casoDeUso;
     private final boolean simuladorHabilitado;
@@ -56,10 +60,10 @@ public class ProcessoParametrizadoObservabilidade implements ConsultarProcessoPa
                 LOG,
                 "simtr-hub.processo.service.iniciado",
                 ObservabilityLog.fields(
-                        "camada", CAMADA,
-                        "componente", COMPONENTE,
-                        "operacao", OPERACAO,
-                        "identificador_negocial", valor,
+                        CAMADA_KEY, CAMADA,
+                        COMPONENTE_KEY, COMPONENTE,
+                        OPERACAO_KEY, OPERACAO,
+                        IDENTIFICADOR_NEGOCIAL_KEY, valor,
                         "simulador_habilitado", simuladorHabilitado
                 )
         );
@@ -75,10 +79,10 @@ public class ProcessoParametrizadoObservabilidade implements ConsultarProcessoPa
                             LOG,
                             "simtr-hub.processo.service.concluido",
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
-                                    "operacao", OPERACAO,
-                                    "identificador_negocial", valor,
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    OPERACAO_KEY, OPERACAO,
+                                    IDENTIFICADOR_NEGOCIAL_KEY, valor,
                                     "resultado", "sucesso",
                                     "processo_nome", processo != null ? processo.nome() : null
                             )
@@ -93,10 +97,10 @@ public class ProcessoParametrizadoObservabilidade implements ConsultarProcessoPa
                             "simtr-hub.processo.service.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
-                                    "operacao", OPERACAO,
-                                    "identificador_negocial", valor,
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    OPERACAO_KEY, OPERACAO,
+                                    IDENTIFICADOR_NEGOCIAL_KEY, valor,
                                     "erro_tipo", erro.getClass().getSimpleName(),
                                     "resultado", "erro"
                             )

@@ -35,6 +35,7 @@ public class ProcessoParametrizadoMtrAdapter implements ObterProcessoParametriza
     private static final String PARAMETRIZACAO = "simtr-parametrizacao";
     private static final String OPERACAO = "operacao";
     private static final String CONSULTAR = "consultar-processo-parametrizacao-v2";
+    private static final String IDENTIFICADOR_NEGOCIAL = "identificador_negocial";
     private static final String PACOTE_EXCECAO_MTR_LEGADA =
             "br.gov.caixa.simtr.hub.arquitetura.excecao.";
 
@@ -55,7 +56,7 @@ public class ProcessoParametrizadoMtrAdapter implements ObterProcessoParametriza
     public Uni<ProcessoParametrizado> obter(IdentificadorNegocialProcesso identificador) {
         Long id = identificador.valor();
         Span span = Span.current();
-        span.setAttribute("mtr.servico", "simtr-parametrizacao");
+        span.setAttribute("mtr.servico", PARAMETRIZACAO);
         span.setAttribute("mtr.api", "patriarca-processo-v2");
         span.setAttribute("http.request.method", "GET");
         span.setAttribute(
@@ -72,7 +73,7 @@ public class ProcessoParametrizadoMtrAdapter implements ObterProcessoParametriza
                 ObservabilityLog.fields(
                         CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
                         DEPENDENCIA, PARAMETRIZACAO, OPERACAO, CONSULTAR,
-                        "identificador_negocial", id
+                        IDENTIFICADOR_NEGOCIAL, id
                 )
         );
 
@@ -97,7 +98,7 @@ public class ProcessoParametrizadoMtrAdapter implements ObterProcessoParametriza
                             ObservabilityLog.fields(
                                     CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
                                     DEPENDENCIA, PARAMETRIZACAO, OPERACAO, CONSULTAR,
-                                    "identificador_negocial", id,
+                                    IDENTIFICADOR_NEGOCIAL, id,
                                     "processo_nome", resposta != null ? resposta.nome() : null,
                                     "resultado", "sucesso"
                             )
@@ -116,7 +117,7 @@ public class ProcessoParametrizadoMtrAdapter implements ObterProcessoParametriza
                             ObservabilityLog.fields(
                                     CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
                                     DEPENDENCIA, PARAMETRIZACAO, OPERACAO, CONSULTAR,
-                                    "identificador_negocial", id,
+                                    IDENTIFICADOR_NEGOCIAL, id,
                                     "erro_tipo", tipoErroSimplesTelemetria(erro),
                                     "resultado", "erro"
                             )
@@ -154,7 +155,7 @@ public class ProcessoParametrizadoMtrAdapter implements ObterProcessoParametriza
         return new FalhaConsultaProcessoParametrizado(
                 tipo,
                 null,
-                "simtr-parametrizacao",
+                PARAMETRIZACAO,
                 null,
                 null,
                 null,
