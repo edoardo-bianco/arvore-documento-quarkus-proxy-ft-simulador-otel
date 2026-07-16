@@ -38,6 +38,9 @@ import org.jboss.logging.Logger;
 public class ProcessoResource {
 
     private static final Logger LOG = Logger.getLogger(ProcessoResource.class);
+    private static final String CAMADA = "api";
+    private static final String COMPONENTE = "ProcessoResource";
+    private static final String OPERACAO = "consultar-processo";
 
     private final ConsultarProcessoParametrizado consultarProcesso;
 
@@ -91,9 +94,9 @@ public class ProcessoResource {
                 LOG,
                 "simtr-hub.processo.requisicao.recebida",
                 ObservabilityLog.fields(
-                        "camada", "api",
-                        "componente", "ProcessoResource",
-                        "operacao", "consultar-processo",
+                        "camada", CAMADA,
+                        "componente", COMPONENTE,
+                        "operacao", OPERACAO,
                         "identificador_negocial", identificador
                 )
         );
@@ -113,9 +116,9 @@ public class ProcessoResource {
                             LOG,
                             "simtr-hub.processo.resposta.enviada",
                             ObservabilityLog.fields(
-                                    "camada", "api",
-                                    "componente", "ProcessoResource",
-                                    "operacao", "consultar-processo",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
+                                    "operacao", OPERACAO,
                                     "identificador_negocial", identificador,
                                     "resultado", "sucesso",
                                     "processo_nome", processo != null ? processo.nome() : null
@@ -131,9 +134,9 @@ public class ProcessoResource {
                             "simtr-hub.processo.requisicao.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", "api",
-                                    "componente", "ProcessoResource",
-                                    "operacao", "consultar-processo",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
+                                    "operacao", OPERACAO,
                                     "identificador_negocial", identificador,
                                     "erro_tipo", erro.getClass().getSimpleName(),
                                     "resultado", "erro"
