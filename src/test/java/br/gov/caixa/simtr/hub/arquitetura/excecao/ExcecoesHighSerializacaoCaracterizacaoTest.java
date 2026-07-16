@@ -25,6 +25,19 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 class ExcecoesHighSerializacaoCaracterizacaoTest {
 
     @Test
+    void familiaChecklistPreservaPayloadNoRoundTrip() throws Exception {
+        var erro = new ChecklistMtrException.Erro(
+                422, "checklist", "id-3", "codigo-3",
+                List.of(new ChecklistMtrException.Mensagem("invalido")),
+                "detalhe", "stacktrace");
+        var excecao = new ChecklistMtrException.TecnicaCliente(422, erro);
+
+        var restaurada = (ChecklistMtrException.TecnicaCliente) desserializar(serializar(excecao));
+        assertEquals(excecao.getMessage(), restaurada.getMessage());
+        assertEquals(excecao.erro(), restaurada.erro());
+    }
+
+    @Test
     void familiaGestaoDocumentoPreservaPayloadNoRoundTrip() throws Exception {
         var erro = new GestaoDocumentoMtrException.Erro(
                 409, "credencial", "id-2", "codigo-2",
