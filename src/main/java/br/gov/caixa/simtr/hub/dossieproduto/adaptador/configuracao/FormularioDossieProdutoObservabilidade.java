@@ -24,6 +24,9 @@ public class FormularioDossieProdutoObservabilidade
         implements AtualizarFormularioDossieProduto {
 
     private static final Logger LOG = Logger.getLogger(FormularioDossieProdutoObservabilidade.class);
+    private static final String CAMADA = "application";
+    private static final String COMPONENTE = "DossieProdutoService";
+    private static final String OPERACAO = "atualizar-formulario-dossie-produto";
 
     private final AtualizarFormularioDossieProduto casoDeUso;
     private final boolean simuladorHabilitado;
@@ -58,9 +61,9 @@ public class FormularioDossieProdutoObservabilidade
                 LOG,
                 "simtr-hub.dossie-produto.formulario.service.iniciado",
                 ObservabilityLog.fields(
-                        "camada", "application",
-                        "componente", "DossieProdutoService",
-                        "operacao", "atualizar-formulario-dossie-produto",
+                        "camada", CAMADA,
+                        "componente", COMPONENTE,
+                        "operacao", OPERACAO,
                         "dossie_produto_id", id,
                         "formulario_vinculos_quantidade", quantidadeVinculos,
                         "formulario_respostas_quantidade", quantidadeRespostas,
@@ -77,9 +80,9 @@ public class FormularioDossieProdutoObservabilidade
                             LOG,
                             "simtr-hub.dossie-produto.formulario.service.concluido",
                             ObservabilityLog.fields(
-                                    "camada", "application",
-                                    "componente", "DossieProdutoService",
-                                    "operacao", "atualizar-formulario-dossie-produto",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
+                                    "operacao", OPERACAO,
                                     "dossie_produto_id", id,
                                     "dossie_produto_id_resposta",
                                     resposta != null ? resposta.identificadorDossieProduto() : null,
@@ -93,9 +96,9 @@ public class FormularioDossieProdutoObservabilidade
                             "simtr-hub.dossie-produto.formulario.service.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", "application",
-                                    "componente", "DossieProdutoService",
-                                    "operacao", "atualizar-formulario-dossie-produto",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
+                                    "operacao", OPERACAO,
                                     "dossie_produto_id", id,
                                     "erro_tipo", erro.getClass().getSimpleName(),
                                     "resultado", "erro"));
