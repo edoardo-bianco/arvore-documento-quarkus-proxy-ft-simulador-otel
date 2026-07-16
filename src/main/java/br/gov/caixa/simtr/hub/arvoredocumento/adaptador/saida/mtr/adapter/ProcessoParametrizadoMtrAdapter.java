@@ -27,6 +27,14 @@ import org.jboss.logging.Logger;
 public class ProcessoParametrizadoMtrAdapter implements ObterProcessoParametrizado {
 
     private static final Logger LOG = Logger.getLogger(ProcessoParametrizadoMtrAdapter.class);
+    private static final String CAMADA = "camada";
+    private static final String INFRASTRUCTURE = "infrastructure";
+    private static final String COMPONENTE = "componente";
+    private static final String GATEWAY = "ParametrizacaoProcessoGateway";
+    private static final String DEPENDENCIA = "dependencia";
+    private static final String PARAMETRIZACAO = "simtr-parametrizacao";
+    private static final String OPERACAO = "operacao";
+    private static final String CONSULTAR = "consultar-processo-parametrizacao-v2";
     private static final String PACOTE_EXCECAO_MTR_LEGADA =
             "br.gov.caixa.simtr.hub.arquitetura.excecao.";
 
@@ -62,10 +70,8 @@ public class ProcessoParametrizadoMtrAdapter implements ObterProcessoParametriza
                 LOG,
                 "mtr.parametrizacao.processo.chamada.iniciada",
                 ObservabilityLog.fields(
-                        "camada", "infrastructure",
-                        "componente", "ParametrizacaoProcessoGateway",
-                        "dependencia", "simtr-parametrizacao",
-                        "operacao", "consultar-processo-parametrizacao-v2",
+                        CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
+                        DEPENDENCIA, PARAMETRIZACAO, OPERACAO, CONSULTAR,
                         "identificador_negocial", id
                 )
         );
@@ -89,10 +95,8 @@ public class ProcessoParametrizadoMtrAdapter implements ObterProcessoParametriza
                             LOG,
                             "mtr.parametrizacao.processo.chamada.concluida",
                             ObservabilityLog.fields(
-                                    "camada", "infrastructure",
-                                    "componente", "ParametrizacaoProcessoGateway",
-                                    "dependencia", "simtr-parametrizacao",
-                                    "operacao", "consultar-processo-parametrizacao-v2",
+                                    CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
+                                    DEPENDENCIA, PARAMETRIZACAO, OPERACAO, CONSULTAR,
                                     "identificador_negocial", id,
                                     "processo_nome", resposta != null ? resposta.nome() : null,
                                     "resultado", "sucesso"
@@ -110,10 +114,8 @@ public class ProcessoParametrizadoMtrAdapter implements ObterProcessoParametriza
                             "mtr.parametrizacao.processo.chamada.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", "infrastructure",
-                                    "componente", "ParametrizacaoProcessoGateway",
-                                    "dependencia", "simtr-parametrizacao",
-                                    "operacao", "consultar-processo-parametrizacao-v2",
+                                    CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
+                                    DEPENDENCIA, PARAMETRIZACAO, OPERACAO, CONSULTAR,
                                     "identificador_negocial", id,
                                     "erro_tipo", tipoErroSimplesTelemetria(erro),
                                     "resultado", "erro"
