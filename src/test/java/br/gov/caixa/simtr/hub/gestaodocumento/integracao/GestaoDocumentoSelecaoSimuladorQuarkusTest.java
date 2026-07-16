@@ -1,5 +1,7 @@
 package br.gov.caixa.simtr.hub.gestaodocumento.integracao;
 
+import br.gov.caixa.simtr.hub.gestaodocumento.adaptador.saida.mtr.mapper.CredencialContainerMtrMapper;
+import br.gov.caixa.simtr.hub.gestaodocumento.adaptador.saida.simulador.mapper.GestaoDocumentoSimuladorMapper;
 import br.gov.caixa.simtr.hub.gestaodocumento.aplicacao.porta.saida.SolicitarCredencialContainer;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.AttributeKey;
@@ -25,6 +27,7 @@ import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @QuarkusTest
 class GestaoDocumentoSelecaoSimuladorQuarkusTest {
@@ -37,6 +40,12 @@ class GestaoDocumentoSelecaoSimuladorQuarkusTest {
 
     @Inject
     OpenTelemetry openTelemetry;
+
+    @Inject
+    CredencialContainerMtrMapper mtrMapper;
+
+    @Inject
+    GestaoDocumentoSimuladorMapper simuladorMapper;
 
     private final CapturingHandler handler = new CapturingHandler();
     private Logger rootLogger;
@@ -101,6 +110,12 @@ class GestaoDocumentoSelecaoSimuladorQuarkusTest {
                 "mtr.gestao-documento.credencial-container.chamada.iniciada".equals(
                         item.evento()
                 )));
+    }
+
+    @Test
+    void mappersPreservamContratoDeNulabilidade() {
+        assertNull(mtrMapper.paraDominio(null));
+        assertNull(simuladorMapper.paraDominio(null));
     }
 
     private LogObservado log(String evento) {
