@@ -42,12 +42,15 @@ Antes de executar qualquer item:
   `origin/refactor/ddd-fase-11-baseline`.
 - [x] G11 Branch `refactor/ddd-fase-12-baseline` criada a partir do commit `54569d7`, que recebeu
   GO em C11, publicada e configurada para rastrear `origin/refactor/ddd-fase-12-baseline`.
+- [x] G12 Branch local `refactor/ddd-fase-13-baseline` criada a partir de `main` limpa para a
+  especificacao da reducao segura de duplicacao. Publicacao e upstream permanecem pendentes e
+  exigem autorizacao explicita antes de qualquer task de producao.
 
 ## Ponto de retomada
 
-- **Ultimo marco concluido:** C12 - GO humano registrado e Fase 12 encerrada.
-- **Fase atual:** nenhuma; nova fase exige novo plano e nova branch dedicada.
-- **Proximo item:** nenhum; aguardar nova orientacao humana.
+- **Ultimo marco concluido:** C14-TASKS - GO humano registrado para as tasks HIGH.
+- **Fase atual:** Fase 14, executando somente baseline e primeiro lote S1192.
+- **Proximo item:** Task 14.1 - congelar baseline antes da primeira edicao.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
   produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
@@ -825,6 +828,169 @@ Antes de executar qualquer item:
 - [x] 12.1 Renomear a borda REST sem alterar contratos.
 - [x] C12 Obter aceite humano do package REST alinhado.
 
+## Fase 13 - Reducao segura de duplicacao
+
+- [x] 13.0a Criar a branch local dedicada e registrar a abertura exclusivamente documental.
+- [x] 13.0b Escrever a especificacao com baseline, limites, estrategia de teste e criterios de
+  sucesso verificaveis.
+- [x] 13.0c Obter revisao e GO humano da especificacao no C13-SPEC.
+- [x] 13.0d Escrever o plano tecnico com dependencias, pacotes de trabalho, riscos e checkpoints;
+  nenhuma task executavel ou alteracao em `src/main` foi criada.
+- [x] 13.0e Obter revisao e GO humano do plano no C13-PLAN.
+- [x] 13.0f Decompor os pacotes A-E em tasks pequenas, sequenciais, com aceite, verificacao,
+  dependencias e limite de no maximo cinco arquivos por task.
+- [x] 13.0g Obter revisao e GO humano das tasks no C13-TASKS; esse gate autoriza somente 13.1 e
+  13.2, mantendo testes e producao bloqueados.
+- [x] 13.0h Executar Tasks 13.1 e 13.2; reconciliar 26 blocos/735 linhas, classificar ownership,
+  executar ArchUnit e registrar a recomendacao NO-GO para qualquer piloto que atravesse fronteiras.
+- [ ] 13.0i Obter revisao humana do inventario no C13-INVENTARIO; a decisao deve aceitar o NO-GO ou
+  autorizar explicitamente uma mudanca de escopo.
+
+### Tranche autorizavel no C13-TASKS
+
+#### Task 13.1 - Inventariar os blocos duplicados no SonarQube
+
+**Descricao:** consultar somente leitura a instancia local com User Token de permissao Browse e
+registrar os pares de arquivos, intervalos de linhas, tamanho e componente dos blocos duplicados.
+
+**Criterios de aceite:**
+
+- [ ] Os 26 blocos e as 735 linhas duplicadas da baseline estao reconciliados ou cada diferenca
+  possui explicacao verificavel.
+- [ ] Cada bloco possui localizacao suficiente para revisao sem alterar `src/main` ou `src/test`.
+- [ ] O token permanece somente em memoria e nao aparece em arquivo, diff ou log versionado.
+
+**Verificacao:**
+
+- [ ] Revisar os totais do inventario contra a Web API do SonarQube local.
+- [ ] Executar `git status --short` e confirmar somente arquivos documentais esperados.
+- [ ] Executar `rg -n "[s]qp_|sonar\.[t]oken=" AGENTS.md tasks/plan.md tasks/todo.md tasks/especificacao-fase-13-reducao-duplicacao.md tasks/inventario-duplicacao-fase-13.md` e confirmar
+  ausencia de credencial Sonar.
+- [ ] Executar `git diff --check`.
+
+**Dependencias:** GO no C13-TASKS.
+
+**Arquivos provaveis:** `tasks/inventario-duplicacao-fase-13.md`, `tasks/todo.md`.
+
+**Escopo estimado:** S, dois arquivos documentais.
+
+#### Task 13.2 - Classificar os blocos e propor um unico piloto
+
+**Descricao:** atribuir ownership e uma das cinco classificacoes aprovadas a cada bloco, registrar
+a justificativa e propor o menor candidato removivel local para decisao humana.
+
+**Criterios de aceite:**
+
+- [ ] Os 26 blocos possuem ownership, classificacao e justificativa revisaveis.
+- [ ] O piloto proposto pertence a um unico dominio e uma unica borda, nao envolve
+  `arquitetura.excecao.dto`, dependencia nova ou compartilhamento de DTO.
+- [ ] Os arquivos de producao e teste do piloto e o comando de teste focado estao registrados; o
+  conjunto combinado das Tasks 13.3 e 13.4 nao excede cinco arquivos nao mecanicos.
+
+**Verificacao:**
+
+- [ ] Conferir cada decisao com `doc/arquitetura-ddd-integracoes-atomicas.md` e com os imports dos
+  arquivos candidatos.
+- [ ] Executar `mvn -q -Dtest=ArchUnitProgressivoTest test`.
+- [ ] Executar `git diff --check` e revisar que nenhum arquivo em `src/main` ou `src/test` mudou.
+
+**Dependencias:** Task 13.1 concluida.
+
+**Arquivos provaveis:** `tasks/inventario-duplicacao-fase-13.md`, `tasks/plan.md`,
+`tasks/todo.md`.
+
+**Escopo estimado:** S, tres arquivos documentais.
+
+### Checkpoint C13-INVENTARIO
+
+- [ ] O inventario e a classificacao foram revisados por humano.
+- [ ] Um unico piloto, seus arquivos exatos e o comando de teste focado receberam GO.
+- [ ] O GO autoriza somente as Tasks 13.3 a 13.5; segundo bloco ou mudanca de escopo exige novo
+  checkpoint.
+
+### Tranche bloqueada ate C13-INVENTARIO
+
+#### Task 13.3 - Caracterizar o piloto aprovado
+
+**Descricao:** completar somente a lacuna de protecao comportamental do piloto antes da mudanca
+de producao, usando oraculo independente da implementacao duplicada.
+
+**Criterios de aceite:**
+
+- [ ] Sucesso, nulos, erros e efeitos relevantes do bloco aprovado estao protegidos.
+- [ ] O esperado do teste nao e calculado pelo mesmo mapper, DTO ou helper da implementacao.
+- [ ] Nenhuma classe de producao muda e os arquivos permanecem no conjunto aprovado.
+
+**Verificacao:**
+
+- [ ] Executar o comando de teste focado registrado e aprovado no C13-INVENTARIO.
+- [ ] Executar `mvn -q test` antes da refatoracao.
+- [ ] Executar `git diff --check`.
+
+**Dependencias:** Task 13.2 concluida e GO no C13-INVENTARIO.
+
+**Arquivos provaveis:** somente os testes exatos aprovados no C13-INVENTARIO e `tasks/todo.md`.
+
+**Escopo estimado:** S/M; o conjunto combinado com a Task 13.4 permanece em no maximo cinco
+arquivos nao mecanicos.
+
+#### Task 13.4 - Refatorar um unico bloco duplicado
+
+**Descricao:** eliminar o bloco aprovado com a menor extracao local que nomeie um conceito real,
+sem criar hierarquia ou mecanismo generico para atender a metrica.
+
+**Criterios de aceite:**
+
+- [ ] O bloco aprovado deixa de existir sem atravessar dominio ou borda.
+- [ ] Comportamento, nulabilidade, ordem de efeitos, erros, FT e observabilidade permanecem
+  equivalentes.
+- [ ] Nenhuma dependencia, configuracao, contrato ou arquivo fora do piloto e alterado.
+
+**Verificacao:**
+
+- [ ] Executar o comando de teste focado aprovado no C13-INVENTARIO.
+- [ ] Executar `mvn -q -Dtest=ArchUnitProgressivoTest test`.
+- [ ] Executar `mvn -q test` e `git diff --check`.
+- [ ] Realizar revisao multi-eixo do diff antes de aceitar a refatoracao.
+
+**Dependencias:** Task 13.3 concluida.
+
+**Arquivos provaveis:** somente os arquivos exatos aprovados no C13-INVENTARIO.
+
+**Escopo estimado:** S/M; o conjunto combinado com a Task 13.3 permanece em no maximo cinco
+arquivos nao mecanicos.
+
+#### Task 13.5 - Reexecutar a analise SonarQube e registrar a evidencia final
+
+**Descricao:** executar suite limpa e scanner Maven fixado, comparar metricas absolutas e
+percentuais com a baseline e registrar a evidencia para decisao humana.
+
+**Criterios de aceite:**
+
+- [ ] `duplicated_lines < 735` e `duplicated_blocks < 26`.
+- [ ] Cobertura geral, linhas e branches permanecem em no minimo 80,0%, 88,4% e 60,0%; a
+  complexidade cognitiva nao supera 837 e a variacao ciclomatica esta explicada por arquivo.
+- [ ] Suite, build, ArchUnit, contratos afetados, diff e busca de segredos passam sem teste
+  removido, ignorado ou enfraquecido.
+
+**Verificacao:**
+
+- [ ] Executar `mvn -q clean test`.
+- [ ] Definir `$env:SONAR_TOKEN` por entrada mascarada, executar
+  `mvn org.sonarsource.scanner.maven:sonar-maven-plugin:5.5.0.6356:sonar "-Dsonar.projectKey=simtr-hub-local" "-Dsonar.projectName=simtr-hub-local" "-Dsonar.host.url=http://localhost:9000" "-Dsonar.coverage.jacoco.xmlReportPaths=target/jacoco-report/jacoco.xml"` e remover a variavel ao final.
+- [ ] Executar `git diff --check`, `git status --short` e a busca de segredos da Task 13.1.
+- [ ] Comparar a nova analise com a baseline registrada na especificacao.
+
+**Dependencias:** Task 13.4 concluida.
+
+**Arquivos provaveis:** `tasks/inventario-duplicacao-fase-13.md`, `tasks/todo.md` e, se necessario,
+`tasks/plan.md`.
+
+**Escopo estimado:** S, ate tres arquivos documentais.
+
+- [ ] 13.6 Obter revisao humana da evidencia final e GO/NO-GO no C13; nenhuma continuacao ou
+  segundo piloto e automatica.
+
 ## Registro de checkpoints
 
 Esta tabela e a fonte autoritativa. Valores validos de status: `PENDENTE`, `GO` e `NO-GO`. Um
@@ -850,6 +1016,137 @@ data, evidencias verificaveis e aprovador humano.
 | C10 | GO | 2026-07-15 | Task 10.1 concluida; permissao de Quarkus, fronteiras, documentacao, ArchUnit, suite, JaCoCo e diff revisados sem bloqueios | Usuario, GO registrado em conversa |
 | C11 | GO | 2026-07-15 | Task 11.1 concluida; cascata no tipo dos elementos, contratos HTTP/nulabilidade, suite limpa, ArchUnit e diff verdes; `HV000271` eliminado; packages REST e tecnico de erro inalterados | Usuario, GO registrado em conversa |
 | C12 | GO | 2026-07-15 | Task 12.1 concluida; package REST alinhado, contratos preservados e checkpoint publicado | Usuario, GO registrado em conversa |
+| C13-SPEC | GO | 2026-07-16 | Especificacao aprovada com User Token Browse, piloto unico e cobertura sem regressao; plano autorizado, producao bloqueada | Usuario, GO registrado em conversa |
+| C13-PLAN | GO | 2026-07-16 | Plano tecnico aprovado; decomposicao das tasks autorizada; inventario e producao permaneceram bloqueados | Usuario, GO registrado em conversa |
+| C13-TASKS | GO | 2026-07-16 | Tasks 13.1 e 13.2 autorizadas e executadas; testes e producao permaneceram bloqueados | Usuario, GO registrado em conversa |
+| C13-INVENTARIO | PENDENTE | - | Inventario reconciliado; quatro grupos classificados, nenhum piloto removivel local; recomendacao NO-GO aguarda revisao humana | - |
+| C13 | PENDENTE | - | Bloqueado ate a verificacao final do unico piloto | - |
+
+## Fase 14 - Remediacao segura de issues HIGH do SonarQube
+
+- [x] 14.0a Criar a branch dedicada `refactor/sonar-high-fase-14-baseline` sem alterar codigo.
+- [x] 14.0b Registrar a baseline de 189 issues HIGH e a especificacao com limites, lotes e
+  verificacoes.
+- [x] 14.0c Obter revisao e GO humano da especificacao no C14-SPEC.
+- [x] 14.0d Escrever plano tecnico no C14-PLAN sem criar tasks executaveis ou alterar producao.
+- [x] 14.0e Obter revisao e GO humano do plano no C14-PLAN.
+- [x] 14.0f Decompor tasks com aceite, verificacao, dependencias e limite de cinco arquivos.
+- [x] 14.0g Obter revisao e GO humano das tasks no C14-TASKS; somente 14.1 e 14.2 estao autorizadas;
+  nenhum lote posterior esta autorizado antes de novo checkpoint.
+  desse gate.
+
+### Task 14.1 - Congelar baseline e inventariar os issues HIGH ✅
+
+**Descricao:** reconciliar as 189 issues com regra, arquivo, linha, mensagem, teste afetado e
+metricas de cobertura/complexidade antes de qualquer edicao.
+
+**Aceite:**
+
+- [ ] Todos os 189 issues estao registrados ou a diferenca esta explicada.
+- [ ] Nenhum arquivo em `src/main` ou `src/test` muda.
+- [ ] O token nao aparece em arquivo, diff ou log versionado.
+
+**Verificacao:** consultar `api/issues/search`, executar `mvn -q clean test`,
+`mvn -q -Dtest=ArchUnitProgressivoTest test` e `git diff --check`.
+
+**Dependencias:** GO C14-TASKS. **Arquivos:** inventario documental e governanca. **Escopo:** S.
+
+### Task 14.2 - Corrigir o primeiro lote S1192 local ✅
+
+**Descricao:** em uma unica classe aprovada, extrair constantes privadas para literais repetidos,
+sem criar utilitario compartilhado.
+
+**Aceite:** valores permanecem identicos; logs, spans, atributos e contratos nao mudam; no maximo
+cinco arquivos sao tocados.
+
+**Verificacao:** `mvn -q test`, contratos de observabilidade afetados, ArchUnit e `git diff --check`.
+
+**Dependencias:** Task 14.1 e GO C14-TASKS. **Arquivos:** uma classe, testes focados e governanca.
+**Escopo:** S/M.
+
+### Task 14.3 - Documentar no-ops S1186 intencionais ✅
+
+**Descricao:** revisar os nove metodos vazios e adicionar comentario somente nos fixtures/handlers
+que comprovadamente precisam ser no-op.
+
+**Aceite:** nenhum metodo funcional e silenciado; setup/teardown e comportamento de testes ficam
+iguais; no maximo cinco arquivos de teste.
+
+**Verificacao:** `mvn -q test`, testes de contrato afetados e `git diff --check`.
+
+**Dependencias:** Task 14.2 concluida e checkpoint do lote A. **Arquivos:** testes aprovados.
+**Escopo:** S.
+
+### Task 14.4 - Reduzir os dois S3776 localmente ✅
+
+**Descricao:** extrair helpers privados para captura de atributos e eventos dos dois metodos com
+complexidade acima do limite.
+
+**Aceite:** complexidade cognitiva fica em ate 15; ordem de efeitos, spans, logs, nulos e falhas
+permanece equivalente; no maximo cinco arquivos.
+
+**Verificacao:** `mvn -q -Dtest=ArchUnitProgressivoTest test`, `mvn -q test` e diff revisado.
+
+**Dependencias:** Task 14.3 e checkpoint humano. **Arquivos:** dois arquivos de producao e testes
+afetados. **Escopo:** M.
+
+### Task 14.5 - Caracterizar serializacao dos S1948 ✅
+
+**Descricao:** provar se as excecoes MTR e o DTO tecnico compartilhado atravessam serializacao,
+sem alterar producao.
+
+**Aceite:** round-trip, status, erro, tipo, mensagens e causa possuem oraculo independente; a
+decisao sobre `Serializable` ou `transient` fica documentada.
+
+**Verificacao:** teste de serializacao focado, testes de traducao de erro e `git diff --check`.
+
+**Dependencias:** Task 14.4 e GO humano para o lote D. **Arquivos:** ate cinco arquivos de teste e
+governanca. **Escopo:** S/M.
+
+### Task 14.6 - Implementar uma familia aprovada de S1948 ✅
+
+**Descricao:** aplicar somente a estrategia aprovada na caracterizacao a uma familia de excecoes,
+sem alterar `arquitetura.excecao.dto` sem GO explicito.
+
+**Aceite:** round-trip preservado; erros publicos/MTR continuam lossless; no maximo cinco arquivos.
+
+**Verificacao:** testes de serializacao e contratos, ArchUnit, `mvn -q test` e diff multi-eixo.
+
+**Dependencias:** Task 14.5 e GO especifico do lote. **Arquivos:** familia aprovada. **Escopo:** M.
+
+### Task 14.7 - Verificar e encerrar a Fase 14 ✅
+
+**Descricao:** repetir suite, scanner Maven fixado e comparacao dos 189 issues com a baseline.
+
+**Aceite:** issues resolvidos/justificados com evidencia; cobertura minima preservada; Quality Gate,
+suite e ArchUnit verdes; nenhum segredo no diff.
+
+**Verificacao:** `mvn -q clean test`, scanner Maven 5.5.0.6356, API de issues, `git diff --check`.
+
+**Dependencias:** Tasks 14.2 a 14.6 e GO de cada lote. **Arquivos:** evidencia e governanca.
+**Escopo:** S.
+
+| Checkpoint | Status | Data | Evidencias | Aprovador |
+|---|---|---|---|---|
+| C14-SPEC | GO | 2026-07-16 | Especificacao HIGH aprovada; plano tecnico autorizado; nenhuma alteracao de producao autorizada | Usuario, GO registrado em conversa |
+| C14-PLAN | GO | 2026-07-16 | Plano tecnico HIGH aprovado; decomposicao autorizada; producao bloqueada | Usuario, GO registrado em conversa |
+| C14-TASKS | GO | 2026-07-16 | Tasks aprovadas; somente baseline e primeiro lote S1192 autorizados | Usuario, GO registrado em conversa |
+
+## Fase 15 - Fechamento de qualidade SonarQube
+
+- [x] 15.0a Registrar C15-SPEC e criar branch dedicada;
+- [x] 15.0b Obter GO C15-PLAN e registrar ordem/checkpoints;
+- [ ] 15.1 Congelar baseline Sonar/Git/JaCoCo e listar arquivos sem blame;
+- [ ] 15.2 Corrigir blocker S2699 com asserção comportamental;
+- [ ] 15.3 Diagnosticar e corrigir warning de blame: `.git`, clone completo, shallow/partial,
+  submódulos, line endings, arquivos rastreados e logs do scanner;
+- [ ] 15.4 Classificar 175 HIGH por regra e componente;
+- [ ] 15.5 Corrigir primeiro lote HIGH após GO C15-B;
+- [ ] 15.6 Corrigir lotes restantes após checkpoints;
+- [ ] 15.7 Executar análise final e fechar C15-D.
+
+| C15-SPEC | GO | 2026-07-16 | Especificação aprovada e branch dedicada criada | Usuario, GO registrado em conversa |
+| C15-PLAN | GO | 2026-07-16 | Ordem, dependências e checkpoints registrados; tasks aguardam GO | Usuario, GO registrado em conversa |
 
 ## Bloqueios que nao podem ser resolvidos por suposicao
 

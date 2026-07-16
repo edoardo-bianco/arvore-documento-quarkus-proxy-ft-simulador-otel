@@ -3,6 +3,7 @@ package br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter;
 import br.gov.caixa.simtr.hub.arquitetura.observabilidade.ObservabilityLog;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.configuracao.qualificador.DocumentoMtr;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.client.DocumentoDossieProdutoMtrClient;
+import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.dto.v2.documento.DocumentoDossieProdutoMtrResponse;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.erro.DocumentoDossieProdutoMtrException;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.mapper.DocumentoDossieProdutoMtrMapper;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.saida.SolicitarInclusaoDocumentoDossieProduto;
@@ -80,46 +81,10 @@ public class DocumentoDossieProdutoMtrAdapter
 
         return client.incluir(identificador, mapper.paraMtr(comando))
                 .invoke(resposta -> {
-                    span.setAttribute("mtr.resposta.sucesso", true);
-                    if (resposta != null && resposta.idDocumento() != null) {
-                        span.setAttribute("dossie_produto.documento.id",
-                                resposta.idDocumento());
-                    }
-                    if (resposta != null && resposta.idInstanciaDocumento() != null) {
-                        span.setAttribute("dossie_produto.documento.instancia.id",
-                                resposta.idInstanciaDocumento());
-                    }
-                    ObservabilityLog.info(LOG,
-                            "mtr.dossie-produto.documento.chamada.concluida",
-                            ObservabilityLog.fields(
-                                    "camada", "infrastructure",
-                                    "componente", "DossieProdutoGateway",
-                                    "dependencia", "simtr-dossie-produto",
-                                    "operacao", "incluir-documento-dossie-produto-v2",
-                                    "dossie_produto_id", identificador,
-                                    "id_documento",
-                                    resposta != null ? resposta.idDocumento() : null,
-                                    "id_instancia_documento",
-                                    resposta != null
-                                            ? resposta.idInstanciaDocumento() : null,
-                                    "resultado", "sucesso"));
+                    registrarConclusao(span, identificador, resposta);
                 })
                 .onFailure().invoke(erro -> {
-                    span.recordException(erro);
-                    span.setStatus(StatusCode.ERROR, String.valueOf(erro.getMessage()));
-                    span.setAttribute("mtr.resposta.sucesso", false);
-                    span.setAttribute("erro.tipo", erro.getClass().getName());
-                    ObservabilityLog.error(LOG,
-                            "mtr.dossie-produto.documento.chamada.falhou", erro,
-                            ObservabilityLog.fields(
-                                    "camada", "infrastructure",
-                                    "componente", "DossieProdutoGateway",
-                                    "dependencia", "simtr-dossie-produto",
-                                    "operacao", "incluir-documento-dossie-produto-v2",
-                                    "dossie_produto_id", identificador,
-                                    "tipo_documento", tipoDocumento,
-                                    "erro_tipo", erro.getClass().getSimpleName(),
-                                    "resultado", "erro"));
+                    registrarFalha(span, identificador, tipoDocumento, erro);
                 })
                 .map(mapper::paraResultado)
                 .onFailure().transform(DocumentoDossieProdutoMtrAdapter::traduzir);
@@ -135,6 +100,35 @@ public class DocumentoDossieProdutoMtrAdapter
         return new FalhaInclusaoDocumentoDossieProduto(
                 tipo, null, "simtr-dossie-produto", null, null,
                 null, null, null, falha);
+    }
+
+    private static void registrarConclusao(Span span, Long identificador,
+            DocumentoDossieProdutoMtrResponse resposta) {
+        span.setAttribute("mtr.resposta.sucesso", true);
+        if (resposta != null && resposta.idDocumento() != null) {
+            span.setAttribute("dossie_produto.documento.id", resposta.idDocumento());
+        }
+        if (resposta != null && resposta.idInstanciaDocumento() != null) {
+            span.setAttribute("dossie_produto.documento.instancia.id", resposta.idInstanciaDocumento());
+        }
+        ObservabilityLog.info(LOG, "mtr.dossie-produto.documento.chamada.concluida",
+                ObservabilityLog.fields("camada", "infrastructure", "componente", "DossieProdutoGateway",
+                        "dependencia", "simtr-dossie-produto", "operacao", "incluir-documento-dossie-produto-v2",
+                        "dossie_produto_id", identificador, "id_documento",
+                        resposta != null ? resposta.idDocumento() : null, "id_instancia_documento",
+                        resposta != null ? resposta.idInstanciaDocumento() : null, "resultado", "sucesso"));
+    }
+
+    private static void registrarFalha(Span span, Long identificador, String tipoDocumento, Throwable erro) {
+        span.recordException(erro);
+        span.setStatus(StatusCode.ERROR, String.valueOf(erro.getMessage()));
+        span.setAttribute("mtr.resposta.sucesso", false);
+        span.setAttribute("erro.tipo", erro.getClass().getName());
+        ObservabilityLog.error(LOG, "mtr.dossie-produto.documento.chamada.falhou", erro,
+                ObservabilityLog.fields("camada", "infrastructure", "componente", "DossieProdutoGateway",
+                        "dependencia", "simtr-dossie-produto", "operacao", "incluir-documento-dossie-produto-v2",
+                        "dossie_produto_id", identificador, "tipo_documento", tipoDocumento,
+                        "erro_tipo", erro.getClass().getSimpleName(), "resultado", "erro"));
     }
 
     private static FalhaInclusaoDocumentoDossieProduto traduzirMtr(

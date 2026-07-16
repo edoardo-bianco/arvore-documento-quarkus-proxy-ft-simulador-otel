@@ -73,47 +73,39 @@ public class DocumentoDossieProdutoObservabilidade
 
         return casoDeUso.executar(comando)
                 .invoke(resposta -> {
-                    if (resposta != null && resposta.identificadorDocumento() != null) {
-                        span.setAttribute("dossie_produto.documento.id",
-                                resposta.identificadorDocumento());
-                    }
-                    if (resposta != null
-                            && resposta.identificadorInstanciaDocumento() != null) {
-                        span.setAttribute("dossie_produto.documento.instancia.id",
-                                resposta.identificadorInstanciaDocumento());
-                    }
-                    ObservabilityLog.info(
-                            LOG,
-                            "simtr-hub.dossie-produto.documento.service.concluido",
-                            ObservabilityLog.fields(
-                                    "camada", "application",
-                                    "componente", "DossieProdutoService",
-                                    "operacao", "incluir-documento-dossie-produto",
-                                    "dossie_produto_id", id,
-                                    "id_documento",
-                                    resposta != null
-                                            ? resposta.identificadorDocumento() : null,
-                                    "id_instancia_documento",
-                                    resposta != null
-                                            ? resposta.identificadorInstanciaDocumento() : null,
-                                    "resultado", "sucesso"));
+                    registrarConclusao(span, id, resposta);
                 })
                 .onFailure().invoke(erro -> {
-                    span.recordException(erro);
-                    span.setStatus(StatusCode.ERROR, String.valueOf(erro.getMessage()));
-                    ObservabilityLog.error(
-                            LOG,
-                            "simtr-hub.dossie-produto.documento.service.falhou",
-                            erro,
-                            ObservabilityLog.fields(
-                                    "camada", "application",
-                                    "componente", "DossieProdutoService",
-                                    "operacao", "incluir-documento-dossie-produto",
-                                    "dossie_produto_id", id,
-                                    "tipo_documento", tipoDocumento,
-                                    "erro_tipo", erro.getClass().getSimpleName(),
-                                    "resultado", "erro"));
+                    registrarFalha(span, id, tipoDocumento, erro);
                 });
+    }
+
+    private static void registrarConclusao(Span span, Long id,
+            ResultadoInclusaoDocumentoDossieProduto resposta) {
+        if (resposta != null && resposta.identificadorDocumento() != null) {
+            span.setAttribute("dossie_produto.documento.id", resposta.identificadorDocumento());
+        }
+        if (resposta != null && resposta.identificadorInstanciaDocumento() != null) {
+            span.setAttribute("dossie_produto.documento.instancia.id",
+                    resposta.identificadorInstanciaDocumento());
+        }
+        ObservabilityLog.info(LOG, "simtr-hub.dossie-produto.documento.service.concluido",
+                ObservabilityLog.fields("camada", "application", "componente", "DossieProdutoService",
+                        "operacao", "incluir-documento-dossie-produto", "dossie_produto_id", id,
+                        "id_documento", resposta != null ? resposta.identificadorDocumento() : null,
+                        "id_instancia_documento", resposta != null
+                                ? resposta.identificadorInstanciaDocumento() : null,
+                        "resultado", "sucesso"));
+    }
+
+    private static void registrarFalha(Span span, Long id, String tipoDocumento, Throwable erro) {
+        span.recordException(erro);
+        span.setStatus(StatusCode.ERROR, String.valueOf(erro.getMessage()));
+        ObservabilityLog.error(LOG, "simtr-hub.dossie-produto.documento.service.falhou", erro,
+                ObservabilityLog.fields("camada", "application", "componente", "DossieProdutoService",
+                        "operacao", "incluir-documento-dossie-produto", "dossie_produto_id", id,
+                        "tipo_documento", tipoDocumento, "erro_tipo", erro.getClass().getSimpleName(),
+                        "resultado", "erro"));
     }
 
     private static void setLongAttribute(Span span, String nome, Long valor) {

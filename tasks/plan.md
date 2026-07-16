@@ -4,8 +4,8 @@
 
 - **Planejado:** 2026-07-11
 - **Implementacao:** Fases 0 a 12 concluidas; C0, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10,
-  C11 e C12 em GO; nenhuma nova fase iniciada
-- **Branch de trabalho atual:** `refactor/ddd-fase-12-baseline`
+  C11 e C12 em GO; C13 documental; C14-SPEC, C14-PLAN e C14-TASKS em GO; primeiro lote HIGH autorizado
+- **Branch de trabalho atual:** `refactor/ddd-fase-13-baseline`
 - **Documento arquitetural:** `../doc/arquitetura-ddd-integracoes-atomicas.md`
 - **Checklist operacional:** `todo.md`
 
@@ -1448,3 +1448,327 @@ suite limpa, o build, a documentacao e o diff passaram; GO humano registrado no 
 - novos endpoints do ciclo de vida de dossie;
 - modelo do calculo da arvore, IA e conformidade;
 - upload e lifecycle de SAS no microsservico consumidor.
+
+## Fase 13 - Reducao segura de duplicacao
+
+**Status:** especificacao, plano tecnico e tasks aprovados no C13-SPEC, C13-PLAN e C13-TASKS;
+inventario e classificacao concluidos; C13-INVENTARIO pendente; nenhuma alteracao de producao
+autorizada.
+
+**Documento de especificacao:** `especificacao-fase-13-reducao-duplicacao.md`.
+
+**Objetivo aprovado:** reduzir somente duplicacao removivel, preservando contratos externos,
+fronteiras de dominio e independencia entre REST, MTR e simulador. A baseline Sonar da abertura e
+6,0% de densidade, 735 linhas e 26 blocos duplicados, com cobertura geral de 80,0%, complexidade
+ciclomatica 1.352 e complexidade cognitiva 837.
+
+### Decisoes arquiteturais do plano
+
+1. A metrica identifica candidatos; ela nao determina ownership nem autoriza compartilhamento.
+2. Os 26 blocos serao inventariados antes de escolher qualquer arquivo de producao.
+3. DTOs e mapeamentos independentes entre REST, MTR e simulador permanecem separados.
+4. Duplicacao entre dominios permanece quando a extracao criaria dependencia ou modelo comum.
+5. O piloto fica no mesmo dominio e na mesma borda, toca no maximo cinco arquivos nao mecanicos e
+   nao adiciona dependencia.
+6. A fase para depois de um unico piloto e exige GO humano antes de considerar outro bloco.
+7. Token Sonar com Browse permanece somente em memoria e deve ser revogado depois do inventario.
+
+### Grafo de dependencias
+
+```text
+C13-SPEC GO
+    -> C13-PLAN GO
+        -> decomposicao das tasks
+            -> C13-TASKS GO
+                -> acesso Sonar somente leitura
+                    -> inventario dos 26 blocos
+                        -> classificacao arquitetural
+                            -> C13-INVENTARIO GO e escolha do piloto
+                                -> caracterizacao focada
+                                    -> refatoracao de um bloco
+                                        -> suite + ArchUnit + Sonar
+                                            -> C13 GO/NO-GO
+```
+
+Nenhum passo de producao pode ser antecipado: os arquivos exatos dependem do inventario e a
+caracterizacao depende do piloto escolhido.
+
+### Pacote de trabalho A - Inventario somente leitura
+
+**Descricao:** obter acesso Browse por User Token e registrar os 26 blocos reportados pelo
+SonarQube, incluindo pares de arquivos, linhas, tamanho e componente.
+
+**Criterios de aceite:**
+
+- todos os 26 blocos e as 735 linhas da baseline estao reconciliados ou a diferenca esta explicada;
+- cada bloco possui localizacao verificavel e nenhum arquivo de producao ou teste muda;
+- o token nao aparece em arquivo, diff, log versionado ou comando persistido.
+
+**Verificacao:** Web API da instancia local, `git status --short`, busca de segredos e revisao do
+inventario.
+
+**Arquivos previstos:** `tasks/inventario-duplicacao-fase-13.md` e governanca. **Escopo:** S,
+1-3 arquivos documentais.
+
+### Pacote de trabalho B - Classificacao e escolha do piloto
+
+**Descricao:** classificar cada bloco como removivel local, intencional de contrato, intencional
+de dominio, tecnico compartilhavel ou duvidoso. Selecionar o menor candidato local que ja possua
+boa protecao comportamental.
+
+**Criterios de aceite:**
+
+- os 26 blocos possuem ownership e justificativa;
+- o piloto pertence a um unico dominio e uma unica borda, sem `arquitetura.excecao.dto`;
+- arquivos de producao e testes provaveis estao listados, limitados a cinco nao mecanicos.
+
+**Verificacao:** regras do documento canonico, imports atuais, ArchUnit existente e revisao humana
+no C13-INVENTARIO.
+
+**Arquivos previstos:** inventario, `tasks/plan.md` e `tasks/todo.md`. Nenhum `src/main`.
+**Escopo:** S.
+
+### Pacote de trabalho C - Caracterizacao do piloto
+
+**Descricao:** identificar a protecao existente do bloco escolhido e adicionar somente a lacuna
+necessaria antes da refatoracao. Testes de caracterizacao podem iniciar verdes quando usam oraculo
+independente, conforme a estrategia historica do projeto.
+
+**Criterios de aceite:**
+
+- sucesso, nulos, erros e efeitos relevantes do candidato estao protegidos;
+- o teste nao deriva o esperado do mesmo mapper, DTO ou helper da implementacao;
+- nenhuma classe de producao muda neste pacote.
+
+**Verificacao:** testes focados, ArchUnit quando aplicavel e `git diff --check`.
+
+**Arquivos previstos:** somente testes do dominio/borda escolhidos e governanca, definidos depois
+do C13-INVENTARIO. **Escopo:** S/M, no maximo cinco arquivos.
+
+### Pacote de trabalho D - Refatoracao de um bloco
+
+**Descricao:** eliminar o bloco selecionado com a menor mudanca que expresse um conceito real.
+Preferir helper privado ou consolidacao local; nao criar hierarquia, service, adapter ou modelo
+generico para atender a metrica.
+
+**Criterios de aceite:**
+
+- a duplicacao deixa de existir sem atravessar dominio ou borda;
+- comportamento, ordem de efeitos, erros e nulabilidade permanecem identicos;
+- o diff de producao toca no maximo cinco arquivos e nao altera contrato ou configuracao.
+
+**Verificacao:** testes focados do pacote C, ArchUnit e revisao multi-eixo do diff.
+
+**Arquivos previstos:** definidos pelo C13-INVENTARIO; nao podem incluir arquivos fora do piloto
+sem novo GO. **Escopo:** S/M.
+
+### Pacote de trabalho E - Verificacao e encerramento
+
+**Descricao:** executar a verificacao completa, repetir o SonarQube com plugin Maven fixado e
+comparar valores absolutos e percentuais com a baseline.
+
+**Criterios de aceite:**
+
+- `mvn -q clean test`, build e ArchUnit passam sem teste removido ou ignorado;
+- linhas duplicadas ficam abaixo de 735 e blocos abaixo de 26;
+- cobertura nao cai abaixo de 80,0% geral, 88,4% de linhas e 60,0% de branches;
+- complexidade cognitiva nao supera 837 e variacao ciclomatica possui explicacao por arquivo;
+- contratos HTTP/MTR, simulador, FT, erros e observabilidade permanecem equivalentes;
+- diff, segredos, documentacao e estado Git sao revisados antes do C13.
+
+**Verificacao:** suite limpa, testes contratuais afetados, ArchUnit, SonarQube,
+`git diff --check`, busca de segredos e revisao humana. **Escopo:** S documental.
+
+### Checkpoints
+
+| Checkpoint | Autoriza | Nao autoriza |
+|---|---|---|
+| C13-PLAN | decompor este plano em tasks executaveis | inventario ou producao |
+| C13-TASKS | executar somente inventario e classificacao | escolher ou editar piloto |
+| C13-INVENTARIO | caracterizar e refatorar o unico piloto aprovado | segundo bloco ou escopo cruzado |
+| C13 | aceitar ou rejeitar o resultado do piloto | continuar automaticamente |
+
+### Paralelizacao
+
+Nao ha paralelizacao recomendada. Inventario, classificacao, caracterizacao, refatoracao e medicao
+formam uma cadeia de dependencia. Executa-los em paralelo aumentaria o risco de escolher um helper
+antes de estabelecer ownership.
+
+### Estrategia de commits
+
+Se o usuario solicitar commits, manter save points separados: governanca/especificacao, inventario,
+caracterizacao, refatoracao e evidencia final. Commit e push continuam fora do fluxo automatico e
+exigem solicitacao explicita.
+
+### Riscos e mitigacoes da Fase 13
+
+| Risco | Impacto | Mitigacao |
+|---|---|---|
+| Remover duplicacao intencional de borda | Alto | classificar ownership e preservar DTOs independentes |
+| Criar helper cross-domain | Alto | piloto restrito ao mesmo dominio/borda e ArchUnit verde |
+| Apenas deslocar complexidade | Alto | exigir conceito nomeado e comparar complexidade antes/depois |
+| Alterar erro, FT ou observabilidade | Alto | caracterizacao focada e contratos existentes antes da edicao |
+| Percentual Sonar arredondado ocultar resultado | Medio | comparar tambem linhas e blocos absolutos |
+| Queda de cobertura por reorganizacao | Medio | pisos da baseline e JaCoCo regenerado |
+| Vazamento de User Token | Alto | variavel de ambiente em memoria, busca de segredos e revogacao |
+| Crescimento do piloto | Medio | maximo de cinco arquivos e novo GO para qualquer expansao |
+
+### Fora de escopo
+
+- segundo bloco duplicado sem novo GO;
+- compartilhamento de DTOs ou modelos entre bordas ou dominios;
+- alteracao de `arquitetura.excecao.dto`;
+- novos endpoints, workflows, upload, cache de SAS ou Quarkus Flow;
+- mudanca funcional, de contrato, configuracao, FT, simulador ou observabilidade;
+- aumento de cobertura como objetivo independente;
+- nova dependencia ou ferramenta de clone detection no build.
+
+## Fase 14 - Remediacao segura de issues HIGH do SonarQube
+
+**Status:** especificacao, plano e tasks aprovados no C14-SPEC, C14-PLAN e C14-TASKS; somente
+baseline e primeiro lote S1192 autorizados; demais lotes bloqueados.
+
+**Documento de especificacao:** `especificacao-fase-14-sonar-high.md`.
+
+### Baseline e decisoes do plano
+
+- 189 issues de impacto HIGH: 169 `java:S1192`, 9 `java:S1948`, 9 `java:S1186` e 2 `java:S3776`;
+- S1192 sera tratado com constantes locais por classe, sem catalogo compartilhado;
+- S1186 sera alterado somente quando o no-op for comprovadamente intencional;
+- S3776 sera reduzido com metodos privados locais, preservando ordem de efeitos;
+- S1948 exige caracterizacao de serializacao; `arquitetura.excecao.dto` nao muda sem GO especifico;
+- cada lote toca no maximo cinco arquivos e para para revisao humana;
+- C13 continua documental e seu NO-GO de extracao de clones nao e reaberto por esta fase.
+
+### Grafo de dependencias
+
+```text
+C14-SPEC GO
+    -> C14-PLAN GO
+        -> decomposicao das tasks
+            -> C14-TASKS GO
+                -> baseline de issues e caracterizacao
+                    -> Lote A: S1192 local
+                        -> checkpoint humano
+                    -> Lote B: S1186 intencional
+                        -> checkpoint humano
+                    -> Lote C: S3776 local
+                        -> checkpoint humano
+                    -> Lote D: S1948 serializacao
+                        -> C14 final
+```
+
+### Pacote A - Baseline e caracterizacao
+
+**Descricao:** registrar issue keys, regras, arquivos, linhas, testes e sinais observaveis antes de
+qualquer mudanca.
+
+**Criterios de aceite:** os 189 issues ficam reconciliados; contratos e cobertura baseline ficam
+registrados; nenhum arquivo de producao muda.
+
+**Verificacao:** API de issues, `mvn -q clean test`, ArchUnit e manifestos de observabilidade.
+**Escopo:** S, documental e testes existentes.
+
+### Pacote B - S1192 local
+
+**Descricao:** corrigir uma classe por vez, iniciando por uma classe de observabilidade ou adapter
+com strings repetidas, extraindo constantes privadas locais.
+
+**Criterios de aceite:** valores literais permanecem identicos; logs, spans, atributos e contratos
+nao mudam; nenhum utilitario cross-domain e criado.
+
+**Verificacao:** testes focados da classe, contratos de observabilidade, ArchUnit e diff. Cada
+incremento deve tocar no maximo cinco arquivos.
+
+### Pacote C - S1186 intencional
+
+**Descricao:** revisar os nove metodos vazios de fixtures e handlers; documentar no-ops reais sem
+alterar setup, teardown ou comportamento de testes.
+
+**Criterios de aceite:** nenhum metodo funcional e silenciado; comentarios explicam o motivo; suite
+e testes de contrato continuam verdes.
+
+**Verificacao:** testes focados, suite limpa e diff de testes separado de producao.
+
+### Pacote D - S3776
+
+**Descricao:** reduzir os dois metodos acima do limite extraindo captura de atributos e eventos de
+observabilidade para helpers privados locais.
+
+**Criterios de aceite:** complexidade cognitiva fica no limite; ordem de spans, logs, nulos e falhas
+permanece equivalente; nenhum comportamento e deslocado para helper generico.
+
+**Verificacao:** contratos de observabilidade, testes da capacidade, ArchUnit e suite limpa.
+
+### Pacote E - S1948
+
+**Descricao:** confirmar se excecoes sao serializadas fora do processo e preservar o grafo de erro
+quando forem. A decisao de alterar o DTO tecnico compartilhado exige GO arquitetural separado.
+
+**Criterios de aceite:** round-trip, status, erro, tipo, mensagens e causa permanecem equivalentes;
+nenhuma perda e escondida com `transient`.
+
+**Verificacao:** teste de serializacao, testes de traducao de erro, contratos MTR/REST, ArchUnit e
+suite limpa.
+
+### Pacote F - Verificacao e encerramento
+
+**Descricao:** repetir scanner Maven fixado e comparar issues, cobertura, complexidades e CPD com a
+baseline.
+
+**Criterios de aceite:** issues tratados ou justificados com evidencia; cobertura minima preservada;
+Quality Gate e suite verdes; nenhum segredo no diff.
+
+**Verificacao:** `mvn -q clean test`, scanner, API de issues, `git diff --check` e revisao humana.
+
+### Checkpoints
+
+| Checkpoint | Autoriza | Nao autoriza |
+|---|---|---|
+| C14-PLAN | decompor tasks | alterar codigo ou executar lote |
+| C14-TASKS | baseline e primeiro lote aprovado | alterar lote seguinte sem revisao |
+| C14-A/B/C/D | prosseguir somente apos evidencia do lote anterior | ampliar escopo ou compartilhar contratos |
+| C14 | aceitar resultado final | continuar automaticamente |
+
+### Riscos e mitigacoes
+
+| Risco | Impacto | Mitigacao |
+|---|---|---|
+| constante altera chave de observabilidade | Alto | preservar valor literal e testar spans/logs |
+| `transient` perde erro | Alto | caracterizar e preferir serializacao completa |
+| fixture vazio deixa de exercer guardrail | Alto | testes ArchUnit e comentarios sem lancar excecao |
+| helper desloca complexidade | Medio | limite por lote e comparar complexidade por metodo |
+| remediacao mistura C13 | Alto | branch Fase 14 e checkpoints independentes |
+
+## Fase 15 - Fechamento de qualidade SonarQube
+
+**Status:** C15-SPEC e C15-PLAN aprovados; nenhuma task de execução autorizada ainda.
+
+**Objetivo:** eliminar o blocker, reduzir as 175 HIGH e resolver o warning de blame, mantendo
+cobertura >=80%, duplicação e complexidade sem regressão.
+
+### Ordem
+
+1. Congelar baseline Sonar/Git/JaCoCo e listar os dez arquivos sem blame.
+2. Corrigir o blocker S2699 com asserção comportamental.
+3. Reexecutar testes e scanner com XML JaCoCo explícito.
+4. Diagnosticar o SCM/blame: confirmar `.git`, clone completo, ausência de shallow/partial clone,
+   submódulos, line endings e arquivos rastreados; preservar SCM habilitado.
+5. Classificar HIGH por regra/componente e aprovar lotes pequenos.
+6. Corrigir lotes com caracterização e checkpoints humanos.
+7. Reanalisar e fechar comparando os indicadores.
+
+### Checkpoints
+
+- **C15-A:** baseline, blocker e warning diagnosticados.
+- **C15-B:** primeiro lote HIGH validado.
+- **C15-C:** lotes restantes sem regressão.
+- **C15-D:** análise final e zero BLOCKER.
+
+### Fora de escopo
+
+- novos endpoints, workflows, upload, cache de SAS ou Quarkus Flow;
+- compartilhamento de DTOs REST/MTR/simulador;
+- mudanca de contrato, observabilidade, fault tolerance ou simulador;
+- fechamento artificial de issues sem correcao ou justificativa aprovada;
+- commit, push ou alteracao de `src/main` antes dos gates seguintes.

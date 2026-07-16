@@ -123,6 +123,7 @@ class GestaoDocumentoSelecaoSimuladorQuarkusTest {
 
         @Override
         public void flush() {
+            // No-op deliberado: o appender de teste não mantém estado pendente.
         }
 
         @Override

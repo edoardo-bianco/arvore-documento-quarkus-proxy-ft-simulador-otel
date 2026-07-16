@@ -18,6 +18,12 @@ import org.jboss.logging.Logger;
 public class GestaoDocumentoObservabilidade implements ObterCredencialContainer {
 
     private static final Logger LOG = Logger.getLogger(GestaoDocumentoObservabilidade.class);
+    private static final String CAMADA = "camada";
+    private static final String APPLICATION = "application";
+    private static final String COMPONENTE = "componente";
+    private static final String SERVICE = "GestaoDocumentoService";
+    private static final String OPERACAO = "operacao";
+    private static final String GERAR_CREDENCIAL_CONTAINER = "gerar-credencial-container";
 
     private final ObterCredencialContainer casoDeUso;
     private final boolean simuladorHabilitado;
@@ -48,9 +54,9 @@ public class GestaoDocumentoObservabilidade implements ObterCredencialContainer 
                 LOG,
                 "simtr-hub.gestao-documento.credencial-container.service.iniciado",
                 ObservabilityLog.fields(
-                        "camada", "application",
-                        "componente", "GestaoDocumentoService",
-                        "operacao", "gerar-credencial-container",
+                        CAMADA, APPLICATION,
+                        COMPONENTE, SERVICE,
+                        OPERACAO, GERAR_CREDENCIAL_CONTAINER,
                         "simulador_habilitado", simuladorHabilitado
                 )
         );
@@ -67,9 +73,9 @@ public class GestaoDocumentoObservabilidade implements ObterCredencialContainer 
                             LOG,
                             "simtr-hub.gestao-documento.credencial-container.service.concluido",
                             ObservabilityLog.fields(
-                                    "camada", "application",
-                                    "componente", "GestaoDocumentoService",
-                                    "operacao", "gerar-credencial-container",
+                                    CAMADA, APPLICATION,
+                                    COMPONENTE, SERVICE,
+                                    OPERACAO, GERAR_CREDENCIAL_CONTAINER,
                                     "nome_container", nomeContainer(credencial),
                                     "resultado", "sucesso"
                             )
@@ -84,9 +90,9 @@ public class GestaoDocumentoObservabilidade implements ObterCredencialContainer 
                             "simtr-hub.gestao-documento.credencial-container.service.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", "application",
-                                    "componente", "GestaoDocumentoService",
-                                    "operacao", "gerar-credencial-container",
+                                    CAMADA, APPLICATION,
+                                    COMPONENTE, SERVICE,
+                                    OPERACAO, GERAR_CREDENCIAL_CONTAINER,
                                     "erro_tipo", erro.getClass().getSimpleName(),
                                     "resultado", "erro"
                             )

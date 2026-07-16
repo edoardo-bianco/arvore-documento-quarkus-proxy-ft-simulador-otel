@@ -175,10 +175,15 @@ class RestClientObservabilityFilterTest {
         System.setProperty(PAYLOAD_ENABLED_PROPERTY, "true");
 
         RestClientObservabilityFilter filter = new RestClientObservabilityFilter();
-        filter.filter(requestContext(new HashMap<>(), "POST", "http://localhost/simtr/string", "texto"));
+        ClientRequestContext stringRequest = requestContext(
+                new HashMap<>(), "POST", "http://localhost/simtr/string", "texto");
+        filter.filter(stringRequest);
         filter.filter(requestContext(new HashMap<>(), "POST", "http://localhost/simtr/bytes", "texto".getBytes(StandardCharsets.UTF_8)));
         filter.filter(requestContext(new HashMap<>(), "POST", "http://localhost/simtr/stream", new ByteArrayInputStream(new byte[]{1, 2, 3})));
         filter.filter(requestContext(new HashMap<>(), "POST", "http://localhost/simtr/objeto", new PayloadSemJson()));
+        assertEquals("texto", stringRequest.getEntity());
+
+        assertTrue(true, "Os quatro tipos foram processados sem exceção");
     }
 
     @Test
