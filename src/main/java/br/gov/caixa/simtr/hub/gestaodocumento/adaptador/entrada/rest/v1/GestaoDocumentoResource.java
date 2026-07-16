@@ -32,6 +32,9 @@ import org.jboss.logging.Logger;
 public class GestaoDocumentoResource {
 
     private static final Logger LOG = Logger.getLogger(GestaoDocumentoResource.class);
+    private static final String CAMADA = "api";
+    private static final String COMPONENTE = "GestaoDocumentoResource";
+    private static final String OPERACAO = "gerar-credencial-container";
 
     private final ObterCredencialContainer obterCredencialContainer;
 
@@ -84,9 +87,9 @@ public class GestaoDocumentoResource {
                 LOG,
                 "simtr-hub.gestao-documento.credencial-container.requisicao.recebida",
                 ObservabilityLog.fields(
-                        "camada", "api",
-                        "componente", "GestaoDocumentoResource",
-                        "operacao", "gerar-credencial-container"
+                        "camada", CAMADA,
+                        "componente", COMPONENTE,
+                        "operacao", OPERACAO
                 )
         );
 
@@ -103,9 +106,9 @@ public class GestaoDocumentoResource {
                             LOG,
                             "simtr-hub.gestao-documento.credencial-container.resposta.enviada",
                             ObservabilityLog.fields(
-                                    "camada", "api",
-                                    "componente", "GestaoDocumentoResource",
-                                    "operacao", "gerar-credencial-container",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
+                                    "operacao", OPERACAO,
                                     "nome_container", nomeContainer(resposta),
                                     "resultado", "sucesso"
                             )
@@ -121,9 +124,9 @@ public class GestaoDocumentoResource {
                             "simtr-hub.gestao-documento.credencial-container.requisicao.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", "api",
-                                    "componente", "GestaoDocumentoResource",
-                                    "operacao", "gerar-credencial-container",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
+                                    "operacao", OPERACAO,
                                     "erro_tipo", erro.getClass().getSimpleName(),
                                     "resultado", "erro"
                             )
