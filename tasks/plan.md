@@ -1742,7 +1742,9 @@ Quality Gate e suite verdes; nenhum segredo no diff.
 
 ## Fase 15 - Fechamento de qualidade SonarQube
 
-**Status:** C15-SPEC e C15-PLAN aprovados; nenhuma task de execução autorizada ainda.
+**Status:** concluida em 2026-07-16 no commit `1f0dca0`. A continuidade sem novas confirmações foi
+autorizada pelo usuario no C15-CHECKPOINT-QUALITY-01; suite limpa e scanner final ficaram verdes,
+com Quality Gate OK, zero HIGH, zero new violations, zero BLOCKER e warning de blame eliminado.
 
 **Objetivo:** eliminar o blocker, reduzir as 175 HIGH e resolver o warning de blame, mantendo
 cobertura >=80%, duplicação e complexidade sem regressão.
@@ -1764,6 +1766,15 @@ cobertura >=80%, duplicação e complexidade sem regressão.
 - **C15-B:** primeiro lote HIGH validado.
 - **C15-C:** lotes restantes sem regressão.
 - **C15-D:** análise final e zero BLOCKER.
+
+### Resultado final
+
+- 82 issues HIGH `java:S1192` no checkpoint de retomada reduzidas a zero.
+- Cobertura 80,0%, duplicacao 5,9%, complexidade 1356 e complexidade cognitiva 829.
+- Quality Gate OK e zero issues no periodo de codigo novo.
+- SCM revision `1f0dca054eaf97b0215e3c50e697fa98b886e983`, com blame publicado sem warning.
+- Nenhum endpoint, contrato, fronteira arquitetural, fault tolerance, simulador ou chave de
+  observabilidade alterado.
 
 ### Fora de escopo
 

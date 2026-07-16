@@ -48,9 +48,9 @@ Antes de executar qualquer item:
 
 ## Ponto de retomada
 
-- **Ultimo marco concluido:** C14-TASKS - GO humano registrado para as tasks HIGH.
-- **Fase atual:** Fase 14, executando somente baseline e primeiro lote S1192.
-- **Proximo item:** Task 14.1 - congelar baseline antes da primeira edicao.
+- **Ultimo marco concluido:** C15-D - fechamento técnico aprovado e evidências finais registradas.
+- **Fase atual:** Fase 15 encerrada na branch `refactor/sonar-quality-fase-15-baseline`.
+- **Proximo item:** nenhum; aguardar autorização humana para uma fase futura independente.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
   produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
@@ -1136,18 +1136,19 @@ suite e ArchUnit verdes; nenhum segredo no diff.
 
 - [x] 15.0a Registrar C15-SPEC e criar branch dedicada;
 - [x] 15.0b Obter GO C15-PLAN e registrar ordem/checkpoints;
-- [ ] 15.1 Congelar baseline Sonar/Git/JaCoCo e listar arquivos sem blame;
-- [ ] 15.2 Corrigir blocker S2699 com asserção comportamental;
-- [ ] 15.3 Diagnosticar e corrigir warning de blame: `.git`, clone completo, shallow/partial,
+- [x] 15.1 Congelar baseline Sonar/Git/JaCoCo e listar arquivos sem blame;
+- [x] 15.2 Corrigir blocker S2699 com asserção comportamental;
+- [x] 15.3 Diagnosticar e corrigir warning de blame: `.git`, clone completo, shallow/partial,
   submódulos, line endings, arquivos rastreados e logs do scanner;
-- [ ] 15.4 Classificar 175 HIGH por regra e componente;
-- [ ] 15.5 Corrigir primeiro lote HIGH após GO C15-B;
-- [ ] 15.6 Corrigir lotes restantes após checkpoints;
-- [ ] 15.7 Executar análise final e fechar C15-D.
+- [x] 15.4 Classificar 175 HIGH por regra e componente;
+- [x] 15.5 Corrigir primeiro lote HIGH após GO C15-B;
+- [x] 15.6 Corrigir lotes restantes após checkpoints;
+- [x] 15.7 Executar análise final e fechar C15-D.
 
 | C15-SPEC | GO | 2026-07-16 | Especificação aprovada e branch dedicada criada | Usuario, GO registrado em conversa |
 | C15-PLAN | GO | 2026-07-16 | Ordem, dependências e checkpoints registrados; tasks aguardam GO | Usuario, GO registrado em conversa |
 | C15-CHECKPOINT-QUALITY-01 | REGISTRADO | 2026-07-16 | Branch limpa no commit `150c802`; suíte e scanner Maven executados; cobertura 80,0%; HIGH 82 (todos S1192); BLOCKER 0; duplicação 5,9% | Usuario autorizou continuidade sem novas confirmações |
+| C15-D | GO | 2026-07-16 | `mvn -q clean test` verde no commit `1f0dca0`; Sonar analysis `d5ce2fd6-50a5-4ca3-9054-f41207d226fa`: Quality Gate OK, HIGH 0, new violations 0, BLOCKER 0, cobertura 80,0%, duplicação 5,9%, complexidade 1356 e cognitiva 829; scanner sem warning de blame | Usuario autorizou continuidade e fechamento sem novas confirmações |
 
 ## Bloqueios que nao podem ser resolvidos por suposicao
 

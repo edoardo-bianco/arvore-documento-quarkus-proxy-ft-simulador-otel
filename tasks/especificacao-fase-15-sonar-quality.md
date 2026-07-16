@@ -1,6 +1,7 @@
 # Especificação — Fase 15: fechamento de qualidade SonarQube
 
-Status: C15-SPEC aprovado pelo usuário. Plano e execução ainda aguardam GO.
+Status: Fase 15 concluída em 2026-07-16 no commit `1f0dca0`; C15-D registrado com autorização do
+usuário para continuidade e fechamento sem novas confirmações.
 
 Branch dedicada: `refactor/sonar-quality-fase-15-baseline`.
 
@@ -18,6 +19,16 @@ endpoints, simulador, fault tolerance ou observabilidade.
 - Duplicação: 5,8%; 25 blocos duplicados.
 - Complexidade: 1356; complexidade cognitiva: 829.
 - Warning: `Missing blame information for 10 files`.
+
+## Resultado final
+
+- Quality Gate: OK.
+- Issues HIGH: 0; issues no período de código novo: 0; BLOCKER: 0.
+- Cobertura: 80,0%; duplicação: 5,9%.
+- Complexidade: 1356; complexidade cognitiva: 829.
+- Scanner publicado na revisão `1f0dca054eaf97b0215e3c50e697fa98b886e983`, sem warning de
+  blame.
+- Suíte `mvn -q clean test`, testes focados e ArchUnit aprovados.
 
 ## Escopo autorizado
 
@@ -53,4 +64,3 @@ endpoints, simulador, fault tolerance ou observabilidade.
 | Redução artificial de HIGH | não usar supressão sem justificativa e revisão |
 | Cobertura volta a zero | validar existência do XML e passar `sonar.coverage.jacoco.xmlReportPaths` |
 | Blame continua ausente | verificar rastreamento Git e histórico antes do scanner |
-
