@@ -32,8 +32,11 @@ import org.jboss.logging.Logger;
 public class GestaoDocumentoResource {
 
     private static final Logger LOG = Logger.getLogger(GestaoDocumentoResource.class);
+    private static final String CAMADA_KEY = "camada";
     private static final String CAMADA = "api";
+    private static final String COMPONENTE_KEY = "componente";
     private static final String COMPONENTE = "GestaoDocumentoResource";
+    private static final String OPERACAO_KEY = "operacao";
     private static final String OPERACAO = "gerar-credencial-container";
 
     private final ObterCredencialContainer obterCredencialContainer;
@@ -87,9 +90,9 @@ public class GestaoDocumentoResource {
                 LOG,
                 "simtr-hub.gestao-documento.credencial-container.requisicao.recebida",
                 ObservabilityLog.fields(
-                        "camada", CAMADA,
-                        "componente", COMPONENTE,
-                        "operacao", OPERACAO
+                        CAMADA_KEY, CAMADA,
+                        COMPONENTE_KEY, COMPONENTE,
+                        OPERACAO_KEY, OPERACAO
                 )
         );
 
@@ -106,9 +109,9 @@ public class GestaoDocumentoResource {
                             LOG,
                             "simtr-hub.gestao-documento.credencial-container.resposta.enviada",
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
-                                    "operacao", OPERACAO,
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    OPERACAO_KEY, OPERACAO,
                                     "nome_container", nomeContainer(resposta),
                                     "resultado", "sucesso"
                             )
@@ -124,9 +127,9 @@ public class GestaoDocumentoResource {
                             "simtr-hub.gestao-documento.credencial-container.requisicao.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
-                                    "operacao", OPERACAO,
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    OPERACAO_KEY, OPERACAO,
                                     "erro_tipo", erro.getClass().getSimpleName(),
                                     "resultado", "erro"
                             )

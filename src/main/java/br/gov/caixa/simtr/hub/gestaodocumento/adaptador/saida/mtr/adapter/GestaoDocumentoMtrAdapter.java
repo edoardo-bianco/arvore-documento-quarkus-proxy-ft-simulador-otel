@@ -29,9 +29,13 @@ public class GestaoDocumentoMtrAdapter implements SolicitarCredencialContainer {
     private static final Logger LOG = Logger.getLogger(GestaoDocumentoMtrAdapter.class);
     private static final String PACOTE_EXCECAO_MTR_LEGADA =
             "br.gov.caixa.simtr.hub.arquitetura.excecao.";
+    private static final String CAMADA_KEY = "camada";
     private static final String CAMADA = "infrastructure";
+    private static final String COMPONENTE_KEY = "componente";
     private static final String COMPONENTE = "GestaoDocumentoGateway";
+    private static final String DEPENDENCIA_KEY = "dependencia";
     private static final String DEPENDENCIA = "simtr-gestao-documento";
+    private static final String OPERACAO_KEY = "operacao";
     private static final String OPERACAO = "gerar-credencial-container-v1";
 
     private final GestaoDocumentoClient client;
@@ -62,10 +66,10 @@ public class GestaoDocumentoMtrAdapter implements SolicitarCredencialContainer {
                 LOG,
                 "mtr.gestao-documento.credencial-container.chamada.iniciada",
                 ObservabilityLog.fields(
-                        "camada", CAMADA,
-                        "componente", COMPONENTE,
-                        "dependencia", DEPENDENCIA,
-                        "operacao", OPERACAO
+                        CAMADA_KEY, CAMADA,
+                        COMPONENTE_KEY, COMPONENTE,
+                        DEPENDENCIA_KEY, DEPENDENCIA,
+                        OPERACAO_KEY, OPERACAO
                 )
         );
 
@@ -82,10 +86,10 @@ public class GestaoDocumentoMtrAdapter implements SolicitarCredencialContainer {
                             LOG,
                             "mtr.gestao-documento.credencial-container.chamada.concluida",
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
-                                    "dependencia", DEPENDENCIA,
-                                    "operacao", OPERACAO,
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    DEPENDENCIA_KEY, DEPENDENCIA,
+                                    OPERACAO_KEY, OPERACAO,
                                     "nome_container",
                                     resposta != null ? resposta.nomeContainer() : null,
                                     "resultado", "sucesso"
@@ -103,10 +107,10 @@ public class GestaoDocumentoMtrAdapter implements SolicitarCredencialContainer {
                             "mtr.gestao-documento.credencial-container.chamada.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
-                                    "dependencia", DEPENDENCIA,
-                                    "operacao", OPERACAO,
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    DEPENDENCIA_KEY, DEPENDENCIA,
+                                    OPERACAO_KEY, OPERACAO,
                                     "erro_tipo", tipoErroSimplesTelemetria(erro),
                                     "resultado", "erro"
                             )
