@@ -58,6 +58,26 @@ public class DossieProdutoResource {
     private static final String COMPONENTE = "DossieProdutoResource";
     private static final String CAMADA_KEY = "camada";
     private static final String COMPONENTE_KEY = "componente";
+    private static final String HTTP_ROUTE_ATTRIBUTE = "http.route";
+    private static final String SIMTR_HUB_API_ATTRIBUTE = "simtr_hub.api";
+    private static final String DOSSIE_PRODUTO_API_V1 = "dossie-produto-v1";
+    private static final String OPERACAO_KEY = "operacao";
+    private static final String CRIAR_DOSSIE_PRODUTO = "criar-dossie-produto";
+    private static final String PROCESSO_KEY = "processo";
+    private static final String CHAVE_CORRELACAO_CANAL_KEY = "chave_correlacao_canal";
+    private static final String DOSSIE_PRODUTO_ID_ATTRIBUTE = "dossie_produto.id";
+    private static final String DOSSIE_PRODUTO_ID_KEY = "dossie_produto_id";
+    private static final String RESULTADO_KEY = "resultado";
+    private static final String SUCESSO = "sucesso";
+    private static final String ERRO_TIPO_KEY = "erro_tipo";
+    private static final String ATUALIZAR_FORMULARIO_DOSSIE_PRODUTO =
+            "atualizar-formulario-dossie-produto";
+    private static final String INCLUIR_DOCUMENTO_DOSSIE_PRODUTO =
+            "incluir-documento-dossie-produto";
+    private static final String REGISTRAR_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO =
+            "registrar-validacao-negocial-dossie-produto";
+    private static final String INICIAR_OU_AVANCAR_WORKFLOW_DOSSIE_PRODUTO =
+            "iniciar-ou-avancar-workflow-dossie-produto";
 
     private final CriarDossieProduto criarDossieProduto;
     private final AtualizarFormularioDossieProduto atualizarFormularioDossieProduto;
@@ -130,8 +150,8 @@ public class DossieProdutoResource {
         Integer quantidadeClientes = quantidadeClientes(requisicao);
 
         Span span = Span.current();
-        span.setAttribute("http.route", "/simtr-hub/v1/dossie-produto");
-        span.setAttribute("simtr_hub.api", "dossie-produto-v1");
+        span.setAttribute(HTTP_ROUTE_ATTRIBUTE, "/simtr-hub/v1/dossie-produto");
+        span.setAttribute(SIMTR_HUB_API_ATTRIBUTE, DOSSIE_PRODUTO_API_V1);
         setLongAttribute(span, "dossie_produto.processo", processo);
         setLongAttribute(span, "dossie_produto.chave_correlacao_canal", chaveCorrelacaoCanal);
         setIntAttribute(span, "dossie_produto.clientes.quantidade", quantidadeClientes);
@@ -142,9 +162,9 @@ public class DossieProdutoResource {
                 ObservabilityLog.fields(
                         CAMADA_KEY, CAMADA,
                         COMPONENTE_KEY, COMPONENTE,
-                        "operacao", "criar-dossie-produto",
-                        "processo", processo,
-                        "chave_correlacao_canal", chaveCorrelacaoCanal,
+                        OPERACAO_KEY, CRIAR_DOSSIE_PRODUTO,
+                        PROCESSO_KEY, processo,
+                        CHAVE_CORRELACAO_CANAL_KEY, chaveCorrelacaoCanal,
                         "clientes_quantidade", quantidadeClientes
                 )
         );
@@ -156,7 +176,7 @@ public class DossieProdutoResource {
                 .map(CriacaoDossieProdutoRestMapper::paraResposta)
                 .invoke(resposta -> {
                     if (resposta != null && resposta.id() != null) {
-                        span.setAttribute("dossie_produto.id", resposta.id());
+                        span.setAttribute(DOSSIE_PRODUTO_ID_ATTRIBUTE, resposta.id());
                     }
 
                     ObservabilityLog.info(
@@ -165,11 +185,11 @@ public class DossieProdutoResource {
                             ObservabilityLog.fields(
                                     CAMADA_KEY, CAMADA,
                                     COMPONENTE_KEY, COMPONENTE,
-                                    "operacao", "criar-dossie-produto",
-                                    "processo", processo,
-                                    "chave_correlacao_canal", chaveCorrelacaoCanal,
-                                    "dossie_produto_id", resposta != null ? resposta.id() : null,
-                                    "resultado", "sucesso"
+                                    OPERACAO_KEY, CRIAR_DOSSIE_PRODUTO,
+                                    PROCESSO_KEY, processo,
+                                    CHAVE_CORRELACAO_CANAL_KEY, chaveCorrelacaoCanal,
+                                    DOSSIE_PRODUTO_ID_KEY, resposta != null ? resposta.id() : null,
+                                    RESULTADO_KEY, SUCESSO
                             )
                     );
                 })
@@ -187,11 +207,11 @@ public class DossieProdutoResource {
                             ObservabilityLog.fields(
                                     CAMADA_KEY, CAMADA,
                                     COMPONENTE_KEY, COMPONENTE,
-                                    "operacao", "criar-dossie-produto",
-                                    "processo", processo,
-                                    "chave_correlacao_canal", chaveCorrelacaoCanal,
-                                    "erro_tipo", erro.getClass().getSimpleName(),
-                                    "resultado", "erro"
+                                    OPERACAO_KEY, CRIAR_DOSSIE_PRODUTO,
+                                    PROCESSO_KEY, processo,
+                                    CHAVE_CORRELACAO_CANAL_KEY, chaveCorrelacaoCanal,
+                                    ERRO_TIPO_KEY, erro.getClass().getSimpleName(),
+                                    RESULTADO_KEY, "erro"
                             )
                     );
                 });
@@ -253,9 +273,9 @@ public class DossieProdutoResource {
         Integer quantidadeRespostas = quantidadeRespostasFormulario(requisicao);
 
         Span span = Span.current();
-        span.setAttribute("http.route", "/simtr-hub/v1/dossie-produto/{id}/formulario");
-        span.setAttribute("simtr_hub.api", "dossie-produto-v1");
-        setLongAttribute(span, "dossie_produto.id", id);
+        span.setAttribute(HTTP_ROUTE_ATTRIBUTE, "/simtr-hub/v1/dossie-produto/{id}/formulario");
+        span.setAttribute(SIMTR_HUB_API_ATTRIBUTE, DOSSIE_PRODUTO_API_V1);
+        setLongAttribute(span, DOSSIE_PRODUTO_ID_ATTRIBUTE, id);
         setIntAttribute(span, "dossie_produto.formulario.vinculos.quantidade", quantidadeVinculos);
         setIntAttribute(span, "dossie_produto.formulario.respostas.quantidade", quantidadeRespostas);
 
@@ -263,10 +283,10 @@ public class DossieProdutoResource {
                 LOG,
                 "simtr-hub.dossie-produto.formulario.requisicao.recebida",
                 ObservabilityLog.fields(
-                        "camada", CAMADA,
-                        "componente", COMPONENTE,
-                        "operacao", "atualizar-formulario-dossie-produto",
-                        "dossie_produto_id", id,
+                        CAMADA_KEY, CAMADA,
+                        COMPONENTE_KEY, COMPONENTE,
+                        OPERACAO_KEY, ATUALIZAR_FORMULARIO_DOSSIE_PRODUTO,
+                        DOSSIE_PRODUTO_ID_KEY, id,
                         "formulario_vinculos_quantidade", quantidadeVinculos,
                         "formulario_respostas_quantidade", quantidadeRespostas
                 )
@@ -287,12 +307,12 @@ public class DossieProdutoResource {
                             LOG,
                             "simtr-hub.dossie-produto.formulario.resposta.enviada",
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
-                                    "operacao", "atualizar-formulario-dossie-produto",
-                                    "dossie_produto_id", id,
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    OPERACAO_KEY, ATUALIZAR_FORMULARIO_DOSSIE_PRODUTO,
+                                    DOSSIE_PRODUTO_ID_KEY, id,
                                     "dossie_produto_id_resposta", resposta != null ? resposta.id() : null,
-                                    "resultado", "sucesso"
+                                    RESULTADO_KEY, SUCESSO
                             )
                     );
                 })
@@ -308,12 +328,12 @@ public class DossieProdutoResource {
                             "simtr-hub.dossie-produto.formulario.requisicao.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
-                                    "operacao", "atualizar-formulario-dossie-produto",
-                                    "dossie_produto_id", id,
-                                    "erro_tipo", erro.getClass().getSimpleName(),
-                                    "resultado", "erro"
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    OPERACAO_KEY, ATUALIZAR_FORMULARIO_DOSSIE_PRODUTO,
+                                    DOSSIE_PRODUTO_ID_KEY, id,
+                                    ERRO_TIPO_KEY, erro.getClass().getSimpleName(),
+                                    RESULTADO_KEY, "erro"
                             )
                     );
                 });
@@ -376,9 +396,9 @@ public class DossieProdutoResource {
         String tipoDocumento = tipoDocumento(requisicao);
 
         Span span = Span.current();
-        span.setAttribute("http.route", "/simtr-hub/v1/dossie-produto/{id}/documento");
-        span.setAttribute("simtr_hub.api", "dossie-produto-v2");
-        setLongAttribute(span, "dossie_produto.id", id);
+        span.setAttribute(HTTP_ROUTE_ATTRIBUTE, "/simtr-hub/v1/dossie-produto/{id}/documento");
+        span.setAttribute(SIMTR_HUB_API_ATTRIBUTE, "dossie-produto-v2");
+        setLongAttribute(span, DOSSIE_PRODUTO_ID_ATTRIBUTE, id);
         setStringAttribute(span, "dossie_produto.documento.tipo", tipoDocumento);
         setIntAttribute(span, "dossie_produto.documento.atributos.quantidade", quantidadeAtributos);
         setIntAttribute(span, "dossie_produto.documento.propriedades.quantidade", quantidadePropriedades);
@@ -387,10 +407,10 @@ public class DossieProdutoResource {
                 LOG,
                 "simtr-hub.dossie-produto.documento.requisicao.recebida",
                 ObservabilityLog.fields(
-                        "camada", CAMADA,
-                        "componente", COMPONENTE,
-                        "operacao", "incluir-documento-dossie-produto",
-                        "dossie_produto_id", id,
+                        CAMADA_KEY, CAMADA,
+                        COMPONENTE_KEY, COMPONENTE,
+                        OPERACAO_KEY, INCLUIR_DOCUMENTO_DOSSIE_PRODUTO,
+                        DOSSIE_PRODUTO_ID_KEY, id,
                         "tipo_documento", tipoDocumento,
                         "documento_atributos_quantidade", quantidadeAtributos,
                         "documento_propriedades_quantidade", quantidadePropriedades
@@ -415,13 +435,13 @@ public class DossieProdutoResource {
                             LOG,
                             "simtr-hub.dossie-produto.documento.resposta.enviada",
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
-                                    "operacao", "incluir-documento-dossie-produto",
-                                    "dossie_produto_id", id,
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    OPERACAO_KEY, INCLUIR_DOCUMENTO_DOSSIE_PRODUTO,
+                                    DOSSIE_PRODUTO_ID_KEY, id,
                                     "id_documento", resposta != null ? resposta.idDocumento() : null,
                                     "id_instancia_documento", resposta != null ? resposta.idInstanciaDocumento() : null,
-                                    "resultado", "sucesso"
+                                    RESULTADO_KEY, SUCESSO
                             )
                     );
                 })
@@ -437,13 +457,13 @@ public class DossieProdutoResource {
                             "simtr-hub.dossie-produto.documento.requisicao.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
-                                    "operacao", "incluir-documento-dossie-produto",
-                                    "dossie_produto_id", id,
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    OPERACAO_KEY, INCLUIR_DOCUMENTO_DOSSIE_PRODUTO,
+                                    DOSSIE_PRODUTO_ID_KEY, id,
                                     "tipo_documento", tipoDocumento,
-                                    "erro_tipo", erro.getClass().getSimpleName(),
-                                    "resultado", "erro"
+                                    ERRO_TIPO_KEY, erro.getClass().getSimpleName(),
+                                    RESULTADO_KEY, "erro"
                             )
                     );
                 });
@@ -509,9 +529,9 @@ public class DossieProdutoResource {
         Integer quantidadeRespostasFormulario = quantidadeRespostasFormularioValidacao(requisicao);
 
         Span span = Span.current();
-        span.setAttribute("http.route", "/simtr-hub/v1/dossie-produto/{id}/validacao-negocial");
-        span.setAttribute("simtr_hub.api", "dossie-produto-v1");
-        setLongAttribute(span, "dossie_produto.id", id);
+        span.setAttribute(HTTP_ROUTE_ATTRIBUTE, "/simtr-hub/v1/dossie-produto/{id}/validacao-negocial");
+        span.setAttribute(SIMTR_HUB_API_ATTRIBUTE, DOSSIE_PRODUTO_API_V1);
+        setLongAttribute(span, DOSSIE_PRODUTO_ID_ATTRIBUTE, id);
         setIntAttribute(span, "dossie_produto.validacao.verificacoes.quantidade", quantidadeVerificacoes);
         setIntAttribute(span, "dossie_produto.validacao.respostas_formulario.quantidade", quantidadeRespostasFormulario);
 
@@ -519,10 +539,10 @@ public class DossieProdutoResource {
                 LOG,
                 "simtr-hub.dossie-produto.validacao-negocial.requisicao.recebida",
                 ObservabilityLog.fields(
-                        "camada", CAMADA,
-                        "componente", COMPONENTE,
-                        "operacao", "registrar-validacao-negocial-dossie-produto",
-                        "dossie_produto_id", id,
+                        CAMADA_KEY, CAMADA,
+                        COMPONENTE_KEY, COMPONENTE,
+                        OPERACAO_KEY, REGISTRAR_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO,
+                        DOSSIE_PRODUTO_ID_KEY, id,
                         "validacao_verificacoes_quantidade", quantidadeVerificacoes,
                         "validacao_respostas_formulario_quantidade", quantidadeRespostasFormulario
                 )
@@ -537,11 +557,11 @@ public class DossieProdutoResource {
                         LOG,
                         "simtr-hub.dossie-produto.validacao-negocial.resposta.enviada",
                         ObservabilityLog.fields(
-                                "camada", CAMADA,
-                                "componente", COMPONENTE,
-                                "operacao", "registrar-validacao-negocial-dossie-produto",
-                                "dossie_produto_id", id,
-                                "resultado", "sucesso"
+                                CAMADA_KEY, CAMADA,
+                                COMPONENTE_KEY, COMPONENTE,
+                                OPERACAO_KEY, REGISTRAR_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO,
+                                DOSSIE_PRODUTO_ID_KEY, id,
+                                RESULTADO_KEY, SUCESSO
                         )
                 ))
                 .replaceWith(Response.ok().build())
@@ -554,12 +574,12 @@ public class DossieProdutoResource {
                             "simtr-hub.dossie-produto.validacao-negocial.requisicao.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
-                                    "operacao", "registrar-validacao-negocial-dossie-produto",
-                                    "dossie_produto_id", id,
-                                    "erro_tipo", erro.getClass().getSimpleName(),
-                                    "resultado", "erro"
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    OPERACAO_KEY, REGISTRAR_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO,
+                                    DOSSIE_PRODUTO_ID_KEY, id,
+                                    ERRO_TIPO_KEY, erro.getClass().getSimpleName(),
+                                    RESULTADO_KEY, "erro"
                             )
                     );
                 });
@@ -617,18 +637,18 @@ public class DossieProdutoResource {
             Long id) {
 
         Span span = Span.current();
-        span.setAttribute("http.route", "/simtr-hub/v1/dossie-produto/{id}/workflow");
-        span.setAttribute("simtr_hub.api", "dossie-produto-v1");
-        setLongAttribute(span, "dossie_produto.id", id);
+        span.setAttribute(HTTP_ROUTE_ATTRIBUTE, "/simtr-hub/v1/dossie-produto/{id}/workflow");
+        span.setAttribute(SIMTR_HUB_API_ATTRIBUTE, DOSSIE_PRODUTO_API_V1);
+        setLongAttribute(span, DOSSIE_PRODUTO_ID_ATTRIBUTE, id);
 
         ObservabilityLog.info(
                 LOG,
                 "simtr-hub.dossie-produto.workflow.requisicao.recebida",
                 ObservabilityLog.fields(
-                        "camada", CAMADA,
-                        "componente", COMPONENTE,
-                        "operacao", "iniciar-ou-avancar-workflow-dossie-produto",
-                        "dossie_produto_id", id
+                        CAMADA_KEY, CAMADA,
+                        COMPONENTE_KEY, COMPONENTE,
+                        OPERACAO_KEY, INICIAR_OU_AVANCAR_WORKFLOW_DOSSIE_PRODUTO,
+                        DOSSIE_PRODUTO_ID_KEY, id
                 )
         );
 
@@ -646,12 +666,12 @@ public class DossieProdutoResource {
                             LOG,
                             "simtr-hub.dossie-produto.workflow.resposta.enviada",
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
-                                    "operacao", "iniciar-ou-avancar-workflow-dossie-produto",
-                                    "dossie_produto_id", id,
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    OPERACAO_KEY, INICIAR_OU_AVANCAR_WORKFLOW_DOSSIE_PRODUTO,
+                                    DOSSIE_PRODUTO_ID_KEY, id,
                                     "dossie_produto_id_resposta", resposta != null ? resposta.id() : null,
-                                    "resultado", "sucesso"
+                                    RESULTADO_KEY, SUCESSO
                             )
                     );
                 })
@@ -665,12 +685,12 @@ public class DossieProdutoResource {
                             "simtr-hub.dossie-produto.workflow.requisicao.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", CAMADA,
-                                    "componente", COMPONENTE,
-                                    "operacao", "iniciar-ou-avancar-workflow-dossie-produto",
-                                    "dossie_produto_id", id,
-                                    "erro_tipo", erro.getClass().getSimpleName(),
-                                    "resultado", "erro"
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    OPERACAO_KEY, INICIAR_OU_AVANCAR_WORKFLOW_DOSSIE_PRODUTO,
+                                    DOSSIE_PRODUTO_ID_KEY, id,
+                                    ERRO_TIPO_KEY, erro.getClass().getSimpleName(),
+                                    RESULTADO_KEY, "erro"
                             )
                     );
                 });
