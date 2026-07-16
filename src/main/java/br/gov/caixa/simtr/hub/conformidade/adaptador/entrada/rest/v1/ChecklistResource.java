@@ -38,6 +38,9 @@ import org.jboss.logging.Logger;
 public class ChecklistResource {
 
     private static final Logger LOG = Logger.getLogger(ChecklistResource.class);
+    private static final String CAMADA = "api";
+    private static final String COMPONENTE = "ChecklistResource";
+    private static final String OPERACAO = "consultar-checklist";
 
     private final ConsultarChecklist consultarChecklist;
 
@@ -95,9 +98,9 @@ public class ChecklistResource {
                 LOG,
                 "simtr-hub.checklist.requisicao.recebida",
                 ObservabilityLog.fields(
-                        "camada", "api",
-                        "componente", "ChecklistResource",
-                        "operacao", "consultar-checklist",
+                        "camada", CAMADA,
+                        "componente", COMPONENTE,
+                        "operacao", OPERACAO,
                         "identificador_negocial", identificador,
                         "versao", versao
                 )
@@ -118,9 +121,9 @@ public class ChecklistResource {
                             LOG,
                             "simtr-hub.checklist.resposta.enviada",
                             ObservabilityLog.fields(
-                                    "camada", "api",
-                                    "componente", "ChecklistResource",
-                                    "operacao", "consultar-checklist",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
+                                    "operacao", OPERACAO,
                                     "identificador_negocial", identificador,
                                     "versao", versao,
                                     "resultado", "sucesso",
@@ -139,9 +142,9 @@ public class ChecklistResource {
                             "simtr-hub.checklist.requisicao.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", "api",
-                                    "componente", "ChecklistResource",
-                                    "operacao", "consultar-checklist",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
+                                    "operacao", OPERACAO,
                                     "identificador_negocial", identificador,
                                     "versao", versao,
                                     "erro_tipo", erro.getClass().getSimpleName(),
