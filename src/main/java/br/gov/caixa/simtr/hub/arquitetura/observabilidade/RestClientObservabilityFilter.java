@@ -40,6 +40,8 @@ public class RestClientObservabilityFilter implements ClientRequestFilter, Clien
 
     private static final String INVOKED_METHOD_PROPERTY = "org.eclipse.microprofile.rest.client.invokedMethod";
     private static final String START_NANO_PROPERTY = RestClientObservabilityFilter.class.getName() + ".startNano";
+    private static final String REST_CLIENT_CLASS_ATTRIBUTE = "rest_client.class";
+    private static final String REST_CLIENT_OPERATION_ATTRIBUTE = "rest_client.operation";
 
     private static final String PAYLOAD_ENABLED_PROPERTY =
             "simtr-hub.observabilidade.rest-client.payload.habilitado";
@@ -82,15 +84,15 @@ public class RestClientObservabilityFilter implements ClientRequestFilter, Clien
         span.setAttribute("rest_client.request.method", requestContext.getMethod());
         span.setAttribute("rest_client.url", uri.toString());
         span.setAttribute("rest_client.url.path", uri.getPath());
-        span.setAttribute("rest_client.class", invocation.className());
-        span.setAttribute("rest_client.operation", invocation.methodName());
+        span.setAttribute(REST_CLIENT_CLASS_ATTRIBUTE, invocation.className());
+        span.setAttribute(REST_CLIENT_OPERATION_ATTRIBUTE, invocation.methodName());
         span.setAttribute("rest_client.payload.enabled", payloadEnabled);
         putPayloadAttributes(span, "rest_client.request", requestPayload);
         span.addEvent("mtr.rest-client.request.enviada", Attributes.builder()
                 .put("http.request.method", requestContext.getMethod())
                 .put("url.full", uri.toString())
-                .put("rest_client.class", invocation.className())
-                .put("rest_client.operation", invocation.methodName())
+                .put(REST_CLIENT_CLASS_ATTRIBUTE, invocation.className())
+                .put(REST_CLIENT_OPERATION_ATTRIBUTE, invocation.methodName())
                 .build());
 
         ObservabilityLog.info(
@@ -131,8 +133,8 @@ public class RestClientObservabilityFilter implements ClientRequestFilter, Clien
                 .put("http.response.status_code", responseContext.getStatus())
                 .put("rest_client.duration_ms", durationMillis)
                 .put("url.full", uri.toString())
-                .put("rest_client.class", invocation.className())
-                .put("rest_client.operation", invocation.methodName())
+                .put(REST_CLIENT_CLASS_ATTRIBUTE, invocation.className())
+                .put(REST_CLIENT_OPERATION_ATTRIBUTE, invocation.methodName())
                 .build());
 
         ObservabilityLog.info(
