@@ -19,6 +19,9 @@ import org.jboss.logging.Logger;
 public class CriacaoDossieProdutoObservabilidade implements CriarDossieProduto {
 
     private static final Logger LOG = Logger.getLogger(CriacaoDossieProdutoObservabilidade.class);
+    private static final String CAMADA = "application";
+    private static final String COMPONENTE = "DossieProdutoService";
+    private static final String OPERACAO = "criar-dossie-produto";
 
     private final CriarDossieProduto casoDeUso;
     private final boolean simuladorHabilitado;
@@ -50,9 +53,9 @@ public class CriacaoDossieProdutoObservabilidade implements CriarDossieProduto {
 
         ObservabilityLog.info(LOG, "simtr-hub.dossie-produto.service.iniciado",
                 ObservabilityLog.fields(
-                        "camada", "application",
-                        "componente", "DossieProdutoService",
-                        "operacao", "criar-dossie-produto",
+                        "camada", CAMADA,
+                        "componente", COMPONENTE,
+                        "operacao", OPERACAO,
                         "processo", processo,
                         "chave_correlacao_canal", chaveCorrelacaoCanal,
                         "clientes_quantidade", quantidadeClientes,
@@ -65,9 +68,9 @@ public class CriacaoDossieProdutoObservabilidade implements CriarDossieProduto {
                     }
                     ObservabilityLog.info(LOG, "simtr-hub.dossie-produto.service.concluido",
                             ObservabilityLog.fields(
-                                    "camada", "application",
-                                    "componente", "DossieProdutoService",
-                                    "operacao", "criar-dossie-produto",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
+                                    "operacao", OPERACAO,
                                     "processo", processo,
                                     "chave_correlacao_canal", chaveCorrelacaoCanal,
                                     "dossie_produto_id", resposta != null
@@ -79,9 +82,9 @@ public class CriacaoDossieProdutoObservabilidade implements CriarDossieProduto {
                     span.setStatus(StatusCode.ERROR, String.valueOf(erro.getMessage()));
                     ObservabilityLog.error(LOG, "simtr-hub.dossie-produto.service.falhou", erro,
                             ObservabilityLog.fields(
-                                    "camada", "application",
-                                    "componente", "DossieProdutoService",
-                                    "operacao", "criar-dossie-produto",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
+                                    "operacao", OPERACAO,
                                     "processo", processo,
                                     "chave_correlacao_canal", chaveCorrelacaoCanal,
                                     "erro_tipo", erro.getClass().getSimpleName(),
