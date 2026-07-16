@@ -29,6 +29,14 @@ public class ChecklistMtrAdapter implements ObterChecklist {
     private static final Logger LOG = Logger.getLogger(ChecklistMtrAdapter.class);
     private static final String PACOTE_EXCECAO_MTR_LEGADA =
             "br.gov.caixa.simtr.hub.arquitetura.excecao.";
+    private static final String CAMADA = "camada";
+    private static final String INFRASTRUCTURE = "infrastructure";
+    private static final String COMPONENTE = "componente";
+    private static final String GATEWAY = "ParametrizacaoChecklistGateway";
+    private static final String DEPENDENCIA = "dependencia";
+    private static final String PARAMETRIZACAO = "simtr-parametrizacao";
+    private static final String OPERACAO = "operacao";
+    private static final String CONSULTAR = "consultar-checklist-parametrizacao-v1";
 
     private final ParametrizacaoChecklistClient client;
     private final ChecklistMtrMapper mapper;
@@ -67,10 +75,10 @@ public class ChecklistMtrAdapter implements ObterChecklist {
                 LOG,
                 "mtr.parametrizacao.checklist.chamada.iniciada",
                 ObservabilityLog.fields(
-                        "camada", "infrastructure",
-                        "componente", "ParametrizacaoChecklistGateway",
-                        "dependencia", "simtr-parametrizacao",
-                        "operacao", "consultar-checklist-parametrizacao-v1",
+                        CAMADA, INFRASTRUCTURE,
+                        COMPONENTE, GATEWAY,
+                        DEPENDENCIA, PARAMETRIZACAO,
+                        OPERACAO, CONSULTAR,
                         "identificador_negocial", identificador,
                         "versao", versao
                 )
@@ -101,10 +109,10 @@ public class ChecklistMtrAdapter implements ObterChecklist {
                             LOG,
                             "mtr.parametrizacao.checklist.chamada.concluida",
                             ObservabilityLog.fields(
-                                    "camada", "infrastructure",
-                                    "componente", "ParametrizacaoChecklistGateway",
-                                    "dependencia", "simtr-parametrizacao",
-                                    "operacao", "consultar-checklist-parametrizacao-v1",
+                                    CAMADA, INFRASTRUCTURE,
+                                    COMPONENTE, GATEWAY,
+                                    DEPENDENCIA, PARAMETRIZACAO,
+                                    OPERACAO, CONSULTAR,
                                     "identificador_negocial", identificador,
                                     "versao", versao,
                                     "checklist_nome", resposta != null ? resposta.nome() : null,
@@ -123,10 +131,10 @@ public class ChecklistMtrAdapter implements ObterChecklist {
                             "mtr.parametrizacao.checklist.chamada.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", "infrastructure",
-                                    "componente", "ParametrizacaoChecklistGateway",
-                                    "dependencia", "simtr-parametrizacao",
-                                    "operacao", "consultar-checklist-parametrizacao-v1",
+                                    CAMADA, INFRASTRUCTURE,
+                                    COMPONENTE, GATEWAY,
+                                    DEPENDENCIA, PARAMETRIZACAO,
+                                    OPERACAO, CONSULTAR,
                                     "identificador_negocial", identificador,
                                     "versao", versao,
                                     "erro_tipo", tipoErroSimplesTelemetria(erro),
