@@ -54,6 +54,8 @@ import java.util.Objects;
 public class DossieProdutoResource {
 
     private static final Logger LOG = Logger.getLogger(DossieProdutoResource.class);
+    private static final String CAMADA = "api";
+    private static final String COMPONENTE = "DossieProdutoResource";
 
     private final CriarDossieProduto criarDossieProduto;
     private final AtualizarFormularioDossieProduto atualizarFormularioDossieProduto;
@@ -136,8 +138,8 @@ public class DossieProdutoResource {
                 LOG,
                 "simtr-hub.dossie-produto.requisicao.recebida",
                 ObservabilityLog.fields(
-                        "camada", "api",
-                        "componente", "DossieProdutoResource",
+                        "camada", CAMADA,
+                        "componente", COMPONENTE,
                         "operacao", "criar-dossie-produto",
                         "processo", processo,
                         "chave_correlacao_canal", chaveCorrelacaoCanal,
@@ -159,8 +161,8 @@ public class DossieProdutoResource {
                             LOG,
                             "simtr-hub.dossie-produto.resposta.enviada",
                             ObservabilityLog.fields(
-                                    "camada", "api",
-                                    "componente", "DossieProdutoResource",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
                                     "operacao", "criar-dossie-produto",
                                     "processo", processo,
                                     "chave_correlacao_canal", chaveCorrelacaoCanal,
@@ -181,8 +183,8 @@ public class DossieProdutoResource {
                             "simtr-hub.dossie-produto.requisicao.falhou",
                             erro,
                             ObservabilityLog.fields(
-                                    "camada", "api",
-                                    "componente", "DossieProdutoResource",
+                                    "camada", CAMADA,
+                                    "componente", COMPONENTE,
                                     "operacao", "criar-dossie-produto",
                                     "processo", processo,
                                     "chave_correlacao_canal", chaveCorrelacaoCanal,
