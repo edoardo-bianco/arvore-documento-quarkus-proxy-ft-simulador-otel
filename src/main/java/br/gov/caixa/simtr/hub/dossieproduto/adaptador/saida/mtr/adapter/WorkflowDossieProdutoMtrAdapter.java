@@ -35,6 +35,7 @@ public class WorkflowDossieProdutoMtrAdapter implements AvancarWorkflowDossiePro
     private static final String DOSSIE = "simtr-dossie-produto";
     private static final String OPERACAO = "operacao";
     private static final String WORKFLOW = "iniciar-ou-avancar-workflow-dossie-produto-v1";
+    private static final String DOSSIE_PRODUTO_ID = "dossie_produto_id";
 
     private final WorkflowDossieProdutoMtrClient client;
 
@@ -48,7 +49,7 @@ public class WorkflowDossieProdutoMtrAdapter implements AvancarWorkflowDossiePro
     public Uni<ResultadoWorkflowDossieProduto> avancar(IdentificadorDossieProduto identificador) {
         Long id = identificador.valor();
         Span span = Span.current();
-        span.setAttribute("mtr.servico", "simtr-dossie-produto");
+        span.setAttribute("mtr.servico", DOSSIE);
         span.setAttribute("mtr.api", "dossie-produto-v1");
         span.setAttribute("http.request.method", "POST");
         span.setAttribute("url.path", "/simtr/dossie-produto/v1/dossie-produto/" + id + "/workflow");
@@ -62,7 +63,7 @@ public class WorkflowDossieProdutoMtrAdapter implements AvancarWorkflowDossiePro
                 ObservabilityLog.fields(
                         CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
                         DEPENDENCIA, DOSSIE, OPERACAO, WORKFLOW,
-                        "dossie_produto_id", id));
+                        DOSSIE_PRODUTO_ID, id));
 
         return client.iniciarOuAvancar(id)
                 .invoke(resposta -> {
@@ -76,7 +77,7 @@ public class WorkflowDossieProdutoMtrAdapter implements AvancarWorkflowDossiePro
                             ObservabilityLog.fields(
                                     CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
                                     DEPENDENCIA, DOSSIE, OPERACAO, WORKFLOW,
-                                    "dossie_produto_id", id,
+                                    DOSSIE_PRODUTO_ID, id,
                                     "dossie_produto_id_resposta", resposta != null ? resposta.id() : null,
                                     "resultado", "sucesso"));
                 })
@@ -92,7 +93,7 @@ public class WorkflowDossieProdutoMtrAdapter implements AvancarWorkflowDossiePro
                             ObservabilityLog.fields(
                                     CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
                                     DEPENDENCIA, DOSSIE, OPERACAO, WORKFLOW,
-                                    "dossie_produto_id", id,
+                                    DOSSIE_PRODUTO_ID, id,
                                     "erro_tipo", erro.getClass().getSimpleName(),
                                     "resultado", "erro"));
                 })
@@ -108,7 +109,7 @@ public class WorkflowDossieProdutoMtrAdapter implements AvancarWorkflowDossiePro
                 ? FalhaWorkflowDossieProduto.Tipo.TIMEOUT
                 : FalhaWorkflowDossieProduto.Tipo.DEPENDENCIA_INDISPONIVEL;
         return new FalhaWorkflowDossieProduto(
-                tipo, null, "simtr-dossie-produto", null, null,
+                tipo, null, DOSSIE, null, null,
                 null, null, null, falha);
     }
 

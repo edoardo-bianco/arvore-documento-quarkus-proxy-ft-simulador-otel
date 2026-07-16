@@ -36,6 +36,8 @@ public class CriacaoDossieProdutoMtrAdapter implements SolicitarCriacaoDossiePro
     private static final String DOSSIE = "simtr-dossie-produto";
     private static final String OPERACAO = "operacao";
     private static final String CRIAR = "criar-dossie-produto-v1";
+    private static final String PROCESSO = "processo";
+    private static final String CHAVE_CORRELACAO_CANAL = "chave_correlacao_canal";
 
     private final CriacaoDossieProdutoMtrClient client;
     private final CriacaoDossieProdutoMtrMapper mapper;
@@ -58,7 +60,7 @@ public class CriacaoDossieProdutoMtrAdapter implements SolicitarCriacaoDossiePro
                 ? comando.clientes().size() : null;
 
         Span span = Span.current();
-        span.setAttribute("mtr.servico", "simtr-dossie-produto");
+        span.setAttribute("mtr.servico", DOSSIE);
         span.setAttribute("mtr.api", "dossie-produto-v1");
         span.setAttribute("http.request.method", "POST");
         span.setAttribute("url.path", "/simtr/dossie-produto/v1/dossie-produto");
@@ -70,8 +72,8 @@ public class CriacaoDossieProdutoMtrAdapter implements SolicitarCriacaoDossiePro
                 ObservabilityLog.fields(
                         CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
                         DEPENDENCIA, DOSSIE, OPERACAO, CRIAR,
-                        "processo", processo,
-                        "chave_correlacao_canal", chaveCorrelacaoCanal,
+                        PROCESSO, processo,
+                        CHAVE_CORRELACAO_CANAL, chaveCorrelacaoCanal,
                         "clientes_quantidade", quantidadeClientes));
 
         return client.criar(mapper.paraMtr(comando))
@@ -84,8 +86,8 @@ public class CriacaoDossieProdutoMtrAdapter implements SolicitarCriacaoDossiePro
                             ObservabilityLog.fields(
                                     CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
                                     DEPENDENCIA, DOSSIE, OPERACAO, CRIAR,
-                                    "processo", processo,
-                                    "chave_correlacao_canal", chaveCorrelacaoCanal,
+                                    PROCESSO, processo,
+                                    CHAVE_CORRELACAO_CANAL, chaveCorrelacaoCanal,
                                     "dossie_produto_id", resposta != null ? resposta.id() : null,
                                     "resultado", "sucesso"));
                 })
@@ -98,8 +100,8 @@ public class CriacaoDossieProdutoMtrAdapter implements SolicitarCriacaoDossiePro
                             ObservabilityLog.fields(
                                     CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
                                     DEPENDENCIA, DOSSIE, OPERACAO, CRIAR,
-                                    "processo", processo,
-                                    "chave_correlacao_canal", chaveCorrelacaoCanal,
+                                    PROCESSO, processo,
+                                    CHAVE_CORRELACAO_CANAL, chaveCorrelacaoCanal,
                                     "erro_tipo", erro.getClass().getSimpleName(),
                                     "resultado", "erro"));
                 })
@@ -115,7 +117,7 @@ public class CriacaoDossieProdutoMtrAdapter implements SolicitarCriacaoDossiePro
                 ? FalhaCriacaoDossieProduto.Tipo.TIMEOUT
                 : FalhaCriacaoDossieProduto.Tipo.DEPENDENCIA_INDISPONIVEL;
         return new FalhaCriacaoDossieProduto(
-                tipo, null, "simtr-dossie-produto", null, null,
+                tipo, null, DOSSIE, null, null,
                 null, null, null, falha);
     }
 

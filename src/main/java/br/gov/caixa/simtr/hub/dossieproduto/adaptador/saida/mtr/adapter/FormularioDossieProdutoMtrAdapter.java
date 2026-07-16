@@ -39,6 +39,7 @@ public class FormularioDossieProdutoMtrAdapter
     private static final String DOSSIE = "simtr-dossie-produto";
     private static final String OPERACAO = "operacao";
     private static final String ATUALIZAR = "atualizar-formulario-dossie-produto-v1";
+    private static final String DOSSIE_PRODUTO_ID = "dossie_produto_id";
 
     private final FormularioDossieProdutoMtrClient client;
     private final FormularioDossieProdutoMtrMapper mapper;
@@ -62,7 +63,7 @@ public class FormularioDossieProdutoMtrAdapter
         Integer quantidadeRespostas = quantidadeRespostas(comando);
 
         Span span = Span.current();
-        span.setAttribute("mtr.servico", "simtr-dossie-produto");
+        span.setAttribute("mtr.servico", DOSSIE);
         span.setAttribute("mtr.api", "dossie-produto-v1");
         span.setAttribute("http.request.method", "PATCH");
         span.setAttribute("url.path", "/simtr/dossie-produto/v1/dossie-produto/"
@@ -77,7 +78,7 @@ public class FormularioDossieProdutoMtrAdapter
                 ObservabilityLog.fields(
                         CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
                         DEPENDENCIA, DOSSIE, OPERACAO, ATUALIZAR,
-                        "dossie_produto_id", identificador,
+                        DOSSIE_PRODUTO_ID, identificador,
                         "formulario_vinculos_quantidade", quantidadeVinculos,
                         "formulario_respostas_quantidade", quantidadeRespostas));
 
@@ -92,7 +93,7 @@ public class FormularioDossieProdutoMtrAdapter
                             ObservabilityLog.fields(
                                     CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
                                     DEPENDENCIA, DOSSIE, OPERACAO, ATUALIZAR,
-                                    "dossie_produto_id", identificador,
+                                    DOSSIE_PRODUTO_ID, identificador,
                                     "dossie_produto_id_resposta",
                                     resposta != null ? resposta.id() : null,
                                     "resultado", "sucesso"));
@@ -107,7 +108,7 @@ public class FormularioDossieProdutoMtrAdapter
                             ObservabilityLog.fields(
                                     CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
                                     DEPENDENCIA, DOSSIE, OPERACAO, ATUALIZAR,
-                                    "dossie_produto_id", identificador,
+                                    DOSSIE_PRODUTO_ID, identificador,
                                     "erro_tipo", erro.getClass().getSimpleName(),
                                     "resultado", "erro"));
                 })
@@ -123,7 +124,7 @@ public class FormularioDossieProdutoMtrAdapter
                 ? FalhaAtualizacaoFormularioDossieProduto.Tipo.TIMEOUT
                 : FalhaAtualizacaoFormularioDossieProduto.Tipo.DEPENDENCIA_INDISPONIVEL;
         return new FalhaAtualizacaoFormularioDossieProduto(
-                tipo, null, "simtr-dossie-produto", null, null,
+                tipo, null, DOSSIE, null, null,
                 null, null, null, falha);
     }
 

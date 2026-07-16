@@ -35,6 +35,10 @@ public class ValidacaoNegocialDossieProdutoMtrAdapter
     private static final String GATEWAY = "DossieProdutoGateway";
     private static final String DEPENDENCIA = "dependencia";
     private static final String DOSSIE = "simtr-dossie-produto";
+    private static final String OPERACAO = "operacao";
+    private static final String REGISTRAR =
+            "registrar-validacao-negocial-dossie-produto-v1";
+    private static final String DOSSIE_PRODUTO_ID = "dossie_produto_id";
 
     private final ValidacaoNegocialDossieProdutoMtrClient client;
     private final ValidacaoNegocialDossieProdutoMtrMapper mapper;
@@ -59,7 +63,7 @@ public class ValidacaoNegocialDossieProdutoMtrAdapter
                 ? comando.respostasFormulario().size() : null;
 
         Span span = Span.current();
-        span.setAttribute("mtr.servico", "simtr-dossie-produto");
+        span.setAttribute("mtr.servico", DOSSIE);
         span.setAttribute("mtr.api", "dossie-produto-v1");
         span.setAttribute("http.request.method", "PATCH");
         span.setAttribute("url.path", "/simtr/dossie-produto/v1/dossie-produto/"
@@ -75,8 +79,8 @@ public class ValidacaoNegocialDossieProdutoMtrAdapter
                 ObservabilityLog.fields(
                         CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
                         DEPENDENCIA, DOSSIE,
-                        "operacao", "registrar-validacao-negocial-dossie-produto-v1",
-                        "dossie_produto_id", identificador,
+                        OPERACAO, REGISTRAR,
+                        DOSSIE_PRODUTO_ID, identificador,
                         "validacao_verificacoes_quantidade", quantidadeVerificacoes,
                         "validacao_respostas_formulario_quantidade", quantidadeRespostas));
 
@@ -88,9 +92,8 @@ public class ValidacaoNegocialDossieProdutoMtrAdapter
                             ObservabilityLog.fields(
                                     CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
                                     DEPENDENCIA, DOSSIE,
-                                    "operacao",
-                                    "registrar-validacao-negocial-dossie-produto-v1",
-                                    "dossie_produto_id", identificador,
+                                    OPERACAO, REGISTRAR,
+                                    DOSSIE_PRODUTO_ID, identificador,
                                     "resultado", "sucesso"));
                 })
                 .onFailure().invoke(erro -> {
@@ -104,9 +107,8 @@ public class ValidacaoNegocialDossieProdutoMtrAdapter
                             ObservabilityLog.fields(
                                     CAMADA, INFRASTRUCTURE, COMPONENTE, GATEWAY,
                                     DEPENDENCIA, DOSSIE,
-                                    "operacao",
-                                    "registrar-validacao-negocial-dossie-produto-v1",
-                                    "dossie_produto_id", identificador,
+                                    OPERACAO, REGISTRAR,
+                                    DOSSIE_PRODUTO_ID, identificador,
                                     "erro_tipo", erro.getClass().getSimpleName(),
                                     "resultado", "erro"));
                 })
@@ -121,7 +123,7 @@ public class ValidacaoNegocialDossieProdutoMtrAdapter
                 ? FalhaRegistroValidacaoNegocialDossieProduto.Tipo.TIMEOUT
                 : FalhaRegistroValidacaoNegocialDossieProduto.Tipo.DEPENDENCIA_INDISPONIVEL;
         return new FalhaRegistroValidacaoNegocialDossieProduto(
-                tipo, null, "simtr-dossie-produto", null, null,
+                tipo, null, DOSSIE, null, null,
                 null, null, null, falha);
     }
 
