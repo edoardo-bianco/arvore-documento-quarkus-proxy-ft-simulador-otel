@@ -526,9 +526,11 @@ class ArchUnitProgressivoTest {
         private Object blobClient;
 
         void renovarSas() {
+            // Fixture deliberada: representa a violação de cache SAS proibido.
         }
 
         void uploadArquivo() {
+            // Fixture deliberada: representa a violação de upload proibido.
         }
     }
 }

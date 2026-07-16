@@ -23,7 +23,18 @@ Os maiores agrupamentos S1192 estão em `DossieProdutoResource` (19), `Checklist
 - `git diff --check`: aprovado; somente avisos normais de conversão LF/CRLF.
 - Nenhum token do Sonar foi persistido em arquivo ou configuração.
 
+## Recontagem após a Fase 14
+
+Na análise posterior ao commit baseline, as 175 HIGH ficaram distribuídas em:
+
+| Regra | Quantidade |
+|---|---:|
+| `java:S1192` | 163 |
+| `java:S1948` | 8 |
+| `java:S1186` | 4 |
+
+Os dois `S3776` tratados na Fase 14 não aparecem mais como HIGH.
+
 ## Primeiro piloto S1192
 
 Foram extraídas constantes `private static final` apenas para chaves e valores repetidos dos três eventos de observabilidade de `GestaoDocumentoObservabilidade`. Os valores emitidos (`camada`, `application`, `componente`, `operacao` e seus conteúdos) permanecem idênticos. Não houve alteração de endpoint, contrato, fluxo, tratamento de erro ou telemetria.
-

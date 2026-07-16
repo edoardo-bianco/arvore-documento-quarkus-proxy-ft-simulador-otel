@@ -263,6 +263,7 @@ class ChecklistNovoClientQuarkusTest {
 
         @Override
         public void flush() {
+            // No-op deliberado: appender de teste sem estado pendente.
         }
 
         @Override
