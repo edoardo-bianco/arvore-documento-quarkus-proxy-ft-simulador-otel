@@ -437,3 +437,15 @@ nos checkpoints C16-A, C16-B e C16-C.
 
 O C16-A recebeu GO humano em 2026-07-17. As Tasks 16.3 a 16.5 estão autorizadas, com parada
 obrigatória no C16-B.
+
+## Evidências do bloco C16-B
+
+### Task 16.3
+
+- Commit: `b19ad9c5f57ac75ebe32612f8aa1667e496f96c8`.
+- Os 12 `java:S1192` dos cinco testes compartilhados foram tratados; cada literal do CSV ficou
+  com uma única ocorrência no arquivo correspondente.
+- Testes focados e `mvn -q clean test` passaram.
+- Sonar Docker analysis `0890b302-6e13-491a-8658-4e982278426b`: Quality Gate `OK`, 214 issues
+  antes e depois, zero issue nova, zero `java:S1192`, cobertura 80,0% e duplicação 5,9%.
+- Nenhum token foi persistido e nenhum arquivo de produção foi alterado.
