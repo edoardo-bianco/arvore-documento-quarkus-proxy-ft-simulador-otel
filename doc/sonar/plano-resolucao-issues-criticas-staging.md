@@ -479,3 +479,16 @@ As Tasks 16.3 a 16.5 corrigiram localmente os 26 `java:S1192` previstos para o b
 fechamento no Sonar oficial permanece pendente da análise oficial e não é antecipado por este
 registro. O C16-B recebeu GO humano em 2026-07-17; as Tasks 16.6 a 16.9 estão autorizadas em
 ordem, com parada obrigatória no C16-C.
+
+### Task 16.6
+
+- Commit: `9a6082e78d6b37e56f67f98fe1c40c62755967bc`.
+- Os 9 `java:S1192` dos quatro testes de conformidade foram tratados com constantes privadas;
+  apontamentos, metadados MTR, media type, status, mensagens e payloads JSON não mudaram.
+- Os quatro testes focados passaram. `mvn -q clean test` executou 348 testes, sem falhas, erros ou
+  testes ignorados.
+- JaCoCo: 91,12% de instruções, 88,48% de linhas, 60,16% de branches, 96,58% de métodos e
+  93,75% de classes.
+- Sonar Docker analysis `5e0009d9-3877-4d16-ac08-4f1b4998f2e7`: Quality Gate `OK`, 214 issues
+  antes e depois, zero issue nova, zero `java:S1192`, cobertura 80,0% e duplicação 5,9%.
+- Nenhum token foi persistido e nenhum arquivo de produção foi alterado.
