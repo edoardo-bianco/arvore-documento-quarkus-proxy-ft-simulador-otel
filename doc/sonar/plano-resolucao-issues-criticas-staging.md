@@ -449,3 +449,13 @@ obrigatória no C16-B.
 - Sonar Docker analysis `0890b302-6e13-491a-8658-4e982278426b`: Quality Gate `OK`, 214 issues
   antes e depois, zero issue nova, zero `java:S1192`, cobertura 80,0% e duplicação 5,9%.
 - Nenhum token foi persistido e nenhum arquivo de produção foi alterado.
+
+### Task 16.4
+
+- Commit: `8185c52bdcb08067cd4d2be0976f49804fa347d6`.
+- Os 10 `java:S1192` dos três testes de modelo/REST de árvore documental foram tratados; cada
+  literal do CSV ficou com uma única ocorrência no arquivo correspondente.
+- Testes focados e `mvn -q clean test` passaram.
+- Sonar Docker analysis `9f311fb0-aa7b-4197-9d87-80d257b52c3c`: Quality Gate `OK`, 214 issues
+  antes e depois, zero issue nova, zero `java:S1192`, cobertura 80,0% e duplicação 5,9%.
+- Nenhum token foi persistido e nenhum arquivo de produção foi alterado.
