@@ -1841,5 +1841,5 @@ fronteiras DDD.
 - Gate Sonar Docker da Task 16.5 no commit `9e8805d`: analysis
   `a9ae4b61-9110-4505-914b-0250983e2098`, Quality Gate OK, 214 issues antes/depois, zero nova,
   zero `java:S1192` e duplicação de 5,9%.
-- Nenhum token foi persistido. A execução está parada no C16-B e a Task 16.6 depende de GO
-  humano explícito.
+- Nenhum token foi persistido. O C16-B recebeu GO humano em 2026-07-17; as Tasks 16.6 a 16.9
+  estão autorizadas em ordem, com parada obrigatória no C16-C.

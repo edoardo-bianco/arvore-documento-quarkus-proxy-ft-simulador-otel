@@ -1,6 +1,6 @@
 # Plano de resolução das issues críticas do Sonar oficial
 
-Status: **PARADO NO C16-B — evidências técnicas completas; GO humano pendente**.
+Status: **EM EXECUÇÃO — C16-B aprovado; bloco C16-C autorizado**.
 
 - Fonte exclusiva: `doc/sonar/sonar-issues-staging.csv`.
 - Branch de trabalho: `refactor/sonar-quality-fase-16-baseline`.
@@ -255,7 +255,7 @@ type, mantendo a leitura DAMP dos cenários.
 - [x] 26 issues críticas deste bloco corrigidas localmente;
 - [x] `mvn -q clean test` passa;
 - [x] JaCoCo não fica abaixo da baseline registrada;
-- [ ] GO humano antes dos demais domínios.
+- [x] GO humano antes dos demais domínios.
 
 ### Task 16.6 — Tratar 9 `S1192` de conformidade
 
@@ -477,5 +477,5 @@ obrigatória no C16-B.
 
 As Tasks 16.3 a 16.5 corrigiram localmente os 26 `java:S1192` previstos para o bloco. O
 fechamento no Sonar oficial permanece pendente da análise oficial e não é antecipado por este
-registro. As evidências técnicas estão completas, mas a Task 16.6 continua bloqueada até GO
-humano explícito no C16-B.
+registro. O C16-B recebeu GO humano em 2026-07-17; as Tasks 16.6 a 16.9 estão autorizadas em
+ordem, com parada obrigatória no C16-C.

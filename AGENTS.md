@@ -20,8 +20,8 @@ Antes de alterar a arquitetura ou implementar uma etapa da refatoracao DDD:
 9. O package tecnico compartilhado de erro `arquitetura.excecao.dto` permanece como excecao
    arquitetural documentada; qualquer mudanca exige fase futura explicitamente autorizada.
 10. A Fase 12 foi encerrada com GO humano no C12. As Fases 13 a 16 usam especificacoes e branches
-    proprias; nao reutilize branches de fechamento. As Tasks 16.3 a 16.5 foram concluidas. A Fase
-    16 esta parada no checkpoint C16-B; a Task 16.6 depende de GO humano explicito no C16-B.
+    proprias; nao reutilize branches de fechamento. O C16-B recebeu GO humano. As Tasks 16.6 a
+    16.9 estao autorizadas em ordem, com parada obrigatoria no checkpoint C16-C.
 11. Na Fase 16, execute o Sonar Docker local apos cada task concluida, compare as chaves de issues
     antes e depois e exija Quality Gate `OK`, zero issue nova e zero `java:S1192` nos arquivos do
     lote. O token deve existir somente na memoria do processo e nunca ser persistido.
