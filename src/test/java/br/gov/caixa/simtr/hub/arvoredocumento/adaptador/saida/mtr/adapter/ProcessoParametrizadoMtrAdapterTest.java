@@ -25,6 +25,8 @@ import org.junit.jupiter.api.Test;
 
 class ProcessoParametrizadoMtrAdapterTest {
 
+    private static final String NOME_FUNCAO_DOCUMENTAL = "Formalizacao";
+
     @Test
     void mapeiaArvoreCompletaNulosEListasMutaveisParaOAgregadoDeLeitura() {
         var checklist = new ProcessoParametrizadoMtrResponse.ReferenciaChecklist(1000L, 5);
@@ -37,7 +39,7 @@ class ProcessoParametrizadoMtrAdapterTest {
                 "TIP-01", "Contrato", true, false, true, checklist
         );
         var funcao = new ProcessoParametrizadoMtrResponse.FuncaoDocumental(
-                "Formalizacao", List.of(tipoDocumento), checklist
+                NOME_FUNCAO_DOCUMENTAL, List.of(tipoDocumento), checklist
         );
         var documento = new ProcessoParametrizadoMtrResponse.Documento(
                 funcao, tipoDocumento, true
@@ -54,7 +56,7 @@ class ProcessoParametrizadoMtrAdapterTest {
                 List.of(campo), List.of(documento)
         );
         var fase = new ProcessoParametrizadoMtrResponse.Fase(
-                900L, "Formalizacao", true, null, 2, "Envie os documentos",
+                900L, NOME_FUNCAO_DOCUMENTAL, true, null, 2, "Envie os documentos",
                 List.of(produto), List.of(garantia), List.of(campo), List.of(documento),
                 List.of(checklist)
         );
@@ -101,7 +103,8 @@ class ProcessoParametrizadoMtrAdapterTest {
         assertEquals(500L, resultado.produtos().getFirst().codigoOperacao());
         assertEquals(501L, resultado.produtos().getFirst().codigoModalidade());
         assertEquals(700L, resultado.produtos().getFirst().garantias().getFirst().codigoBacen());
-        assertEquals("Formalizacao", resultado.produtos().getFirst().documentos().getFirst()
+        assertEquals(NOME_FUNCAO_DOCUMENTAL,
+                resultado.produtos().getFirst().documentos().getFirst()
                 .funcaoDocumental().nome());
         assertEquals("TIP-01", resultado.produtos().getFirst().documentos().getFirst()
                 .tipoDocumento().codigoTipologia());
