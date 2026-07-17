@@ -44,6 +44,11 @@ class DocumentoDossieProdutoMtrContractTest {
     SolicitarInclusaoDocumentoDossieProduto portaSaida;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final String MEDIA_TYPE_JSON = "application/json";
+    private static final String RESPONSE_DOCUMENTO =
+            "{\"id_documento\":456,\"id_instancia_documento\":789}";
+    private static final String RESPONSE_DOCUMENTO_RETRY =
+            "{\"id_documento\":457,\"id_instancia_documento\":790}";
     private static final String CAMINHO_DOCUMENTO =
             "/simtr/dossie-produto/v2/dossie-produto/123/documento";
     private static final String REQUEST_DOCUMENTO = """
@@ -115,7 +120,7 @@ class DocumentoDossieProdutoMtrContractTest {
     void preservaWireV2HeadersERespostaDoDocumentoComSimuladorDesabilitado()
             throws JsonProcessingException {
         DossieProdutoMtrStubTestResource.responder(201,
-                "{\"id_documento\":456,\"id_instancia_documento\":789}");
+                RESPONSE_DOCUMENTO);
 
         JsonNode response = postDocumento(REQUEST_DOCUMENTO).then()
                 .statusCode(201)
@@ -123,7 +128,7 @@ class DocumentoDossieProdutoMtrContractTest {
                 .extract().as(JsonNode.class);
 
         assertEquals(OBJECT_MAPPER.readTree(
-                "{\"id_documento\":456,\"id_instancia_documento\":789}"), response);
+                RESPONSE_DOCUMENTO), response);
 
         List<DossieProdutoMtrStubTestResource.CapturedRequest> requests =
                 DossieProdutoMtrStubTestResource.requisicoes();
@@ -133,8 +138,8 @@ class DocumentoDossieProdutoMtrContractTest {
         assertEquals("POST", request.method());
         assertEquals(CAMINHO_DOCUMENTO, request.path());
         assertEquals(OBJECT_MAPPER.readTree(REQUEST_DOCUMENTO), OBJECT_MAPPER.readTree(request.body()));
-        assertTrue(request.contentType().startsWith("application/json"));
-        assertTrue(request.accept().contains("application/json"));
+        assertTrue(request.contentType().startsWith(MEDIA_TYPE_JSON));
+        assertTrue(request.accept().contains(MEDIA_TYPE_JSON));
         assertEquals("test-apikey", request.apikey());
         assertEquals("Bearer stub-access-token", request.authorization());
         assertNotNull(request.traceparent());
@@ -145,7 +150,7 @@ class DocumentoDossieProdutoMtrContractTest {
     void preservaListasElementosECamposNulosAceitosNoWireDoDocumento()
             throws JsonProcessingException {
         DossieProdutoMtrStubTestResource.responder(201,
-                "{\"id_documento\":456,\"id_instancia_documento\":789}");
+                RESPONSE_DOCUMENTO);
 
         postDocumento(REQUEST_DOCUMENTO_COM_NULOS).then()
                 .statusCode(201)
@@ -184,7 +189,7 @@ class DocumentoDossieProdutoMtrContractTest {
                 {"codigo_http":500,"recurso":"simtr-dossie-produto","codigo_erro":"MTR-DOCUMENTO-500"}
                 """);
         DossieProdutoMtrStubTestResource.responder(201,
-                "{\"id_documento\":457,\"id_instancia_documento\":790}");
+                RESPONSE_DOCUMENTO_RETRY);
 
         JsonNode response = postDocumento(REQUEST_DOCUMENTO).then()
                 .statusCode(201)
@@ -192,7 +197,7 @@ class DocumentoDossieProdutoMtrContractTest {
                 .extract().as(JsonNode.class);
 
         assertEquals(OBJECT_MAPPER.readTree(
-                "{\"id_documento\":457,\"id_instancia_documento\":790}"), response);
+                RESPONSE_DOCUMENTO_RETRY), response);
         List<DossieProdutoMtrStubTestResource.CapturedRequest> requests =
                 DossieProdutoMtrStubTestResource.requisicoes();
         assertEquals(2, requests.size());
@@ -204,7 +209,7 @@ class DocumentoDossieProdutoMtrContractTest {
     void novoClientPreservaWireV2HeadersERespostaDoDocumento()
             throws JsonProcessingException {
         DossieProdutoMtrStubTestResource.responder(201,
-                "{\"id_documento\":456,\"id_instancia_documento\":789}");
+                RESPONSE_DOCUMENTO);
 
         var resposta = novoClient.incluir(123L, requestMtr()).await().indefinitely();
 
@@ -218,8 +223,8 @@ class DocumentoDossieProdutoMtrContractTest {
         assertEquals(CAMINHO_DOCUMENTO, request.path());
         assertEquals(OBJECT_MAPPER.readTree(REQUEST_DOCUMENTO),
                 OBJECT_MAPPER.readTree(request.body()));
-        assertTrue(request.contentType().startsWith("application/json"));
-        assertTrue(request.accept().contains("application/json"));
+        assertTrue(request.contentType().startsWith(MEDIA_TYPE_JSON));
+        assertTrue(request.accept().contains(MEDIA_TYPE_JSON));
         assertEquals("test-apikey", request.apikey());
         assertEquals("Bearer stub-access-token", request.authorization());
         assertNotNull(request.traceparent());
@@ -229,7 +234,7 @@ class DocumentoDossieProdutoMtrContractTest {
     void selecionaMtrQuandoSimuladorDesabilitadoEPreservaNulosNoWire()
             throws JsonProcessingException {
         DossieProdutoMtrStubTestResource.responder(201,
-                "{\"id_documento\":456,\"id_instancia_documento\":789}");
+                RESPONSE_DOCUMENTO);
 
         var resposta = portaSaida.incluir(comandoComNulos()).await().indefinitely();
 
@@ -277,7 +282,7 @@ class DocumentoDossieProdutoMtrContractTest {
                 {"codigo_http":500,"recurso":"simtr-dossie-produto","codigo_erro":"MTR-DOCUMENTO-500"}
                 """);
         DossieProdutoMtrStubTestResource.responder(201,
-                "{\"id_documento\":457,\"id_instancia_documento\":790}");
+                RESPONSE_DOCUMENTO_RETRY);
 
         var resposta = novoClient.incluir(123L, requestMtr()).await().indefinitely();
 
