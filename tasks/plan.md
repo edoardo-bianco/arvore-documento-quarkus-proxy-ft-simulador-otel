@@ -1862,3 +1862,21 @@ fronteiras DDD.
   produção, `pom.xml`, properties ou formatos derivados; nenhum token foi persistido.
 - O C16-C recebeu GO humano em 2026-07-17. A Task 16.10 está autorizada exclusivamente para
   publicar e verificar a análise final no Sonar oficial.
+
+### Resultado final da Fase 16
+
+- O usuário confirmou que o Sonar oficial desta fase é o SonarQube Docker local em
+  `http://localhost:9000`, projeto `simtr-hub-local`.
+- `mvn -q clean test` no commit `89c8d46b999753f1560425c1308389c9ba125659` terminou com código
+  zero: 348 testes, zero falhas, zero erros e zero ignorados.
+- JaCoCo preservado: 91,12% de instruções, 88,48% de linhas, 60,16% de branches, 96,58% de
+  métodos e 93,75% de classes.
+- Sonar analysis `88eb9849-c4c9-4022-b135-412cc269068d`: Compute Engine `SUCCESS`, Quality Gate
+  `OK`, 214 issues antes/depois, zero nova, zero fechada, zero `BLOCKER`, zero `CRITICAL`, zero
+  `java:S1192` e zero issue nos três paths ausentes.
+- Permanecem 137 issues `MAJOR` e 77 `MINOR` no projeto local. As 38 issues não críticas do CSV
+  inicial permanecem explicitamente fora do escopo desta fase.
+- Cobertura Sonar 80,0%, linhas 88,5%, branches 60,2%, duplicação 5,9%, bugs 0,
+  vulnerabilidades 0 e security hotspots 0.
+- Nenhum arquivo de produção, dependência, property ou formato derivado mudou; nenhum token foi
+  persistido. A Fase 16 está encerrada.

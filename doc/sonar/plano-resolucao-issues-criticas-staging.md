@@ -364,20 +364,20 @@ JaCoCo e registrando revisão, task da análise e Quality Gate.
 
 **Critérios de aceite:**
 
-- [ ] `CRITICAL=0` no Sonar oficial;
-- [ ] as 74 `S1192` acionáveis estão fechadas;
-- [ ] as 26 issues de paths ausentes não aparecem na análise;
-- [ ] nenhuma nova issue crítica foi introduzida;
-- [ ] as 38 issues não críticas do CSV inicial permanecem fora deste escopo;
-- [ ] Quality Gate aprovado e token não persistido.
+- [x] `CRITICAL=0` no Sonar oficial;
+- [x] as 74 `S1192` acionáveis estão fechadas;
+- [x] as 26 issues de paths ausentes não aparecem na análise;
+- [x] nenhuma nova issue crítica foi introduzida;
+- [x] as 38 issues não críticas do CSV inicial permanecem fora deste escopo;
+- [x] Quality Gate aprovado e token não persistido.
 
 **Verificação:**
 
-- [ ] `mvn -q clean test`;
-- [ ] relatório `target/jacoco-report/jacoco.xml` existente e importado;
-- [ ] `git diff --check`;
-- [ ] `git status --short` revisado;
-- [ ] consulta ao Sonar oficial por severidade e regra anexada ao checkpoint final.
+- [x] `mvn -q clean test`;
+- [x] relatório `target/jacoco-report/jacoco.xml` existente e importado;
+- [x] `git diff --check`;
+- [x] `git status --short` revisado;
+- [x] consulta ao Sonar oficial por severidade e regra anexada ao checkpoint final.
 
 **Dependências:** C16-C.
 
@@ -544,3 +544,21 @@ ordem, com parada obrigatória no C16-C.
   encontrou finding Critical ou Required.
 - O C16-C recebeu GO humano em 2026-07-17. A Task 16.10 e o scanner oficial estão autorizados
   exclusivamente para a análise final e sua verificação.
+
+### Resultado final da Task 16.10
+
+- O usuário confirmou que o Sonar oficial deste plano é o SonarQube Docker local em
+  `http://localhost:9000`, projeto `simtr-hub-local`.
+- Revisão analisada: `89c8d46b999753f1560425c1308389c9ba125659`.
+- `mvn -q clean test`: 348 testes, zero falhas, zero erros e zero ignorados. O XML JaCoCo foi
+  regenerado e importado pelo scanner Maven fixado em `5.5.0.6356`.
+- Analysis `88eb9849-c4c9-4022-b135-412cc269068d`: Compute Engine `SUCCESS`, Quality Gate `OK`,
+  214 issues antes/depois, zero issue nova e zero issue fechada.
+- Severidades abertas: zero `BLOCKER`, zero `CRITICAL`, 137 `MAJOR`, 77 `MINOR` e zero `INFO`.
+  Há zero `java:S1192` e zero issue associada aos três paths ausentes.
+- As 74 issues acionáveis e os 26 apontamentos de paths ausentes não aparecem na análise final.
+  As 38 issues não críticas do CSV original permanecem fora do escopo.
+- Sonar: cobertura 80,0%, linhas 88,5%, branches 60,2%, duplicação 5,9%, bugs 0,
+  vulnerabilidades 0 e security hotspots 0.
+- Nenhum token foi persistido e nenhum arquivo de produção, configuração ou formato derivado foi
+  alterado. A Fase 16 está encerrada.

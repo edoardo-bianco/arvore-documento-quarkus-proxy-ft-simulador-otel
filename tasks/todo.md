@@ -48,10 +48,9 @@ Antes de executar qualquer item:
 
 ## Ponto de retomada
 
-- **Ultimo marco concluido:** C16-C aprovado; as 74 issues acionaveis foram tratadas localmente.
-- **Fase atual:** Fase 16 no bloco de conformidade, dossie de produto e gestao de documentos, na branch
-  `refactor/sonar-quality-fase-16-baseline`.
-- **Proximo item:** Task 16.10, análise final no Sonar oficial.
+- **Ultimo marco concluido:** Task 16.10 e Fase 16 encerradas com análise final verde.
+- **Fase atual:** Fase 16 encerrada na branch `refactor/sonar-quality-fase-16-baseline`.
+- **Proximo item:** nenhum; qualquer continuidade exige nova fase, branch, plano e GO humano.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
   produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
@@ -1169,7 +1168,7 @@ suite e ArchUnit verdes; nenhum segredo no diff.
 - [x] 16.8 Tratar 5 `S1192` nos contratos MTR de dossiê de produto;
 - [x] 16.9 Tratar 7 `S1192` de gestão de documentos;
 - [x] C16-C Validar todas as 74 issues acionáveis;
-- [ ] 16.10 Publicar análise final no Sonar oficial.
+- [x] 16.10 Publicar análise final no Sonar oficial.
 
 | Checkpoint | Status | Data | Evidencias | Aprovador |
 |---|---|---|---|---|
@@ -1184,6 +1183,7 @@ suite e ArchUnit verdes; nenhum segredo no diff.
 | C16-16.8 | REGISTRADO | 2026-07-17 | Commit `3a8c098`; três testes focados e 348 testes da suíte completa verdes; Sonar Docker analysis `8e793fef-99ad-43c7-ab09-58e46c2ca3cf`: Quality Gate OK, 214 issues antes/depois, zero nova, zero S1192, cobertura 80,0% e duplicação 5,9% | Gate técnico automático |
 | C16-16.9 | REGISTRADO | 2026-07-17 | Commit `a46b465`; três testes focados e 348 testes da suíte completa verdes; Sonar Docker analysis `35ee26e9-71a3-4370-a7e2-83ba70f57c69`: Quality Gate OK, 214 issues antes/depois, zero nova, zero S1192, cobertura 80,0% e duplicação 5,9% | Gate técnico automático |
 | C16-C | GO | 2026-07-17 | As 74 issues acionáveis foram corrigidas localmente; 348 testes e JaCoCo preservados; Quality Gate Docker OK, zero issue nova e zero S1192; análise oficial autorizada | Usuario, GO registrado em conversa |
+| C16-16.10 | CONCLUIDO | 2026-07-17 | Revisão `89c8d46`; analysis `88eb9849-c4c9-4022-b135-412cc269068d`: CE SUCCESS, Quality Gate OK, 214 issues antes/depois, zero nova, zero BLOCKER/CRITICAL/S1192, zero issue nos três paths ausentes, cobertura 80,0% e duplicação 5,9% | Gate técnico final |
 
 ## Bloqueios que nao podem ser resolvidos por suposicao
 

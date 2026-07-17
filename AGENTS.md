@@ -14,18 +14,17 @@ Antes de alterar a arquitetura ou implementar uma etapa da refatoracao DDD:
 7. A refatoracao de producao foi encerrada com GO humano no checkpoint C6. As Fases 7 a 9 sao
    exclusivamente documentais e nao autorizam endpoint, contrato ou alteracao de producao.
 8. As Fases 0 a 12 foram encerradas com GO humano. A Fase 13 permanece documental, com NO-GO
-   recomendado para extracao de clones entre fronteiras. As Fases 14 e 15 foram encerradas. A
-   Fase 16 trata exclusivamente as issues `CRITICAL` do CSV oficial
-   `doc/sonar/sonar-issues-staging.csv`; o plano foi autorizado no C16-PLAN.
+   recomendado para extracao de clones entre fronteiras. As Fases 14 a 16 foram encerradas. A
+   Fase 16 tratou exclusivamente as issues `CRITICAL` do CSV oficial
+   `doc/sonar/sonar-issues-staging.csv`.
 9. O package tecnico compartilhado de erro `arquitetura.excecao.dto` permanece como excecao
    arquitetural documentada; qualquer mudanca exige fase futura explicitamente autorizada.
 10. A Fase 12 foi encerrada com GO humano no C12. As Fases 13 a 16 usam especificacoes e branches
-    proprias; nao reutilize branches de fechamento. O C16-B recebeu GO humano e as Tasks 16.6 a
-    16.9 foram concluidas. O C16-C recebeu GO humano e a Task 16.10 esta autorizada exclusivamente
-    para publicar e verificar a analise final no Sonar oficial.
-11. Na Fase 16, execute o Sonar Docker local apos cada task concluida, compare as chaves de issues
-    antes e depois e exija Quality Gate `OK`, zero issue nova e zero `java:S1192` nos arquivos do
-    lote. O token deve existir somente na memoria do processo e nunca ser persistido.
+    proprias; nao reutilize branches de fechamento. O C16-C recebeu GO humano, a Task 16.10 foi
+    concluida e a Fase 16 esta encerrada. Nenhum item posterior esta autorizado nesta branch.
+11. A analise final da Fase 16 no SonarQube Docker local terminou com Quality Gate `OK`, zero
+    `BLOCKER`, zero `CRITICAL`, zero issue nova e zero `java:S1192`. Qualquer trabalho Sonar futuro
+    exige nova fase, branch, plano e GO. Tokens devem existir somente na memoria do processo.
 
 ## Formatos derivados da documentacao
 
