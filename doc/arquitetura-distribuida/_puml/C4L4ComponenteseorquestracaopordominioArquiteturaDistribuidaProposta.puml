@@ -1,0 +1,126 @@
+@startuml
+!include <C4/C4_Component>
+
+title SIMTR Hub — Componentes, orquestração por domínio e plano de dados
+
+LAYOUT_LEFT_RIGHT()
+HIDE_STEREOTYPE()
+
+' Paleta simples e semântica
+AddElementTag("entrada", $bgColor="#DCEBFA", $fontColor="#111111", $borderColor="#8FA9C2")
+AddElementTag("orquestrador", $bgColor="#F8E6A3", $fontColor="#111111", $borderColor="#B59B45")
+AddElementTag("capacidade", $bgColor="#FFF7D6", $fontColor="#111111", $borderColor="#C7B772")
+AddElementTag("dados", $bgColor="#E8EEF4", $fontColor="#111111", $borderColor="#93A4B4")
+AddElementTag("assincrono", $bgColor="#DDEBCB", $fontColor="#111111", $borderColor="#8DA66F")
+AddElementTag("ia", $bgColor="#EBC9C1", $fontColor="#111111", $borderColor="#AF7D72")
+AddElementTag("externo", $bgColor="#EAD3A7", $fontColor="#111111", $borderColor="#AC8D53")
+
+' Elementos preservados do C4 L2
+Container_Ext(portal, "Portal Operacional", "Frontend Web", "Interface utilizada pelos operadores.", $tags="entrada")
+Container_Ext(bff, "BFF", "Quarkus", "API de entrada do Portal Operacional.", $tags="entrada")
+System_Ext(mtr, "MTR", "Disponibiliza APIs de negócio.", $tags="externo")
+
+Container_Boundary(simtr_hub, "SIMTR Hub") {
+
+  Boundary(dominio_pre_validacao, "Domínio — Pré-validação") {
+    Component(orq_pre_validacao, "Orquestrador do domínio", "Aplicação", "Orquestra o fluxo principal de negócio e coordena os quatro domínios.", $tags="orquestrador")
+    Component(cap_pre_validacao, "Capacidades de Pré-validação", "Casos de uso", "Executa as capacidades próprias da Pré-validação.", $tags="capacidade")
+  }
+
+  Boundary(dominio_arvore, "Domínio — Árvore documental") {
+    Component(orq_arvore, "Orquestrador do domínio", "Aplicação", "Coordena o fluxo interno da árvore documental.", $tags="orquestrador")
+    Component(cap_arvore, "Capacidades de Árvore documental", "Casos de uso", "Consulta e manipula a árvore documental.", $tags="capacidade")
+  }
+
+  Boundary(dominio_documentos, "Domínio — Gestão de documentos") {
+    Component(orq_documentos, "Orquestrador do domínio", "Aplicação", "Coordena o fluxo interno de documentos.", $tags="orquestrador")
+    Component(cap_documentos, "Capacidades de Gestão de documentos", "Casos de uso", "Obtém credenciais e gerencia documentos.", $tags="capacidade")
+  }
+
+  Boundary(dominio_conformidade, "Domínio — Conformidade") {
+    Component(orq_conformidade, "Orquestrador do domínio", "Aplicação", "Coordena o fluxo interno de conformidade.", $tags="orquestrador")
+    Component(cap_conformidade, "Capacidades de Conformidade", "Casos de uso", "Consulta checklist e executa validações determinísticas.", $tags="capacidade")
+  }
+
+  Boundary(dominio_dossie, "Domínio — Dossiê de produto") {
+    Component(orq_dossie, "Orquestrador do domínio", "Aplicação", "Coordena o ciclo de vida do dossiê de produto.", $tags="orquestrador")
+    Component(cap_dossie, "Capacidades de Dossiê de produto", "Casos de uso", "Cria, atualiza, inclui, valida e avança o dossiê.", $tags="capacidade")
+  }
+}
+
+' Fronteira assíncrona e IA — containers preservados como caixas opacas
+ContainerQueue_Ext(service_bus, "Service Bus", "Azure Service Bus", "Fronteira assíncrona entre os domínios e o Core de IA.", $tags="assincrono")
+Container_Ext(core_ia, "Core de IA", "Container Java", "Executa agentes e fluxos de IA; detalhes internos ficam fora desta visão.", $tags="ia")
+
+' Plano de dados — cada recurso permanece um container independente
+Boundary(plano_dados, "Plano de dados") {
+  ContainerDb_Ext(cosmos_pre_validacao, "Cosmos DB — Pré-validação", "Azure Cosmos DB", "Estado e dados próprios da Pré-validação.", $tags="dados")
+  ContainerDb_Ext(cosmos_arvore, "Cosmos DB — Árvore documental", "Azure Cosmos DB", "Estado e dados próprios da árvore documental.", $tags="dados")
+  ContainerDb_Ext(cosmos_documentos, "Cosmos DB — Gestão de documentos", "Azure Cosmos DB", "Estado e dados próprios da gestão de documentos.", $tags="dados")
+  ContainerDb_Ext(cosmos_conformidade, "Cosmos DB — Conformidade", "Azure Cosmos DB", "Estado e dados próprios da conformidade.", $tags="dados")
+  ContainerDb_Ext(cosmos_dossie, "Cosmos DB — Dossiê de produto", "Azure Cosmos DB", "Estado e dados próprios do dossiê de produto.", $tags="dados")
+  ContainerDb_Ext(blob_storage, "Blob Storage", "Azure Blob Storage", "Documentos e normativos usados pelo fluxo.", $tags="dados")
+  ContainerDb_Ext(redis, "Redis", "Azure Cache for Redis", "Contexto durável e checkpoints do fluxo principal.", $tags="dados")
+  ContainerDb_Ext(ai_search, "AI Search", "Azure AI Search", "Índice de normativos consultado pelo Core de IA.", $tags="dados")
+}
+
+' Entrada do fluxo principal
+Rel_R(portal, bff, "Usa", "HTTPS")
+Rel_R(bff, orq_pre_validacao, "Inicia o fluxo principal", "REST")
+
+' Pré-validação: domínio coordenador do fluxo principal
+Rel_D(orq_pre_validacao, cap_pre_validacao, "Orquestra capacidades", "Chamada local")
+Rel_R(orq_pre_validacao, orq_arvore, "Coordena o domínio", "Porta de aplicação")
+Rel_R(orq_pre_validacao, orq_documentos, "Coordena o domínio", "Porta de aplicação")
+Rel_R(orq_pre_validacao, orq_conformidade, "Coordena o domínio", "Porta de aplicação")
+Rel_R(orq_pre_validacao, orq_dossie, "Coordena o domínio", "Porta de aplicação")
+
+' Orquestração interna de cada domínio
+Rel_D(orq_arvore, cap_arvore, "Orquestra capacidades", "Chamada local")
+Rel_D(orq_documentos, cap_documentos, "Orquestra capacidades", "Chamada local")
+Rel_D(orq_conformidade, cap_conformidade, "Orquestra capacidades", "Chamada local")
+Rel_D(orq_dossie, cap_dossie, "Orquestra capacidades", "Chamada local")
+
+' Propriedade dos dados por domínio
+Rel_R(cap_pre_validacao, cosmos_pre_validacao, "Lê e grava dados próprios", "SDK/HTTPS")
+Rel_R(cap_arvore, cosmos_arvore, "Lê e grava dados próprios", "SDK/HTTPS")
+Rel_R(cap_documentos, cosmos_documentos, "Lê e grava dados próprios", "SDK/HTTPS")
+Rel_R(cap_conformidade, cosmos_conformidade, "Lê e grava dados próprios", "SDK/HTTPS")
+Rel_R(cap_dossie, cosmos_dossie, "Lê e grava dados próprios", "SDK/HTTPS")
+
+' Recursos adicionais do domínio Pré-validação
+Rel_R(cap_pre_validacao, blob_storage, "Lê e grava documentos do fluxo", "SDK/HTTPS")
+Rel_R(orq_pre_validacao, redis, "Mantém contexto e checkpoints", "RESP/TLS")
+
+' Os quatro domínios coordenados consomem capacidades de negócio do MTR
+Rel_R(cap_arvore, mtr, "Consome APIs de negócio", "REST")
+Rel_R(cap_documentos, mtr, "Consome APIs de negócio", "REST")
+Rel_R(cap_conformidade, mtr, "Consome APIs de negócio", "REST")
+Rel_R(cap_dossie, mtr, "Consome APIs de negócio", "REST")
+
+' Somente Árvore documental e Conformidade solicitam IA
+BiRel_R(cap_arvore, service_bus, "Solicita processamento e recebe resultado", "Mensagens")
+BiRel_R(cap_conformidade, service_bus, "Solicita processamento e recebe resultado", "Mensagens")
+BiRel_R(service_bus, core_ia, "Entrega solicitações e resultados", "Mensagens")
+Rel_D(core_ia, blob_storage, "Lê documentos e normativos", "SDK/HTTPS")
+Rel_D(core_ia, ai_search, "Consulta índice de normativos", "HTTPS")
+
+' Pistas de layout para reduzir cruzamentos
+Lay_D(portal, bff)
+Lay_D(bff, orq_pre_validacao)
+Lay_D(orq_pre_validacao, orq_arvore)
+Lay_D(orq_arvore, orq_documentos)
+Lay_D(orq_documentos, orq_conformidade)
+Lay_D(orq_conformidade, orq_dossie)
+Lay_R(orq_dossie, mtr)
+Lay_D(cosmos_pre_validacao, cosmos_arvore)
+Lay_D(cosmos_arvore, cosmos_documentos)
+Lay_D(cosmos_documentos, cosmos_conformidade)
+Lay_D(cosmos_conformidade, cosmos_dossie)
+Lay_D(cosmos_dossie, blob_storage)
+Lay_D(blob_storage, redis)
+Lay_D(redis, ai_search)
+Lay_R(service_bus, core_ia)
+
+SHOW_LEGEND()
+@enduml

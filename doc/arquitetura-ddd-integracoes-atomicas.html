@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.10" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>arquitetura-ddd-integracoes-atomicas</title>
+  <style>
+
+html {
+color: #1a1a1a;
+background-color: #fdfdfd;
+}
+body {
+margin: 0 auto;
+max-width: 36em;
+padding-left: 50px;
+padding-right: 50px;
+padding-top: 50px;
+padding-bottom: 50px;
+hyphens: auto;
+overflow-wrap: break-word;
+text-rendering: optimizeLegibility;
+font-kerning: normal;
+}
+@media (max-width: 600px) {
+body {
+font-size: 0.9em;
+padding: 12px;
+}
+h1 {
+font-size: 1.8em;
+}
+}
+@media print {
+html {
+background-color: white;
+}
+body {
+background-color: transparent;
+color: black;
+font-size: 12pt;
+}
+p, h2, h3 {
+orphans: 3;
+widows: 3;
+}
+h2, h3, h4 {
+page-break-after: avoid;
+}
+}
+p {
+margin: 1em 0;
+}
+a {
+color: #1a1a1a;
+}
+a:visited {
+color: #1a1a1a;
+}
+img {
+max-width: 100%;
+}
+svg {
+height: auto;
+max-width: 100%;
+}
+h1, h2, h3, h4, h5, h6 {
+margin-top: 1.4em;
+}
+h5, h6 {
+font-size: 1em;
+font-style: italic;
+}
+h6 {
+font-weight: normal;
+}
+ol, ul {
+padding-left: 1.7em;
+margin-top: 1em;
+}
+li > ol, li > ul {
+margin-top: 0;
+}
+blockquote {
+margin: 1em 0 1em 1.7em;
+padding-left: 1em;
+border-left: 2px solid #e6e6e6;
+color: #606060;
+}
+code {
+white-space: pre-wrap;
+font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+font-size: 85%;
+margin: 0;
+hyphens: manual;
+}
+pre {
+margin: 1em 0;
+overflow: auto;
+}
+pre code {
+padding: 0;
+overflow: visible;
+overflow-wrap: normal;
+}
+.sourceCode {
+background-color: transparent;
+overflow: visible;
+}
+hr {
+border: none;
+border-top: 1px solid #1a1a1a;
+height: 1px;
+margin: 1em 0;
+}
+table {
+margin: 1em 0;
+border-collapse: collapse;
+width: 100%;
+overflow-x: auto;
+display: block;
+font-variant-numeric: lining-nums tabular-nums;
+}
+table caption {
+margin-bottom: 0.75em;
+}
+tbody {
+margin-top: 0.5em;
+border-top: 1px solid #1a1a1a;
+border-bottom: 1px solid #1a1a1a;
+}
+th {
+border-top: 1px solid #1a1a1a;
+padding: 0.25em 0.5em 0.25em 0.5em;
+}
+td {
+padding: 0.125em 0.5em 0.25em 0.5em;
+}
+header {
+margin-bottom: 4em;
+text-align: center;
+}
+#TOC li {
+list-style: none;
+}
+#TOC ul {
+padding-left: 1.3em;
+}
+#TOC > ul {
+padding-left: 0;
+}
+#TOC a:not(:hover) {
+text-decoration: none;
+}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+</style>
+</head>
+<body>
+<h1 id="arquitetura-ddd-para-integracoes-atomicas-do-simtr-hub">Arquitetura
+DDD para integracoes atomicas do simtr-hub</h1>
+<h2 id="status-e-autoridade">Status e autoridade</h2>
+<ul>
+<li><strong>Status:</strong> aceito</li>
+<li><strong>Data:</strong> 2026-07-11</li>
+<li><strong>Estado verificado:</strong> 2026-07-16, incluindo a decisao
+pragmatica de uso do Quarkus da Fase 10 e o cenario evolutivo de
+exposicao de capacidades por MCP</li>
+<li><strong>Escopo:</strong> refatoracao do comportamento atualmente
+implementado e demonstracao de extensibilidade para novas entradas, sem
+implementa-las nesta etapa</li>
+<li><strong>Plano executavel:</strong>
+<code>../tasks/plan.md</code></li>
+<li><strong>Checklist de retomada:</strong>
+<code>../tasks/todo.md</code></li>
+<li><strong>Fonte complementar do cenario MCP:</strong>
+<code>proposta-arquitetura-capacidades-rest-orquestracao-mcp.md</code></li>
+</ul>
+<p>Este e o documento arquitetural canonico para a refatoracao. Agentes
+e pessoas devem le-lo antes de alterar packages, portas, DTOs, adapters,
+tratamento de erros ou testes relacionados.</p>
+<h2 id="fundamentos-de-organizacao">Fundamentos de organizacao</h2>
+<h3 id="organizacao-por-dominio">Organizacao por dominio</h3>
+<p>Ha duas formas comuns de agrupar o codigo: por tecnologia, reunindo
+Resources, services, clients e mappers de toda a solucao, ou por
+dominio, reunindo os artefatos que realizam uma capacidade de negocio. O
+<code>simtr-hub</code> adota <strong>package by domain</strong>.</p>
+<p>Assim, <code>arvoredocumento</code>, <code>conformidade</code>,
+<code>dossieproduto</code> e <code>gestaodocumento</code> possuem
+fronteiras proprias. Os nomes dos sistemas externos e das tecnologias
+aparecem nas bordas quando fazem parte do contrato, mas nao definem um
+dominio interno compartilhado. Essa organizacao reduz o acoplamento
+entre capacidades e torna explicito quem e responsavel por cada
+operacao.</p>
+<h3 id="codigo-da-aplicacao-e-codigo-de-infraestrutura">Codigo da
+aplicacao e codigo de infraestrutura</h3>
+<p>O <strong>codigo da aplicacao</strong> representa a logica de negocio
+e as funcionalidades centrais do software. Ele expressa capacidades,
+coordena casos de uso e trabalha com portas e modelos internos.</p>
+<p>O <strong>codigo de infraestrutura</strong> implementa as tecnologias
+que apoiam essas funcionalidades. Em termos gerais, pode incluir
+consultas SQL, requisicoes HTTP, chamadas AMQP, persistencia,
+mensageria, armazenamento e integracoes externas. No
+<code>simtr-hub</code> atual, inclui principalmente os endpoints REST,
+as chamadas HTTP ao MTR, a leitura de fixtures do simulador,
+serializacao, autenticacao, fault tolerance e observabilidade. Uma
+futura exposicao por MCP tambem pertence a infraestrutura de entrada:
+protocolo, transporte, schema, autenticacao e serializacao ficam no
+adapter MCP, e nao no nucleo.</p>
+<p>Essa separacao aplica o principio de separacao de responsabilidades e
+contribui para:</p>
+<ul>
+<li>simplificar os testes;</li>
+<li>reduzir o acoplamento com tecnologias especificas;</li>
+<li>reutilizar a logica da aplicacao por entradas diferentes;</li>
+<li>substituir mecanismos de integracao com menor impacto;</li>
+<li>facilitar a manutencao e a identificacao de problemas.</li>
+</ul>
+<p>Na solucao atual, essa separacao define responsabilidades; ela nao
+separa codigo “com Quarkus” de codigo “sem Quarkus”. O framework pode
+apoiar qualquer componente. O que permanece isolado sao as dependencias
+entre nucleo, bordas e contratos externos.</p>
+<h2 id="arquitetura-hexagonal">Arquitetura Hexagonal</h2>
+<p>A <strong>Arquitetura Hexagonal</strong>, tambem conhecida como
+<strong>Portas e Adaptadores</strong>, promove a separacao entre o
+nucleo da aplicacao e os detalhes de infraestrutura.</p>
+<pre class="text"><code>Adapter de entrada
+        |
+        v
+Porta de entrada
+        |
+        v
+Aplicacao / Dominio
+        |
+        v
+Porta de saida
+        |
+        v
+Adapter de saida</code></pre>
+<p>A regra central e que o nucleo expresse capacidades sem depender dos
+adapters que realizam REST, MCP, persistencia, mensageria,
+armazenamento, integracoes externas ou simulacao. Essa direcao de
+dependencia nao exige um nucleo livre de framework: Quarkus e suas APIs
+podem ser usados no dominio, na aplicacao, nas portas e nos casos de
+uso. As dependencias estruturais continuam apontando das bordas para as
+portas e os modelos do nucleo.</p>
+<h3 id="portas">Portas</h3>
+<p>Uma <strong>porta</strong> e um contrato orientado a uma capacidade.
+Ela pode usar Quarkus ou outra API de framework quando isso for util,
+sem deixar de representar a linguagem da aplicacao. O que ela nao deve
+expor por conveniencia sao DTOs e detalhes exclusivos de uma borda
+externa.</p>
+<ul>
+<li>A <strong>porta de entrada</strong> representa uma capacidade
+oferecida pela aplicacao. Ela permite que uma requisicao HTTP, uma
+chamada MCP, uma mensagem, uma tarefa agendada ou uma futura etapa de
+orquestracao acione um caso de uso.</li>
+<li>A <strong>porta de saida</strong> representa uma necessidade externa
+da aplicacao. Ela permite consultar ou persistir dados, chamar outro
+sistema ou publicar uma mensagem sem acoplar o caso de uso ao mecanismo
+utilizado.</li>
+</ul>
+<p>As portas expressam intencoes e capacidades, nao o protocolo ou o
+fornecedor que as implementa.</p>
+<h3 id="adaptadores">Adaptadores</h3>
+<p>Um <strong>adapter</strong> conecta uma porta a um mecanismo
+especifico. Adapters de entrada traduzem uma interacao externa para uma
+porta de entrada. Adapters de saida implementam portas de saida e
+traduzem os tipos internos para os contratos exigidos pela
+infraestrutura.</p>
+<p>Adapters dependem das portas. O nucleo nao depende dos adapters, e
+adapters de tipos diferentes nao dependem diretamente uns dos
+outros.</p>
+<h3 id="direcao-da-dependencia-e-papel-do-orquestrador">Direcao da
+dependencia e papel do orquestrador</h3>
+<p>O papel arquitetural de um orquestrador depende da direcao da
+interacao; o nome “orquestrador” sozinho nao determina sua camada.</p>
+<p>Quando um <strong>orquestrador externo inicia uma operacao</strong>,
+ele e um ator de entrada. O protocolo e tratado por um adapter de
+entrada, que aciona a porta da aplicacao:</p>
+<pre class="text"><code>Orquestrador externo
+        -&gt; adapter de entrada (REST ou mensagem)
+            -&gt; porta de entrada
+                -&gt; aplicacao</code></pre>
+<p>Quando um <strong>agente externo usa uma capacidade por MCP</strong>,
+ele tambem e um ator de entrada. Uma tool MCP e publicada por um adapter
+proprio, que traduz seu contrato para a porta de entrada existente:</p>
+<pre class="text"><code>Agente externo
+        -&gt; cliente MCP
+            -&gt; adapter MCP de entrada (futuro)
+                -&gt; porta de entrada existente
+                    -&gt; aplicacao</code></pre>
+<p>O agente pode coordenar chamadas externamente, mas essa coordenacao
+nao transforma MCP em camada de aplicacao. A tool continua sendo apenas
+uma borda de entrada e nao chama Resource REST, REST Client MTR nem
+adapter de saida.</p>
+<p>Quando existe um <strong>orquestrador local que coordena casos de
+uso</strong>, essa coordenacao pertence a camada de aplicacao. Ele
+permanece atras de sua propria porta de entrada, compoe capacidades do
+mesmo dominio por seus contratos de entrada e atravessa outro dominio
+somente por uma porta de saida do consumidor e uma camada anticorrupcao.
+Ele nao conhece Resources, REST Clients ou adapters:</p>
+<pre class="text"><code>Adapter de entrada
+        -&gt; porta de entrada do fluxo
+            -&gt; orquestrador da aplicacao (futuro)
+                |-&gt; porta de entrada de capacidade atomica do mesmo dominio
+                `-&gt; porta de saida do consumidor
+                    -&gt; adapter / camada anticorrupcao
+                        -&gt; outro dominio</code></pre>
+<p>Quando a aplicacao precisa acionar um <strong>orquestrador externo
+como dependencia</strong>, a interacao pertence ao lado de saida:</p>
+<pre class="text"><code>Aplicacao
+    -&gt; porta de saida
+        -&gt; adapter de saida
+            -&gt; orquestrador externo</code></pre>
+<p>Esses quatro desenhos explicam possibilidades arquiteturais, nao
+componentes existentes. O <code>simtr-hub</code> atual nao possui
+orquestrador local, motor de workflow nem adapter dedicado a um
+orquestrador externo. Tambem nao possui MCP Server nem adapter MCP.</p>
+<h3 id="arquitetura-hexagonal-no-mundo-dos-microsservicos">Arquitetura
+Hexagonal no mundo dos microsservicos</h3>
+<p>Embora tenha “arquitetura” no nome, a Arquitetura Hexagonal e adotada
+neste documento como um <strong>padrao tatico para estruturar o codigo e
+os componentes dentro de um servico especifico</strong>.</p>
+<p>Ela nao define a visao de alto nivel, nao determina como servicos
+devem se comunicar e nao estabelece a estrutura de um sistema composto
+por multiplos servicos. Comunicacao por REST, mensageria ou outro
+mecanismo pertence ao desenho arquitetural do sistema.</p>
+<p>No <code>simtr-hub</code>, o padrao hexagonal organiza o interior dos
+dominios e das capacidades. O DDD define os limites de negocio e as
+formas de colaboracao; uma eventual extracao para microsservicos exige
+decisoes proprias de contratos, comunicacao, consistencia e
+operacao.</p>
+<h3 id="uso-pragmatico">Uso pragmatico</h3>
+<p>A adocao deve considerar os beneficios obtidos e o custo das
+abstracoes. O padrao nao e uma solucao universal e nao justifica
+componentes sem uso real. Portas, adapters e pastas so devem existir
+quando houver uma capacidade e um consumidor concretos.</p>
+<p>Arquitetura Hexagonal nao e adotada como politica de pureza
+tecnologica. <strong>Quarkus pode ser usado em qualquer componente ou
+package da solucao e nao deve ser impedido pela arquitetura ou pelo
+build</strong>, inclusive em dominio, aplicacao, portas e casos de uso.
+A mesma orientacao vale para APIs associadas, como Jakarta,
+MicroProfile, Mutiny, Jackson e OpenTelemetry: o simples uso de uma
+dessas tecnologias nao caracteriza violacao de camada.</p>
+<p>Essa liberdade e uma permissao, nao uma obrigacao. Ela tambem nao
+autoriza o dominio a depender de um Resource ou adapter, a aplicacao a
+consumir DTO de borda, ou um dominio a acessar internamente outro
+dominio. Uma regra pode restringir um papel arquitetural especifico —
+por exemplo, REST Clients continuam confinados ao adapter MTR —, mas nao
+pode rejeitar uma classe somente porque ela usa Quarkus. Os guardrails
+protegem responsabilidades e direcao de dependencias, nao pureza de
+framework.</p>
+<h2 id="visao-da-solucao">Visao da solucao</h2>
+<p>O <code>simtr-hub</code> e um monolito modular organizado por
+dominios de negocio. A solucao implementada oferece oito capacidades
+atomicas por endpoints REST publicos e integra cada capacidade ao MTR ou
+ao simulador por adapters de saida independentes. Cada dominio concentra
+seus casos de uso, modelos internos e contratos de aplicacao; os
+detalhes exclusivos de protocolo e dos contratos externos permanecem nas
+bordas. Quarkus, como framework da solucao, pode apoiar qualquer desses
+componentes.</p>
+<p>O fluxo executado atualmente pode ser lido assim:</p>
+<pre class="text"><code>cliente HTTP
+    -&gt; adapter REST de entrada
+        -&gt; porta de entrada
+            -&gt; caso de uso atomico
+                -&gt; porta de saida
+                    -&gt; adapter selecionado por configuracao
+                        |-- MTR
+                        `-- simulador</code></pre>
+<p>No fluxo atual, a entrada e REST e as duas saidas alternativas sao
+MTR e simulador. O caso de uso nao conhece Resource, REST Client, URL,
+DTO MTR, fixture nem o mecanismo de selecao CDI.</p>
+<p>A mesma estrutura permite adicionar, no futuro, um adapter MCP de
+entrada ao lado do adapter REST. Esse adapter reutiliza as portas e os
+casos de uso existentes sem introduzir MCP no dominio ou na aplicacao. O
+cenario demonstra uma propriedade da arquitetura; nao afirma que MCP
+esteja implementado ou aprovado para exposicao operacional.</p>
+<p>Nao existe nesta solucao um endpoint unico de pre-validacao,
+orquestrador local, motor de workflow ou comunicacao distribuida entre
+os dominios. A composicao por orquestradores e a extracao para
+microsservicos sao possibilidades futuras, explicitamente separadas do
+estado implementado. A secao de cobertura frente a especificacao
+identifica os oito endpoints existentes e os cinco que ainda nao existem
+no Hub.</p>
+<h2 id="intencao-confirmada">Intencao confirmada</h2>
+<p>Transformar o <code>simtr-hub</code> em um monolito modular DDD,
+composto por capacidades atomicas e desacopladas. Os endpoints REST
+atuais e os futuros orquestradores devem ser entradas diferentes para os
+mesmos casos de uso. Uma futura exposicao MCP deve ser outra entrada
+para essas mesmas capacidades, implementada exclusivamente na borda. O
+nucleo nao dependera de Quarkus Flow, de APIs MCP nem pressupora que
+essas tecnologias serao adotadas.</p>
+<p>A refatoracao deve preparar a futura extracao dos modulos em
+microsservicos sem implementar agora novos endpoints, workflows ou
+integracoes funcionais.</p>
+<h2 id="resultado-esperado">Resultado esperado</h2>
+<pre class="text"><code>cliente ou orquestrador externo
+    -&gt; REST atual --------------------------+
+                                             |
+agente externo                               |
+    -&gt; adapter MCP futuro ------------------+--&gt; porta de entrada existente
+                                                   -&gt; caso de uso atomico
+                                                   -&gt; porta de saida do consumidor
+                                                   -&gt; adapter selecionado
+                                                      |-- MTR
+                                                      `-- simulador
+
+adapter de entrada do fluxo
+    -&gt; porta de entrada do fluxo
+        -&gt; orquestrador futuro do dominio
+            -&gt; portas de entrada atomicas</code></pre>
+<ul>
+<li>REST, MCP e orquestradores nao conhecem REST Client, DTO MTR, URL ou
+politica HTTP.</li>
+<li>REST e MCP possuem contratos de borda independentes e convergem para
+as mesmas portas de entrada.</li>
+<li>Um orquestrador do mesmo dominio pode compor capacidades atomicas
+desse dominio.</li>
+<li>Uma chamada entre dominios usa uma porta de saida do consumidor e
+uma camada anticorrupcao.</li>
+<li>Enquanto os dominios estiverem no mesmo processo, a camada
+anticorrupcao pode usar um adapter local. Depois da extracao, somente
+esse adapter muda para HTTP ou mensageria.</li>
+</ul>
+<h2 id="cenario-evolutivo-capacidades-por-mcp">Cenario evolutivo:
+capacidades por MCP</h2>
+<h3 id="posicionamento-arquitetural">Posicionamento arquitetural</h3>
+<p>MCP e uma opcao futura de protocolo de entrada para agentes externos.
+Ele nao substitui REST, nao implementa regras de negocio e nao se torna
+um novo dominio. A extensao preserva a direcao de dependencia da
+Arquitetura Hexagonal:</p>
+<pre class="text"><code>tools/call
+    -&gt; tool no adapter MCP
+        -&gt; mapper MCP
+            -&gt; comando interno
+                -&gt; porta de entrada existente
+                    -&gt; caso de uso existente
+                        -&gt; portas e adapters de saida existentes</code></pre>
+<p>O limite normal da mudanca e a criacao de componentes em
+<code>&lt;dominio&gt;.adaptador.entrada.mcp</code>, alem da configuracao
+tecnica necessaria para publicar e proteger o protocolo. Nao mudam por
+causa do MCP:</p>
+<ul>
+<li>dominio, regras e modelos de negocio;</li>
+<li>casos de uso e portas de entrada existentes;</li>
+<li>portas de saida e selecao entre MTR e simulador;</li>
+<li>adapters MTR e simulador;</li>
+<li>contratos REST publicos e suas politicas de compatibilidade;</li>
+<li>politicas de fault tolerance das integracoes de saida.</li>
+</ul>
+<p>Se a exposicao de uma tool revelar uma precondicao ausente, a regra
+deve ser corrigida no caso de uso para proteger igualmente REST, MCP,
+orquestracao interna e testes. Essa e uma correcao da capacidade de
+negocio, nao uma regra exclusiva da tool.</p>
+<h3 id="contratos-e-granularidade">Contratos e granularidade</h3>
+<p>Cada tool deve corresponder inicialmente a uma capacidade atomica e
+acionar sua porta de entrada. Somente as capacidades com consumidor,
+autorizacao e risco avaliados recebem tools; nao e necessario expor as
+oito capacidades de uma vez. Uma futura tool composta deve chamar a
+porta de entrada de um fluxo da aplicacao, em vez de duplicar a
+coordenacao no adapter MCP.</p>
+<pre class="text"><code>DTO MCP de entrada
+    -&gt; mapper MCP
+        -&gt; comando interno
+            -&gt; porta de entrada
+                -&gt; resultado interno
+                    -&gt; mapper MCP
+                        -&gt; DTO MCP de saida</code></pre>
+<p>DTOs, schemas, nomes de tools e erros MCP sao contratos exclusivos
+dessa borda. Eles nao reutilizam DTOs REST, MTR ou do simulador e nao
+atravessam para o nucleo. Isso permite que REST e MCP evoluam
+independentemente, preservando a semantica da capacidade.</p>
+<p>Uma estrutura opcional, criada somente quando houver uma tool
+concreta, e:</p>
+<pre class="text"><code>&lt;dominio&gt;/adaptador/entrada/mcp/
+|-- dto/
+|-- mapper/
+`-- tool/</code></pre>
+<h3 id="seguranca-e-operacao">Seguranca e operacao</h3>
+<p>A exposicao MCP amplia a superficie de entrada e exige autenticacao
+de servico, autorizacao por capacidade e propagacao controlada da
+identidade. Tools mutaveis nao compartilham uma permissao generica
+irrestrita. Argumentos sensiveis, tokens, credenciais, URLs internas,
+stacks e DTOs de erro MTR nao podem aparecer em respostas, logs, traces
+ou memoria de conversacao.</p>
+<p><code>ObterCredencialContainer</code> requer decisao de seguranca
+separada antes de virar tool. A existencia da porta nao implica
+autorizacao para expor a credencial a um agente.</p>
+<p>Spans e logs devem identificar a origem da entrada
+(<code>REST</code>, <code>MCP</code> ou <code>WORKFLOW_LOCAL</code>) sem
+alterar os sinais ja considerados contratuais. O trace iniciado na
+chamada MCP deve continuar pelo caso de uso e pelo adapter MTR, com
+filtragem de atributos sensiveis.</p>
+<h3 id="consequencias-e-trade-offs">Consequencias e trade-offs</h3>
+<p>O beneficio e demonstrar que uma nova forma de consumo pode ser
+adicionada sem reescrever a capacidade: a variacao fica concentrada em
+DTOs, mappers, autenticacao e publicacao do adapter de entrada. O custo
+e uma nova superficie operacional e de seguranca, alem de novos
+contratos e testes por tool.</p>
+<p>Enquanto o MCP Server estiver no mesmo processo, o adapter chama
+diretamente as portas de entrada. Se uma necessidade futura exigir um
+servico MCP separado, esse servico passa a ser um consumidor externo dos
+contratos publicos do Hub, por REST ou mensageria, e deixa de ser um
+adapter interno. Essa mudanca de implantacao nao autoriza acesso direto
+ao nucleo entre processos.</p>
+<h2 id="dominios-e-capacidades-atuais">Dominios e capacidades
+atuais</h2>
+<h3 id="arvoredocumento"><code>arvoredocumento</code></h3>
+<p>E dono da capacidade atomica de consultar o processo parametrizado
+usado no calculo futuro da arvore documental.</p>
+<p>Capacidade existente:</p>
+<ul>
+<li><code>ConsultarProcessoParametrizado</code></li>
+</ul>
+<p>O path REST atual deve ser preservado. O package interno
+<code>parametrizacao</code> deixa de representar um dominio. O nome
+<code>parametrizacao</code> pode continuar aparecendo somente na borda
+de integracao com o sistema MTR correspondente.</p>
+<p>O calculo da arvore, os servicos de IA e a orquestracao da arvore nao
+fazem parte desta etapa.</p>
+<h3 id="conformidade"><code>conformidade</code></h3>
+<p>E dono da capacidade atomica de consultar um checklist por
+identificador e versao.</p>
+<p>Capacidade existente:</p>
+<ul>
+<li><code>ConsultarChecklist</code></li>
+</ul>
+<p>Essa capacidade nao compartilha um grande modelo de parametrizacao
+com <code>arvoredocumento</code>. Cada dominio possui seu contrato de
+aplicacao, modelos internos e mapeamento do contrato externo.</p>
+<p>A analise de documentos e a orquestracao de conformidade nao fazem
+parte desta etapa.</p>
+<h3 id="dossieproduto"><code>dossieproduto</code></h3>
+<p>E dono das capacidades atomicas necessarias ao ciclo de vida do
+dossie no MTR. Nesta etapa nao existem aggregate, maquina de estados ou
+sequenciamento inventados.</p>
+<p>Capacidades existentes:</p>
+<ul>
+<li><code>CriarDossieProduto</code></li>
+<li><code>AtualizarFormularioDossieProduto</code></li>
+<li><code>IncluirDocumentoDossieProduto</code></li>
+<li><code>RegistrarValidacaoNegocialDossieProduto</code></li>
+<li><code>IniciarOuAvancarWorkflowDossieProduto</code></li>
+</ul>
+<p>Endpoints adicionais descritos em documentos funcionais, mas nao
+implementados, nao entraram na refatoracao. A secao seguinte identifica
+cada um explicitamente; sua eventual implementacao exige decisao,
+contrato, fase e capacidade atomica proprios.</p>
+<h3 id="gestaodocumento"><code>gestaodocumento</code></h3>
+<p>E uma capacidade transversal que obtem do MTR a credencial de acesso
+ao container documental.</p>
+<p>Capacidade existente:</p>
+<ul>
+<li><code>ObterCredencialContainer</code></li>
+</ul>
+<p>O <code>simtr-hub</code> nao envia arquivos ao Azure, nao reutiliza a
+SAS, nao mantem cache da credencial e nao fixa sua duracao no codigo. O
+microsservico consumidor e responsavel por reutilizar a credencial ate a
+expiracao informada pelo contrato e solicitar outra quando
+necessario.</p>
+<h3 id="prevalidacao-futura"><code>prevalidacao</code> futura</h3>
+<p>O futuro dominio de pre-validacao sera dono do processo associado ao
+espelho da proposta do usuario. Ele coordenara outros dominios por suas
+portas, mas esta fora do escopo inicial.</p>
+<h2 id="cobertura-frente-a-especificacao-de-pre-validacao">Cobertura
+frente a especificacao de pre-validacao</h2>
+<p>A fonte funcional de comparacao e
+<code>api-integracao-mtr-pre-validacao-v1.md</code>. Os paths da coluna
+“Endpoint MTR da especificacao” identificam APIs do sistema upstream;
+eles nao sao rotas publicas do Hub. Neste inventario:</p>
+<ul>
+<li><strong>IMPLEMENTADO</strong> significa que existem no Hub endpoint
+publico, porta/caso de uso, adapter MTR e adapter de simulador para a
+operacao;</li>
+<li><strong>NAO IMPLEMENTADO</strong> significa que o Hub nao possui
+Resource, rota publica, capacidade, REST Client, adapter nem simulador
+para a operacao. Isso nao afirma que a API upstream do MTR nao
+exista.</li>
+</ul>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Endpoint MTR da especificacao</th>
+<th>Estado no Hub</th>
+<th>Endpoint publico do Hub</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET /simtr-parametrizacao/v2/patriarca/processo/identificador-negocial/{identificador}</code></td>
+<td><strong>IMPLEMENTADO</strong></td>
+<td><code>GET /simtr-hub/v1/processo/identificador-negocial/{identificador}</code></td>
+</tr>
+<tr>
+<td><code>GET /simtr-parametrizacao/v1/cadastro/checklist/identificador-negocial/{identificador}/versao/{versao}</code></td>
+<td><strong>IMPLEMENTADO</strong></td>
+<td><code>GET /simtr-hub/v1/checklist/identificador-negocial/{identificador}/versao/{versao}</code></td>
+</tr>
+<tr>
+<td><code>POST /simtr-dossie-produto/v1/dossie-produto</code></td>
+<td><strong>IMPLEMENTADO</strong></td>
+<td><code>POST /simtr-hub/v1/dossie-produto</code></td>
+</tr>
+<tr>
+<td><code>PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/formulario</code></td>
+<td><strong>IMPLEMENTADO</strong></td>
+<td><code>PATCH /simtr-hub/v1/dossie-produto/{id}/formulario</code></td>
+</tr>
+<tr>
+<td><code>POST /simtr-dossie-produto/v2/dossie-produto/{id}/documento</code></td>
+<td><strong>IMPLEMENTADO</strong></td>
+<td><code>POST /simtr-hub/v1/dossie-produto/{id}/documento</code></td>
+</tr>
+<tr>
+<td><code>PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/validacao-negocial</code></td>
+<td><strong>IMPLEMENTADO</strong></td>
+<td><code>PATCH /simtr-hub/v1/dossie-produto/{id}/validacao-negocial</code></td>
+</tr>
+<tr>
+<td><code>POST /simtr-dossie-produto/v1/dossie-produto/{id}/workflow</code></td>
+<td><strong>IMPLEMENTADO</strong></td>
+<td><code>POST /simtr-hub/v1/dossie-produto/{id}/workflow</code></td>
+</tr>
+<tr>
+<td><code>POST /simtr-gestao-documento/v1/storage/container/credencial</code></td>
+<td><strong>IMPLEMENTADO</strong></td>
+<td><code>POST /simtr-hub/v1/storage/container/credencial</code></td>
+</tr>
+<tr>
+<td><code>PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/garantia</code></td>
+<td><strong>NAO IMPLEMENTADO</strong></td>
+<td>Nao existe</td>
+</tr>
+<tr>
+<td><code>PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/produto</code></td>
+<td><strong>NAO IMPLEMENTADO</strong></td>
+<td>Nao existe</td>
+</tr>
+<tr>
+<td><code>POST /simtr-dossie-produto/v1/dossie-produto/{id}/capturar</code></td>
+<td><strong>NAO IMPLEMENTADO</strong></td>
+<td>Nao existe</td>
+</tr>
+<tr>
+<td><code>POST /simtr-dossie-produto/v1/dossie-produto/{id}/cancelar</code></td>
+<td><strong>NAO IMPLEMENTADO</strong></td>
+<td>Nao existe</td>
+</tr>
+<tr>
+<td><code>GET /simtr-dossie-produto/v2/dossie-produto/{id}</code></td>
+<td><strong>NAO IMPLEMENTADO</strong></td>
+<td>Nao existe</td>
+</tr>
+</tbody>
+</table>
+<p>Os cinco endpoints ausentes aparecem na especificacao como operacoes
+existentes do ciclo de vida do dossie que deveriam ser mantidas
+inalteradas; eles nao aparecem nas duas sequencias principais descritas.
+As oito operacoes dessas sequencias existem como capacidades atomicas,
+sem orquestracao: nao existe endpoint unico de pre-validacao nem
+orquestrador local nesta solucao.</p>
+<p>A especificacao usa os nomes de servico
+<code>/simtr-parametrizacao</code>, <code>/simtr-dossie-produto</code> e
+<code>/simtr-gestao-documento</code>. Na configuracao atual do Hub, o
+gateway fornece uma base terminada em <code>/simtr</code> e os REST
+Clients acrescentam, respectivamente, <code>/parametrizacao</code>,
+<code>/dossie-produto</code> e <code>/gestao-documento</code>. Essa
+diferenca de montagem nao muda a operacao nem sua versao funcional.</p>
+<h2 id="decisao-sobre-parametrizacao">Decisao sobre
+<code>parametrizacao</code></h2>
+<p><code>parametrizacao</code> nao permanece como dominio interno porque
+descreve o sistema upstream, e nao uma responsabilidade de negocio do
+Hub.</p>
+<ul>
+<li>A consulta de processo pertence a <code>arvoredocumento</code>.</li>
+<li>A consulta de checklist pertence a <code>conformidade</code>.</li>
+<li>Os dois podem integrar com APIs do MTR chamadas parametrizacao.</li>
+<li>DTOs, mapeadores e modelos nao sao compartilhados automaticamente
+entre os dois consumidores.</li>
+<li>Duplicacao pequena na borda e preferivel a um acoplamento que impeca
+a extracao futura.</li>
+</ul>
+<h2 id="camadas-por-dominio">Camadas por dominio</h2>
+<p>Estrutura alvo, adaptada apenas quando uma capacidade realmente
+precisar de cada pasta:</p>
+<pre class="text"><code>&lt;dominio&gt;/
+|-- dominio/
+|   |-- modelo/
+|   `-- erro/
+|-- aplicacao/
+|   |-- porta/
+|   |   |-- entrada/
+|   |   `-- saida/
+|   `-- casodeuso/
+`-- adaptador/
+    |-- entrada/
+    |   `-- rest/v1/
+    |       |-- dto/
+    |       |-- mapper/
+    |       `-- resource/
+    `-- saida/
+        |-- mtr/
+        |   |-- dto/&lt;versao&gt;/&lt;operacao&gt;/
+        |   |-- mapper/
+        |   |-- client/
+        |   |-- erro/
+        |   `-- adapter/
+        `-- simulador/
+            |-- dto/
+            |-- mapper/
+            `-- adapter/</code></pre>
+<p>Nao se criam pastas vazias nem abstracoes sem consumidor real.</p>
+<h2 id="regras-de-dependencia">Regras de dependencia</h2>
+<ol type="1">
+<li><code>dominio</code> pode usar Java, tipos do proprio dominio e APIs
+do Quarkus ou de outros frameworks; ele nao depende de
+<code>aplicacao</code>, Resources, adapters, fachadas ou mapeamentos de
+borda.</li>
+<li><code>aplicacao</code> pode usar tipos do proprio dominio, suas
+portas e APIs do Quarkus ou de outros frameworks, incluindo Mutiny
+<code>Uni</code>; ela nao importa adapters, DTOs de borda, REST Clients
+ou outro dominio.</li>
+<li>Adapters de entrada dependem de portas de entrada e mapeiam DTOs
+para tipos internos.</li>
+<li>Adapters de saida implementam portas de saida e mapeiam tipos
+internos para seus contratos.</li>
+<li>DTO publico REST, DTO MCP, DTO MTR e DTO do simulador sao contratos
+independentes.</li>
+<li>Nenhum mapper converte diretamente DTO publico REST ou DTO MCP em
+DTO MTR.</li>
+<li><code>arquitetura</code> nao importa dominios e nao possui regra,
+modelo ou erro especifico de negocio.</li>
+<li>Um adapter local entre dominios fica na borda do consumidor; ele
+pode importar a API de aplicacao publica do fornecedor e realiza a
+traducao entre modelos.</li>
+<li>Um adapter MCP pode depender somente de sua propria borda, das
+portas de entrada, dos tipos internos referenciados por elas e das APIs
+tecnicas necessarias ao protocolo. Ele nao depende de adapter REST,
+adapter MTR, simulador, REST Client nem DTO de outra borda.</li>
+</ol>
+<p>A <strong>API publica de aplicacao</strong> de um dominio e formada
+exclusivamente por suas portas de entrada e pelos tipos semanticos de
+comando/resultado referenciados por elas. Casos de uso concretos, portas
+de saida e demais tipos internos nao fazem parte dessa API. A aplicacao
+de um dominio consumidor nao importa diretamente nem mesmo essa API:
+somente seu adapter local anticorrupcao pode importa-la.</p>
+<p>Essas regras estao codificadas no build por ArchUnit para todas as
+capacidades migradas. ArchUnit protege as fronteiras estruturais e nao
+mantem blacklist de Quarkus, Jakarta, MicroProfile, Mutiny, Jackson ou
+OpenTelemetry por camada. A ativacao ocorreu progressivamente durante a
+refatoracao para evitar um big bang. Quando existir um adapter MCP, as
+regras devem tambem provar que dominio e aplicacao nao dependem dele e
+que ele nao atravessa lateralmente para outros adapters.</p>
+<h2 id="portas-e-granularidade">Portas e granularidade</h2>
+<ul>
+<li>Uma porta de entrada por capacidade atomica.</li>
+<li>Casos de uso expressam verbos de negocio e retornam tipos
+internos.</li>
+<li>Portas de saida representam a necessidade do consumidor, nao a API
+generica do fornecedor.</li>
+<li>Um mesmo adapter MTR pode implementar varias portas pequenas do
+mesmo dominio.</li>
+<li>Uma tool MCP atomica aciona uma porta de entrada; ela nao cria uma
+segunda representacao da capacidade na aplicacao.</li>
+<li>Nao existe <code>Service</code> generico que exponha todas as
+operacoes de todos os contextos.</li>
+</ul>
+<p>Essa granularidade permite que o futuro orquestrador componha somente
+as capacidades necessarias e que um futuro adapter MCP exponha apenas as
+tools autorizadas. Ela impede que um consumidor dependa de uma interface
+ampla por conveniencia.</p>
+<h2 id="modelos-internos-e-nomes">Modelos internos e nomes</h2>
+<ul>
+<li>Records podem ser usados, mas um record nao e automaticamente um
+value object imutavel.</li>
+<li>Tipos internos recebem nomes semanticos: comandos, resultados,
+identificadores e conceitos do negocio.</li>
+<li>O sufixo generico <code>Vo</code> nao e obrigatorio e sera removido
+durante a migracao de cada capacidade.</li>
+<li>Comandos podem usar o sufixo <code>Command</code>; respostas
+internas devem representar o resultado, nao o protocolo que as
+transportou.</li>
+<li>Colecoes continuam com a semantica atual nesta refatoracao.
+Imutabilidade profunda e tratamento de elementos nulos so mudam mediante
+decisao funcional e testes proprios.</li>
+</ul>
+<h2 id="contratos-das-bordas">Contratos das bordas</h2>
+<h3 id="rest-publico">REST publico</h3>
+<ul>
+<li>DTOs de negocio ficam exclusivamente no adapter REST de entrada do
+proprio dominio.</li>
+<li>DTOs de topo usam nomes explicitos de request e response.</li>
+<li>Tipos aninhados usam nomes semanticos dentro do package da
+operacao.</li>
+<li>Paths, verbos, status, JSON e validacoes observaveis permanecem
+iguais.</li>
+<li>O OpenAPI e gerado exclusivamente pelo Quarkus a partir do codigo;
+nao existe arquivo estatico, filtro, complemento nem teste do documento
+gerado.</li>
+<li>A unica excecao compartilhada permitida e o contrato tecnico de erro
+REST, localizado em <code>arquitetura.excecao.dto</code>. Ele e proibido
+no dominio, na aplicacao e nos adapters MCP, MTR e simulador.</li>
+</ul>
+<h3 id="mcp-futuro">MCP futuro</h3>
+<ul>
+<li>DTOs, schemas, nomes de tools e erros ficam exclusivamente no
+adapter MCP do proprio dominio.</li>
+<li>O adapter mapeia entrada MCP para comandos internos e resultados
+internos para saidas MCP.</li>
+<li>A tool aciona a porta de entrada; nao chama Resource REST, REST
+Client nem adapter de saida.</li>
+<li>DTOs REST, MTR e do simulador nao sao reutilizados.</li>
+<li>Autenticacao, autorizacao por capacidade, transporte e serializacao
+permanecem nessa borda.</li>
+<li>A introducao de MCP nao altera paths, verbos, status, JSON ou
+validacoes observaveis da API REST.</li>
+</ul>
+<h3 id="mtr">MTR</h3>
+<ul>
+<li>DTOs ficam exclusivamente no adapter MTR.</li>
+<li>Sao separados por versao e operacao quando o contrato externo puder
+evoluir de modo independente.</li>
+<li>REST Clients e annotations de fault tolerance ficam nessa
+borda.</li>
+</ul>
+<h3 id="simulador">Simulador</h3>
+<ul>
+<li>Implementa as mesmas portas de saida implementadas pelo adapter
+MTR.</li>
+<li>Trabalha com tipos internos nas portas.</li>
+<li>Quando le JSON, usa
+<code>JSON -&gt; DTO do simulador -&gt; modelo interno</code>.</li>
+<li>Nao reutiliza DTO publico nem DTO MTR.</li>
+<li>A selecao MTR/simulador usa qualifiers ou producer CDI explicitos;
+nao pode haver injecao ambigua nem roteador que se injete
+recursivamente.</li>
+<li>As propriedades atuais de habilitacao sao preservadas.</li>
+</ul>
+<h2 id="erros">Erros</h2>
+<ul>
+<li>Excecoes e tipos de protocolo HTTP ou MCP nao atravessam
+portas.</li>
+<li>Cada dominio classifica falhas relevantes para seus casos de uso,
+como rejeicao de negocio, dependencia indisponivel, timeout e resposta
+externa invalida.</li>
+<li>O adapter MTR traduz erros externos para falhas internas da
+aplicacao.</li>
+<li>A classificacao protocolar usada por retry/circuit breaker ocorre
+dentro da chamada interceptada do REST Client; a traducao para falha
+interna ocorre somente depois que a politica de fault tolerance termina.
+Essa ordem preserva <code>retryOn</code>, <code>abortOn</code>,
+<code>failOn</code> e <code>skipOn</code> atuais.</li>
+<li>A traducao preserva, sem perdas, todos os dados necessarios para
+reproduzir o contrato publico atual: status, recurso, identificador,
+codigo, mensagens, detalhe e demais campos observaveis.</li>
+<li>O DTO de erro recebido do MTR e diferente do DTO de erro devolvido
+pela API publica.</li>
+<li>O adapter REST traduz falhas internas para o status e corpo
+atuais.</li>
+<li>Um futuro adapter MCP traduz falhas internas para seu proprio
+resultado estruturado e seguro, sem expor stack, URL interna, token, DTO
+MTR nem estado do circuit breaker.</li>
+<li>Erros de validacao e desserializacao, que podem ocorrer antes do
+metodo Resource, continuam sob mappers tecnicos do adapter REST.</li>
+</ul>
+<p>O contrato tecnico de erro REST compartilhado e a excecao formal a
+regra geral de DTO por dominio. ArchUnit deve codificar o package
+permitido e proibir seu uso nas demais bordas, evitando allowlist
+informal.</p>
+<h2 id="reatividade-e-chamadas-bloqueantes">Reatividade e chamadas
+bloqueantes</h2>
+<ul>
+<li><code>Uni</code> e usado na camada de aplicacao para representar uma
+operacao assincrona com zero ou um resultado; isso e uma escolha atual,
+nao a unica API de framework permitida no nucleo.</li>
+<li>Nenhum caso de uso chama <code>await</code>, bloqueia event loop ou
+cria thread por conta propria.</li>
+<li>Adapters bloqueantes devem deslocar a execucao para worker thread
+sem expor esse detalhe ao dominio.</li>
+</ul>
+<h2 id="fault-tolerance-e-idempotencia">Fault tolerance e
+idempotencia</h2>
+<p>As politicas atuais de timeout, retry e circuit breaker devem ser
+preservadas durante a refatoracao, inclusive sua classificacao de
+excecoes. Elas pertencem ao adapter MTR e nao sao aplicadas
+automaticamente ao simulador.</p>
+<p>Ha um risco conhecido: criacao de dossie, inclusao de documento e
+avanco de workflow sao operacoes mutaveis com retry. Um timeout depois
+de sucesso remoto pode duplicar efeitos.</p>
+<p><strong>Checkpoint bloqueante para workflows e tools mutaveis
+futuros:</strong> antes de um orquestrador ou agente por MCP usar essas
+operacoes, deve existir evidencia de idempotencia do MTR ou uma
+chave/estrategia idempotente. Essa correcao comportamental nao sera
+misturada a refatoracao estrutural atual.</p>
+<h2 id="observabilidade">Observabilidade</h2>
+<p>Nomes de spans, eventos de log e atributos atuais sao contrato de
+compatibilidade nesta etapa.</p>
+<ul>
+<li>Um inventario e testes de caracterizacao precedem renomes
+estruturais.</li>
+<li>A mudanca de nomes Java nao pode alterar silenciosamente atributos
+obtidos por reflexao do REST Client.</li>
+<li>Cada capacidade preserva os sinais atuais nas bordas REST, caso de
+uso e adapter MTR.</li>
+<li>Um futuro adapter MCP identifica a origem da entrada e o nome da
+tool, preserva a correlacao ate o MTR e nao registra argumentos
+sensiveis integralmente.</li>
+<li>Reducao de logs duplicados e uma mudanca posterior, com decisao e
+testes separados.</li>
+</ul>
+<h2 id="estrategia-de-testes">Estrategia de testes</h2>
+<p>Foi usado TDD leve:</p>
+<ol type="1">
+<li>caracterizar o comportamento observavel que ainda nao possui
+teste;</li>
+<li>provar que o teste protege a fronteira ou falha arquitetural
+pretendida;</li>
+<li>migrar a menor fatia vertical possivel;</li>
+<li>executar os testes focados;</li>
+<li>executar a suite completa no checkpoint.</li>
+</ol>
+<p>Os testes devem cobrir, conforme a capacidade:</p>
+<ul>
+<li>path, verbo, status e JSON publico;</li>
+<li>mensagens e caminhos de Jakarta Validation;</li>
+<li>mapeamento REST -&gt; interno -&gt; MTR e caminho inverso;</li>
+<li>JSON realmente enviado e recebido pelo REST Client;</li>
+<li>headers e providers relevantes;</li>
+<li>simulador habilitado e desabilitado;</li>
+<li>traducao de erros ponta a ponta;</li>
+<li>matriz de retry, circuit breaker e timeout sem alterar os valores
+atuais;</li>
+<li>nomes e atributos de observabilidade considerados contratuais;</li>
+<li>annotations e contratos Java que alimentam o OpenAPI gerado, sem
+testar ou manipular o artefato;</li>
+<li>propriedades, defaults e profiles de configuracao usados pela
+capacidade;</li>
+<li>regras ArchUnit das capacidades ja migradas;</li>
+<li>quando existir MCP, schema e contrato da tool, mapeamento MCP -&gt;
+interno -&gt; MCP, autenticacao, autorizacao, traducao de erros,
+propagacao do trace e ausencia de dados sensiveis nos sinais.</li>
+</ul>
+<p>O baseline anterior foi preservado por manifestos e contratos
+executaveis por capacidade. A evidencia quantitativa de cobertura
+permanece exclusivamente no relatorio JaCoCo. Nenhum teste preexistente
+foi removido, desabilitado ou substituido sem justificativa e GO
+humano.</p>
+<h2 id="migracao-progressiva-concluida">Migracao progressiva
+concluida</h2>
+<p>A unidade de migracao e uma capacidade vertical, nao um package
+inteiro.</p>
+<p>Ordem executada:</p>
+<ol type="1">
+<li>guardrails e caracterizacao;</li>
+<li>piloto <code>IniciarOuAvancarWorkflowDossieProduto</code>, por
+possuir contrato pequeno;</li>
+<li>demais capacidades de <code>dossieproduto</code>, uma por vez;</li>
+<li><code>ConsultarProcessoParametrizado</code> para
+<code>arvoredocumento</code>;</li>
+<li><code>ConsultarChecklist</code> para <code>conformidade</code>;</li>
+<li><code>ObterCredencialContainer</code> em
+<code>gestaodocumento</code>;</li>
+<li>remocao segura do antigo package <code>parametrizacao</code> e
+consolidacao final.</li>
+</ol>
+<p>Cada checkpoint exigiu suite verde, build valido, regras
+arquiteturais da fatia ativas e revisao do diff antes da
+continuidade.</p>
+<h2 id="fora-de-escopo">Fora de escopo</h2>
+<ul>
+<li>os cinco endpoints marcados como <strong>NAO IMPLEMENTADO</strong>
+acima e quaisquer outros endpoints novos;</li>
+<li>implementacao de qualquer workflow ou orquestrador;</li>
+<li>escolha definitiva ou dependencia de Quarkus Flow;</li>
+<li>implementacao de MCP Server, tools ou agente consumidor;</li>
+<li>escolha de extensao, versao, transporte ou topologia de implantacao
+MCP;</li>
+<li>Redis, Cosmos DB ou persistencia de estado de workflow;</li>
+<li>calculo da arvore documental e servicos inteligentes de IA;</li>
+<li>analise de conformidade;</li>
+<li>upload para Azure Blob Storage;</li>
+<li>cache ou renovacao de SAS no Hub;</li>
+<li>mudanca de contratos publicos;</li>
+<li>correcao de idempotencia das operacoes MTR;</li>
+<li>redesenho funcional de nulabilidade ou imutabilidade profunda.</li>
+</ul>
+<h2 id="alternativas-rejeitadas">Alternativas rejeitadas</h2>
+<h3 id="manter-parametrizacao-como-dominio-compartilhado">Manter
+<code>parametrizacao</code> como dominio compartilhado</h3>
+<p>Rejeitada porque acopla <code>arvoredocumento</code> e
+<code>conformidade</code> a um modelo grande definido pelo nome do
+sistema externo, dificultando evolucao e extracao independentes.</p>
+<h3 id="orquestradores-chamarem-endpoints-rest-locais">Orquestradores
+chamarem endpoints REST locais</h3>
+<p>Rejeitada porque adiciona protocolo, serializacao e falhas de rede
+dentro do mesmo processo. REST e orquestradores sao entradas para os
+mesmos casos de uso.</p>
+<h3 id="acoplar-mcp-ao-dominio-ou-a-aplicacao">Acoplar MCP ao dominio ou
+a aplicacao</h3>
+<p>Rejeitada porque uma tecnologia de entrada nao deve definir a
+capacidade de negocio. APIs, annotations, DTOs, schemas e erros MCP
+ficam no adapter; as portas e os casos de uso permanecem independentes
+do protocolo.</p>
+<h3 id="tools-mcp-chamarem-resources-rest-locais">Tools MCP chamarem
+Resources REST locais</h3>
+<p>Rejeitada porque cria acoplamento lateral entre adapters, duplica
+validacao e serializacao e introduz semantica HTTP desnecessaria dentro
+do mesmo processo. REST e MCP convergem diretamente para a mesma porta
+de entrada.</p>
+<h3 id="criar-um-servico-mcp-separado-desde-ja">Criar um servico MCP
+separado desde ja</h3>
+<p>Rejeitada sem necessidade operacional concreta porque adiciona
+deployment, rede, autenticacao e falhas distribuidas. A separacao
+permanece uma opcao futura; nesse caso, o servico sera consumidor
+externo dos contratos publicos do Hub.</p>
+<h3 id="reutilizar-os-mesmos-dtos-em-todas-as-bordas">Reutilizar os
+mesmos DTOs em todas as bordas</h3>
+<p>Rejeitada porque transforma mudancas do MTR em mudancas da API
+publica e impede o nucleo de evoluir independentemente.</p>
+<h3 id="criar-desde-ja-aggregates-e-maquinas-de-estado">Criar desde ja
+aggregates e maquinas de estado</h3>
+<p>Rejeitada porque as regras completas dos fluxos nao fazem parte do
+escopo. Modelagem inventada criaria falsa complexidade de dominio.</p>
+<h3 id="adicionar-quarkus-flow-agora">Adicionar Quarkus Flow agora</h3>
+<p>Rejeitada nesta etapa. O nucleo deve permitir uma avaliacao futura,
+mas a decisao depende de spike, criterios de operacao e maturidade dos
+providers de persistencia.</p>
+<h2 id="riscos-conhecidos-e-controles">Riscos conhecidos e
+controles</h2>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Risco</th>
+<th>Controle</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Retry de operacao mutavel duplicar efeito</td>
+<td>Preservar agora; bloquear workflow futuro ate validar
+idempotencia</td>
+</tr>
+<tr>
+<td>Alterar erro publico ao separar DTOs</td>
+<td>Modelo interno lossless e testes ponta a ponta</td>
+</tr>
+<tr>
+<td>Quebrar simulador ao remover Jackson dos modelos</td>
+<td>DTO e mapper exclusivos do simulador</td>
+</tr>
+<tr>
+<td>Injecao CDI ambigua entre MTR, simulador e roteador</td>
+<td>Qualifiers/producer explicitos e teste de bootstrap</td>
+</tr>
+<tr>
+<td>Renome quebrar dashboards</td>
+<td>Inventario e testes de spans, eventos e atributos</td>
+</tr>
+<tr>
+<td>Testes validarem apenas simulador</td>
+<td>Stub MTR com simulador desabilitado</td>
+</tr>
+<tr>
+<td>Big bang de packages</td>
+<td>Uma capacidade vertical por etapa e checkpoints GO/NO-GO</td>
+</tr>
+<tr>
+<td>Dependencia MCP vazar para o nucleo ou outros adapters</td>
+<td>Package exclusivo e regras ArchUnit de direcao</td>
+</tr>
+<tr>
+<td>Agente repetir ou ordenar incorretamente operacoes mutaveis</td>
+<td>Precondicoes no caso de uso, autorizacao por tool e checkpoint de
+idempotencia</td>
+</tr>
+<tr>
+<td>Tool expor credencial ou dado sensivel</td>
+<td>Decisao de exposicao separada, menor privilegio e sanitizacao de
+respostas, logs e traces</td>
+</tr>
+</tbody>
+</table>
+<h2 id="fontes-oficiais-de-framework">Fontes oficiais de framework</h2>
+<ul>
+<li>Mutiny e <code>Uni</code>:
+https://quarkus.io/guides/mutiny-primer</li>
+<li>Quarkus REST reativo: https://quarkus.io/guides/rest</li>
+<li>SmallRye Fault Tolerance:
+https://quarkus.io/guides/smallrye-fault-tolerance</li>
+<li>Quarkus Flow:
+https://quarkus.io/extensions/io.quarkiverse.flow/quarkus-flow/</li>
+<li>Persistencia do Quarkus Flow:
+https://docs.quarkiverse.io/quarkus-flow/dev/persistence.html</li>
+</ul>
+<p>Quarkus Flow <code>0.12.0</code> foi publicado para Quarkus
+<code>3.33.2.1</code>, versao atual do projeto, mas a propria
+documentacao informa que os providers de persistencia ainda passam por
+testes e benchmarks de alto throughput. Isso reforca que a adocao futura
+exige spike e nao faz parte desta refatoracao.</p>
+</body>
+</html>

@@ -1,0 +1,38 @@
+@startuml
+!include <C4/C4_Component>
+
+title C4 L3 — Componentes de domínio do SIMTR Hub
+
+LAYOUT_LEFT_RIGHT()
+HIDE_STEREOTYPE()
+
+AddElementTag("dominio", $bgColor="#FFF2CC", $fontColor="#111827", $borderColor="#A16207", $legendText="Componente de domínio")
+AddElementTag("externo", $bgColor="#D9EAF7", $fontColor="#111827", $borderColor="#64748B", $legendText="Dependência externa ao container")
+
+Container_Ext(orquestrador, "Orquestrador", "Quarkus Flow", "Coordena o fluxo e chama capacidades do SIMTR Hub.", $tags="externo")
+
+Container_Boundary(simtr_hub, "SIMTR Hub") {
+  Component(arvore, "Árvore documental", "Domínio", "Consulta e mantém a árvore documental e o processo parametrizado.", $tags="dominio")
+  Component(documentos, "Gestão de documentos", "Domínio", "Gerencia documentos e as capacidades associadas ao seu armazenamento.", $tags="dominio")
+  Component(conformidade, "Conformidade", "Domínio", "Consulta checklists e executa capacidades de conformidade.", $tags="dominio")
+  Component(dossie, "Dossiê de produto", "Domínio", "Gerencia o ciclo de vida do dossiê de produto.", $tags="dominio")
+}
+
+ContainerDb_Ext(cosmos, "Cosmos DB", "Azure Cosmos DB", "Persiste os dados dos quatro domínios.", $tags="externo")
+
+Rel_R(orquestrador, arvore, "Orquestra capacidade", "REST")
+Rel_R(orquestrador, documentos, "Orquestra capacidade", "REST")
+Rel_R(orquestrador, conformidade, "Orquestra capacidade", "REST")
+Rel_R(orquestrador, dossie, "Orquestra capacidade", "REST")
+
+Rel_R(arvore, cosmos, "Lê e grava dados do domínio", "SDK/HTTPS")
+Rel_R(documentos, cosmos, "Lê e grava dados do domínio", "SDK/HTTPS")
+Rel_R(conformidade, cosmos, "Lê e grava dados do domínio", "SDK/HTTPS")
+Rel_R(dossie, cosmos, "Lê e grava dados do domínio", "SDK/HTTPS")
+
+Lay_D(arvore, documentos)
+Lay_D(documentos, conformidade)
+Lay_D(conformidade, dossie)
+
+SHOW_LEGEND()
+@enduml

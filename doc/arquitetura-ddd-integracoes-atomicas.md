@@ -4,10 +4,14 @@
 
 - **Status:** aceito
 - **Data:** 2026-07-11
-- **Estado verificado:** 2026-07-15, incluindo a decisao pragmatica de uso do Quarkus da Fase 10
-- **Escopo:** refatoracao do comportamento atualmente implementado
+- **Estado verificado:** 2026-07-16, incluindo a decisao pragmatica de uso do Quarkus da Fase 10
+  e o cenario evolutivo de exposicao de capacidades por MCP
+- **Escopo:** refatoracao do comportamento atualmente implementado e demonstracao de
+  extensibilidade para novas entradas, sem implementa-las nesta etapa
 - **Plano executavel:** `../tasks/plan.md`
 - **Checklist de retomada:** `../tasks/todo.md`
+- **Fonte complementar do cenario MCP:**
+  `proposta-arquitetura-capacidades-rest-orquestracao-mcp.md`
 
 Este e o documento arquitetural canonico para a refatoracao. Agentes e pessoas devem le-lo antes
 de alterar packages, portas, DTOs, adapters, tratamento de erros ou testes relacionados.
@@ -34,7 +38,9 @@ O **codigo de infraestrutura** implementa as tecnologias que apoiam essas funcio
 termos gerais, pode incluir consultas SQL, requisicoes HTTP, chamadas AMQP, persistencia,
 mensageria, armazenamento e integracoes externas. No `simtr-hub` atual, inclui principalmente os
 endpoints REST, as chamadas HTTP ao MTR, a leitura de fixtures do simulador, serializacao,
-autenticacao, fault tolerance e observabilidade.
+autenticacao, fault tolerance e observabilidade. Uma futura exposicao por MCP tambem pertence a
+infraestrutura de entrada: protocolo, transporte, schema, autenticacao e serializacao ficam no
+adapter MCP, e nao no nucleo.
 
 Essa separacao aplica o principio de separacao de responsabilidades e contribui para:
 
@@ -70,7 +76,7 @@ Adapter de saida
 ```
 
 A regra central e que o nucleo expresse capacidades sem depender dos adapters que realizam REST,
-persistencia, mensageria, armazenamento, integracoes externas ou simulacao. Essa direcao de
+MCP, persistencia, mensageria, armazenamento, integracoes externas ou simulacao. Essa direcao de
 dependencia nao exige um nucleo livre de framework: Quarkus e suas APIs podem ser usados no
 dominio, na aplicacao, nas portas e nos casos de uso. As dependencias estruturais continuam
 apontando das bordas para as portas e os modelos do nucleo.
@@ -82,8 +88,8 @@ framework quando isso for util, sem deixar de representar a linguagem da aplicac
 deve expor por conveniencia sao DTOs e detalhes exclusivos de uma borda externa.
 
 - A **porta de entrada** representa uma capacidade oferecida pela aplicacao. Ela permite que uma
-  requisicao HTTP, uma mensagem, uma tarefa agendada ou uma futura etapa de orquestracao acione um
-  caso de uso.
+  requisicao HTTP, uma chamada MCP, uma mensagem, uma tarefa agendada ou uma futura etapa de
+  orquestracao acione um caso de uso.
 - A **porta de saida** representa uma necessidade externa da aplicacao. Ela permite consultar ou
   persistir dados, chamar outro sistema ou publicar uma mensagem sem acoplar o caso de uso ao
   mecanismo utilizado.
@@ -114,6 +120,21 @@ Orquestrador externo
                 -> aplicacao
 ```
 
+Quando um **agente externo usa uma capacidade por MCP**, ele tambem e um ator de entrada. Uma tool
+MCP e publicada por um adapter proprio, que traduz seu contrato para a porta de entrada existente:
+
+```text
+Agente externo
+        -> cliente MCP
+            -> adapter MCP de entrada (futuro)
+                -> porta de entrada existente
+                    -> aplicacao
+```
+
+O agente pode coordenar chamadas externamente, mas essa coordenacao nao transforma MCP em camada
+de aplicacao. A tool continua sendo apenas uma borda de entrada e nao chama Resource REST, REST
+Client MTR nem adapter de saida.
+
 Quando existe um **orquestrador local que coordena casos de uso**, essa coordenacao pertence a
 camada de aplicacao. Ele permanece atras de sua propria porta de entrada, compoe capacidades do
 mesmo dominio por seus contratos de entrada e atravessa outro dominio somente por uma porta de
@@ -140,9 +161,9 @@ Aplicacao
             -> orquestrador externo
 ```
 
-Esses tres desenhos explicam possibilidades arquiteturais, nao componentes existentes. O
+Esses quatro desenhos explicam possibilidades arquiteturais, nao componentes existentes. O
 `simtr-hub` atual nao possui orquestrador local, motor de workflow nem adapter dedicado a um
-orquestrador externo.
+orquestrador externo. Tambem nao possui MCP Server nem adapter MCP.
 
 ### Arquitetura Hexagonal no mundo dos microsservicos
 
@@ -201,6 +222,11 @@ cliente HTTP
 No fluxo atual, a entrada e REST e as duas saidas alternativas sao MTR e simulador. O caso de uso
 nao conhece Resource, REST Client, URL, DTO MTR, fixture nem o mecanismo de selecao CDI.
 
+A mesma estrutura permite adicionar, no futuro, um adapter MCP de entrada ao lado do adapter REST.
+Esse adapter reutiliza as portas e os casos de uso existentes sem introduzir MCP no dominio ou na
+aplicacao. O cenario demonstra uma propriedade da arquitetura; nao afirma que MCP esteja
+implementado ou aprovado para exposicao operacional.
+
 Nao existe nesta solucao um endpoint unico de pre-validacao, orquestrador local, motor de workflow
 ou comunicacao distribuida entre os dominios. A composicao por orquestradores e a extracao para
 microsservicos sao possibilidades futuras, explicitamente separadas do estado implementado. A
@@ -211,8 +237,9 @@ ainda nao existem no Hub.
 
 Transformar o `simtr-hub` em um monolito modular DDD, composto por capacidades atomicas e
 desacopladas. Os endpoints REST atuais e os futuros orquestradores devem ser entradas diferentes
-para os mesmos casos de uso. O nucleo nao dependera de Quarkus Flow e nao pressupora que ele sera
-adotado.
+para os mesmos casos de uso. Uma futura exposicao MCP deve ser outra entrada para essas mesmas
+capacidades, implementada exclusivamente na borda. O nucleo nao dependera de Quarkus Flow, de APIs
+MCP nem pressupora que essas tecnologias serao adotadas.
 
 A refatoracao deve preparar a futura extracao dos modulos em microsservicos sem implementar agora
 novos endpoints, workflows ou integracoes funcionais.
@@ -220,21 +247,119 @@ novos endpoints, workflows ou integracoes funcionais.
 ## Resultado esperado
 
 ```text
-REST atual --------------------------+
-                                     |
-orquestrador futuro do dominio ------+--> porta de entrada
-                                           -> caso de uso atomico
-                                           -> porta de saida do consumidor
-                                           -> adapter selecionado
-                                              |-- MTR
-                                              `-- simulador
+cliente ou orquestrador externo
+    -> REST atual --------------------------+
+                                             |
+agente externo                               |
+    -> adapter MCP futuro ------------------+--> porta de entrada existente
+                                                   -> caso de uso atomico
+                                                   -> porta de saida do consumidor
+                                                   -> adapter selecionado
+                                                      |-- MTR
+                                                      `-- simulador
+
+adapter de entrada do fluxo
+    -> porta de entrada do fluxo
+        -> orquestrador futuro do dominio
+            -> portas de entrada atomicas
 ```
 
-- REST e orquestradores nao conhecem REST Client, DTO MTR, URL ou politica HTTP.
+- REST, MCP e orquestradores nao conhecem REST Client, DTO MTR, URL ou politica HTTP.
+- REST e MCP possuem contratos de borda independentes e convergem para as mesmas portas de
+  entrada.
 - Um orquestrador do mesmo dominio pode compor capacidades atomicas desse dominio.
 - Uma chamada entre dominios usa uma porta de saida do consumidor e uma camada anticorrupcao.
 - Enquanto os dominios estiverem no mesmo processo, a camada anticorrupcao pode usar um adapter
   local. Depois da extracao, somente esse adapter muda para HTTP ou mensageria.
+
+## Cenario evolutivo: capacidades por MCP
+
+### Posicionamento arquitetural
+
+MCP e uma opcao futura de protocolo de entrada para agentes externos. Ele nao substitui REST, nao
+implementa regras de negocio e nao se torna um novo dominio. A extensao preserva a direcao de
+dependencia da Arquitetura Hexagonal:
+
+```text
+tools/call
+    -> tool no adapter MCP
+        -> mapper MCP
+            -> comando interno
+                -> porta de entrada existente
+                    -> caso de uso existente
+                        -> portas e adapters de saida existentes
+```
+
+O limite normal da mudanca e a criacao de componentes em
+`<dominio>.adaptador.entrada.mcp`, alem da configuracao tecnica necessaria para publicar e proteger
+o protocolo. Nao mudam por causa do MCP:
+
+- dominio, regras e modelos de negocio;
+- casos de uso e portas de entrada existentes;
+- portas de saida e selecao entre MTR e simulador;
+- adapters MTR e simulador;
+- contratos REST publicos e suas politicas de compatibilidade;
+- politicas de fault tolerance das integracoes de saida.
+
+Se a exposicao de uma tool revelar uma precondicao ausente, a regra deve ser corrigida no caso de
+uso para proteger igualmente REST, MCP, orquestracao interna e testes. Essa e uma correcao da
+capacidade de negocio, nao uma regra exclusiva da tool.
+
+### Contratos e granularidade
+
+Cada tool deve corresponder inicialmente a uma capacidade atomica e acionar sua porta de entrada.
+Somente as capacidades com consumidor, autorizacao e risco avaliados recebem tools; nao e
+necessario expor as oito capacidades de uma vez. Uma futura tool composta deve chamar a porta de
+entrada de um fluxo da aplicacao, em vez de duplicar a coordenacao no adapter MCP.
+
+```text
+DTO MCP de entrada
+    -> mapper MCP
+        -> comando interno
+            -> porta de entrada
+                -> resultado interno
+                    -> mapper MCP
+                        -> DTO MCP de saida
+```
+
+DTOs, schemas, nomes de tools e erros MCP sao contratos exclusivos dessa borda. Eles nao reutilizam
+DTOs REST, MTR ou do simulador e nao atravessam para o nucleo. Isso permite que REST e MCP evoluam
+independentemente, preservando a semantica da capacidade.
+
+Uma estrutura opcional, criada somente quando houver uma tool concreta, e:
+
+```text
+<dominio>/adaptador/entrada/mcp/
+|-- dto/
+|-- mapper/
+`-- tool/
+```
+
+### Seguranca e operacao
+
+A exposicao MCP amplia a superficie de entrada e exige autenticacao de servico, autorizacao por
+capacidade e propagacao controlada da identidade. Tools mutaveis nao compartilham uma permissao
+generica irrestrita. Argumentos sensiveis, tokens, credenciais, URLs internas, stacks e DTOs de
+erro MTR nao podem aparecer em respostas, logs, traces ou memoria de conversacao.
+
+`ObterCredencialContainer` requer decisao de seguranca separada antes de virar tool. A existencia
+da porta nao implica autorizacao para expor a credencial a um agente.
+
+Spans e logs devem identificar a origem da entrada (`REST`, `MCP` ou `WORKFLOW_LOCAL`) sem alterar
+os sinais ja considerados contratuais. O trace iniciado na chamada MCP deve continuar pelo caso de
+uso e pelo adapter MTR, com filtragem de atributos sensiveis.
+
+### Consequencias e trade-offs
+
+O beneficio e demonstrar que uma nova forma de consumo pode ser adicionada sem reescrever a
+capacidade: a variacao fica concentrada em DTOs, mappers, autenticacao e publicacao do adapter de
+entrada. O custo e uma nova superficie operacional e de seguranca, alem de novos contratos e
+testes por tool.
+
+Enquanto o MCP Server estiver no mesmo processo, o adapter chama diretamente as portas de
+entrada. Se uma necessidade futura exigir um servico MCP separado, esse servico passa a ser um
+consumidor externo dos contratos publicos do Hub, por REST ou mensageria, e deixa de ser um adapter
+interno. Essa mudanca de implantacao nao autoriza acesso direto ao nucleo entre processos.
 
 ## Dominios e capacidades atuais
 
@@ -393,11 +518,14 @@ Nao se criam pastas vazias nem abstracoes sem consumidor real.
    outro dominio.
 3. Adapters de entrada dependem de portas de entrada e mapeiam DTOs para tipos internos.
 4. Adapters de saida implementam portas de saida e mapeiam tipos internos para seus contratos.
-5. DTO publico, DTO MTR e DTO do simulador sao contratos independentes.
-6. Nenhum mapper converte diretamente DTO publico em DTO MTR.
+5. DTO publico REST, DTO MCP, DTO MTR e DTO do simulador sao contratos independentes.
+6. Nenhum mapper converte diretamente DTO publico REST ou DTO MCP em DTO MTR.
 7. `arquitetura` nao importa dominios e nao possui regra, modelo ou erro especifico de negocio.
 8. Um adapter local entre dominios fica na borda do consumidor; ele pode importar a API de
     aplicacao publica do fornecedor e realiza a traducao entre modelos.
+9. Um adapter MCP pode depender somente de sua propria borda, das portas de entrada, dos tipos
+   internos referenciados por elas e das APIs tecnicas necessarias ao protocolo. Ele nao depende
+   de adapter REST, adapter MTR, simulador, REST Client nem DTO de outra borda.
 
 A **API publica de aplicacao** de um dominio e formada exclusivamente por suas portas de entrada e
 pelos tipos semanticos de comando/resultado referenciados por elas. Casos de uso concretos, portas
@@ -407,7 +535,9 @@ nao importa diretamente nem mesmo essa API: somente seu adapter local anticorrup
 Essas regras estao codificadas no build por ArchUnit para todas as capacidades migradas. ArchUnit
 protege as fronteiras estruturais e nao mantem blacklist de Quarkus, Jakarta, MicroProfile,
 Mutiny, Jackson ou OpenTelemetry por camada. A ativacao ocorreu progressivamente durante a
-refatoracao para evitar um big bang.
+refatoracao para evitar um big bang. Quando existir um adapter MCP, as regras devem tambem provar
+que dominio e aplicacao nao dependem dele e que ele nao atravessa lateralmente para outros
+adapters.
 
 ## Portas e granularidade
 
@@ -415,10 +545,13 @@ refatoracao para evitar um big bang.
 - Casos de uso expressam verbos de negocio e retornam tipos internos.
 - Portas de saida representam a necessidade do consumidor, nao a API generica do fornecedor.
 - Um mesmo adapter MTR pode implementar varias portas pequenas do mesmo dominio.
+- Uma tool MCP atomica aciona uma porta de entrada; ela nao cria uma segunda representacao da
+  capacidade na aplicacao.
 - Nao existe `Service` generico que exponha todas as operacoes de todos os contextos.
 
 Essa granularidade permite que o futuro orquestrador componha somente as capacidades necessarias e
-impede que um consumer dependa de uma interface ampla por conveniencia.
+que um futuro adapter MCP exponha apenas as tools autorizadas. Ela impede que um consumidor dependa
+de uma interface ampla por conveniencia.
 
 ## Modelos internos e nomes
 
@@ -431,7 +564,7 @@ impede que um consumer dependa de uma interface ampla por conveniencia.
 - Colecoes continuam com a semantica atual nesta refatoracao. Imutabilidade profunda e tratamento
   de elementos nulos so mudam mediante decisao funcional e testes proprios.
 
-## Contratos das tres bordas
+## Contratos das bordas
 
 ### REST publico
 
@@ -442,7 +575,17 @@ impede que um consumer dependa de uma interface ampla por conveniencia.
 - O OpenAPI e gerado exclusivamente pelo Quarkus a partir do codigo; nao existe arquivo estatico,
   filtro, complemento nem teste do documento gerado.
 - A unica excecao compartilhada permitida e o contrato tecnico de erro REST, localizado em
-  `arquitetura.excecao.dto`. Ele e proibido no dominio, na aplicacao e nos adapters MTR/simulador.
+  `arquitetura.excecao.dto`. Ele e proibido no dominio, na aplicacao e nos adapters MCP, MTR e
+  simulador.
+
+### MCP futuro
+
+- DTOs, schemas, nomes de tools e erros ficam exclusivamente no adapter MCP do proprio dominio.
+- O adapter mapeia entrada MCP para comandos internos e resultados internos para saidas MCP.
+- A tool aciona a porta de entrada; nao chama Resource REST, REST Client nem adapter de saida.
+- DTOs REST, MTR e do simulador nao sao reutilizados.
+- Autenticacao, autorizacao por capacidade, transporte e serializacao permanecem nessa borda.
+- A introducao de MCP nao altera paths, verbos, status, JSON ou validacoes observaveis da API REST.
 
 ### MTR
 
@@ -462,7 +605,7 @@ impede que um consumer dependa de uma interface ampla por conveniencia.
 
 ## Erros
 
-- Excecoes e tipos HTTP nao atravessam portas.
+- Excecoes e tipos de protocolo HTTP ou MCP nao atravessam portas.
 - Cada dominio classifica falhas relevantes para seus casos de uso, como rejeicao de negocio,
   dependencia indisponivel, timeout e resposta externa invalida.
 - O adapter MTR traduz erros externos para falhas internas da aplicacao.
@@ -473,6 +616,8 @@ impede que um consumer dependa de uma interface ampla por conveniencia.
   atual: status, recurso, identificador, codigo, mensagens, detalhe e demais campos observaveis.
 - O DTO de erro recebido do MTR e diferente do DTO de erro devolvido pela API publica.
 - O adapter REST traduz falhas internas para o status e corpo atuais.
+- Um futuro adapter MCP traduz falhas internas para seu proprio resultado estruturado e seguro,
+  sem expor stack, URL interna, token, DTO MTR nem estado do circuit breaker.
 - Erros de validacao e desserializacao, que podem ocorrer antes do metodo Resource, continuam sob
   mappers tecnicos do adapter REST.
 
@@ -497,9 +642,10 @@ aplicadas automaticamente ao simulador.
 Ha um risco conhecido: criacao de dossie, inclusao de documento e avanco de workflow sao operacoes
 mutaveis com retry. Um timeout depois de sucesso remoto pode duplicar efeitos.
 
-**Checkpoint bloqueante para workflows futuros:** antes de um orquestrador usar essas operacoes,
-deve existir evidencia de idempotencia do MTR ou uma chave/estrategia idempotente. Essa correcao
-comportamental nao sera misturada a refatoracao estrutural atual.
+**Checkpoint bloqueante para workflows e tools mutaveis futuros:** antes de um orquestrador ou
+agente por MCP usar essas operacoes, deve existir evidencia de idempotencia do MTR ou uma
+chave/estrategia idempotente. Essa correcao comportamental nao sera misturada a refatoracao
+estrutural atual.
 
 ## Observabilidade
 
@@ -509,6 +655,8 @@ Nomes de spans, eventos de log e atributos atuais sao contrato de compatibilidad
 - A mudanca de nomes Java nao pode alterar silenciosamente atributos obtidos por reflexao do REST
   Client.
 - Cada capacidade preserva os sinais atuais nas bordas REST, caso de uso e adapter MTR.
+- Um futuro adapter MCP identifica a origem da entrada e o nome da tool, preserva a correlacao ate
+  o MTR e nao registra argumentos sensiveis integralmente.
 - Reducao de logs duplicados e uma mudanca posterior, com decisao e testes separados.
 
 ## Estrategia de testes
@@ -534,7 +682,9 @@ Os testes devem cobrir, conforme a capacidade:
 - nomes e atributos de observabilidade considerados contratuais;
 - annotations e contratos Java que alimentam o OpenAPI gerado, sem testar ou manipular o artefato;
 - propriedades, defaults e profiles de configuracao usados pela capacidade;
-- regras ArchUnit das capacidades ja migradas.
+- regras ArchUnit das capacidades ja migradas;
+- quando existir MCP, schema e contrato da tool, mapeamento MCP -> interno -> MCP, autenticacao,
+  autorizacao, traducao de erros, propagacao do trace e ausencia de dados sensiveis nos sinais.
 
 O baseline anterior foi preservado por manifestos e contratos executaveis por capacidade. A
 evidencia quantitativa de cobertura permanece exclusivamente no relatorio JaCoCo. Nenhum teste
@@ -562,6 +712,8 @@ do diff antes da continuidade.
 - os cinco endpoints marcados como **NAO IMPLEMENTADO** acima e quaisquer outros endpoints novos;
 - implementacao de qualquer workflow ou orquestrador;
 - escolha definitiva ou dependencia de Quarkus Flow;
+- implementacao de MCP Server, tools ou agente consumidor;
+- escolha de extensao, versao, transporte ou topologia de implantacao MCP;
 - Redis, Cosmos DB ou persistencia de estado de workflow;
 - calculo da arvore documental e servicos inteligentes de IA;
 - analise de conformidade;
@@ -582,6 +734,24 @@ sistema externo, dificultando evolucao e extracao independentes.
 
 Rejeitada porque adiciona protocolo, serializacao e falhas de rede dentro do mesmo processo. REST e
 orquestradores sao entradas para os mesmos casos de uso.
+
+### Acoplar MCP ao dominio ou a aplicacao
+
+Rejeitada porque uma tecnologia de entrada nao deve definir a capacidade de negocio. APIs,
+annotations, DTOs, schemas e erros MCP ficam no adapter; as portas e os casos de uso permanecem
+independentes do protocolo.
+
+### Tools MCP chamarem Resources REST locais
+
+Rejeitada porque cria acoplamento lateral entre adapters, duplica validacao e serializacao e
+introduz semantica HTTP desnecessaria dentro do mesmo processo. REST e MCP convergem diretamente
+para a mesma porta de entrada.
+
+### Criar um servico MCP separado desde ja
+
+Rejeitada sem necessidade operacional concreta porque adiciona deployment, rede, autenticacao e
+falhas distribuidas. A separacao permanece uma opcao futura; nesse caso, o servico sera consumidor
+externo dos contratos publicos do Hub.
 
 ### Reutilizar os mesmos DTOs em todas as bordas
 
@@ -609,6 +779,9 @@ criterios de operacao e maturidade dos providers de persistencia.
 | Renome quebrar dashboards | Inventario e testes de spans, eventos e atributos |
 | Testes validarem apenas simulador | Stub MTR com simulador desabilitado |
 | Big bang de packages | Uma capacidade vertical por etapa e checkpoints GO/NO-GO |
+| Dependencia MCP vazar para o nucleo ou outros adapters | Package exclusivo e regras ArchUnit de direcao |
+| Agente repetir ou ordenar incorretamente operacoes mutaveis | Precondicoes no caso de uso, autorizacao por tool e checkpoint de idempotencia |
+| Tool expor credencial ou dado sensivel | Decisao de exposicao separada, menor privilegio e sanitizacao de respostas, logs e traces |
 
 ## Fontes oficiais de framework
 

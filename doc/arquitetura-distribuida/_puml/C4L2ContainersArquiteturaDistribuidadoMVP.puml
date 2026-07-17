@@ -1,0 +1,53 @@
+@startuml
+!include <C4/C4_Container>
+
+title C4 L2 — Containers da solução simplificada
+
+LAYOUT_LEFT_RIGHT()
+HIDE_STEREOTYPE()
+
+AddElementTag("entrada", $bgColor="#D9EAF7", $fontColor="#111827", $borderColor="#64748B", $legendText="Entrada")
+AddElementTag("negocio", $bgColor="#FFF2CC", $fontColor="#111827", $borderColor="#A16207", $legendText="Negócio determinístico")
+AddElementTag("assinc", $bgColor="#D9EAD3", $fontColor="#111827", $borderColor="#4D7C0F", $legendText="Mensageria")
+AddElementTag("ia", $bgColor="#EAD1DC", $fontColor="#111827", $borderColor="#9F5264", $legendText="Inteligência artificial")
+AddElementTag("dados", $bgColor="#D9EAF7", $fontColor="#111827", $borderColor="#64748B", $legendText="Plano de dados")
+
+System_Boundary(prevalida, "Pré-Valida / SIMTR") {
+  Container(portal, "Portal Operacional", "Frontend Web", "Interface utilizada pelos operadores.", $tags="entrada")
+  Container(bff, "BFF", "Quarkus", "API de entrada do Portal Operacional.", $tags="entrada")
+  Container(orquestrador, "Orquestrador", "Quarkus Flow", "Coordena o fluxo de pré-validação.", $tags="negocio")
+  Container(simtr_hub, "SIMTR Hub", "Quarkus", "Oferece capacidades determinísticas dos domínios de negócio.", $tags="negocio")
+
+  ContainerQueue(service_bus, "Service Bus", "Azure Service Bus / AMQP", "Fronteira assíncrona entre o SIMTR Hub e o Core de IA.", $tags="assinc")
+  Container(core_ia, "Core de IA", "Container Java", "Executa agentes e fluxos de inteligência artificial.", $tags="ia")
+
+  Boundary(plano_dados, "Plano de dados") {
+    ContainerDb(cosmos, "Cosmos DB", "Azure Cosmos DB", "Persiste os dados dos domínios do SIMTR Hub.", $tags="dados")
+    ContainerDb(blob, "Blob Storage", "Azure Blob Storage", "Armazena documentos e normativos usados pelo fluxo.", $tags="dados")
+    ContainerDb(redis, "Redis", "Azure Cache for Redis", "Persiste contexto durável e checkpoints do fluxo.", $tags="dados")
+    ContainerDb(ai_search, "AI Search", "Azure AI Search", "Mantém o índice de normativos usado pelo Core de IA.", $tags="dados")
+  }
+}
+
+System_Ext(mtr, "MTR", "Disponibiliza APIs de negócio.")
+
+Rel_R(portal, bff, "Usa", "HTTPS/REST")
+Rel_D(bff, orquestrador, "Inicia o fluxo", "REST")
+Rel_R(orquestrador, simtr_hub, "Orquestra capacidades", "REST")
+Rel_R(simtr_hub, mtr, "Consome APIs de negócio", "REST")
+
+BiRel_D(simtr_hub, service_bus, "Solicita processamento e recebe resultados", "AMQP")
+BiRel_R(service_bus, core_ia, "Transporta solicitações e resultados", "AMQP")
+
+Rel_D(orquestrador, blob, "Lê e grava documentos do fluxo", "SDK/HTTPS")
+Rel_D(orquestrador, redis, "Persiste contexto e checkpoints", "RESP/TLS")
+Rel_D(simtr_hub, cosmos, "Lê e grava dados dos domínios", "SDK/HTTPS")
+Rel_D(core_ia, blob, "Lê documentos e normativos", "SDK/HTTPS")
+Rel_D(core_ia, ai_search, "Consulta o índice de normativos", "HTTPS")
+
+Lay_R(cosmos, blob)
+Lay_R(blob, redis)
+Lay_R(redis, ai_search)
+
+SHOW_LEGEND()
+@enduml
