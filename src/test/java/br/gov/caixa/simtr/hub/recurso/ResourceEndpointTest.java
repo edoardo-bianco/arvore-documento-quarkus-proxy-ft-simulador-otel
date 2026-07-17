@@ -12,6 +12,13 @@ import static org.hamcrest.Matchers.notNullValue;
 @QuarkusTest
 class ResourceEndpointTest {
 
+    private static final String ROTA_DOCUMENTO_DOSSIE_PRODUTO =
+            "/simtr-hub/v1/dossie-produto/{id}/documento";
+    private static final String ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO =
+            "/simtr-hub/v1/dossie-produto/{id}/validacao-negocial";
+    private static final String CAMPO_CODIGO_ERRO = "codigo_erro";
+    private static final String CODIGO_ERRO_VALIDACAO = "ARVDOCP0001";
+
     @Test
     void processoEndpointRetorna200ComMockDoQuarkus() {
         given()
@@ -72,7 +79,7 @@ class ResourceEndpointTest {
                 .accept(ContentType.JSON)
                 .body(TestFixtures.documentoInclusaoDto())
                 .when()
-                .post("/simtr-hub/v1/dossie-produto/{id}/documento", 123L)
+                .post(ROTA_DOCUMENTO_DOSSIE_PRODUTO, 123L)
                 .then()
                 .statusCode(201)
                 .body("id_documento", equalTo(456))
@@ -86,7 +93,7 @@ class ResourceEndpointTest {
                 .accept(ContentType.JSON)
                 .body(TestFixtures.documentoInclusaoSemObjetoAtributoDto())
                 .when()
-                .post("/simtr-hub/v1/dossie-produto/{id}/documento", 123L)
+                .post(ROTA_DOCUMENTO_DOSSIE_PRODUTO, 123L)
                 .then()
                 .statusCode(201)
                 .body("id_documento", equalTo(456))
@@ -100,7 +107,7 @@ class ResourceEndpointTest {
                 .accept(ContentType.JSON)
                 .body(TestFixtures.validacaoNegocialRequest())
                 .when()
-                .patch("/simtr-hub/v1/dossie-produto/{id}/validacao-negocial", 123L)
+                .patch(ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO, 123L)
                 .then()
                 .statusCode(200);
     }
@@ -140,7 +147,7 @@ class ResourceEndpointTest {
                         }
                         """)
                 .when()
-                .patch("/simtr-hub/v1/dossie-produto/{id}/validacao-negocial", 123L)
+                .patch(ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO, 123L)
                 .then()
                 .statusCode(200);
     }
@@ -178,7 +185,7 @@ class ResourceEndpointTest {
                 .get("/simtr-hub/v1/processo/identificador-negocial/{identificador}", 0)
                 .then()
                 .statusCode(400)
-                .body("codigo_erro", equalTo("ARVDOCP0001"));
+                .body(CAMPO_CODIGO_ERRO, equalTo(CODIGO_ERRO_VALIDACAO));
     }
 
     @Test
@@ -191,7 +198,7 @@ class ResourceEndpointTest {
                 .patch("/simtr-hub/v1/dossie-produto/{id}/formulario", 0)
                 .then()
                 .statusCode(400)
-                .body("codigo_erro", equalTo("ARVDOCP0001"));
+                .body(CAMPO_CODIGO_ERRO, equalTo(CODIGO_ERRO_VALIDACAO));
     }
 
     @Test
@@ -201,10 +208,10 @@ class ResourceEndpointTest {
                 .accept(ContentType.JSON)
                 .body(TestFixtures.documentoInclusaoDto())
                 .when()
-                .post("/simtr-hub/v1/dossie-produto/{id}/documento", 0)
+                .post(ROTA_DOCUMENTO_DOSSIE_PRODUTO, 0)
                 .then()
                 .statusCode(400)
-                .body("codigo_erro", equalTo("ARVDOCP0001"));
+                .body(CAMPO_CODIGO_ERRO, equalTo(CODIGO_ERRO_VALIDACAO));
     }
 
     @Test
@@ -214,10 +221,10 @@ class ResourceEndpointTest {
                 .accept(ContentType.JSON)
                 .body(TestFixtures.validacaoNegocialRequest())
                 .when()
-                .patch("/simtr-hub/v1/dossie-produto/{id}/validacao-negocial", 0)
+                .patch(ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO, 0)
                 .then()
                 .statusCode(400)
-                .body("codigo_erro", equalTo("ARVDOCP0001"));
+                .body(CAMPO_CODIGO_ERRO, equalTo(CODIGO_ERRO_VALIDACAO));
     }
 
     @Test
@@ -226,10 +233,10 @@ class ResourceEndpointTest {
                 .contentType(ContentType.JSON)
                 .accept(ContentType.JSON)
                 .when()
-                .patch("/simtr-hub/v1/dossie-produto/{id}/validacao-negocial", 123L)
+                .patch(ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO, 123L)
                 .then()
                 .statusCode(400)
-                .body("codigo_erro", equalTo("ARVDOCP0001"));
+                .body(CAMPO_CODIGO_ERRO, equalTo(CODIGO_ERRO_VALIDACAO));
     }
 
     @Test
@@ -240,6 +247,6 @@ class ResourceEndpointTest {
                 .post("/simtr-hub/v1/dossie-produto/{id}/workflow", 0)
                 .then()
                 .statusCode(400)
-                .body("codigo_erro", equalTo("ARVDOCP0001"));
+                .body(CAMPO_CODIGO_ERRO, equalTo(CODIGO_ERRO_VALIDACAO));
     }
 }
