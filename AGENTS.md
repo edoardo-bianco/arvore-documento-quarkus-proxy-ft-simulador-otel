@@ -22,9 +22,14 @@ Antes de alterar a arquitetura ou implementar uma etapa da refatoracao DDD:
 10. A Fase 12 foi encerrada com GO humano no C12. As Fases 13 a 16 usam especificacoes e branches
     proprias; nao reutilize branches de fechamento. O C16-C recebeu GO humano, a Task 16.10 foi
     concluida e a Fase 16 esta encerrada. Nenhum item posterior esta autorizado nesta branch.
-11. A analise final da Fase 16 no SonarQube Docker local terminou com Quality Gate `OK`, zero
-    `BLOCKER`, zero `CRITICAL`, zero issue nova e zero `java:S1192`. Qualquer trabalho Sonar futuro
-    exige nova fase, branch, plano e GO. Tokens devem existir somente na memoria do processo.
+11. O CSV `doc/sonar/sonar-issues-staging.csv` e a fonte primaria da verificacao final da Fase 16,
+    pois nao ha acesso ao Sonar que o gerou. A auditoria direta reconciliou as 100 issues
+    `CRITICAL`: 74 apontamentos acionaveis foram verificados como resolvidos no codigo e 26
+    pertencem a tres paths ausentes, nao rastreados e sem referencias. As outras 38 linhas do CSV
+    nao sao criticas e nao foram declaradas resolvidas nesta fase. O SonarQube Docker local e
+    apenas evidencia secundaria de nao regressao; terminou com Quality Gate `OK`, zero issue nova
+    e zero `java:S1192`. Qualquer trabalho Sonar futuro exige nova fase, branch, plano e GO. Tokens
+    devem existir somente na memoria do processo.
 
 ## Formatos derivados da documentacao
 

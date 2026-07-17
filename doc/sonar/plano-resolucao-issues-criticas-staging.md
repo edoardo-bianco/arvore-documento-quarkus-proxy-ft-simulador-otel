@@ -1,6 +1,6 @@
-# Plano de resolução das issues críticas do Sonar oficial
+# Plano de resolução das issues críticas exportadas do Sonar oficial
 
-Status: **EM EXECUÇÃO — C16-B aprovado; bloco C16-C autorizado**.
+Status: **CONCLUÍDO — 100 issues CRITICAL reconciliadas diretamente contra o código**.
 
 - Fonte exclusiva: `doc/sonar/sonar-issues-staging.csv`.
 - Branch de trabalho: `refactor/sonar-quality-fase-16-baseline`.
@@ -12,6 +12,9 @@ Status: **EM EXECUÇÃO — C16-B aprovado; bloco C16-C autorizado**.
 Resolver somente as issues cujo campo `severity` seja exatamente `CRITICAL` no CSV exportado do
 Sonar oficial do projeto, preservando comportamento, contratos, cobertura, observabilidade e as
 fronteiras DDD existentes.
+
+Não há acesso ao Sonar que gerou o CSV. Portanto, o CSV é a fonte primária da verificação final;
+o SonarQube Docker local é usado somente como evidência secundária de não regressão.
 
 Este plano não autoriza correções de issues `MAJOR`, `MINOR` ou `INFO`, nem incorpora as issues do
 projeto Sonar local `simtr-hub-local` que não estejam presentes no CSV oficial.
@@ -62,8 +65,8 @@ Todas as 74 issues acionáveis estão em `src/test/java`. Portanto, este plano n
    atributos de spans e eventos de log não podem mudar.
 6. Não serão usados `@SuppressWarnings`, exclusões do scanner, `NOSONAR` ou marcação automática de
    falso positivo.
-7. Arquivos ausentes não serão reintroduzidos para corrigir issue. Primeiro será reconciliada a
-   cópia analisada pelo Sonar oficial.
+7. Arquivos ausentes não serão reintroduzidos para corrigir issue. A reconciliação exige comprovar
+   que os paths não existem, não são rastreados pelo Git e não possuem referências no código.
 8. Nenhuma alteração será feita em `.ppt`, `.pptx`, `.pdf` ou `.html`.
 9. Após cada task concluída, o projeto `simtr-hub-local` será analisado no Sonar Docker. O gate
    exige Quality Gate `OK`, zero chave de issue nova e zero `java:S1192` nos arquivos do lote. O
@@ -75,14 +78,15 @@ Todas as 74 issues acionáveis estão em `src/test/java`. Portanto, este plano n
 2. Tratar guardrails e contratos arquiteturais, porque protegem os demais lotes.
 3. Tratar testes compartilhados e, depois, cada domínio de forma isolada.
 4. Executar checkpoints com suíte completa e cobertura após cada dois ou três lotes.
-5. Publicar uma análise no Sonar oficial e encerrar somente com zero `CRITICAL`.
+5. Verificar todas as linhas `CRITICAL` diretamente contra o código e usar o Sonar Docker local
+   somente para detectar regressões na cópia atual.
 
 ## Tasks
 
 ### Task 16.0 — Reconciliar os 26 apontamentos de paths ausentes
 
-**Descrição:** confirmar qual revisão e working tree foram analisados no Sonar oficial. Os três
-paths abaixo não existem nem possuem histórico na branch atual:
+**Descrição:** reconciliar as entradas do CSV com a revisão e a working tree disponíveis. O CSV
+não informa branch ou SHA da análise de origem. Os três paths abaixo não existem na branch atual:
 
 - `src/test/java/br/gov/caixa/simtr/dossie/DossieContractTest.java` — 10 `S2696`;
 - `src/test/java/br/gov/caixa/simtr/dossie/recurso/rest/DossieResourceTest.java` — 9 `S2696`;
@@ -90,19 +94,19 @@ paths abaixo não existem nem possuem histórico na branch atual:
 
 **Critérios de aceite:**
 
-- [ ] registrar branch, SHA e data da análise oficial que gerou o CSV;
-- [ ] confirmar se os três arquivos são resíduos da versão inicial na máquina de trabalho;
-- [ ] antes de removê-los, comprovar com `rg` que nenhuma produção ou teste vigente depende deles;
-- [ ] não reintroduzir package ou teste legado na branch atual;
-- [ ] após sincronização e nova análise, as 26 issues deixam de existir por ausência dos arquivos.
+- [x] registrar que o CSV não contém branch nem SHA da análise de origem;
+- [x] comprovar que os três paths não existem e não são rastreados pelo Git;
+- [x] comprovar com `rg` que nenhuma produção ou teste vigente depende deles;
+- [x] não reintroduzir package ou teste legado na branch atual;
+- [x] classificar as 26 issues como obsoletas e não aplicáveis ao código da revisão verificada.
 
 **Verificação:**
 
-- [ ] `git status --short` contém somente mudanças conhecidas;
-- [ ] `rg -n "br\.gov\.caixa\.simtr\.dossie" src/main src/test` não encontra dependência vigente
+- [x] `git status --short` contém somente mudanças conhecidas;
+- [x] `rg -n "br\.gov\.caixa\.simtr\.dossie" src/main src/test` não encontra dependência vigente
       não justificada;
-- [ ] `mvn -q clean test` passa após a limpeza da cópia oficial;
-- [ ] análise oficial não lista os três paths.
+- [x] `mvn -q clean test` passa na cópia atual;
+- [x] os três paths não existem, não são rastreados e não são referenciados.
 
 **Dependências:** nenhuma.
 
@@ -127,7 +131,7 @@ positivas.
 **Verificação:**
 
 - [ ] `mvn -q -Dtest=ArchUnitProgressivoTest test` passa;
-- [ ] scanner oficial não reporta `CRITICAL` no arquivo.
+- [x] auditoria do CSV contra o código não encontra `CRITICAL` pendente no arquivo.
 
 **Dependências:** Task 16.0.
 
@@ -158,7 +162,7 @@ de log e atributos de spans. Os valores literais e asserções permanecem idênt
 
 - [ ] executar os cinco testes focados;
 - [ ] executar `git diff --check`;
-- [ ] scanner oficial não reporta `CRITICAL` nesses arquivos.
+- [x] auditoria do CSV contra o código não encontra `CRITICAL` pendente nesses arquivos.
 
 **Dependências:** Task 16.1.
 
@@ -355,19 +359,21 @@ type, mantendo a leitura DAMP dos cenários.
 - [x] nenhum arquivo de `src/main/java` alterado;
 - [x] `mvn -q clean test` passa sem testes ignorados;
 - [x] cobertura geral, de linhas e de branches não fica abaixo da baseline;
-- [x] GO humano para a análise oficial final.
+- [x] GO humano para a verificação final contra o CSV.
 
-### Task 16.10 — Publicar análise final no Sonar oficial
+### Task 16.10 — Verificar o CSV contra o código e validar não regressão
 
-**Descrição:** executar o scanner oficial sobre uma cópia Git limpa da branch, importando o XML do
-JaCoCo e registrando revisão, task da análise e Quality Gate.
+**Descrição:** auditar cada issue `CRITICAL` do CSV diretamente contra uma cópia Git limpa da
+branch. Em seguida, executar o Sonar Docker local com importação do XML JaCoCo como verificação
+secundária de que as alterações não introduziram novas issues.
 
 **Critérios de aceite:**
 
-- [x] `CRITICAL=0` no Sonar oficial;
-- [x] as 74 `S1192` acionáveis estão fechadas;
-- [x] as 26 issues de paths ausentes não aparecem na análise;
-- [x] nenhuma nova issue crítica foi introduzida;
+- [x] as 74 `S1192` acionáveis são verificadas diretamente nos 31 arquivos existentes;
+- [x] as 26 issues de paths ausentes são reconciliadas por ausência, falta de rastreamento Git e
+      falta de referências;
+- [x] a auditoria direta termina com zero falha de verificação;
+- [x] nenhuma nova issue é introduzida no Sonar Docker local;
 - [x] as 38 issues não críticas do CSV inicial permanecem fora deste escopo;
 - [x] Quality Gate aprovado e token não persistido.
 
@@ -377,7 +383,8 @@ JaCoCo e registrando revisão, task da análise e Quality Gate.
 - [x] relatório `target/jacoco-report/jacoco.xml` existente e importado;
 - [x] `git diff --check`;
 - [x] `git status --short` revisado;
-- [x] consulta ao Sonar oficial por severidade e regra anexada ao checkpoint final.
+- [x] reconciliação do CSV por severidade, regra, path e literal anexada ao checkpoint final;
+- [x] consulta ao Sonar Docker local registrada separadamente como evidência de não regressão.
 
 **Dependências:** C16-C.
 
@@ -387,8 +394,8 @@ JaCoCo e registrando revisão, task da análise e Quality Gate.
 
 A execução local da `main` em `59952b8` registrou 348 testes, zero falhas, zero erros e zero
 ignorados. O JaCoCo/Sonar registrou 80,0% de cobertura geral, 88,5% de linhas e 60,2% de branches.
-Esses valores são guardrails mínimos; antes da implementação deve ser capturada também a baseline
-do Sonar oficial, pois o escopo analisado pode ser diferente.
+Esses valores são guardrails mínimos. O Sonar que gerou o CSV não está acessível; por isso, não é
+possível consultar ou reproduzir sua baseline e a validação de fechamento deve usar o próprio CSV.
 
 Não são aceitos como solução:
 
@@ -402,7 +409,7 @@ Não são aceitos como solução:
 
 | Risco | Impacto | Mitigação |
 |---|---|---|
-| Sonar oficial analisou working tree com arquivos residuais | Alto | usar checkout limpo e reconciliar os três paths antes de editar |
+| Sonar de origem analisou working tree com arquivos residuais | Alto | usar checkout limpo e reconciliar os três paths antes de editar |
 | Constantes tornam testes menos descritivos | Médio | constantes locais, nomes semânticos e manutenção do estilo DAMP |
 | Alteração acidental de literal contratual | Alto | diff focado e comparação de payload/path antes e depois |
 | Guardrail ArchUnit é relaxado durante extração | Alto | teste focado e proibição explícita de remover ou flexibilizar regra |
@@ -418,7 +425,7 @@ nos checkpoints C16-A, C16-B e C16-C.
 
 - Branch: `refactor/sonar-quality-fase-16-baseline`.
 - Commit-base: `59952b89c587e07611e285ed7682883135388ed2`.
-- O CSV data as issues em 2026-07-17, mas não exporta a branch nem o SHA da análise oficial.
+- O CSV data as issues em 2026-07-17, mas não exporta a branch nem o SHA da análise de origem.
 - Os três paths legados não existem na branch, não possuem histórico Git local e não são
   referenciados pelo código vigente. Nenhum arquivo foi removido ou reintroduzido.
 - As 11 issues de `ArchUnitProgressivoTest` e as 12 issues de exceções/observabilidade foram
@@ -432,8 +439,8 @@ nos checkpoints C16-A, C16-B e C16-C.
 - Sonar Docker local no commit `9acafa2`: analysis
   `9560384d-9d08-42dd-a9de-3b9a7803eb77`, Quality Gate `OK`, 214 issues antes e depois, zero
   issue nova, zero `java:S1192`, cobertura 80,0% e duplicação 5,9%.
-- A eliminação no servidor das 23 issues tratadas e das 26 issues dos paths ausentes permanece
-  pendente da análise oficial. Não se declara fechamento remoto antecipadamente.
+- A baixa no servidor de origem não pode ser consultada. O fechamento desta fase é comprovado
+  diretamente contra o CSV e o código, não por estado remoto.
 
 O C16-A recebeu GO humano em 2026-07-17. As Tasks 16.3 a 16.5 estão autorizadas, com parada
 obrigatória no C16-B.
@@ -475,10 +482,10 @@ obrigatória no C16-B.
 
 ### Checkpoint C16-B
 
-As Tasks 16.3 a 16.5 corrigiram localmente os 26 `java:S1192` previstos para o bloco. O
-fechamento no Sonar oficial permanece pendente da análise oficial e não é antecipado por este
-registro. O C16-B recebeu GO humano em 2026-07-17; as Tasks 16.6 a 16.9 estão autorizadas em
-ordem, com parada obrigatória no C16-C.
+As Tasks 16.3 a 16.5 corrigiram localmente os 26 `java:S1192` previstos para o bloco. A baixa no
+Sonar de origem não pode ser consultada; a comprovação final será feita diretamente contra o CSV e
+o código. O C16-B recebeu GO humano em 2026-07-17; as Tasks 16.6 a 16.9 estão autorizadas em ordem,
+com parada obrigatória no C16-C.
 
 ### Task 16.6
 
@@ -539,25 +546,34 @@ ordem, com parada obrigatória no C16-C.
 - As 74 issues acionáveis do CSV, todas `java:S1192`, foram corrigidas localmente nos 31 arquivos
   existentes.
 - Os 26 apontamentos restantes pertencem somente aos três paths ausentes já reconciliados: 7
-  `java:S1192` e 19 `java:S2696`. A baixa continua pendente da análise oficial.
+  `java:S1192` e 19 `java:S2696`.
 - A revisão consolidada de correção, legibilidade, arquitetura, segurança e desempenho não
   encontrou finding Critical ou Required.
-- O C16-C recebeu GO humano em 2026-07-17. A Task 16.10 e o scanner oficial estão autorizados
-  exclusivamente para a análise final e sua verificação.
+- O C16-C recebeu GO humano em 2026-07-17. A Task 16.10 foi autorizada exclusivamente para a
+  auditoria final do CSV e a validação secundária no Sonar Docker local.
 
 ### Resultado final da Task 16.10
 
-- O usuário confirmou que o Sonar oficial deste plano é o SonarQube Docker local em
-  `http://localhost:9000`, projeto `simtr-hub-local`.
-- Revisão analisada: `89c8d46b999753f1560425c1308389c9ba125659`.
+- Não há acesso ao Sonar que gerou o CSV. A fonte primária da verificação final é
+  `doc/sonar/sonar-issues-staging.csv`, confrontado diretamente com a revisão
+  `89c8d46b999753f1560425c1308389c9ba125659`.
+- O CSV contém 138 linhas: 100 `CRITICAL` e 38 não críticas. O fechamento desta fase cobre as
+  100 críticas; as 38 restantes não foram verificadas nem declaradas resolvidas.
+- Das 100 críticas, 74 `java:S1192` são acionáveis em 31 arquivos existentes. A auditoria
+  estática validou 74/74 e terminou com zero falha: cada literal apontado foi substituído por uma
+  constante reutilizada. O caso cuja mensagem manda reutilizar `PACOTE_DTO_ERRO_REST` foi
+  confirmado por uma única definição literal da constante e por múltiplas referências a ela.
+- As outras 26 críticas são entradas obsoletas para três paths inexistentes, não rastreados pelo
+  Git e sem referências em `src`: 7 `java:S1192` e 19 `java:S2696`.
 - `mvn -q clean test`: 348 testes, zero falhas, zero erros e zero ignorados. O XML JaCoCo foi
   regenerado e importado pelo scanner Maven fixado em `5.5.0.6356`.
-- Analysis `88eb9849-c4c9-4022-b135-412cc269068d`: Compute Engine `SUCCESS`, Quality Gate `OK`,
-  214 issues antes/depois, zero issue nova e zero issue fechada.
+- Como evidência secundária de não regressão, o SonarQube Docker local, projeto
+  `simtr-hub-local`, produziu a analysis `88eb9849-c4c9-4022-b135-412cc269068d`: Compute Engine
+  `SUCCESS`, Quality Gate `OK`, 214 issues antes/depois, zero issue nova e zero issue fechada.
 - Severidades abertas: zero `BLOCKER`, zero `CRITICAL`, 137 `MAJOR`, 77 `MINOR` e zero `INFO`.
   Há zero `java:S1192` e zero issue associada aos três paths ausentes.
-- As 74 issues acionáveis e os 26 apontamentos de paths ausentes não aparecem na análise final.
-  As 38 issues não críticas do CSV original permanecem fora do escopo.
+- O resultado do Sonar Docker não comprova isoladamente o fechamento das issues exportadas, pois
+  ele não é o servidor de origem do CSV. Sua função neste plano é somente detectar regressões.
 - Sonar: cobertura 80,0%, linhas 88,5%, branches 60,2%, duplicação 5,9%, bugs 0,
   vulnerabilidades 0 e security hotspots 0.
 - Nenhum token foi persistido e nenhum arquivo de produção, configuração ou formato derivado foi

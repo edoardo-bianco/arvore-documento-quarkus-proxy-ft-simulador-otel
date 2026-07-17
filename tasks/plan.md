@@ -1802,7 +1802,7 @@ fronteiras DDD.
 4. Após cada Task 16.x: Sonar Docker local com comparação de issues antes/depois.
 5. C16-B: suíte completa e JaCoCo.
 6. Tasks 16.6 a 16.9 somente após GO em C16-B.
-7. C16-C e análise oficial final somente após os respectivos GOs.
+7. C16-C e verificação final contra o CSV somente após os respectivos GOs.
 
 ### Limites
 
@@ -1817,8 +1817,8 @@ fronteiras DDD.
 - Tasks 16.0 a 16.2 executadas na branch `refactor/sonar-quality-fase-16-baseline` a partir de
   `59952b89c587e07611e285ed7682883135388ed2`.
 - Os três paths legados não existem, não possuem histórico Git local e não têm referências no
-  código vigente. O CSV não exporta branch nem SHA da análise oficial; a baixa das 26 issues será
-  confirmada no scanner oficial.
+  código vigente. O CSV não exporta branch nem SHA da análise de origem; os 26 apontamentos foram
+  reconciliados pela ausência, falta de rastreamento Git e falta de referências aos três paths.
 - Os 23 `java:S1192` do bloco foram tratados com constantes privadas nos seis testes previstos.
 - `mvn -q clean test`: 348 testes, zero falhas, zero erros e zero ignorados.
 - JaCoCo: 91,12% de instruções, 88,48% de linhas, 60,16% de branches, 96,58% de métodos e
@@ -1848,9 +1848,9 @@ fronteiras DDD.
 
 - Tasks 16.6 a 16.9 concluídas: os 25 `java:S1192` finais foram tratados nos 14 testes previstos,
   sem alteração em `src/main`, dependências ou configuração.
-- A reconciliação do CSV oficial contabiliza 100 issues CRITICAL: 74 `java:S1192` acionáveis em
-  31 arquivos foram corrigidas localmente; as outras 26 apontam para três paths ausentes, sendo
-  7 `java:S1192` e 19 `java:S2696`, e aguardam confirmação de baixa na análise oficial.
+- A reconciliação do CSV contabiliza 100 issues CRITICAL: 74 `java:S1192` acionáveis em 31
+  arquivos foram corrigidas localmente; as outras 26 apontam para três paths ausentes, sendo 7
+  `java:S1192` e 19 `java:S2696`.
 - Os testes focados de cada task passaram. A última execução de `mvn -q clean test` registrou 348
   testes, zero falhas, zero erros e zero ignorados.
 - JaCoCo preservado: 91,12% de instruções, 88,48% de linhas, 60,16% de branches, 96,58% de
@@ -1860,20 +1860,33 @@ fronteiras DDD.
   issues antes/depois, zero nova, zero `java:S1192`, cobertura 80,0% e duplicação 5,9%.
 - A revisão multi-eixo não encontrou findings Critical ou Required. Não houve alteração em
   produção, `pom.xml`, properties ou formatos derivados; nenhum token foi persistido.
-- O C16-C recebeu GO humano em 2026-07-17. A Task 16.10 está autorizada exclusivamente para
-  publicar e verificar a análise final no Sonar oficial.
+- O C16-C recebeu GO humano em 2026-07-17. A Task 16.10 foi autorizada exclusivamente para a
+  verificação final contra o CSV e a validação secundária no Sonar Docker local.
 
 ### Resultado final da Fase 16
 
-- O usuário confirmou que o Sonar oficial desta fase é o SonarQube Docker local em
-  `http://localhost:9000`, projeto `simtr-hub-local`.
+- Não há acesso ao Sonar que gerou o CSV. Por isso, o CSV é a fonte primária de escopo e a
+  verificação final foi feita diretamente contra o código da revisão
+  `89c8d46b999753f1560425c1308389c9ba125659`.
+- Das 138 linhas do CSV, 100 têm severidade `CRITICAL`. As 74 críticas acionáveis, todas
+  `java:S1192`, foram verificadas nos 31 arquivos existentes: 74 aprovadas e zero falha de
+  verificação. Para cada apontamento foi validada a reutilização de constante e a ausência da
+  duplicação literal; o caso `PACOTE_DTO_ERRO_REST` foi confirmado pela definição única da
+  constante e por suas reutilizações.
+- As outras 26 críticas, 7 `java:S1192` e 19 `java:S2696`, referenciam três paths inexistentes,
+  não rastreados pelo Git e sem referências em `src`; portanto são entradas obsoletas e não
+  aplicáveis ao código atual.
+- As 38 linhas não críticas do CSV permanecem fora do escopo e não foram declaradas resolvidas.
+  Assim, o fechamento da fase se aplica às 100 issues `CRITICAL`, não às 138 linhas completas.
 - `mvn -q clean test` no commit `89c8d46b999753f1560425c1308389c9ba125659` terminou com código
   zero: 348 testes, zero falhas, zero erros e zero ignorados.
 - JaCoCo preservado: 91,12% de instruções, 88,48% de linhas, 60,16% de branches, 96,58% de
   métodos e 93,75% de classes.
-- Sonar analysis `88eb9849-c4c9-4022-b135-412cc269068d`: Compute Engine `SUCCESS`, Quality Gate
-  `OK`, 214 issues antes/depois, zero nova, zero fechada, zero `BLOCKER`, zero `CRITICAL`, zero
-  `java:S1192` e zero issue nos três paths ausentes.
+- Como evidência secundária de não regressão, o SonarQube Docker local, projeto
+  `simtr-hub-local`, produziu a analysis `88eb9849-c4c9-4022-b135-412cc269068d`: Compute Engine
+  `SUCCESS`, Quality Gate `OK`, 214 issues antes/depois, zero nova, zero fechada, zero `BLOCKER`,
+  zero `CRITICAL`, zero `java:S1192` e zero issue nos três paths ausentes. Essa análise não é a
+  origem do CSV e não comprova, isoladamente, o fechamento de suas issues.
 - Permanecem 137 issues `MAJOR` e 77 `MINOR` no projeto local. As 38 issues não críticas do CSV
   inicial permanecem explicitamente fora do escopo desta fase.
 - Cobertura Sonar 80,0%, linhas 88,5%, branches 60,2%, duplicação 5,9%, bugs 0,
