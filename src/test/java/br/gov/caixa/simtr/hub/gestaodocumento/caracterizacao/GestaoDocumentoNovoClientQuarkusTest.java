@@ -39,6 +39,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 )
 class GestaoDocumentoNovoClientQuarkusTest {
 
+    private static final String NOME_CONTAINER = "container-novo-client";
+    private static final String SERVICO_MTR = "simtr-gestao-documento";
     private static final String RESPOSTA_MTR = """
             {
               "sas": "sv=novo-client&sp=rw&sig=valor-opaco",
@@ -95,7 +97,7 @@ class GestaoDocumentoNovoClientQuarkusTest {
                 "https://novo-client.blob.core.windows.net",
                 credencial.urlStorage()
         );
-        assertEquals("container-novo-client", credencial.nomeContainer());
+        assertEquals(NOME_CONTAINER, credencial.nomeContainer());
 
         List<GestaoDocumentoMtrStubTestResource.CapturedRequest> requisicoes =
                 GestaoDocumentoMtrStubTestResource.requisicoes();
@@ -117,7 +119,7 @@ class GestaoDocumentoNovoClientQuarkusTest {
                 .forceFlush().join(10, TimeUnit.SECONDS);
         SpanData adapter = span("mtr.gestao-documento.credencial-container.gerar");
         assertEquals(SpanKind.CLIENT, adapter.getKind());
-        assertEquals("simtr-gestao-documento",
+        assertEquals(SERVICO_MTR,
                 adapter.getAttributes().get(AttributeKey.stringKey("mtr.servico")));
         assertEquals("gestao-documento-v1",
                 adapter.getAttributes().get(AttributeKey.stringKey("mtr.api")));
@@ -127,14 +129,14 @@ class GestaoDocumentoNovoClientQuarkusTest {
                 adapter.getAttributes().get(AttributeKey.stringKey("url.path")));
         assertEquals(true,
                 adapter.getAttributes().get(AttributeKey.booleanKey("mtr.resposta.sucesso")));
-        assertEquals("container-novo-client", adapter.getAttributes().get(
+        assertEquals(NOME_CONTAINER, adapter.getAttributes().get(
                 AttributeKey.stringKey("gestao_documento.container.nome")
         ));
 
         var inicio = log("mtr.gestao-documento.credencial-container.chamada.iniciada");
         assertEquals("infrastructure", inicio.mdc().get("camada"));
         assertEquals("GestaoDocumentoGateway", inicio.mdc().get("componente"));
-        assertEquals("simtr-gestao-documento", inicio.mdc().get("dependencia"));
+        assertEquals(SERVICO_MTR, inicio.mdc().get("dependencia"));
         assertEquals("gerar-credencial-container-v1", inicio.mdc().get("operacao"));
 
         assertEquals(
@@ -163,7 +165,7 @@ class GestaoDocumentoNovoClientQuarkusTest {
 
         assertEquals(FalhaObtencaoCredencialContainer.Tipo.NEGOCIO, falha.tipo());
         assertEquals(404, falha.status());
-        assertEquals("simtr-gestao-documento", falha.recurso());
+        assertEquals(SERVICO_MTR, falha.recurso());
         assertEquals("credencial-novo-404", falha.idErro());
         assertEquals("MTR-CREDENCIAL-404", falha.codigoErro());
         assertEquals(List.of("container nao localizado"), falha.mensagens());
@@ -195,7 +197,7 @@ class GestaoDocumentoNovoClientQuarkusTest {
 
         var credencial = portaSaida.obter().await().indefinitely();
 
-        assertEquals("container-novo-client", credencial.nomeContainer());
+        assertEquals(NOME_CONTAINER, credencial.nomeContainer());
         List<GestaoDocumentoMtrStubTestResource.CapturedRequest> requisicoes =
                 GestaoDocumentoMtrStubTestResource.requisicoes();
         assertEquals(2, requisicoes.size());

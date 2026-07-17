@@ -21,6 +21,9 @@ import static org.mockito.Mockito.when;
 class GestaoDocumentoResourceQuarkusTest {
 
     private static final String PATH = "/simtr-hub/v1/storage/container/credencial";
+    private static final String MEDIA_TYPE_JSON = "application/json";
+    private static final String CAMPO_URL_STORAGE = "url_storage";
+    private static final String CAMPO_NOME_CONTAINER = "nome_container";
 
     @InjectMock
     ObterCredencialContainer portaEntrada;
@@ -35,16 +38,16 @@ class GestaoDocumentoResourceQuarkusTest {
         )));
 
         given()
-                .accept("application/json")
+                .accept(MEDIA_TYPE_JSON)
                 .when()
                 .post(PATH)
                 .then()
                 .statusCode(200)
-                .contentType("application/json")
+                .contentType(MEDIA_TYPE_JSON)
                 .body("sas", equalTo("sv=teste&sig=valor-opaco"))
                 .body("validade.instante", equalTo("2099-12-31T23:59:47Z"))
-                .body("url_storage", equalTo("https://storage.invalid"))
-                .body("nome_container", equalTo("container-porta-nova"));
+                .body(CAMPO_URL_STORAGE, equalTo("https://storage.invalid"))
+                .body(CAMPO_NOME_CONTAINER, equalTo("container-porta-nova"));
 
         verify(portaEntrada).executar();
         assertArrayEquals(
@@ -60,20 +63,20 @@ class GestaoDocumentoResourceQuarkusTest {
         ));
 
         given()
-                .accept("application/json")
+                .accept(MEDIA_TYPE_JSON)
                 .when()
                 .post(PATH)
                 .then()
                 .statusCode(200)
-                .contentType("application/json")
+                .contentType(MEDIA_TYPE_JSON)
                 .body("$", hasKey("sas"))
                 .body("$", hasKey("validade"))
-                .body("$", hasKey("url_storage"))
-                .body("$", hasKey("nome_container"))
+                .body("$", hasKey(CAMPO_URL_STORAGE))
+                .body("$", hasKey(CAMPO_NOME_CONTAINER))
                 .body("sas", equalTo(null))
                 .body("validade", equalTo(null))
-                .body("url_storage", equalTo(null))
-                .body("nome_container", equalTo(null));
+                .body(CAMPO_URL_STORAGE, equalTo(null))
+                .body(CAMPO_NOME_CONTAINER, equalTo(null));
     }
 
     @Test
@@ -93,12 +96,12 @@ class GestaoDocumentoResourceQuarkusTest {
         ));
 
         given()
-                .accept("application/json")
+                .accept(MEDIA_TYPE_JSON)
                 .when()
                 .post(PATH)
                 .then()
                 .statusCode(404)
-                .contentType("application/json")
+                .contentType(MEDIA_TYPE_JSON)
                 .body("codigo_http", equalTo(404))
                 .body("recurso", equalTo("simtr-gestao-documento"))
                 .body("id_erro", equalTo("credencial-404"))
