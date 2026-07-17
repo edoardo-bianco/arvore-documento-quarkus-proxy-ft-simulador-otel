@@ -518,3 +518,29 @@ ordem, com parada obrigatória no C16-C.
 - Sonar Docker analysis `8e793fef-99ad-43c7-ab09-58e46c2ca3cf`: Quality Gate `OK`, 214 issues
   antes e depois, zero issue nova, zero `java:S1192`, cobertura 80,0% e duplicação 5,9%.
 - Nenhum token foi persistido e nenhum arquivo de produção foi alterado.
+
+### Task 16.9
+
+- Commit: `a46b465427172de287329357cf3144c06dfe28ed`.
+- Os 7 `java:S1192` dos três testes de gestão de documentos foram tratados com constantes privadas
+  por classe; media type, nomes JSON, recurso MTR, mensagens de status, container, wire, erros e
+  telemetria permaneceram inalterados.
+- Os três testes focados passaram. `mvn -q clean test` executou 348 testes, sem falhas, erros ou
+  testes ignorados.
+- JaCoCo: 91,12% de instruções, 88,48% de linhas, 60,16% de branches, 96,58% de métodos e
+  93,75% de classes.
+- Sonar Docker analysis `35ee26e9-71a3-4370-a7e2-83ba70f57c69`: Compute Engine `SUCCESS`,
+  Quality Gate `OK`, 214 issues antes e depois, zero issue nova, zero `java:S1192`, cobertura
+  80,0% e duplicação 5,9%.
+- Nenhum token foi persistido e nenhum arquivo de produção foi alterado.
+
+### Estado do checkpoint C16-C
+
+- As 74 issues acionáveis do CSV, todas `java:S1192`, foram corrigidas localmente nos 31 arquivos
+  existentes.
+- Os 26 apontamentos restantes pertencem somente aos três paths ausentes já reconciliados: 7
+  `java:S1192` e 19 `java:S2696`. A baixa continua pendente da análise oficial.
+- A revisão consolidada de correção, legibilidade, arquitetura, segurança e desempenho não
+  encontrou finding Critical ou Required.
+- A execução está parada no C16-C e aguarda GO humano. A Task 16.10 e o scanner oficial não estão
+  autorizados antes desse GO.

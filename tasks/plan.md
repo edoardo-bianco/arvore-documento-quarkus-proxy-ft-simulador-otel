@@ -1843,3 +1843,22 @@ fronteiras DDD.
   zero `java:S1192` e duplicação de 5,9%.
 - Nenhum token foi persistido. O C16-B recebeu GO humano em 2026-07-17; as Tasks 16.6 a 16.9
   estão autorizadas em ordem, com parada obrigatória no C16-C.
+
+### Evidencia tecnica para o C16-C - aguarda GO
+
+- Tasks 16.6 a 16.9 concluídas: os 25 `java:S1192` finais foram tratados nos 14 testes previstos,
+  sem alteração em `src/main`, dependências ou configuração.
+- A reconciliação do CSV oficial contabiliza 100 issues CRITICAL: 74 `java:S1192` acionáveis em
+  31 arquivos foram corrigidas localmente; as outras 26 apontam para três paths ausentes, sendo
+  7 `java:S1192` e 19 `java:S2696`, e aguardam confirmação de baixa na análise oficial.
+- Os testes focados de cada task passaram. A última execução de `mvn -q clean test` registrou 348
+  testes, zero falhas, zero erros e zero ignorados.
+- JaCoCo preservado: 91,12% de instruções, 88,48% de linhas, 60,16% de branches, 96,58% de
+  métodos e 93,75% de classes; cobertura combinada Sonar de 80,0%.
+- Gate Sonar Docker da Task 16.9 no commit `a46b465`: analysis
+  `35ee26e9-71a3-4370-a7e2-83ba70f57c69`, Compute Engine `SUCCESS`, Quality Gate `OK`, 214
+  issues antes/depois, zero nova, zero `java:S1192`, cobertura 80,0% e duplicação 5,9%.
+- A revisão multi-eixo não encontrou findings Critical ou Required. Não houve alteração em
+  produção, `pom.xml`, properties ou formatos derivados; nenhum token foi persistido.
+- A execução está parada no C16-C. A Task 16.10 e a análise oficial permanecem bloqueadas até GO
+  humano explícito.
