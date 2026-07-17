@@ -10,13 +10,19 @@ import org.junit.jupiter.api.Test;
 
 class ProcessoParametrizadoModeloTest {
 
+    private static final String CODIGO_TIPO_DOCUMENTO = "TIP-01";
+    private static final String NOME_TIPO_DOCUMENTO = "Contrato";
+    private static final String NOME_FUNCAO_DOCUMENTAL = "Formalizacao";
+    private static final String NOME_MACROPROCESSO = "Credito";
+    private static final String DATA_ULTIMA_ALTERACAO_MACROPROCESSO = "2026-07-14T10:15:00";
+
     @Test
     void devePreservarIdentificadoresReferenciasOpcoesETipoDocumental() {
         var identificador = new IdentificadorNegocialProcesso(101L);
         var checklist = new ReferenciaChecklistProcessoParametrizado(202L, 3);
         var opcao = new OpcaoDisponivelProcessoParametrizado("S", "Sim", true);
         var tipoDocumento = new TipoDocumentoProcessoParametrizado(
-                "TIP-01", "Contrato", true, false, true, null
+                CODIGO_TIPO_DOCUMENTO, NOME_TIPO_DOCUMENTO, true, false, true, null
         );
 
         assertEquals(101L, identificador.valor());
@@ -25,8 +31,8 @@ class ProcessoParametrizadoModeloTest {
         assertEquals("S", opcao.valorOpcao());
         assertEquals("Sim", opcao.descricaoOpcao());
         assertEquals(true, opcao.ativo());
-        assertEquals("TIP-01", tipoDocumento.codigoTipologia());
-        assertEquals("Contrato", tipoDocumento.nome());
+        assertEquals(CODIGO_TIPO_DOCUMENTO, tipoDocumento.codigoTipologia());
+        assertEquals(NOME_TIPO_DOCUMENTO, tipoDocumento.nome());
         assertEquals(true, tipoDocumento.permiteReuso());
         assertEquals(false, tipoDocumento.permiteMultiplo());
         assertEquals(true, tipoDocumento.ativo());
@@ -37,11 +43,11 @@ class ProcessoParametrizadoModeloTest {
     void devePreservarFuncaoDocumentoECampoFormularioSemAlterarListas() {
         var checklist = new ReferenciaChecklistProcessoParametrizado(202L, 3);
         var tipoDocumento = new TipoDocumentoProcessoParametrizado(
-                "TIP-01", "Contrato", true, false, true, checklist
+                CODIGO_TIPO_DOCUMENTO, NOME_TIPO_DOCUMENTO, true, false, true, checklist
         );
         var tiposDocumento = List.of(tipoDocumento);
         var funcaoDocumental = new FuncaoDocumentalProcessoParametrizado(
-                "Formalizacao", tiposDocumento, checklist
+                NOME_FUNCAO_DOCUMENTAL, tiposDocumento, checklist
         );
         var documento = new DocumentoProcessoParametrizado(
                 funcaoDocumental, tipoDocumento, true
@@ -65,7 +71,7 @@ class ProcessoParametrizadoModeloTest {
                 opcoes
         );
 
-        assertEquals("Formalizacao", funcaoDocumental.nome());
+        assertEquals(NOME_FUNCAO_DOCUMENTAL, funcaoDocumental.nome());
         assertSame(tiposDocumento, funcaoDocumental.tiposDocumento());
         assertSame(checklist, funcaoDocumental.checklist());
         assertSame(funcaoDocumental, documento.funcaoDocumental());
@@ -94,7 +100,7 @@ class ProcessoParametrizadoModeloTest {
         var campos = List.<CampoFormularioProcessoParametrizado>of();
         var documentos = List.<DocumentoProcessoParametrizado>of();
         var macroprocesso = new MacroprocessoParametrizado(
-                401L, "Credito", true, "2026-07-14T10:15:00"
+                401L, NOME_MACROPROCESSO, true, DATA_ULTIMA_ALTERACAO_MACROPROCESSO
         );
         var garantia = new GarantiaProcessoParametrizado(
                 501L, "Aval", true, campos, documentos, checklist
@@ -105,9 +111,9 @@ class ProcessoParametrizadoModeloTest {
         );
 
         assertEquals(401L, macroprocesso.identificadorNegocial());
-        assertEquals("Credito", macroprocesso.nome());
+        assertEquals(NOME_MACROPROCESSO, macroprocesso.nome());
         assertEquals(true, macroprocesso.ativo());
-        assertEquals("2026-07-14T10:15:00", macroprocesso.ultimaAlteracao());
+        assertEquals(DATA_ULTIMA_ALTERACAO_MACROPROCESSO, macroprocesso.ultimaAlteracao());
         assertEquals(501L, garantia.codigoBacen());
         assertEquals("Aval", garantia.nomeGarantia());
         assertEquals(true, garantia.fidejussoria());
@@ -127,7 +133,7 @@ class ProcessoParametrizadoModeloTest {
     void devePreservarRelacionamentoFaseERaizDoProcessoSemAlterarListas() {
         var checklist = new ReferenciaChecklistProcessoParametrizado(202L, 3);
         var macroprocesso = new MacroprocessoParametrizado(
-                401L, "Credito", true, "2026-07-14T10:15:00"
+                401L, NOME_MACROPROCESSO, true, DATA_ULTIMA_ALTERACAO_MACROPROCESSO
         );
         var campos = List.<CampoFormularioProcessoParametrizado>of();
         var documentos = List.<DocumentoProcessoParametrizado>of();
@@ -139,7 +145,7 @@ class ProcessoParametrizadoModeloTest {
         );
         var fase = new FaseProcessoParametrizado(
                 801L,
-                "Formalizacao",
+                NOME_FUNCAO_DOCUMENTAL,
                 true,
                 "2026-07-14T10:20:00",
                 2,
@@ -176,7 +182,7 @@ class ProcessoParametrizadoModeloTest {
         assertSame(campos, relacionamento.camposFormulario());
         assertSame(documentos, relacionamento.documentos());
         assertEquals(801L, fase.identificadorNegocial());
-        assertEquals("Formalizacao", fase.nome());
+        assertEquals(NOME_FUNCAO_DOCUMENTAL, fase.nome());
         assertEquals(true, fase.ativo());
         assertEquals("2026-07-14T10:20:00", fase.ultimaAlteracao());
         assertEquals(2, fase.ordem());
