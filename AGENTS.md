@@ -6,7 +6,7 @@ Antes de alterar a arquitetura ou implementar uma etapa da refatoracao DDD:
 2. Leia `tasks/plan.md` e retome somente o proximo item pendente em `tasks/todo.md`.
 3. Confirme que a branch atual corresponde a fase em execucao, no formato
    `refactor/sonar-quality-fase-<numero>-baseline`; nao execute nenhuma fase em `main`. A branch
-   atual e `refactor/sonar-quality-fase-15-baseline`.
+   atual e `refactor/sonar-quality-fase-16-baseline`.
 4. Para iniciar a Fase 0, use a regra de bootstrap de `tasks/plan.md`. Depois dela, nao avance alem
    de um checkpoint sem GO humano registrado na tabela de `tasks/todo.md`.
 5. Preserve paths, JSON, validacoes, erros, simulador, fault tolerance e observabilidade.
@@ -14,15 +14,14 @@ Antes de alterar a arquitetura ou implementar uma etapa da refatoracao DDD:
 7. A refatoracao de producao foi encerrada com GO humano no checkpoint C6. As Fases 7 a 9 sao
    exclusivamente documentais e nao autorizam endpoint, contrato ou alteracao de producao.
 8. As Fases 0 a 12 foram encerradas com GO humano. A Fase 13 permanece documental, com NO-GO
-   recomendado para extracao de clones entre fronteiras. A Fase 14 foi encerrada. A Fase 15 trata
-   o blocker, issues HIGH e warning de blame do SonarQube; somente a especificacao foi autorizada
-   no C15-SPEC, e plano/tasks permanecem bloqueados ate GO posterior.
+   recomendado para extracao de clones entre fronteiras. As Fases 14 e 15 foram encerradas. A
+   Fase 16 trata exclusivamente as issues `CRITICAL` do CSV oficial
+   `doc/sonar/sonar-issues-staging.csv`; o plano foi autorizado no C16-PLAN.
 9. O package tecnico compartilhado de erro `arquitetura.excecao.dto` permanece como excecao
    arquitetural documentada; qualquer mudanca exige fase futura explicitamente autorizada.
-10. A Fase 12 foi encerrada com GO humano no C12. A Fase 13 usa especificacao e branch proprias,
-    e a Fase 14 usa branch propria. A Fase 15 usa nova especificacao e branch
-    `refactor/sonar-quality-fase-15-baseline`; nao reutilize branches de fechamento. O proximo
-    item permitido e a especificacao C15, seguida de GO para plano e tasks.
+10. A Fase 12 foi encerrada com GO humano no C12. As Fases 13 a 16 usam especificacoes e branches
+    proprias; nao reutilize branches de fechamento. O proximo item permitido e a Task 16.0,
+    seguida das Tasks 16.1 e 16.2, com parada obrigatoria no checkpoint C16-A.
 
 ## Formatos derivados da documentacao
 

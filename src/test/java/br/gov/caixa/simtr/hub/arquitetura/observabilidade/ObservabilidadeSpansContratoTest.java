@@ -35,6 +35,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @QuarkusTest
 class ObservabilidadeSpansContratoTest {
 
+    private static final String API_DOSSIE_PRODUTO_V1 = "dossie-produto-v1";
+    private static final String ATRIBUTO_SIMULADOR_DOSSIE_PRODUTO_HABILITADO =
+            "simtr_hub.simulador_dossie_produto_habilitado";
+
     @Inject
     InMemorySpanExporter exporter;
 
@@ -154,25 +158,25 @@ class ObservabilidadeSpansContratoTest {
                 service("simtr-hub.service.checklist.consultar",
                         "simtr_hub.simulador_parametrizacao_checklist_habilitado"),
                 api("simtr-hub.api.dossie-produto.criar",
-                        "/simtr-hub/v1/dossie-produto", "dossie-produto-v1"),
+                        "/simtr-hub/v1/dossie-produto", API_DOSSIE_PRODUTO_V1),
                 service("simtr-hub.service.dossie-produto.criar",
-                        "simtr_hub.simulador_dossie_produto_habilitado"),
+                        ATRIBUTO_SIMULADOR_DOSSIE_PRODUTO_HABILITADO),
                 api("simtr-hub.api.dossie-produto.formulario.atualizar",
-                        "/simtr-hub/v1/dossie-produto/{id}/formulario", "dossie-produto-v1"),
+                        "/simtr-hub/v1/dossie-produto/{id}/formulario", API_DOSSIE_PRODUTO_V1),
                 service("simtr-hub.service.dossie-produto.formulario.atualizar",
-                        "simtr_hub.simulador_dossie_produto_habilitado"),
+                        ATRIBUTO_SIMULADOR_DOSSIE_PRODUTO_HABILITADO),
                 api("simtr-hub.api.dossie-produto.documento.incluir",
                         "/simtr-hub/v1/dossie-produto/{id}/documento", "dossie-produto-v2"),
                 service("simtr-hub.service.dossie-produto.documento.incluir",
-                        "simtr_hub.simulador_dossie_produto_habilitado"),
+                        ATRIBUTO_SIMULADOR_DOSSIE_PRODUTO_HABILITADO),
                 api("simtr-hub.api.dossie-produto.validacao-negocial.registrar",
-                        "/simtr-hub/v1/dossie-produto/{id}/validacao-negocial", "dossie-produto-v1"),
+                        "/simtr-hub/v1/dossie-produto/{id}/validacao-negocial", API_DOSSIE_PRODUTO_V1),
                 service("simtr-hub.service.dossie-produto.validacao-negocial.registrar",
-                        "simtr_hub.simulador_dossie_produto_habilitado"),
+                        ATRIBUTO_SIMULADOR_DOSSIE_PRODUTO_HABILITADO),
                 api("simtr-hub.api.dossie-produto.workflow.avancar",
-                        "/simtr-hub/v1/dossie-produto/{id}/workflow", "dossie-produto-v1"),
+                        "/simtr-hub/v1/dossie-produto/{id}/workflow", API_DOSSIE_PRODUTO_V1),
                 service("simtr-hub.service.dossie-produto.workflow.avancar",
-                        "simtr_hub.simulador_dossie_produto_habilitado"),
+                        ATRIBUTO_SIMULADOR_DOSSIE_PRODUTO_HABILITADO),
                 api("simtr-hub.api.gestao-documento.credencial-container.gerar",
                         "/simtr-hub/v1/storage/container/credencial", "gestao-documento-v1"),
                 service("simtr-hub.service.gestao-documento.credencial-container.gerar",

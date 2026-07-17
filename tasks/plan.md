@@ -1783,3 +1783,45 @@ cobertura >=80%, duplicação e complexidade sem regressão.
 - mudanca de contrato, observabilidade, fault tolerance ou simulador;
 - fechamento artificial de issues sem correcao ou justificativa aprovada;
 - commit, push ou alteracao de `src/main` antes dos gates seguintes.
+
+## Fase 16 - Issues CRITICAL do Sonar oficial
+
+**Status:** plano aprovado em 2026-07-17 no C16-PLAN. A execução fica restrita às issues com
+`severity=CRITICAL` no arquivo `doc/sonar/sonar-issues-staging.csv` e deve seguir os lotes e
+critérios detalhados em `../doc/sonar/plano-resolucao-issues-criticas-staging.md`.
+
+**Objetivo:** eliminar 74 `java:S1192` acionáveis em 31 arquivos de teste e reconciliar 26 issues
+associadas a três paths ausentes, sem alterar produção, contratos, cobertura, observabilidade ou
+fronteiras DDD.
+
+### Ordem autorizada
+
+1. Tasks 16.0 a 16.2: reconciliação, ArchUnit, exceções e observabilidade.
+2. C16-A: suíte completa e revisão humana obrigatória.
+3. Tasks 16.3 a 16.5 somente após GO em C16-A.
+4. C16-B: suíte completa e JaCoCo.
+5. Tasks 16.6 a 16.9 somente após GO em C16-B.
+6. C16-C e análise oficial final somente após os respectivos GOs.
+
+### Limites
+
+- não corrigir `MAJOR`, `MINOR` ou `INFO` neste escopo;
+- não alterar `src/main/java`, contratos ou configuração de produção;
+- não usar supressões, `NOSONAR` ou exclusões do scanner;
+- não reintroduzir os três testes legados ausentes;
+- não alterar formatos derivados `.ppt`, `.pptx`, `.pdf` ou `.html`.
+
+### Evidencia local do C16-A
+
+- Tasks 16.0 a 16.2 executadas na branch `refactor/sonar-quality-fase-16-baseline` a partir de
+  `59952b89c587e07611e285ed7682883135388ed2`.
+- Os três paths legados não existem, não possuem histórico Git local e não têm referências no
+  código vigente. O CSV não exporta branch nem SHA da análise oficial; a baixa das 26 issues será
+  confirmada no scanner oficial.
+- Os 23 `java:S1192` do bloco foram tratados com constantes privadas nos seis testes previstos.
+- `mvn -q clean test`: 348 testes, zero falhas, zero erros e zero ignorados.
+- JaCoCo: 91,12% de instruções, 88,48% de linhas, 60,16% de branches, 96,58% de métodos e
+  93,75% de classes; cobertura combinada de linhas e branches em 80,02%.
+- Nenhum arquivo de `src/main` foi alterado, nenhum token foi persistido e `git diff --check`
+  ficou limpo.
+- C16-A aguarda GO humano; Task 16.3 permanece bloqueada.

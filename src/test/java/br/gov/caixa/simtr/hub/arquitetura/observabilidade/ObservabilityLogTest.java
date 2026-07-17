@@ -15,31 +15,33 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class ObservabilityLogTest {
 
     private static final Logger LOG = Logger.getLogger(ObservabilityLogTest.class);
+    private static final String CHAVE_CAMPO = "campo";
+    private static final String VALOR_CAMPO = "valor";
 
     @Test
     void fieldsIgnoraChavesOuValoresNulos() {
         Map<String, Object> campos = ObservabilityLog.fields(
-                "campo", "valor",
+                CHAVE_CAMPO, VALOR_CAMPO,
                 null, "ignorado",
                 "nulo", null
         );
 
         assertEquals(1, campos.size());
-        assertEquals("valor", campos.get("campo"));
+        assertEquals(VALOR_CAMPO, campos.get(CHAVE_CAMPO));
     }
 
     @Test
     void fieldsRejeitaQuantidadeImparDeArgumentos() {
-        assertThrows(IllegalArgumentException.class, () -> ObservabilityLog.fields("campo"));
+        assertThrows(IllegalArgumentException.class, () -> ObservabilityLog.fields(CHAVE_CAMPO));
     }
 
     @Test
     void infoEErrorLimpamMdcAposLog() {
-        ObservabilityLog.info(LOG, "evento.info", ObservabilityLog.fields("campo", "valor"));
+        ObservabilityLog.info(LOG, "evento.info", ObservabilityLog.fields(CHAVE_CAMPO, VALOR_CAMPO));
         ObservabilityLog.error(LOG, "evento.error", new RuntimeException("falha"),
-                ObservabilityLog.fields("campo", "valor"));
+                ObservabilityLog.fields(CHAVE_CAMPO, VALOR_CAMPO));
 
         assertFalse(MDC.getMap().containsKey("evento"));
-        assertFalse(MDC.getMap().containsKey("campo"));
+        assertFalse(MDC.getMap().containsKey(CHAVE_CAMPO));
     }
 }

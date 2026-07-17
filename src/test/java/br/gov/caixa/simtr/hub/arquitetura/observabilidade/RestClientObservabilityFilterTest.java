@@ -40,6 +40,7 @@ import static org.mockito.Mockito.when;
 @QuarkusTest
 class RestClientObservabilityFilterTest {
 
+    private static final String TEXTO_PAYLOAD = "texto";
     private static final String INVOKED_METHOD_PROPERTY = "org.eclipse.microprofile.rest.client.invokedMethod";
     private static final String PAYLOAD_ENABLED_PROPERTY =
             "simtr-hub.observabilidade.rest-client.payload.habilitado";
@@ -176,12 +177,13 @@ class RestClientObservabilityFilterTest {
 
         RestClientObservabilityFilter filter = new RestClientObservabilityFilter();
         ClientRequestContext stringRequest = requestContext(
-                new HashMap<>(), "POST", "http://localhost/simtr/string", "texto");
+                new HashMap<>(), "POST", "http://localhost/simtr/string", TEXTO_PAYLOAD);
         filter.filter(stringRequest);
-        filter.filter(requestContext(new HashMap<>(), "POST", "http://localhost/simtr/bytes", "texto".getBytes(StandardCharsets.UTF_8)));
+        filter.filter(requestContext(new HashMap<>(), "POST", "http://localhost/simtr/bytes",
+                TEXTO_PAYLOAD.getBytes(StandardCharsets.UTF_8)));
         filter.filter(requestContext(new HashMap<>(), "POST", "http://localhost/simtr/stream", new ByteArrayInputStream(new byte[]{1, 2, 3})));
         filter.filter(requestContext(new HashMap<>(), "POST", "http://localhost/simtr/objeto", new PayloadSemJson()));
-        assertEquals("texto", stringRequest.getEntity());
+        assertEquals(TEXTO_PAYLOAD, stringRequest.getEntity());
 
         assertTrue(true, "Os quatro tipos foram processados sem exceção");
     }

@@ -34,9 +34,12 @@ import static org.mockito.Mockito.when;
 @QuarkusTest
 class ExceptionMapperTest {
 
+    private static final String RECURSO_SIMTR_PARAMETRIZACAO = "simtr-parametrizacao";
+    private static final String RECURSO_SIMTR_DOSSIE_PRODUTO = "simtr-dossie-produto";
+
     @Test
     void mtrRestClientExceptionMapperPreservaPayloadDeErroDeNegocio() {
-        ErroPadraoDto erro = erro(400, "simtr-parametrizacao", "MTR400", "erro de negocio");
+        ErroPadraoDto erro = erro(400, RECURSO_SIMTR_PARAMETRIZACAO, "MTR400", "erro de negocio");
         MtrBusinessErrorException exception = new MtrBusinessErrorException(400, erro);
 
         Response response = new MtrRestClientExceptionMapper().toResponse(exception);
@@ -94,10 +97,10 @@ class ExceptionMapperTest {
     void clientErrorBodyReaderNormalizaPayloadMtrIncompleto() {
         Response response = responseMock(409, erro(null, null, "MTR409", "conflito"));
 
-        ErroPadraoDto erro = ClientErrorBodyReader.read(response, "simtr-dossie-produto");
+        ErroPadraoDto erro = ClientErrorBodyReader.read(response, RECURSO_SIMTR_DOSSIE_PRODUTO);
 
         assertEquals(409, erro.codigoHttp());
-        assertEquals("simtr-dossie-produto", erro.recurso());
+        assertEquals(RECURSO_SIMTR_DOSSIE_PRODUTO, erro.recurso());
         assertNotNull(erro.idErro());
         assertEquals("MTR409", erro.codigoErro());
         assertEquals("conflito", erro.erros().getFirst().mensagem());
@@ -110,10 +113,10 @@ class ExceptionMapperTest {
         when(response.hasEntity()).thenReturn(true);
         when(response.readEntity(ErroPadraoDto.class)).thenThrow(new IllegalStateException("payload invalido"));
 
-        ErroPadraoDto erro = ClientErrorBodyReader.read(response, "simtr-parametrizacao");
+        ErroPadraoDto erro = ClientErrorBodyReader.read(response, RECURSO_SIMTR_PARAMETRIZACAO);
 
         assertEquals(502, erro.codigoHttp());
-        assertEquals("simtr-parametrizacao", erro.recurso());
+        assertEquals(RECURSO_SIMTR_PARAMETRIZACAO, erro.recurso());
         assertEquals("ARVDOCP0002", erro.codigoErro());
     }
 
@@ -128,9 +131,9 @@ class ExceptionMapperTest {
         assertInstanceOf(ValidacaoNegocialDossieProdutoMtrException.Negocio.class, negocio);
         assertInstanceOf(ChecklistMtrException.TecnicaCliente.class, tecnicoCliente);
         assertInstanceOf(ChecklistMtrException.Servidor.class, tecnicoServidor);
-        assertEquals("simtr-dossie-produto",
+        assertEquals(RECURSO_SIMTR_DOSSIE_PRODUTO,
                 ((ValidacaoNegocialDossieProdutoMtrException.Negocio) negocio).erro().recurso());
-        assertEquals("simtr-parametrizacao",
+        assertEquals(RECURSO_SIMTR_PARAMETRIZACAO,
                 ((ChecklistMtrException.TecnicaCliente) tecnicoCliente).erro().recurso());
     }
 

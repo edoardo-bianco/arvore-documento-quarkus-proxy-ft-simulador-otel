@@ -21,10 +21,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ExcecoesHighSerializacaoCaracterizacaoTest {
 
+    private static final String DETALHE_ERRO = "detalhe";
+    private static final String STACKTRACE_ERRO = "stacktrace";
+    private static final String MENSAGEM_CONFLITO = "conflito";
+    private static final String VALOR_INVALIDO = "invalido";
+    private static final String MENSAGEM_FALHA = "falha";
+
     @Test
     void excecaoRestClientPreservaDtoNoRoundTrip() throws Exception {
         var dto = new ErroPadraoDto(400, "mtr", "id-9", "codigo-9",
-                List.of(new ErroMensagemDto("erro")), "detalhe", "stacktrace");
+                List.of(new ErroMensagemDto("erro")), DETALHE_ERRO, STACKTRACE_ERRO);
         var excecao = new MtrClientErrorException(400, dto);
 
         var restaurada = (MtrClientErrorException) desserializar(serializar(excecao));
@@ -36,8 +42,8 @@ class ExcecoesHighSerializacaoCaracterizacaoTest {
     void familiaWorkflowPreservaPayloadNoRoundTrip() throws Exception {
         var erro = new WorkflowDossieProdutoMtrException.Erro(
                 409, "workflow", "id-8", "codigo-8",
-                List.of(new WorkflowDossieProdutoMtrException.Mensagem("conflito")),
-                "detalhe", "stacktrace");
+                List.of(new WorkflowDossieProdutoMtrException.Mensagem(MENSAGEM_CONFLITO)),
+                DETALHE_ERRO, STACKTRACE_ERRO);
         var excecao = new WorkflowDossieProdutoMtrException.Negocio(409, erro);
 
         var restaurada = (WorkflowDossieProdutoMtrException.Negocio)
@@ -50,8 +56,8 @@ class ExcecoesHighSerializacaoCaracterizacaoTest {
     void familiaCriacaoPreservaPayloadNoRoundTrip() throws Exception {
         var erro = new CriacaoDossieProdutoMtrException.Erro(
                 409, "dossie", "id-7", "codigo-7",
-                List.of(new CriacaoDossieProdutoMtrException.Mensagem("conflito")),
-                "detalhe", "stacktrace");
+                List.of(new CriacaoDossieProdutoMtrException.Mensagem(MENSAGEM_CONFLITO)),
+                DETALHE_ERRO, STACKTRACE_ERRO);
         var excecao = new CriacaoDossieProdutoMtrException.Negocio(409, erro);
 
         var restaurada = (CriacaoDossieProdutoMtrException.Negocio)
@@ -64,8 +70,8 @@ class ExcecoesHighSerializacaoCaracterizacaoTest {
     void familiaFormularioPreservaPayloadNoRoundTrip() throws Exception {
         var erro = new FormularioDossieProdutoMtrException.Erro(
                 422, "formulario", "id-6", "codigo-6",
-                List.of(new FormularioDossieProdutoMtrException.Mensagem("invalido")),
-                "detalhe", "stacktrace");
+                List.of(new FormularioDossieProdutoMtrException.Mensagem(VALOR_INVALIDO)),
+                DETALHE_ERRO, STACKTRACE_ERRO);
         var excecao = new FormularioDossieProdutoMtrException.Negocio(422, erro);
 
         var restaurada = (FormularioDossieProdutoMtrException.Negocio)
@@ -78,8 +84,8 @@ class ExcecoesHighSerializacaoCaracterizacaoTest {
     void familiaValidacaoNegocialPreservaPayloadNoRoundTrip() throws Exception {
         var erro = new ValidacaoNegocialDossieProdutoMtrException.Erro(
                 422, "validacao", "id-5", "codigo-5",
-                List.of(new ValidacaoNegocialDossieProdutoMtrException.Mensagem("invalido")),
-                "detalhe", "stacktrace");
+                List.of(new ValidacaoNegocialDossieProdutoMtrException.Mensagem(VALOR_INVALIDO)),
+                DETALHE_ERRO, STACKTRACE_ERRO);
         var excecao = new ValidacaoNegocialDossieProdutoMtrException.Negocio(422, erro);
 
         var restaurada = (ValidacaoNegocialDossieProdutoMtrException.Negocio)
@@ -92,8 +98,8 @@ class ExcecoesHighSerializacaoCaracterizacaoTest {
     void familiaProcessoParametrizadoPreservaPayloadNoRoundTrip() throws Exception {
         var erro = new ProcessoParametrizadoMtrException.Erro(
                 500, "processo", "id-4", "codigo-4",
-                List.of(new ProcessoParametrizadoMtrException.Mensagem("falha")),
-                "detalhe", "stacktrace");
+                List.of(new ProcessoParametrizadoMtrException.Mensagem(MENSAGEM_FALHA)),
+                DETALHE_ERRO, STACKTRACE_ERRO);
         var excecao = new ProcessoParametrizadoMtrException.Servidor(500, erro);
 
         var restaurada = (ProcessoParametrizadoMtrException.Servidor) desserializar(serializar(excecao));
@@ -105,8 +111,8 @@ class ExcecoesHighSerializacaoCaracterizacaoTest {
     void familiaChecklistPreservaPayloadNoRoundTrip() throws Exception {
         var erro = new ChecklistMtrException.Erro(
                 422, "checklist", "id-3", "codigo-3",
-                List.of(new ChecklistMtrException.Mensagem("invalido")),
-                "detalhe", "stacktrace");
+                List.of(new ChecklistMtrException.Mensagem(VALOR_INVALIDO)),
+                DETALHE_ERRO, STACKTRACE_ERRO);
         var excecao = new ChecklistMtrException.TecnicaCliente(422, erro);
 
         var restaurada = (ChecklistMtrException.TecnicaCliente) desserializar(serializar(excecao));
@@ -118,8 +124,8 @@ class ExcecoesHighSerializacaoCaracterizacaoTest {
     void familiaGestaoDocumentoPreservaPayloadNoRoundTrip() throws Exception {
         var erro = new GestaoDocumentoMtrException.Erro(
                 409, "credencial", "id-2", "codigo-2",
-                List.of(new GestaoDocumentoMtrException.Mensagem("conflito")),
-                "detalhe", "stacktrace");
+                List.of(new GestaoDocumentoMtrException.Mensagem(MENSAGEM_CONFLITO)),
+                DETALHE_ERRO, STACKTRACE_ERRO);
         var excecao = new GestaoDocumentoMtrException.Negocio(409, erro);
 
         var restaurada = (GestaoDocumentoMtrException.Negocio) desserializar(serializar(excecao));
@@ -132,11 +138,11 @@ class ExcecoesHighSerializacaoCaracterizacaoTest {
             throws Exception {
         var erro = new DocumentoDossieProdutoMtrException.Erro(
                 422, "documento", "id-1", "codigo-1",
-                List.of(new DocumentoDossieProdutoMtrException.Mensagem("falha")),
-                "detalhe", "stacktrace");
+                List.of(new DocumentoDossieProdutoMtrException.Mensagem(MENSAGEM_FALHA)),
+                DETALHE_ERRO, STACKTRACE_ERRO);
         var excecao = new DocumentoDossieProdutoMtrException.Negocio(422, erro);
 
-        assertEquals("falha", excecao.getMessage());
+        assertEquals(MENSAGEM_FALHA, excecao.getMessage());
         var restaurada = desserializar(serializar(excecao));
         var roundTrip = (DocumentoDossieProdutoMtrException.Negocio) restaurada;
         assertEquals(excecao.getMessage(), roundTrip.getMessage());
@@ -146,11 +152,11 @@ class ExcecoesHighSerializacaoCaracterizacaoTest {
     @Test
     void dtoTecnicoMantemPayloadEContinuaSendoObjetoDeTransporte() {
         var dto = new ErroPadraoDto(422, "documento", "id-1", "codigo-1",
-                List.of(new ErroMensagemDto("falha")), "detalhe", "stacktrace");
+                List.of(new ErroMensagemDto(MENSAGEM_FALHA)), DETALHE_ERRO, STACKTRACE_ERRO);
 
         assertEquals(422, dto.codigoHttp());
-        assertEquals("falha", dto.erros().getFirst().mensagem());
-        assertEquals("stacktrace", dto.stacktrace());
+        assertEquals(MENSAGEM_FALHA, dto.erros().getFirst().mensagem());
+        assertEquals(STACKTRACE_ERRO, dto.stacktrace());
     }
 
     private static byte[] serializar(Object valor) throws Exception {

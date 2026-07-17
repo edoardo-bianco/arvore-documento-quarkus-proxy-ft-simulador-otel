@@ -48,9 +48,10 @@ Antes de executar qualquer item:
 
 ## Ponto de retomada
 
-- **Ultimo marco concluido:** C15-D - fechamento técnico aprovado e evidências finais registradas.
-- **Fase atual:** Fase 15 encerrada na branch `refactor/sonar-quality-fase-15-baseline`.
-- **Proximo item:** nenhum; aguardar autorização humana para uma fase futura independente.
+- **Ultimo marco concluido:** Tasks 16.0 a 16.2 com evidencias locais verdes.
+- **Fase atual:** Fase 16 parada no checkpoint C16-A, na branch
+  `refactor/sonar-quality-fase-16-baseline`.
+- **Proximo item:** obter GO humano em C16-A; nao iniciar a Task 16.3 antes desse registro.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
   produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
@@ -1149,6 +1150,31 @@ suite e ArchUnit verdes; nenhum segredo no diff.
 | C15-PLAN | GO | 2026-07-16 | Ordem, dependências e checkpoints registrados; tasks aguardam GO | Usuario, GO registrado em conversa |
 | C15-CHECKPOINT-QUALITY-01 | REGISTRADO | 2026-07-16 | Branch limpa no commit `150c802`; suíte e scanner Maven executados; cobertura 80,0%; HIGH 82 (todos S1192); BLOCKER 0; duplicação 5,9% | Usuario autorizou continuidade sem novas confirmações |
 | C15-D | GO | 2026-07-16 | `mvn -q clean test` verde no commit `1f0dca0`; Sonar analysis `d5ce2fd6-50a5-4ca3-9054-f41207d226fa`: Quality Gate OK, HIGH 0, new violations 0, BLOCKER 0, cobertura 80,0%, duplicação 5,9%, complexidade 1356 e cognitiva 829; scanner sem warning de blame | Usuario autorizou continuidade e fechamento sem novas confirmações |
+
+## Fase 16 - Issues CRITICAL do Sonar oficial
+
+- [x] 16.0a Inventariar e planejar somente as issues `CRITICAL` de
+  `doc/sonar/sonar-issues-staging.csv`;
+- [x] 16.0 Reconciliar localmente os 26 apontamentos de três paths ausentes; a baixa no servidor
+  permanece para a análise oficial;
+- [x] 16.1 Eliminar 11 `S1192` dos guardrails ArchUnit;
+- [x] 16.2 Tratar 12 `S1192` de exceções e observabilidade;
+- [ ] C16-A Registrar GO humano sobre as evidências locais antes do próximo bloco;
+- [ ] 16.3 Tratar 12 `S1192` dos testes compartilhados;
+- [ ] 16.4 Tratar 10 `S1192` da árvore documental: modelo e REST;
+- [ ] 16.5 Tratar 4 `S1192` da árvore documental: MTR e caracterização;
+- [ ] C16-B Validar contratos compartilhados e árvore documental;
+- [ ] 16.6 Tratar 9 `S1192` de conformidade;
+- [ ] 16.7 Tratar 4 `S1192` nos adapters MTR de dossiê de produto;
+- [ ] 16.8 Tratar 5 `S1192` nos contratos MTR de dossiê de produto;
+- [ ] 16.9 Tratar 7 `S1192` de gestão de documentos;
+- [ ] C16-C Validar todas as 74 issues acionáveis;
+- [ ] 16.10 Publicar análise final no Sonar oficial.
+
+| Checkpoint | Status | Data | Evidencias | Aprovador |
+|---|---|---|---|---|
+| C16-PLAN | GO | 2026-07-17 | Plano restrito às 100 CRITICAL do CSV oficial aprovado; autorizado somente o bloco 16.0-16.2, com parada em C16-A | Usuario, GO registrado em conversa |
+| C16-A | AGUARDA GO | 2026-07-17 | Três paths legados ausentes e sem histórico/referências locais; 23 `S1192` tratados em seis testes; 348 testes verdes; cobertura combinada 80,02%, linhas 88,48% e branches 60,16%; zero alteração em produção; fechamento oficial pendente do scanner | Pendente |
 
 ## Bloqueios que nao podem ser resolvidos por suposicao
 
