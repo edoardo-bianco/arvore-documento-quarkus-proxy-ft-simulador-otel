@@ -27,6 +27,7 @@ class ChecklistResourceQuarkusTest {
 
     private static final String PATH =
             "/simtr-hub/v1/checklist/identificador-negocial/{identificador}/versao/{versao}";
+    private static final String MEDIA_TYPE_JSON = "application/json";
 
     @InjectMock
     ConsultarChecklist portaEntrada;
@@ -46,12 +47,12 @@ class ChecklistResourceQuarkusTest {
         )));
 
         given()
-                .accept("application/json")
+                .accept(MEDIA_TYPE_JSON)
                 .when()
                 .get(PATH, 321L, 7)
                 .then()
                 .statusCode(200)
-                .contentType("application/json")
+                .contentType(MEDIA_TYPE_JSON)
                 .body("identificador_negocial", equalTo(321))
                 .body("versao", equalTo(7))
                 .body("nome", equalTo("Resposta da porta nova"))
@@ -74,7 +75,7 @@ class ChecklistResourceQuarkusTest {
         when(portaEntrada.executar(any())).thenReturn(Uni.createFrom().nullItem());
 
         given()
-                .accept("application/json")
+                .accept(MEDIA_TYPE_JSON)
                 .when()
                 .get(PATH, 321L, 7)
                 .then()
@@ -96,12 +97,12 @@ class ChecklistResourceQuarkusTest {
                         null)));
 
         given()
-                .accept("application/json")
+                .accept(MEDIA_TYPE_JSON)
                 .when()
                 .get(PATH, 321L, 7)
                 .then()
                 .statusCode(404)
-                .contentType("application/json")
+                .contentType(MEDIA_TYPE_JSON)
                 .body("codigo_http", equalTo(404))
                 .body("recurso", equalTo("simtr-parametrizacao"))
                 .body("id_erro", equalTo("checklist-404"))

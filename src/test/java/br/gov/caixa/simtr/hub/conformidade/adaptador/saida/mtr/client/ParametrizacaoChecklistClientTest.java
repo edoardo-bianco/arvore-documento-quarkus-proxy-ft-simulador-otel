@@ -22,11 +22,14 @@ import org.junit.jupiter.api.Test;
 
 class ParametrizacaoChecklistClientTest {
 
+    private static final String SERVICO_MTR = "simtr-parametrizacao";
+    private static final String PREFIXO_STATUS = "status ";
+
     @Test
     void preservaPayloadDoErroDeNegocio() {
         var erro = new ChecklistMtrException.Erro(
                 404,
-                "simtr-parametrizacao",
+                SERVICO_MTR,
                 "checklist-404",
                 "MTR-CHECKLIST-404",
                 List.of(new ChecklistMtrException.Mensagem("checklist nao localizado")),
@@ -63,7 +66,7 @@ class ParametrizacaoChecklistClientTest {
         );
 
         assertEquals(404, falha.erro().codigoHttp());
-        assertEquals("simtr-parametrizacao", falha.erro().recurso());
+        assertEquals(SERVICO_MTR, falha.erro().recurso());
         assertNotNull(falha.erro().idErro());
         assertNull(falha.erro().codigoErro());
         assertNull(falha.erro().erros());
@@ -78,17 +81,17 @@ class ParametrizacaoChecklistClientTest {
         for (int status : new int[]{400, 404, 409, 422}) {
             assertInstanceOf(ChecklistMtrException.Negocio.class,
                     ParametrizacaoChecklistClient.toException(responseSemPayload(status)),
-                    "status " + status);
+                    PREFIXO_STATUS + status);
         }
         for (int status : new int[]{401, 403, 405, 429}) {
             assertInstanceOf(ChecklistMtrException.TecnicaCliente.class,
                     ParametrizacaoChecklistClient.toException(responseSemPayload(status)),
-                    "status " + status);
+                    PREFIXO_STATUS + status);
         }
         for (int status : new int[]{500, 502, 503}) {
             assertInstanceOf(ChecklistMtrException.Servidor.class,
                     ParametrizacaoChecklistClient.toException(responseSemPayload(status)),
-                    "status " + status);
+                    PREFIXO_STATUS + status);
         }
     }
 
@@ -106,7 +109,7 @@ class ParametrizacaoChecklistClientTest {
         );
 
         assertEquals(500, falha.erro().codigoHttp());
-        assertEquals("simtr-parametrizacao", falha.erro().recurso());
+        assertEquals(SERVICO_MTR, falha.erro().recurso());
         assertEquals("ARVDOCP0002", falha.erro().codigoErro());
         assertEquals("Erro retornado pelo serviço MTR fora do contrato esperado.",
                 falha.erro().erros().getFirst().mensagem());
