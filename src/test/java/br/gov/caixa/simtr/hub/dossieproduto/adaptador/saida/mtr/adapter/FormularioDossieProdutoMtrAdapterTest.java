@@ -32,6 +32,8 @@ import static org.mockito.Mockito.when;
 
 class FormularioDossieProdutoMtrAdapterTest {
 
+    private static final String SERVICO_MTR = "simtr-dossie-produto";
+
     private final FormularioDossieProdutoMtrClient client =
             mock(FormularioDossieProdutoMtrClient.class);
     private final FormularioDossieProdutoMtrAdapter adapter =
@@ -62,7 +64,7 @@ class FormularioDossieProdutoMtrAdapterTest {
     @Test
     void traduzErroMtrParaFalhaInternaLossless() {
         var erro = new FormularioDossieProdutoMtrException.Erro(
-                400, "simtr-dossie-produto", "formulario-400", "MTR-FORM-400",
+                400, SERVICO_MTR, "formulario-400", "MTR-FORM-400",
                 List.of(new FormularioDossieProdutoMtrException.Mensagem(
                         "formulario nao permitido")),
                 "negocio", "stack-remota");
@@ -76,7 +78,7 @@ class FormularioDossieProdutoMtrAdapterTest {
 
         assertEquals(FalhaAtualizacaoFormularioDossieProduto.Tipo.NEGOCIO, falha.tipo());
         assertEquals(400, falha.status());
-        assertEquals("simtr-dossie-produto", falha.recurso());
+        assertEquals(SERVICO_MTR, falha.recurso());
         assertEquals("formulario-400", falha.idErro());
         assertEquals("MTR-FORM-400", falha.codigoErro());
         assertEquals(List.of("formulario nao permitido"), falha.mensagens());
@@ -94,7 +96,7 @@ class FormularioDossieProdutoMtrAdapterTest {
                 () -> adapter.atualizar(comando()).await().indefinitely());
 
         assertEquals(FalhaAtualizacaoFormularioDossieProduto.Tipo.TIMEOUT, falha.tipo());
-        assertEquals("simtr-dossie-produto", falha.recurso());
+        assertEquals(SERVICO_MTR, falha.recurso());
     }
 
     private static ComandoAtualizacaoFormularioDossieProduto comando() {

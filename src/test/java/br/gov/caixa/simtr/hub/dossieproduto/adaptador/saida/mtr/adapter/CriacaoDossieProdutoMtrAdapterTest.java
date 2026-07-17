@@ -22,6 +22,8 @@ import static org.mockito.Mockito.when;
 
 class CriacaoDossieProdutoMtrAdapterTest {
 
+    private static final String SERVICO_MTR = "simtr-dossie-produto";
+
     private final CriacaoDossieProdutoMtrClient client = mock(CriacaoDossieProdutoMtrClient.class);
     private final CriacaoDossieProdutoMtrAdapter adapter = new CriacaoDossieProdutoMtrAdapter(
             client, new CriacaoDossieProdutoMtrMapper());
@@ -43,7 +45,7 @@ class CriacaoDossieProdutoMtrAdapterTest {
     @Test
     void traduzErroMtrParaFalhaInternaLossless() {
         var erro = new CriacaoDossieProdutoMtrException.Erro(
-                400, "simtr-dossie-produto", "criacao-400", "MTR-CRIACAO-400",
+                400, SERVICO_MTR, "criacao-400", "MTR-CRIACAO-400",
                 List.of(new CriacaoDossieProdutoMtrException.Mensagem("criacao nao permitida")),
                 "negocio", "stack-remota");
         when(client.criar(org.mockito.ArgumentMatchers.any()))
@@ -56,7 +58,7 @@ class CriacaoDossieProdutoMtrAdapterTest {
 
         assertEquals(FalhaCriacaoDossieProduto.Tipo.NEGOCIO, falha.tipo());
         assertEquals(400, falha.status());
-        assertEquals("simtr-dossie-produto", falha.recurso());
+        assertEquals(SERVICO_MTR, falha.recurso());
         assertEquals("criacao-400", falha.idErro());
         assertEquals("MTR-CRIACAO-400", falha.codigoErro());
         assertEquals(List.of("criacao nao permitida"), falha.mensagens());
@@ -74,7 +76,7 @@ class CriacaoDossieProdutoMtrAdapterTest {
                 () -> adapter.criar(comando()).await().indefinitely());
 
         assertEquals(FalhaCriacaoDossieProduto.Tipo.TIMEOUT, falha.tipo());
-        assertEquals("simtr-dossie-produto", falha.recurso());
+        assertEquals(SERVICO_MTR, falha.recurso());
     }
 
     private static ComandoCriacaoDossieProduto comando() {

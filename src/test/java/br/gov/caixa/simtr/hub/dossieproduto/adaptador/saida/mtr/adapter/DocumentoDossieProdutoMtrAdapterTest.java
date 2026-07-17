@@ -31,6 +31,8 @@ import static org.mockito.Mockito.when;
 
 class DocumentoDossieProdutoMtrAdapterTest {
 
+    private static final String SERVICO_MTR = "simtr-dossie-produto";
+
     private final DocumentoDossieProdutoMtrClient client =
             mock(DocumentoDossieProdutoMtrClient.class);
     private final DocumentoDossieProdutoMtrAdapter adapter =
@@ -68,7 +70,7 @@ class DocumentoDossieProdutoMtrAdapterTest {
     @Test
     void traduzErroMtrParaFalhaInternaLossless() {
         var erro = new DocumentoDossieProdutoMtrException.Erro(
-                400, "simtr-dossie-produto", "documento-400", "MTR-DOC-400",
+                400, SERVICO_MTR, "documento-400", "MTR-DOC-400",
                 List.of(new DocumentoDossieProdutoMtrException.Mensagem(
                         "documento nao permitido")),
                 "negocio", "stack-remota");
@@ -82,7 +84,7 @@ class DocumentoDossieProdutoMtrAdapterTest {
 
         assertEquals(FalhaInclusaoDocumentoDossieProduto.Tipo.NEGOCIO, falha.tipo());
         assertEquals(400, falha.status());
-        assertEquals("simtr-dossie-produto", falha.recurso());
+        assertEquals(SERVICO_MTR, falha.recurso());
         assertEquals("documento-400", falha.idErro());
         assertEquals("MTR-DOC-400", falha.codigoErro());
         assertEquals(List.of("documento nao permitido"), falha.mensagens());
@@ -100,7 +102,7 @@ class DocumentoDossieProdutoMtrAdapterTest {
                 () -> adapter.incluir(comando()).await().indefinitely());
 
         assertEquals(FalhaInclusaoDocumentoDossieProduto.Tipo.TIMEOUT, falha.tipo());
-        assertEquals("simtr-dossie-produto", falha.recurso());
+        assertEquals(SERVICO_MTR, falha.recurso());
     }
 
     private static ComandoInclusaoDocumentoDossieProduto comando() {
