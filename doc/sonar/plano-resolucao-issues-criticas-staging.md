@@ -350,12 +350,12 @@ type, mantendo a leitura DAMP dos cenários.
 
 ### Checkpoint C16-C — Todas as 74 issues acionáveis tratadas
 
-- [ ] Tasks 16.6 a 16.9 concluídas;
-- [ ] 25 issues críticas deste bloco eliminadas;
-- [ ] nenhum arquivo de `src/main/java` alterado;
-- [ ] `mvn -q clean test` passa sem testes ignorados;
-- [ ] cobertura geral, de linhas e de branches não fica abaixo da baseline;
-- [ ] GO humano para a análise oficial final.
+- [x] Tasks 16.6 a 16.9 concluídas;
+- [x] 25 issues críticas deste bloco eliminadas;
+- [x] nenhum arquivo de `src/main/java` alterado;
+- [x] `mvn -q clean test` passa sem testes ignorados;
+- [x] cobertura geral, de linhas e de branches não fica abaixo da baseline;
+- [x] GO humano para a análise oficial final.
 
 ### Task 16.10 — Publicar análise final no Sonar oficial
 
@@ -542,5 +542,5 @@ ordem, com parada obrigatória no C16-C.
   `java:S1192` e 19 `java:S2696`. A baixa continua pendente da análise oficial.
 - A revisão consolidada de correção, legibilidade, arquitetura, segurança e desempenho não
   encontrou finding Critical ou Required.
-- A execução está parada no C16-C e aguarda GO humano. A Task 16.10 e o scanner oficial não estão
-  autorizados antes desse GO.
+- O C16-C recebeu GO humano em 2026-07-17. A Task 16.10 e o scanner oficial estão autorizados
+  exclusivamente para a análise final e sua verificação.

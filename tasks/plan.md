@@ -1844,7 +1844,7 @@ fronteiras DDD.
 - Nenhum token foi persistido. O C16-B recebeu GO humano em 2026-07-17; as Tasks 16.6 a 16.9
   estão autorizadas em ordem, com parada obrigatória no C16-C.
 
-### Evidencia tecnica para o C16-C - aguarda GO
+### Evidencia tecnica do C16-C
 
 - Tasks 16.6 a 16.9 concluídas: os 25 `java:S1192` finais foram tratados nos 14 testes previstos,
   sem alteração em `src/main`, dependências ou configuração.
@@ -1860,5 +1860,5 @@ fronteiras DDD.
   issues antes/depois, zero nova, zero `java:S1192`, cobertura 80,0% e duplicação 5,9%.
 - A revisão multi-eixo não encontrou findings Critical ou Required. Não houve alteração em
   produção, `pom.xml`, properties ou formatos derivados; nenhum token foi persistido.
-- A execução está parada no C16-C. A Task 16.10 e a análise oficial permanecem bloqueadas até GO
-  humano explícito.
+- O C16-C recebeu GO humano em 2026-07-17. A Task 16.10 está autorizada exclusivamente para
+  publicar e verificar a análise final no Sonar oficial.

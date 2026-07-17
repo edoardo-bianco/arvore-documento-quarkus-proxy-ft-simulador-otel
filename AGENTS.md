@@ -21,8 +21,8 @@ Antes de alterar a arquitetura ou implementar uma etapa da refatoracao DDD:
    arquitetural documentada; qualquer mudanca exige fase futura explicitamente autorizada.
 10. A Fase 12 foi encerrada com GO humano no C12. As Fases 13 a 16 usam especificacoes e branches
     proprias; nao reutilize branches de fechamento. O C16-B recebeu GO humano e as Tasks 16.6 a
-    16.9 foram concluidas. A execucao esta parada no checkpoint C16-C; o proximo item permitido e
-    a revisao e o GO humano do C16-C. A Task 16.10 permanece bloqueada ate esse GO.
+    16.9 foram concluidas. O C16-C recebeu GO humano e a Task 16.10 esta autorizada exclusivamente
+    para publicar e verificar a analise final no Sonar oficial.
 11. Na Fase 16, execute o Sonar Docker local apos cada task concluida, compare as chaves de issues
     antes e depois e exija Quality Gate `OK`, zero issue nova e zero `java:S1192` nos arquivos do
     lote. O token deve existir somente na memoria do processo e nunca ser persistido.
