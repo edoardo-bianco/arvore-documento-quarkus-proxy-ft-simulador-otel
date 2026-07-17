@@ -492,3 +492,16 @@ ordem, com parada obrigatória no C16-C.
 - Sonar Docker analysis `5e0009d9-3877-4d16-ac08-4f1b4998f2e7`: Quality Gate `OK`, 214 issues
   antes e depois, zero issue nova, zero `java:S1192`, cobertura 80,0% e duplicação 5,9%.
 - Nenhum token foi persistido e nenhum arquivo de produção foi alterado.
+
+### Task 16.7
+
+- Commit: `3cdf592ce42f62f812cbd8925c7a45e47fcea56d`.
+- Os 4 `java:S1192` dos adapter tests MTR de dossiê de produto foram tratados com uma constante
+  privada independente por classe; o identificador do serviço e a tradução lossless não mudaram.
+- Os quatro testes focados passaram. `mvn -q clean test` executou 348 testes, sem falhas, erros ou
+  testes ignorados.
+- JaCoCo: 91,12% de instruções, 88,48% de linhas, 60,16% de branches, 96,58% de métodos e
+  93,75% de classes.
+- Sonar Docker analysis `6ca05041-724b-4adc-ae09-b2a538d048a1`: Quality Gate `OK`, 214 issues
+  antes e depois, zero issue nova, zero `java:S1192`, cobertura 80,0% e duplicação 5,9%.
+- Nenhum token foi persistido e nenhum arquivo de produção foi alterado.
