@@ -1,6 +1,6 @@
 # Plano de resolução das issues críticas do Sonar oficial
 
-Status: **EM EXECUÇÃO — C16-A aprovado; bloco C16-B autorizado**.
+Status: **PARADO NO C16-B — evidências técnicas completas; GO humano pendente**.
 
 - Fonte exclusiva: `doc/sonar/sonar-issues-staging.csv`.
 - Branch de trabalho: `refactor/sonar-quality-fase-16-baseline`.
@@ -251,10 +251,10 @@ type, mantendo a leitura DAMP dos cenários.
 
 ### Checkpoint C16-B — Contratos compartilhados e árvore documental
 
-- [ ] Tasks 16.3 a 16.5 concluídas;
-- [ ] 26 issues críticas deste bloco eliminadas;
-- [ ] `mvn -q clean test` passa;
-- [ ] JaCoCo não fica abaixo da baseline registrada;
+- [x] Tasks 16.3 a 16.5 concluídas;
+- [x] 26 issues críticas deste bloco corrigidas localmente;
+- [x] `mvn -q clean test` passa;
+- [x] JaCoCo não fica abaixo da baseline registrada;
 - [ ] GO humano antes dos demais domínios.
 
 ### Task 16.6 — Tratar 9 `S1192` de conformidade
@@ -459,3 +459,23 @@ obrigatória no C16-B.
 - Sonar Docker analysis `9f311fb0-aa7b-4197-9d87-80d257b52c3c`: Quality Gate `OK`, 214 issues
   antes e depois, zero issue nova, zero `java:S1192`, cobertura 80,0% e duplicação 5,9%.
 - Nenhum token foi persistido e nenhum arquivo de produção foi alterado.
+
+### Task 16.5
+
+- Commit: `9e8805d0bdbac629b6e7c9976dded67bf8bb2637`.
+- Os 4 `java:S1192` dos três testes MTR/caracterização foram tratados com constantes privadas;
+  o payload JSON e os valores contratuais permaneceram inalterados.
+- Os três testes focados passaram. `mvn -q clean test` executou 348 testes, sem falhas, erros ou
+  testes ignorados.
+- JaCoCo: 91,12% de instruções, 88,48% de linhas, 60,16% de branches, 96,58% de métodos e
+  93,75% de classes.
+- Sonar Docker analysis `a9ae4b61-9110-4505-914b-0250983e2098`: Quality Gate `OK`, 214 issues
+  antes e depois, zero issue nova, zero `java:S1192`, cobertura 80,0% e duplicação 5,9%.
+- Nenhum token foi persistido e nenhum arquivo de produção foi alterado.
+
+### Checkpoint C16-B
+
+As Tasks 16.3 a 16.5 corrigiram localmente os 26 `java:S1192` previstos para o bloco. O
+fechamento no Sonar oficial permanece pendente da análise oficial e não é antecipado por este
+registro. As evidências técnicas estão completas, mas a Task 16.6 continua bloqueada até GO
+humano explícito no C16-B.

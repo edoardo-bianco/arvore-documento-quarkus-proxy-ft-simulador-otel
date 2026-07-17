@@ -1830,3 +1830,16 @@ fronteiras DDD.
   zero `java:S1192`, cobertura 80,0% e duplicação 5,9%.
 - C16-A recebeu GO humano em 2026-07-17; Tasks 16.3 a 16.5 estão autorizadas, com parada
   obrigatória no C16-B.
+
+### Evidencia tecnica do C16-B
+
+- Tasks 16.3 a 16.5 concluídas: 26 `java:S1192` tratados nos 11 testes previstos, sem alteração
+  em `src/main`.
+- `mvn -q clean test`: 348 testes, zero falhas, zero erros e zero ignorados.
+- JaCoCo preservado: 91,12% de instruções, 88,48% de linhas, 60,16% de branches, 96,58% de
+  métodos e 93,75% de classes; cobertura combinada Sonar de 80,0%.
+- Gate Sonar Docker da Task 16.5 no commit `9e8805d`: analysis
+  `a9ae4b61-9110-4505-914b-0250983e2098`, Quality Gate OK, 214 issues antes/depois, zero nova,
+  zero `java:S1192` e duplicação de 5,9%.
+- Nenhum token foi persistido. A execução está parada no C16-B e a Task 16.6 depende de GO
+  humano explícito.
