@@ -48,10 +48,10 @@ Antes de executar qualquer item:
 
 ## Ponto de retomada
 
-- **Ultimo marco concluido:** Tasks 16.0 a 16.2 com evidencias locais verdes.
-- **Fase atual:** Fase 16 parada no checkpoint C16-A, na branch
+- **Ultimo marco concluido:** C16-A aprovado com suite e Sonar Docker verdes.
+- **Fase atual:** Fase 16 no bloco de contratos compartilhados e arvore documental, na branch
   `refactor/sonar-quality-fase-16-baseline`.
-- **Proximo item:** obter GO humano em C16-A; nao iniciar a Task 16.3 antes desse registro.
+- **Proximo item:** Task 16.3, seguida das Tasks 16.4 e 16.5; parar no checkpoint C16-B.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
   produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
@@ -1159,7 +1159,7 @@ suite e ArchUnit verdes; nenhum segredo no diff.
   permanece para a análise oficial;
 - [x] 16.1 Eliminar 11 `S1192` dos guardrails ArchUnit;
 - [x] 16.2 Tratar 12 `S1192` de exceções e observabilidade;
-- [ ] C16-A Registrar GO humano sobre as evidências locais antes do próximo bloco;
+- [x] C16-A Registrar GO humano sobre as evidências locais antes do próximo bloco;
 - [ ] 16.3 Tratar 12 `S1192` dos testes compartilhados;
 - [ ] 16.4 Tratar 10 `S1192` da árvore documental: modelo e REST;
 - [ ] 16.5 Tratar 4 `S1192` da árvore documental: MTR e caracterização;
@@ -1174,7 +1174,7 @@ suite e ArchUnit verdes; nenhum segredo no diff.
 | Checkpoint | Status | Data | Evidencias | Aprovador |
 |---|---|---|---|---|
 | C16-PLAN | GO | 2026-07-17 | Plano restrito às 100 CRITICAL do CSV oficial aprovado; autorizado somente o bloco 16.0-16.2, com parada em C16-A | Usuario, GO registrado em conversa |
-| C16-A | AGUARDA GO | 2026-07-17 | Três paths legados ausentes e sem histórico/referências locais; 23 `S1192` tratados em seis testes; 348 testes verdes; cobertura combinada 80,02%, linhas 88,48% e branches 60,16%; zero alteração em produção; fechamento oficial pendente do scanner | Pendente |
+| C16-A | GO | 2026-07-17 | Três paths legados ausentes e sem histórico/referências locais; 23 `S1192` tratados; 348 testes verdes; Sonar Docker analysis `9560384d-9d08-42dd-a9de-3b9a7803eb77`: Quality Gate OK, 214 issues antes/depois, zero nova, zero S1192, cobertura 80,0% e duplicação 5,9%; fechamento oficial pendente | Usuario, GO registrado em conversa |
 
 ## Bloqueios que nao podem ser resolvidos por suposicao
 

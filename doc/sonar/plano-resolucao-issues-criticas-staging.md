@@ -1,6 +1,6 @@
 # Plano de resolução das issues críticas do Sonar oficial
 
-Status: **EM EXECUÇÃO — C16-A com evidências locais concluídas e aguardando GO humano**.
+Status: **EM EXECUÇÃO — C16-A aprovado; bloco C16-B autorizado**.
 
 - Fonte exclusiva: `doc/sonar/sonar-issues-staging.csv`.
 - Branch de trabalho: `refactor/sonar-quality-fase-16-baseline`.
@@ -65,6 +65,9 @@ Todas as 74 issues acionáveis estão em `src/test/java`. Portanto, este plano n
 7. Arquivos ausentes não serão reintroduzidos para corrigir issue. Primeiro será reconciliada a
    cópia analisada pelo Sonar oficial.
 8. Nenhuma alteração será feita em `.ppt`, `.pptx`, `.pdf` ou `.html`.
+9. Após cada task concluída, o projeto `simtr-hub-local` será analisado no Sonar Docker. O gate
+   exige Quality Gate `OK`, zero chave de issue nova e zero `java:S1192` nos arquivos do lote. O
+   token será fornecido somente por variável de ambiente temporária e nunca será persistido.
 
 ## Ordem e dependências
 
@@ -426,7 +429,11 @@ nos checkpoints C16-A, C16-B e C16-C.
 - JaCoCo permaneceu na baseline: 80,02% combinado, 88,48% de linhas e 60,16% de branches.
 - Nenhum arquivo de produção foi alterado; `git diff --check` ficou limpo e nenhum token Sonar foi
   persistido.
+- Sonar Docker local no commit `9acafa2`: analysis
+  `9560384d-9d08-42dd-a9de-3b9a7803eb77`, Quality Gate `OK`, 214 issues antes e depois, zero
+  issue nova, zero `java:S1192`, cobertura 80,0% e duplicação 5,9%.
 - A eliminação no servidor das 23 issues tratadas e das 26 issues dos paths ausentes permanece
   pendente da análise oficial. Não se declara fechamento remoto antecipadamente.
 
-O próximo passo é o GO humano no C16-A. A Task 16.3 permanece bloqueada até esse registro.
+O C16-A recebeu GO humano em 2026-07-17. As Tasks 16.3 a 16.5 estão autorizadas, com parada
+obrigatória no C16-B.

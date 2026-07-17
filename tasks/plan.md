@@ -1799,9 +1799,10 @@ fronteiras DDD.
 1. Tasks 16.0 a 16.2: reconciliação, ArchUnit, exceções e observabilidade.
 2. C16-A: suíte completa e revisão humana obrigatória.
 3. Tasks 16.3 a 16.5 somente após GO em C16-A.
-4. C16-B: suíte completa e JaCoCo.
-5. Tasks 16.6 a 16.9 somente após GO em C16-B.
-6. C16-C e análise oficial final somente após os respectivos GOs.
+4. Após cada Task 16.x: Sonar Docker local com comparação de issues antes/depois.
+5. C16-B: suíte completa e JaCoCo.
+6. Tasks 16.6 a 16.9 somente após GO em C16-B.
+7. C16-C e análise oficial final somente após os respectivos GOs.
 
 ### Limites
 
@@ -1824,4 +1825,8 @@ fronteiras DDD.
   93,75% de classes; cobertura combinada de linhas e branches em 80,02%.
 - Nenhum arquivo de `src/main` foi alterado, nenhum token foi persistido e `git diff --check`
   ficou limpo.
-- C16-A aguarda GO humano; Task 16.3 permanece bloqueada.
+- Sonar Docker local no commit `9acafa2`: analysis
+  `9560384d-9d08-42dd-a9de-3b9a7803eb77`, Quality Gate OK, 214 issues antes/depois, zero nova,
+  zero `java:S1192`, cobertura 80,0% e duplicação 5,9%.
+- C16-A recebeu GO humano em 2026-07-17; Tasks 16.3 a 16.5 estão autorizadas, com parada
+  obrigatória no C16-B.
