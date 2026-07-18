@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 final class JsonContractAssertions {
 
     private static final ObjectMapper JSON = new ObjectMapper();
+    private static final String CAMPO_ID_ERRO = "id_erro";
     private static final String UUID_NORMALIZADO = "<uuid>";
 
     private JsonContractAssertions() {
@@ -36,16 +37,16 @@ final class JsonContractAssertions {
     }
 
     static void assertErroValidacaoExato(JsonNode atual, String... mensagens) {
-        assertTrue(uuidValido(atual.path("id_erro").asText()), "id_erro deve ser um UUID");
+        assertTrue(uuidValido(atual.path(CAMPO_ID_ERRO).asText()), "id_erro deve ser um UUID");
 
         ObjectNode normalizado = ((ObjectNode) atual.deepCopy());
-        normalizado.put("id_erro", UUID_NORMALIZADO);
+        normalizado.put(CAMPO_ID_ERRO, UUID_NORMALIZADO);
         ordenarErros(normalizado);
 
         ObjectNode esperado = JsonNodeFactory.instance.objectNode();
         esperado.put("codigo_http", 400);
         esperado.put("recurso", "simtr-hub");
-        esperado.put("id_erro", UUID_NORMALIZADO);
+        esperado.put(CAMPO_ID_ERRO, UUID_NORMALIZADO);
         esperado.put("codigo_erro", "ARVDOCP0001");
         ArrayNode erros = esperado.putArray("erros");
         for (String mensagem : mensagens) {

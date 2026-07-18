@@ -28,7 +28,17 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ArchUnitProgressivoTest {
 
+    private static final String PACOTE_DOMINIO = "..dominio..";
+    private static final String PACOTE_RECURSO = "..recurso..";
+    private static final String PACOTE_INTEGRACAO = "..integracao..";
+    private static final String PACOTE_ADAPTADOR_ENTRADA_REST = "..adaptador.entrada.rest..";
+    private static final String PACOTE_PORTA_SAIDA = "..aplicacao.porta.saida..";
+    private static final String PACOTE_ADAPTADOR_SAIDA_MTR = "..adaptador.saida.mtr..";
     private static final String PACOTE_DTO_ERRO_REST = "..arquitetura.excecao.dto..";
+    private static final String DOMINIO_DOSSIE_PRODUTO = "dossieproduto";
+    private static final String DOMINIO_ARVORE_DOCUMENTO = "arvoredocumento";
+    private static final String DOMINIO_CONFORMIDADE = "conformidade";
+    private static final String DOMINIO_GESTAO_DOCUMENTO = "gestaodocumento";
     private static final String[] PACOTES_NUCLEO_GESTAO_DOCUMENTO = {
             "..gestaodocumento.dominio..",
             "..gestaodocumento.aplicacao.."
@@ -40,11 +50,11 @@ class ArchUnitProgressivoTest {
             .importPackages("br.gov.caixa.simtr.hub");
 
     static final ArchRule dominio_nao_deve_depender_de_bordas = noClasses()
-            .that().resideInAPackage("..dominio..")
+            .that().resideInAPackage(PACOTE_DOMINIO)
             .should().dependOnClassesThat()
             .resideInAnyPackage(
-                    "..recurso..",
-                    "..integracao..",
+                    PACOTE_RECURSO,
+                    PACOTE_INTEGRACAO,
                     "..adaptador..",
                     "..mapeamento..",
                     "..fachada..",
@@ -52,31 +62,35 @@ class ArchUnitProgressivoTest {
 
     static final ArchRule erro_rest_tecnico_pode_ser_usado_nas_bordas_permitidas = noClasses()
             .that().resideOutsideOfPackages(
-                    "..adaptador.entrada.rest..",
+                    PACOTE_ADAPTADOR_ENTRADA_REST,
                     "..arquitetura.excecao..")
             .should().dependOnClassesThat()
             .resideInAPackage(PACOTE_DTO_ERRO_REST);
 
     static final ArchRule erro_rest_tecnico_nao_pode_vazar_para_o_nucleo = noClasses()
-            .that().resideInAnyPackage("..dominio..", "..aplicacao..", "..adaptador.saida..")
+            .that().resideInAnyPackage(PACOTE_DOMINIO, "..aplicacao..", "..adaptador.saida..")
             .should().dependOnClassesThat()
             .resideInAPackage(PACOTE_DTO_ERRO_REST);
 
     static final ArchRule dossie_produto_nao_deve_depender_de_outros_dominios_fora_de_acl =
             dependenciaEntreDominiosSomentePorAcl(
-                    "dossieproduto", "arvoredocumento", "conformidade", "gestaodocumento");
+                    DOMINIO_DOSSIE_PRODUTO, DOMINIO_ARVORE_DOCUMENTO,
+                    DOMINIO_CONFORMIDADE, DOMINIO_GESTAO_DOCUMENTO);
 
     static final ArchRule arvore_documento_nao_deve_depender_de_outros_dominios =
             dependenciaEntreDominiosSomentePorAcl(
-                    "arvoredocumento", "dossieproduto", "conformidade", "gestaodocumento");
+                    DOMINIO_ARVORE_DOCUMENTO, DOMINIO_DOSSIE_PRODUTO,
+                    DOMINIO_CONFORMIDADE, DOMINIO_GESTAO_DOCUMENTO);
 
     static final ArchRule conformidade_nao_deve_depender_de_outros_dominios =
             dependenciaEntreDominiosSomentePorAcl(
-                    "conformidade", "dossieproduto", "arvoredocumento", "gestaodocumento");
+                    DOMINIO_CONFORMIDADE, DOMINIO_DOSSIE_PRODUTO,
+                    DOMINIO_ARVORE_DOCUMENTO, DOMINIO_GESTAO_DOCUMENTO);
 
     static final ArchRule gestao_documento_nao_deve_depender_de_outros_dominios_fora_de_acl =
             dependenciaEntreDominiosSomentePorAcl(
-                    "gestaodocumento", "dossieproduto", "arvoredocumento", "conformidade");
+                    DOMINIO_GESTAO_DOCUMENTO, DOMINIO_DOSSIE_PRODUTO,
+                    DOMINIO_ARVORE_DOCUMENTO, DOMINIO_CONFORMIDADE);
 
     static final ArchRule aplicacao_migrada_nao_deve_depender_de_bordas = noClasses()
             .that().resideInAnyPackage(
@@ -86,9 +100,9 @@ class ArchUnitProgressivoTest {
                     "..gestaodocumento.aplicacao..")
             .should().dependOnClassesThat()
             .resideInAnyPackage(
-                    "..integracao..",
+                    PACOTE_INTEGRACAO,
                     "..adaptador..",
-                    "..recurso..",
+                    PACOTE_RECURSO,
                     "..mapeamento..",
                     "..fachada..");
 
@@ -99,13 +113,13 @@ class ArchUnitProgressivoTest {
                     "..conformidade.aplicacao.porta.entrada..",
                     "..gestaodocumento.aplicacao.porta.entrada..")
             .should().dependOnClassesThat()
-            .resideInAnyPackage("..aplicacao.porta.saida..", "..aplicacao.casodeuso..");
+            .resideInAnyPackage(PACOTE_PORTA_SAIDA, "..aplicacao.casodeuso..");
 
     static final ArchRule adapters_rest_nao_devem_acessar_internos_ou_bordas_de_saida = noClasses()
-            .that().resideInAPackage("..adaptador.entrada.rest..")
+            .that().resideInAPackage(PACOTE_ADAPTADOR_ENTRADA_REST)
             .should().dependOnClassesThat()
             .resideInAnyPackage(
-                    "..aplicacao.porta.saida..",
+                    PACOTE_PORTA_SAIDA,
                     "..aplicacao.casodeuso..",
                     "..adaptador.saida..");
 
@@ -119,20 +133,20 @@ class ArchUnitProgressivoTest {
                     "..conformidade.adaptador.saida..",
                     "..gestaodocumento.adaptador.saida..")
             .should().dependOnClassesThat()
-            .resideInAnyPackage("..recurso..", "..integracao..", "..arquitetura.excecao.dto..");
+            .resideInAnyPackage(PACOTE_RECURSO, PACOTE_INTEGRACAO, PACOTE_DTO_ERRO_REST);
 
     static final ArchRule adapters_simulador_migrados_nao_devem_depender_da_borda_mtr = noClasses()
             .that().resideInAPackage("..adaptador.saida.simulador..")
             .should().dependOnClassesThat()
-            .resideInAPackage("..adaptador.saida.mtr..");
+            .resideInAPackage(PACOTE_ADAPTADOR_SAIDA_MTR);
 
     static final ArchRule dto_rest_nao_deve_vazar_da_borda_de_entrada = noClasses()
-            .that().resideOutsideOfPackage("..adaptador.entrada.rest..")
+            .that().resideOutsideOfPackage(PACOTE_ADAPTADOR_ENTRADA_REST)
             .should().dependOnClassesThat()
             .resideInAPackage("..adaptador.entrada.rest..dto..");
 
     static final ArchRule dto_mtr_nao_deve_vazar_da_borda_mtr = noClasses()
-            .that().resideOutsideOfPackage("..adaptador.saida.mtr..")
+            .that().resideOutsideOfPackage(PACOTE_ADAPTADOR_SAIDA_MTR)
             .should().dependOnClassesThat()
             .resideInAPackage("..adaptador.saida.mtr..dto..");
 
@@ -146,25 +160,29 @@ class ArchUnitProgressivoTest {
             .should().resideInAPackage("..adaptador.saida.mtr.client..");
 
     static final ArchRule rest_clients_so_podem_ser_consumidos_pela_borda_mtr = noClasses()
-            .that().resideOutsideOfPackage("..adaptador.saida.mtr..")
+            .that().resideOutsideOfPackage(PACOTE_ADAPTADOR_SAIDA_MTR)
             .should().dependOnClassesThat()
             .areAnnotatedWith(RegisterRestClient.class);
 
     static final ArchRule acl_dossie_produto_so_deve_acessar_api_publica_de_outro_dominio =
             aclSoDeveAcessarApiPublica(
-                    "dossieproduto", "arvoredocumento", "conformidade", "gestaodocumento");
+                    DOMINIO_DOSSIE_PRODUTO, DOMINIO_ARVORE_DOCUMENTO,
+                    DOMINIO_CONFORMIDADE, DOMINIO_GESTAO_DOCUMENTO);
 
     static final ArchRule acl_arvore_documento_so_deve_acessar_api_publica_de_outro_dominio =
             aclSoDeveAcessarApiPublica(
-                    "arvoredocumento", "dossieproduto", "conformidade", "gestaodocumento");
+                    DOMINIO_ARVORE_DOCUMENTO, DOMINIO_DOSSIE_PRODUTO,
+                    DOMINIO_CONFORMIDADE, DOMINIO_GESTAO_DOCUMENTO);
 
     static final ArchRule acl_conformidade_so_deve_acessar_api_publica_de_outro_dominio =
             aclSoDeveAcessarApiPublica(
-                    "conformidade", "dossieproduto", "arvoredocumento", "gestaodocumento");
+                    DOMINIO_CONFORMIDADE, DOMINIO_DOSSIE_PRODUTO,
+                    DOMINIO_ARVORE_DOCUMENTO, DOMINIO_GESTAO_DOCUMENTO);
 
     static final ArchRule acl_gestao_documento_so_deve_acessar_api_publica_de_outro_dominio =
             aclSoDeveAcessarApiPublica(
-                    "gestaodocumento", "dossieproduto", "arvoredocumento", "conformidade");
+                    DOMINIO_GESTAO_DOCUMENTO, DOMINIO_DOSSIE_PRODUTO,
+                    DOMINIO_ARVORE_DOCUMENTO, DOMINIO_CONFORMIDADE);
 
     static final ArchRule nucleo_gestao_documento_nao_deve_depender_de_storage_ou_cache = noClasses()
             .that().resideInAnyPackage(PACOTES_NUCLEO_GESTAO_DOCUMENTO)
@@ -327,7 +345,7 @@ class ArchUnitProgressivoTest {
     @Test
     void regraDeErroRestDetectaUsoProibidoNoNucleo() {
         ArchRule regra = noClasses()
-                .that().resideInAPackage("..dominio..")
+                .that().resideInAPackage(PACOTE_DOMINIO)
                 .should().dependOnClassesThat()
                 .resideInAPackage(PACOTE_DTO_ERRO_REST);
 
@@ -398,7 +416,7 @@ class ArchUnitProgressivoTest {
     @Test
     void regraDePortaDeEntradaDetectaExposicaoDaPortaDeSaida() {
         ArchRule regra = noClasses().should().dependOnClassesThat()
-                .resideInAPackage("..aplicacao.porta.saida..");
+                .resideInAPackage(PACOTE_PORTA_SAIDA);
 
         assertThrows(AssertionError.class, () -> regra.check(
                 new ClassFileImporter().importClasses(PortaEntradaComSaidaViolacao.class)));

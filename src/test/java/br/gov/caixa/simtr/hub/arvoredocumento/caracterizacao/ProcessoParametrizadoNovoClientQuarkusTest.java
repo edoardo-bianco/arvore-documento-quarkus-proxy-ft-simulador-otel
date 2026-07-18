@@ -40,6 +40,7 @@ import org.junit.jupiter.api.Test;
 class ProcessoParametrizadoNovoClientQuarkusTest {
 
     private static final long IDENTIFICADOR = 1000016487L;
+    private static final String SERVICO_MTR = "simtr-parametrizacao";
     private static final String RESPOSTA_MTR = """
             {
               "identificador_negocial": 1000016487,
@@ -134,7 +135,7 @@ class ProcessoParametrizadoNovoClientQuarkusTest {
                 .findFirst()
                 .orElseThrow();
         assertEquals(SpanKind.CLIENT, adapter.getKind());
-        assertEquals("simtr-parametrizacao",
+        assertEquals(SERVICO_MTR,
                 adapter.getAttributes().get(AttributeKey.stringKey("mtr.servico")));
         assertEquals("patriarca-processo-v2",
                 adapter.getAttributes().get(AttributeKey.stringKey("mtr.api")));
@@ -155,7 +156,7 @@ class ProcessoParametrizadoNovoClientQuarkusTest {
         var inicio = log("mtr.parametrizacao.processo.chamada.iniciada");
         assertEquals("infrastructure", inicio.mdc().get("camada"));
         assertEquals("ParametrizacaoProcessoGateway", inicio.mdc().get("componente"));
-        assertEquals("simtr-parametrizacao", inicio.mdc().get("dependencia"));
+        assertEquals(SERVICO_MTR, inicio.mdc().get("dependencia"));
         assertEquals("consultar-processo-parametrizacao-v2", inicio.mdc().get("operacao"));
         assertEquals(String.valueOf(IDENTIFICADOR), inicio.mdc().get("identificador_negocial"));
 
@@ -188,7 +189,7 @@ class ProcessoParametrizadoNovoClientQuarkusTest {
 
         assertEquals(FalhaConsultaProcessoParametrizado.Tipo.NEGOCIO, falha.tipo());
         assertEquals(404, falha.status());
-        assertEquals("simtr-parametrizacao", falha.recurso());
+        assertEquals(SERVICO_MTR, falha.recurso());
         assertEquals("processo-novo-404", falha.idErro());
         assertEquals("MTR-PROCESSO-404", falha.codigoErro());
         assertEquals(List.of("processo nao localizado"), falha.mensagens());

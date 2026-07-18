@@ -21,6 +21,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 class ChecklistRestMapperTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final String CAMPO_APONTAMENTOS = "apontamentos";
+    private static final String RECURSO_MTR = "simtr-parametrizacao";
+    private static final String ID_ERRO_CHECKLIST = "checklist-erro";
+    private static final String CODIGO_ERRO_CHECKLIST = "MTR-CHECKLIST";
+    private static final String MENSAGEM_EXTERNA = "mensagem externa";
 
     @Test
     void mapeiaRespostaPreservandoContratoJsonNulabilidadeEElementosNulos() {
@@ -46,9 +51,9 @@ class ChecklistRestMapperTest {
         assertEquals(false, json.path("verificacao_previa").booleanValue());
         assertFalse(json.has("data_hora_criacao"));
         assertFalse(json.has("orientacao_operador"));
-        assertEquals(true, json.path("apontamentos").get(0).isNull());
-        assertFalse(json.path("apontamentos").get(1).has("nome"));
-        assertFalse(json.path("apontamentos").get(1).has("orientacao_operador"));
+        assertEquals(true, json.path(CAMPO_APONTAMENTOS).get(0).isNull());
+        assertFalse(json.path(CAMPO_APONTAMENTOS).get(1).has("nome"));
+        assertFalse(json.path(CAMPO_APONTAMENTOS).get(1).has("orientacao_operador"));
     }
 
     @Test
@@ -70,10 +75,10 @@ class ChecklistRestMapperTest {
                         FalhaConsultaChecklist.Tipo.NEGOCIO, 404)));
         assertEquals(404, negocio.status());
         assertEquals(404, negocio.erro().codigoHttp());
-        assertEquals("simtr-parametrizacao", negocio.erro().recurso());
-        assertEquals("checklist-erro", negocio.erro().idErro());
-        assertEquals("MTR-CHECKLIST", negocio.erro().codigoErro());
-        assertEquals("mensagem externa", negocio.erro().erros().getFirst().mensagem());
+        assertEquals(RECURSO_MTR, negocio.erro().recurso());
+        assertEquals(ID_ERRO_CHECKLIST, negocio.erro().idErro());
+        assertEquals(CODIGO_ERRO_CHECKLIST, negocio.erro().codigoErro());
+        assertEquals(MENSAGEM_EXTERNA, negocio.erro().erros().getFirst().mensagem());
         assertEquals("detalhe", negocio.erro().detalhe());
         assertEquals("stacktrace", negocio.erro().stacktrace());
 
@@ -99,10 +104,10 @@ class ChecklistRestMapperTest {
         FalhaConsultaChecklist falha = new FalhaConsultaChecklist(
                 FalhaConsultaChecklist.Tipo.NEGOCIO,
                 404,
-                "simtr-parametrizacao",
-                "checklist-erro",
-                "MTR-CHECKLIST",
-                Arrays.asList(null, "mensagem externa"),
+                RECURSO_MTR,
+                ID_ERRO_CHECKLIST,
+                CODIGO_ERRO_CHECKLIST,
+                Arrays.asList(null, MENSAGEM_EXTERNA),
                 null,
                 null,
                 null);
@@ -112,7 +117,7 @@ class ChecklistRestMapperTest {
                 ChecklistRestMapper.paraExcecaoRest(falha));
 
         assertNull(excecao.erro().erros().getFirst());
-        assertEquals("mensagem externa", excecao.erro().erros().get(1).mensagem());
+        assertEquals(MENSAGEM_EXTERNA, excecao.erro().erros().get(1).mensagem());
     }
 
     private static FalhaConsultaChecklist falha(
@@ -122,10 +127,10 @@ class ChecklistRestMapperTest {
         return new FalhaConsultaChecklist(
                 tipo,
                 status,
-                "simtr-parametrizacao",
-                "checklist-erro",
-                "MTR-CHECKLIST",
-                List.of("mensagem externa"),
+                RECURSO_MTR,
+                ID_ERRO_CHECKLIST,
+                CODIGO_ERRO_CHECKLIST,
+                List.of(MENSAGEM_EXTERNA),
                 "detalhe",
                 "stacktrace",
                 new IllegalStateException("causa"));

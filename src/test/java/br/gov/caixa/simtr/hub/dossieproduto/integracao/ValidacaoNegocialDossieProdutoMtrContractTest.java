@@ -50,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ValidacaoNegocialDossieProdutoMtrContractTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final String MEDIA_TYPE_JSON = "application/json";
     private static final String CAMINHO_VALIDACAO_NEGOCIAL =
             "/simtr/dossie-produto/v1/dossie-produto/123/validacao-negocial";
     private static final String REQUEST_VALIDACAO_NEGOCIAL = """
@@ -196,8 +197,8 @@ class ValidacaoNegocialDossieProdutoMtrContractTest {
         assertEquals(CAMINHO_VALIDACAO_NEGOCIAL, request.path());
         assertEquals(OBJECT_MAPPER.readTree(REQUEST_VALIDACAO_NEGOCIAL),
                 OBJECT_MAPPER.readTree(request.body()));
-        assertTrue(request.contentType().startsWith("application/json"));
-        assertTrue(request.accept().contains("application/json"));
+        assertTrue(request.contentType().startsWith(MEDIA_TYPE_JSON));
+        assertTrue(request.accept().contains(MEDIA_TYPE_JSON));
         assertEquals("test-apikey", request.apikey());
         assertEquals("Bearer stub-access-token", request.authorization());
         assertNotNull(request.traceparent());
@@ -315,8 +316,8 @@ class ValidacaoNegocialDossieProdutoMtrContractTest {
         assertEquals(CAMINHO_VALIDACAO_NEGOCIAL, request.path());
         assertEquals(OBJECT_MAPPER.readTree(REQUEST_VALIDACAO_NEGOCIAL),
                 OBJECT_MAPPER.readTree(request.body()));
-        assertTrue(request.contentType().startsWith("application/json"));
-        assertTrue(request.accept().contains("application/json"));
+        assertTrue(request.contentType().startsWith(MEDIA_TYPE_JSON));
+        assertTrue(request.accept().contains(MEDIA_TYPE_JSON));
         assertEquals("test-apikey", request.apikey());
         assertEquals("Bearer stub-access-token", request.authorization());
         assertNotNull(request.traceparent());

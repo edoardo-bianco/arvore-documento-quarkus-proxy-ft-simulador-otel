@@ -41,6 +41,7 @@ class ChecklistNovoClientQuarkusTest {
 
     private static final long IDENTIFICADOR = 1000012583L;
     private static final int VERSAO = 7;
+    private static final String SERVICO_MTR = "simtr-parametrizacao";
     private static final String RESPOSTA_MTR = """
             {
               "nome": "Checklist no novo client",
@@ -129,7 +130,7 @@ class ChecklistNovoClientQuarkusTest {
                 .forceFlush().join(10, TimeUnit.SECONDS);
         SpanData adapter = span("mtr.parametrizacao.checklist.consultar");
         assertEquals(SpanKind.CLIENT, adapter.getKind());
-        assertEquals("simtr-parametrizacao",
+        assertEquals(SERVICO_MTR,
                 adapter.getAttributes().get(AttributeKey.stringKey("mtr.servico")));
         assertEquals("cadastro-checklist-v1",
                 adapter.getAttributes().get(AttributeKey.stringKey("mtr.api")));
@@ -157,7 +158,7 @@ class ChecklistNovoClientQuarkusTest {
         var inicio = log("mtr.parametrizacao.checklist.chamada.iniciada");
         assertEquals("infrastructure", inicio.mdc().get("camada"));
         assertEquals("ParametrizacaoChecklistGateway", inicio.mdc().get("componente"));
-        assertEquals("simtr-parametrizacao", inicio.mdc().get("dependencia"));
+        assertEquals(SERVICO_MTR, inicio.mdc().get("dependencia"));
         assertEquals("consultar-checklist-parametrizacao-v1", inicio.mdc().get("operacao"));
         assertEquals(String.valueOf(IDENTIFICADOR), inicio.mdc().get("identificador_negocial"));
         assertEquals(String.valueOf(VERSAO), inicio.mdc().get("versao"));
@@ -191,7 +192,7 @@ class ChecklistNovoClientQuarkusTest {
 
         assertEquals(FalhaConsultaChecklist.Tipo.NEGOCIO, falha.tipo());
         assertEquals(404, falha.status());
-        assertEquals("simtr-parametrizacao", falha.recurso());
+        assertEquals(SERVICO_MTR, falha.recurso());
         assertEquals("checklist-novo-404", falha.idErro());
         assertEquals("MTR-CHECKLIST-404", falha.codigoErro());
         assertEquals(List.of("checklist nao localizado"), falha.mensagens());

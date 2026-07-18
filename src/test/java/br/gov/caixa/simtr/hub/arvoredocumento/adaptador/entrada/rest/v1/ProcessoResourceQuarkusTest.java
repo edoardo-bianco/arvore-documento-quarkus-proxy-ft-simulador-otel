@@ -26,6 +26,7 @@ class ProcessoResourceQuarkusTest {
 
     private static final String PATH =
             "/simtr-hub/v1/processo/identificador-negocial/{identificador}";
+    private static final String MEDIA_TYPE_JSON = "application/json";
 
     @InjectMock
     ConsultarProcessoParametrizado portaEntrada;
@@ -38,12 +39,12 @@ class ProcessoResourceQuarkusTest {
                         null, List.of(), null, List.of(), List.of(), null)));
 
         given()
-                .accept("application/json")
+                .accept(MEDIA_TYPE_JSON)
                 .when()
                 .get(PATH, 321L)
                 .then()
                 .statusCode(200)
-                .contentType("application/json")
+                .contentType(MEDIA_TYPE_JSON)
                 .body("identificador_negocial", equalTo(321))
                 .body("nome", equalTo("Resposta da porta nova"))
                 .body("indicador_produto_obrigatorio", equalTo(false))
@@ -71,12 +72,12 @@ class ProcessoResourceQuarkusTest {
                         null)));
 
         given()
-                .accept("application/json")
+                .accept(MEDIA_TYPE_JSON)
                 .when()
                 .get(PATH, 321L)
                 .then()
                 .statusCode(404)
-                .contentType("application/json")
+                .contentType(MEDIA_TYPE_JSON)
                 .body("codigo_http", equalTo(404))
                 .body("recurso", equalTo("simtr-parametrizacao"))
                 .body("id_erro", equalTo("processo-404"))

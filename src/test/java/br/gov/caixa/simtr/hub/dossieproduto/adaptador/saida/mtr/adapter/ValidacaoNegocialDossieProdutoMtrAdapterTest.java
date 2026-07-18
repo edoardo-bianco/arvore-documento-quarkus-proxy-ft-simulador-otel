@@ -31,6 +31,8 @@ import static org.mockito.Mockito.when;
 
 class ValidacaoNegocialDossieProdutoMtrAdapterTest {
 
+    private static final String SERVICO_MTR = "simtr-dossie-produto";
+
     private final ValidacaoNegocialDossieProdutoMtrClient client =
             mock(ValidacaoNegocialDossieProdutoMtrClient.class);
     private final ValidacaoNegocialDossieProdutoMtrAdapter adapter =
@@ -65,7 +67,7 @@ class ValidacaoNegocialDossieProdutoMtrAdapterTest {
     @Test
     void traduzErroMtrParaFalhaInternaLossless() {
         var erro = new ValidacaoNegocialDossieProdutoMtrException.Erro(
-                400, "simtr-dossie-produto", "validacao-400", "MTR-VALIDACAO-400",
+                400, SERVICO_MTR, "validacao-400", "MTR-VALIDACAO-400",
                 List.of(new ValidacaoNegocialDossieProdutoMtrException.Mensagem(
                         "validacao negocial nao permitida")),
                 "negocio", "stack-remota");
@@ -80,7 +82,7 @@ class ValidacaoNegocialDossieProdutoMtrAdapterTest {
         assertEquals(FalhaRegistroValidacaoNegocialDossieProduto.Tipo.NEGOCIO,
                 falha.tipo());
         assertEquals(400, falha.status());
-        assertEquals("simtr-dossie-produto", falha.recurso());
+        assertEquals(SERVICO_MTR, falha.recurso());
         assertEquals("validacao-400", falha.idErro());
         assertEquals("MTR-VALIDACAO-400", falha.codigoErro());
         assertEquals(List.of("validacao negocial nao permitida"), falha.mensagens());
@@ -99,7 +101,7 @@ class ValidacaoNegocialDossieProdutoMtrAdapterTest {
 
         assertEquals(FalhaRegistroValidacaoNegocialDossieProduto.Tipo.TIMEOUT,
                 falha.tipo());
-        assertEquals("simtr-dossie-produto", falha.recurso());
+        assertEquals(SERVICO_MTR, falha.recurso());
     }
 
     private static ComandoRegistroValidacaoNegocialDossieProduto comando() {

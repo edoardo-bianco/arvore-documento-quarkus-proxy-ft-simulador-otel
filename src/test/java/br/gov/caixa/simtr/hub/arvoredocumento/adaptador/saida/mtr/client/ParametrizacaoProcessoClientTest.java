@@ -25,6 +25,8 @@ import org.junit.jupiter.api.Test;
 class ParametrizacaoProcessoClientTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final String SERVICO_MTR = "simtr-parametrizacao";
+    private static final String PREFIXO_STATUS = "status ";
 
     @Test
     void desserializaArvoreMtrSnakeCaseEChecklistComoObjetoOuArray() throws Exception {
@@ -148,7 +150,7 @@ class ParametrizacaoProcessoClientTest {
     void preservaPayloadDoErroDeNegocio() {
         var erro = new ProcessoParametrizadoMtrException.Erro(
                 404,
-                "simtr-parametrizacao",
+                SERVICO_MTR,
                 "processo-404",
                 "MTR-PROCESSO-404",
                 List.of(new ProcessoParametrizadoMtrException.Mensagem("processo nao localizado")),
@@ -186,7 +188,7 @@ class ParametrizacaoProcessoClientTest {
         );
 
         assertEquals(404, falha.erro().codigoHttp());
-        assertEquals("simtr-parametrizacao", falha.erro().recurso());
+        assertEquals(SERVICO_MTR, falha.erro().recurso());
         assertNotNull(falha.erro().idErro());
         assertNull(falha.erro().codigoErro());
         assertNull(falha.erro().erros());
@@ -201,17 +203,17 @@ class ParametrizacaoProcessoClientTest {
         for (int status : new int[]{400, 404, 409, 422}) {
             assertInstanceOf(ProcessoParametrizadoMtrException.Negocio.class,
                     ParametrizacaoProcessoClient.toException(responseSemPayload(status)),
-                    "status " + status);
+                    PREFIXO_STATUS + status);
         }
         for (int status : new int[]{401, 403, 405, 429}) {
             assertInstanceOf(ProcessoParametrizadoMtrException.TecnicaCliente.class,
                     ParametrizacaoProcessoClient.toException(responseSemPayload(status)),
-                    "status " + status);
+                    PREFIXO_STATUS + status);
         }
         for (int status : new int[]{500, 502, 503}) {
             assertInstanceOf(ProcessoParametrizadoMtrException.Servidor.class,
                     ParametrizacaoProcessoClient.toException(responseSemPayload(status)),
-                    "status " + status);
+                    PREFIXO_STATUS + status);
         }
     }
 
@@ -229,7 +231,7 @@ class ParametrizacaoProcessoClientTest {
         );
 
         assertEquals(500, falha.erro().codigoHttp());
-        assertEquals("simtr-parametrizacao", falha.erro().recurso());
+        assertEquals(SERVICO_MTR, falha.erro().recurso());
         assertEquals("ARVDOCP0002", falha.erro().codigoErro());
         assertEquals("Erro retornado pelo serviço MTR fora do contrato esperado.",
                 falha.erro().erros().getFirst().mensagem());

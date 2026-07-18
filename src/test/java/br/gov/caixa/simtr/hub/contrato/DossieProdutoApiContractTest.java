@@ -12,6 +12,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @QuarkusTest
 class DossieProdutoApiContractTest {
 
+    private static final String ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO =
+            "/simtr-hub/v1/dossie-produto/{id}/validacao-negocial";
+
     private static final String REQUEST_CRIACAO = """
             {
               "processo": 100,
@@ -177,7 +180,7 @@ class DossieProdutoApiContractTest {
                 .accept(ContentType.JSON)
                 .body(REQUEST_VALIDACAO)
                 .when()
-                .patch("/simtr-hub/v1/dossie-produto/{id}/validacao-negocial", 123L)
+                .patch(ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO, 123L)
                 .then()
                 .statusCode(200)
                 .extract().asString();
@@ -197,7 +200,7 @@ class DossieProdutoApiContractTest {
                         }
                         """)
                 .when()
-                .patch("/simtr-hub/v1/dossie-produto/{id}/validacao-negocial", 123L)
+                .patch(ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO, 123L)
                 .then()
                 .statusCode(200)
                 .extract().asString();
@@ -239,7 +242,7 @@ class DossieProdutoApiContractTest {
                         }
                         """)
                 .when()
-                .patch("/simtr-hub/v1/dossie-produto/{id}/validacao-negocial", 123L)
+                .patch(ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO, 123L)
                 .then()
                 .statusCode(200)
                 .extract().asString();

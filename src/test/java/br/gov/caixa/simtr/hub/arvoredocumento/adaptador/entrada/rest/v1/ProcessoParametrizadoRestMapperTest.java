@@ -32,6 +32,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 class ProcessoParametrizadoRestMapperTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final String RECURSO_SIMTR_PARAMETRIZACAO = "simtr-parametrizacao";
+    private static final String ID_ERRO_PROCESSO = "processo-erro";
+    private static final String CODIGO_ERRO_PROCESSO = "MTR-PROCESSO";
+    private static final String MENSAGEM_EXTERNA = "mensagem externa";
 
     @Test
     void mapeiaArvoreCompletaPreservandoNulabilidadeEContratoJson() {
@@ -85,10 +89,10 @@ class ProcessoParametrizadoRestMapperTest {
                 ProcessoParametrizadoRestMapper.paraExcecaoRest(negocio));
         assertEquals(404, erroNegocio.status());
         assertEquals(404, erroNegocio.erro().codigoHttp());
-        assertEquals("simtr-parametrizacao", erroNegocio.erro().recurso());
-        assertEquals("processo-erro", erroNegocio.erro().idErro());
-        assertEquals("MTR-PROCESSO", erroNegocio.erro().codigoErro());
-        assertEquals("mensagem externa", erroNegocio.erro().erros().getFirst().mensagem());
+        assertEquals(RECURSO_SIMTR_PARAMETRIZACAO, erroNegocio.erro().recurso());
+        assertEquals(ID_ERRO_PROCESSO, erroNegocio.erro().idErro());
+        assertEquals(CODIGO_ERRO_PROCESSO, erroNegocio.erro().codigoErro());
+        assertEquals(MENSAGEM_EXTERNA, erroNegocio.erro().erros().getFirst().mensagem());
         assertEquals("detalhe", erroNegocio.erro().detalhe());
         assertEquals("stacktrace", erroNegocio.erro().stacktrace());
 
@@ -109,10 +113,10 @@ class ProcessoParametrizadoRestMapperTest {
         FalhaConsultaProcessoParametrizado falha = new FalhaConsultaProcessoParametrizado(
                 FalhaConsultaProcessoParametrizado.Tipo.NEGOCIO,
                 404,
-                "simtr-parametrizacao",
-                "processo-erro",
-                "MTR-PROCESSO",
-                Arrays.asList(null, "mensagem externa"),
+                RECURSO_SIMTR_PARAMETRIZACAO,
+                ID_ERRO_PROCESSO,
+                CODIGO_ERRO_PROCESSO,
+                Arrays.asList(null, MENSAGEM_EXTERNA),
                 null,
                 null,
                 null);
@@ -122,7 +126,7 @@ class ProcessoParametrizadoRestMapperTest {
                 ProcessoParametrizadoRestMapper.paraExcecaoRest(falha));
 
         assertNull(excecao.erro().erros().getFirst());
-        assertEquals("mensagem externa", excecao.erro().erros().get(1).mensagem());
+        assertEquals(MENSAGEM_EXTERNA, excecao.erro().erros().get(1).mensagem());
     }
 
     private static ProcessoParametrizado processo() {
@@ -170,10 +174,10 @@ class ProcessoParametrizadoRestMapperTest {
         return new FalhaConsultaProcessoParametrizado(
                 tipo,
                 status,
-                "simtr-parametrizacao",
-                "processo-erro",
-                "MTR-PROCESSO",
-                List.of("mensagem externa"),
+                RECURSO_SIMTR_PARAMETRIZACAO,
+                ID_ERRO_PROCESSO,
+                CODIGO_ERRO_PROCESSO,
+                List.of(MENSAGEM_EXTERNA),
                 "detalhe",
                 "stacktrace",
                 new IllegalStateException("causa"));

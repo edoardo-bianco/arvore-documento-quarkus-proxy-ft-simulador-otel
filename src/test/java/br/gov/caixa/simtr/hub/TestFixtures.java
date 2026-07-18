@@ -28,6 +28,9 @@ import java.util.List;
 
 public final class TestFixtures {
 
+    private static final String CPF_CLIENTE = "12345678901";
+    private static final String CNPJ_CLIENTE = "12345678000190";
+
     private TestFixtures() {
     }
 
@@ -37,8 +40,8 @@ public final class TestFixtures {
                 200L,
                 300L,
                 List.of(new DossieProdutoClienteDto(
-                        "12345678901",
-                        "12345678000190",
+                        CPF_CLIENTE,
+                        CNPJ_CLIENTE,
                         1L,
                         new DossieProdutoClienteRelacionadoDto("98765432100", null),
                         1
@@ -50,13 +53,13 @@ public final class TestFixtures {
         return List.of(new DossieProdutoFormularioDto(
                 new DossieProdutoVinculoDossieDto(
                         10L,
-                        new DossieProdutoVinculoClienteDto("12345678901", null, 1L),
+                        new DossieProdutoVinculoClienteDto(CPF_CLIENTE, null, 1L),
                         new DossieProdutoVinculoProdutoDto(100, 200),
                         new DossieProdutoVinculoGarantiaDto(
                                 300,
                                 400,
                                 500,
-                                List.of(new DossieProdutoClienteAvalistaDto(null, "12345678000190"))
+                                List.of(new DossieProdutoClienteAvalistaDto(null, CNPJ_CLIENTE))
                         ),
                         List.of(new DossieProdutoRespostaFormularioDto(
                                 600L,
@@ -76,13 +79,13 @@ public final class TestFixtures {
                 "OBJECT_STORE",
                 "RG",
                 new DossieProdutoDocumentoVinculoDossieDto(
-                        new DossieProdutoDocumentoClienteDto("12345678901", null, 1L),
+                        new DossieProdutoDocumentoClienteDto(CPF_CLIENTE, null, 1L),
                         700L,
                         new DossieProdutoDocumentoGarantiaDto(
                                 300,
                                 400,
                                 500,
-                                List.of(new DossieProdutoDocumentoClienteDto(null, "12345678000190", null))
+                                List.of(new DossieProdutoDocumentoClienteDto(null, CNPJ_CLIENTE, null))
                         )
                 ),
                 List.of(new DossieProdutoDocumentoAtributoDto(
@@ -153,7 +156,7 @@ public final class TestFixtures {
                         new DossieProdutoValidacaoNegocialGarantiaDto(
                                 300,
                                 List.of(new DossieProdutoValidacaoNegocialClienteAvalistaDto(
-                                        "12345678901",
+                                        CPF_CLIENTE,
                                         null
                                 ))
                         ),

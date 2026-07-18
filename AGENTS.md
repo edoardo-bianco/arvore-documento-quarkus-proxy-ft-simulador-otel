@@ -6,7 +6,7 @@ Antes de alterar a arquitetura ou implementar uma etapa da refatoracao DDD:
 2. Leia `tasks/plan.md` e retome somente o proximo item pendente em `tasks/todo.md`.
 3. Confirme que a branch atual corresponde a fase em execucao, no formato
    `refactor/sonar-quality-fase-<numero>-baseline`; nao execute nenhuma fase em `main`. A branch
-   atual e `refactor/sonar-quality-fase-15-baseline`.
+   atual e `refactor/sonar-quality-fase-16-baseline`.
 4. Para iniciar a Fase 0, use a regra de bootstrap de `tasks/plan.md`. Depois dela, nao avance alem
    de um checkpoint sem GO humano registrado na tabela de `tasks/todo.md`.
 5. Preserve paths, JSON, validacoes, erros, simulador, fault tolerance e observabilidade.
@@ -14,15 +14,22 @@ Antes de alterar a arquitetura ou implementar uma etapa da refatoracao DDD:
 7. A refatoracao de producao foi encerrada com GO humano no checkpoint C6. As Fases 7 a 9 sao
    exclusivamente documentais e nao autorizam endpoint, contrato ou alteracao de producao.
 8. As Fases 0 a 12 foram encerradas com GO humano. A Fase 13 permanece documental, com NO-GO
-   recomendado para extracao de clones entre fronteiras. A Fase 14 foi encerrada. A Fase 15 trata
-   o blocker, issues HIGH e warning de blame do SonarQube; somente a especificacao foi autorizada
-   no C15-SPEC, e plano/tasks permanecem bloqueados ate GO posterior.
+   recomendado para extracao de clones entre fronteiras. As Fases 14 a 16 foram encerradas. A
+   Fase 16 tratou exclusivamente as issues `CRITICAL` do CSV oficial
+   `doc/sonar/sonar-issues-staging.csv`.
 9. O package tecnico compartilhado de erro `arquitetura.excecao.dto` permanece como excecao
    arquitetural documentada; qualquer mudanca exige fase futura explicitamente autorizada.
-10. A Fase 12 foi encerrada com GO humano no C12. A Fase 13 usa especificacao e branch proprias,
-    e a Fase 14 usa branch propria. A Fase 15 usa nova especificacao e branch
-    `refactor/sonar-quality-fase-15-baseline`; nao reutilize branches de fechamento. O proximo
-    item permitido e a especificacao C15, seguida de GO para plano e tasks.
+10. A Fase 12 foi encerrada com GO humano no C12. As Fases 13 a 16 usam especificacoes e branches
+    proprias; nao reutilize branches de fechamento. O C16-C recebeu GO humano, a Task 16.10 foi
+    concluida e a Fase 16 esta encerrada. Nenhum item posterior esta autorizado nesta branch.
+11. O CSV `doc/sonar/sonar-issues-staging.csv` e a fonte primaria da verificacao final da Fase 16,
+    pois nao ha acesso ao Sonar que o gerou. A auditoria direta reconciliou as 100 issues
+    `CRITICAL`: 74 apontamentos acionaveis foram verificados como resolvidos no codigo e 26
+    pertencem a tres paths ausentes, nao rastreados e sem referencias. As outras 38 linhas do CSV
+    nao sao criticas e nao foram declaradas resolvidas nesta fase. O SonarQube Docker local e
+    apenas evidencia secundaria de nao regressao; terminou com Quality Gate `OK`, zero issue nova
+    e zero `java:S1192`. Qualquer trabalho Sonar futuro exige nova fase, branch, plano e GO. Tokens
+    devem existir somente na memoria do processo.
 
 ## Formatos derivados da documentacao
 

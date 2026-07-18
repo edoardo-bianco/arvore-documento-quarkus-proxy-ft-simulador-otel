@@ -13,6 +13,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @QuarkusTest
 class DossieProdutoErroApiContractTest {
 
+    private static final String ROTA_DOSSIE_PRODUTO = "/simtr-hub/v1/dossie-produto";
+    private static final String ROTA_DOCUMENTO_DOSSIE_PRODUTO =
+            "/simtr-hub/v1/dossie-produto/{id}/documento";
+    private static final String ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO =
+            "/simtr-hub/v1/dossie-produto/{id}/validacao-negocial";
+    private static final String MENSAGEM_CORPO_OBRIGATORIO =
+            "O corpo da requisicao deve ser informado.";
     private static final String MENSAGEM_ID =
             "O identificador do dossie produto deve ser maior que zero.";
 
@@ -21,8 +28,8 @@ class DossieProdutoErroApiContractTest {
         validarErro(given()
                 .contentType(ContentType.JSON)
                 .accept(ContentType.JSON)
-                .post("/simtr-hub/v1/dossie-produto"),
-                "O corpo da requisicao deve ser informado.");
+                .post(ROTA_DOSSIE_PRODUTO),
+                MENSAGEM_CORPO_OBRIGATORIO);
     }
 
     @Test
@@ -31,7 +38,7 @@ class DossieProdutoErroApiContractTest {
                         .contentType(ContentType.JSON)
                         .accept(ContentType.JSON)
                         .body("{}")
-                        .post("/simtr-hub/v1/dossie-produto"),
+                        .post(ROTA_DOSSIE_PRODUTO),
                 "A chave de correlacao do canal deve ser informada.",
                 "O processo deve ser informado.");
     }
@@ -42,7 +49,7 @@ class DossieProdutoErroApiContractTest {
                         .contentType(ContentType.JSON)
                         .accept(ContentType.JSON)
                         .patch("/simtr-hub/v1/dossie-produto/{id}/formulario", 123L),
-                "O corpo da requisicao deve ser informado.");
+                MENSAGEM_CORPO_OBRIGATORIO);
     }
 
     @Test
@@ -50,8 +57,8 @@ class DossieProdutoErroApiContractTest {
         validarErro(given()
                         .contentType(ContentType.JSON)
                         .accept(ContentType.JSON)
-                        .post("/simtr-hub/v1/dossie-produto/{id}/documento", 123L),
-                "O corpo da requisicao deve ser informado.");
+                        .post(ROTA_DOCUMENTO_DOSSIE_PRODUTO, 123L),
+                MENSAGEM_CORPO_OBRIGATORIO);
     }
 
     @Test
@@ -59,8 +66,8 @@ class DossieProdutoErroApiContractTest {
         validarErro(given()
                         .contentType(ContentType.JSON)
                         .accept(ContentType.JSON)
-                        .patch("/simtr-hub/v1/dossie-produto/{id}/validacao-negocial", 123L),
-                "O corpo da requisicao deve ser informado.");
+                        .patch(ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO, 123L),
+                MENSAGEM_CORPO_OBRIGATORIO);
     }
 
     @Test
@@ -69,7 +76,7 @@ class DossieProdutoErroApiContractTest {
                         .contentType(ContentType.JSON)
                         .accept(ContentType.JSON)
                         .body("{\"atributos\":[{}],\"propriedades\":[{}]}")
-                        .post("/simtr-hub/v1/dossie-produto/{id}/documento", 123L),
+                        .post(ROTA_DOCUMENTO_DOSSIE_PRODUTO, 123L),
                 "A chave do atributo do documento deve ser informada.",
                 "O valor do atributo do documento deve ser informado.",
                 "A chave da propriedade do documento deve ser informada.",
@@ -90,7 +97,7 @@ class DossieProdutoErroApiContractTest {
                                   }]
                                 }
                                 """)
-                        .patch("/simtr-hub/v1/dossie-produto/{id}/validacao-negocial", 123L),
+                        .patch(ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO, 123L),
                 "O identificador do checklist deve ser informado.");
     }
 
@@ -116,7 +123,7 @@ class DossieProdutoErroApiContractTest {
                                   "respostas_formulario": [{}]
                                 }
                                 """)
-                        .patch("/simtr-hub/v1/dossie-produto/{id}/validacao-negocial", 123L),
+                        .patch(ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO, 123L),
                 "Os pareceres dos apontamentos devem ser informados.",
                 "O identificador do checklist deve ser informado.",
                 "A versao do checklist deve ser informada.",
@@ -135,7 +142,7 @@ class DossieProdutoErroApiContractTest {
                 .contentType(ContentType.JSON)
                 .accept(ContentType.JSON)
                 .body("{")
-                .post("/simtr-hub/v1/dossie-produto")
+                .post(ROTA_DOSSIE_PRODUTO)
                 .then()
                 .statusCode(400)
                 .extract().asString();
@@ -154,14 +161,14 @@ class DossieProdutoErroApiContractTest {
     void preservaErroParaIdInvalidoNaInclusaoDeDocumento() {
         validarErro(given().contentType(ContentType.JSON).accept(ContentType.JSON)
                 .body("{}")
-                .post("/simtr-hub/v1/dossie-produto/{id}/documento", 0), MENSAGEM_ID);
+                .post(ROTA_DOCUMENTO_DOSSIE_PRODUTO, 0), MENSAGEM_ID);
     }
 
     @Test
     void preservaErroParaIdInvalidoNaValidacaoNegocial() {
         validarErro(given().contentType(ContentType.JSON).accept(ContentType.JSON)
                 .body("{}")
-                .patch("/simtr-hub/v1/dossie-produto/{id}/validacao-negocial", 0), MENSAGEM_ID);
+                .patch(ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO, 0), MENSAGEM_ID);
     }
 
     @Test

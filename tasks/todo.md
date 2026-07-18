@@ -48,9 +48,10 @@ Antes de executar qualquer item:
 
 ## Ponto de retomada
 
-- **Ultimo marco concluido:** C15-D - fechamento técnico aprovado e evidências finais registradas.
-- **Fase atual:** Fase 15 encerrada na branch `refactor/sonar-quality-fase-15-baseline`.
-- **Proximo item:** nenhum; aguardar autorização humana para uma fase futura independente.
+- **Ultimo marco concluido:** Task 16.10 e escopo crítico da Fase 16 encerrados após auditoria
+  direta do CSV; Sonar Docker local verde como evidência secundária de não regressão.
+- **Fase atual:** Fase 16 encerrada na branch `refactor/sonar-quality-fase-16-baseline`.
+- **Proximo item:** nenhum; qualquer continuidade exige nova fase, branch, plano e GO humano.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
   produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
@@ -1149,6 +1150,41 @@ suite e ArchUnit verdes; nenhum segredo no diff.
 | C15-PLAN | GO | 2026-07-16 | Ordem, dependências e checkpoints registrados; tasks aguardam GO | Usuario, GO registrado em conversa |
 | C15-CHECKPOINT-QUALITY-01 | REGISTRADO | 2026-07-16 | Branch limpa no commit `150c802`; suíte e scanner Maven executados; cobertura 80,0%; HIGH 82 (todos S1192); BLOCKER 0; duplicação 5,9% | Usuario autorizou continuidade sem novas confirmações |
 | C15-D | GO | 2026-07-16 | `mvn -q clean test` verde no commit `1f0dca0`; Sonar analysis `d5ce2fd6-50a5-4ca3-9054-f41207d226fa`: Quality Gate OK, HIGH 0, new violations 0, BLOCKER 0, cobertura 80,0%, duplicação 5,9%, complexidade 1356 e cognitiva 829; scanner sem warning de blame | Usuario autorizou continuidade e fechamento sem novas confirmações |
+
+## Fase 16 - Issues CRITICAL do Sonar oficial
+
+- [x] 16.0a Inventariar e planejar somente as issues `CRITICAL` de
+  `doc/sonar/sonar-issues-staging.csv`;
+- [x] 16.0 Reconciliar localmente os 26 apontamentos de três paths ausentes;
+- [x] 16.1 Eliminar 11 `S1192` dos guardrails ArchUnit;
+- [x] 16.2 Tratar 12 `S1192` de exceções e observabilidade;
+- [x] C16-A Registrar GO humano sobre as evidências locais antes do próximo bloco;
+- [x] 16.3 Tratar 12 `S1192` dos testes compartilhados;
+- [x] 16.4 Tratar 10 `S1192` da árvore documental: modelo e REST;
+- [x] 16.5 Tratar 4 `S1192` da árvore documental: MTR e caracterização;
+- [x] C16-B Validar contratos compartilhados e árvore documental;
+- [x] 16.6 Tratar 9 `S1192` de conformidade;
+- [x] 16.7 Tratar 4 `S1192` nos adapters MTR de dossiê de produto;
+- [x] 16.8 Tratar 5 `S1192` nos contratos MTR de dossiê de produto;
+- [x] 16.9 Tratar 7 `S1192` de gestão de documentos;
+- [x] C16-C Validar todas as 74 issues acionáveis;
+- [x] 16.10 Verificar as 100 issues críticas diretamente contra o código e executar o Sonar
+  Docker local como validação secundária de não regressão.
+
+| Checkpoint | Status | Data | Evidencias | Aprovador |
+|---|---|---|---|---|
+| C16-PLAN | GO | 2026-07-17 | Plano restrito às 100 CRITICAL do CSV oficial aprovado; autorizado somente o bloco 16.0-16.2, com parada em C16-A | Usuario, GO registrado em conversa |
+| C16-A | GO | 2026-07-17 | Três paths legados ausentes e sem histórico/referências locais; 23 `S1192` tratados; 348 testes verdes; Sonar Docker analysis `9560384d-9d08-42dd-a9de-3b9a7803eb77`: Quality Gate OK, 214 issues antes/depois, zero nova, zero S1192, cobertura 80,0% e duplicação 5,9% | Usuario, GO registrado em conversa |
+| C16-16.3 | REGISTRADO | 2026-07-17 | Commit `b19ad9c`; testes focados e suíte completa verdes; Sonar Docker analysis `0890b302-6e13-491a-8658-4e982278426b`: Quality Gate OK, 214 issues antes/depois, zero nova, zero S1192, cobertura 80,0% e duplicação 5,9% | Gate técnico automático |
+| C16-16.4 | REGISTRADO | 2026-07-17 | Commit `8185c52`; testes focados e suíte completa verdes; Sonar Docker analysis `9f311fb0-aa7b-4197-9d87-80d257b52c3c`: Quality Gate OK, 214 issues antes/depois, zero nova, zero S1192, cobertura 80,0% e duplicação 5,9% | Gate técnico automático |
+| C16-16.5 | REGISTRADO | 2026-07-17 | Commit `9e8805d`; 348 testes verdes; Sonar Docker analysis `a9ae4b61-9110-4505-914b-0250983e2098`: Quality Gate OK, 214 issues antes/depois, zero nova, zero S1192, cobertura 80,0% e duplicação 5,9% | Gate técnico automático |
+| C16-B | GO | 2026-07-17 | Tasks 16.3 a 16.5 concluídas; 26 `S1192` do bloco tratados; suíte completa e JaCoCo preservados; nenhuma alteração em produção e nenhum token persistido | Usuario, GO registrado em conversa |
+| C16-16.6 | REGISTRADO | 2026-07-17 | Commit `9a6082e`; quatro testes focados e 348 testes da suíte completa verdes; Sonar Docker analysis `5e0009d9-3877-4d16-ac08-4f1b4998f2e7`: Quality Gate OK, 214 issues antes/depois, zero nova, zero S1192, cobertura 80,0% e duplicação 5,9% | Gate técnico automático |
+| C16-16.7 | REGISTRADO | 2026-07-17 | Commit `3cdf592`; quatro testes focados e 348 testes da suíte completa verdes; Sonar Docker analysis `6ca05041-724b-4adc-ae09-b2a538d048a1`: Quality Gate OK, 214 issues antes/depois, zero nova, zero S1192, cobertura 80,0% e duplicação 5,9% | Gate técnico automático |
+| C16-16.8 | REGISTRADO | 2026-07-17 | Commit `3a8c098`; três testes focados e 348 testes da suíte completa verdes; Sonar Docker analysis `8e793fef-99ad-43c7-ab09-58e46c2ca3cf`: Quality Gate OK, 214 issues antes/depois, zero nova, zero S1192, cobertura 80,0% e duplicação 5,9% | Gate técnico automático |
+| C16-16.9 | REGISTRADO | 2026-07-17 | Commit `a46b465`; três testes focados e 348 testes da suíte completa verdes; Sonar Docker analysis `35ee26e9-71a3-4370-a7e2-83ba70f57c69`: Quality Gate OK, 214 issues antes/depois, zero nova, zero S1192, cobertura 80,0% e duplicação 5,9% | Gate técnico automático |
+| C16-C | GO | 2026-07-17 | As 74 issues acionáveis foram corrigidas localmente; 348 testes e JaCoCo preservados; Quality Gate Docker OK, zero issue nova e zero S1192; verificação final contra o CSV autorizada | Usuario, GO registrado em conversa |
+| C16-16.10 | CONCLUIDO | 2026-07-17 | Auditoria direta da revisão `89c8d46`: 100/100 CRITICAL reconciliadas, sendo 74/74 acionáveis verificadas no código e 26 entradas obsoletas de três paths inexistentes, não rastreados e sem referências; zero falha de verificação. As 38 não críticas não foram declaradas resolvidas. Sonar Docker local, como evidência secundária, analysis `88eb9849-c4c9-4022-b135-412cc269068d`: CE SUCCESS, Quality Gate OK, zero issue nova, cobertura 80,0% e duplicação 5,9% | Gate técnico final |
 
 ## Bloqueios que nao podem ser resolvidos por suposicao
 

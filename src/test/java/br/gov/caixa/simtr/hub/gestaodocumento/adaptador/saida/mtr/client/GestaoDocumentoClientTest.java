@@ -23,11 +23,14 @@ import static org.mockito.Mockito.when;
 
 class GestaoDocumentoClientTest {
 
+    private static final String RECURSO_GESTAO_DOCUMENTO = "simtr-gestao-documento";
+    private static final String PREFIXO_STATUS = "status ";
+
     @Test
     void preservaPayloadDoErroDeNegocio() {
         var erro = new GestaoDocumentoMtrException.Erro(
                 404,
-                "simtr-gestao-documento",
+                RECURSO_GESTAO_DOCUMENTO,
                 "credencial-404",
                 "MTR-CREDENCIAL-404",
                 List.of(new GestaoDocumentoMtrException.Mensagem("container nao localizado")),
@@ -65,7 +68,7 @@ class GestaoDocumentoClientTest {
         );
 
         assertEquals(404, falha.erro().codigoHttp());
-        assertEquals("simtr-gestao-documento", falha.erro().recurso());
+        assertEquals(RECURSO_GESTAO_DOCUMENTO, falha.erro().recurso());
         assertNotNull(falha.erro().idErro());
         assertNull(falha.erro().codigoErro());
         assertNull(falha.erro().erros());
@@ -81,21 +84,21 @@ class GestaoDocumentoClientTest {
             assertInstanceOf(
                     GestaoDocumentoMtrException.Negocio.class,
                     GestaoDocumentoClient.toException(responseSemPayload(status)),
-                    "status " + status
+                    PREFIXO_STATUS + status
             );
         }
         for (int status : new int[]{401, 403, 405, 429}) {
             assertInstanceOf(
                     GestaoDocumentoMtrException.TecnicaCliente.class,
                     GestaoDocumentoClient.toException(responseSemPayload(status)),
-                    "status " + status
+                    PREFIXO_STATUS + status
             );
         }
         for (int status : new int[]{500, 502, 503}) {
             assertInstanceOf(
                     GestaoDocumentoMtrException.Servidor.class,
                     GestaoDocumentoClient.toException(responseSemPayload(status)),
-                    "status " + status
+                    PREFIXO_STATUS + status
             );
         }
     }
@@ -114,7 +117,7 @@ class GestaoDocumentoClientTest {
         );
 
         assertEquals(500, falha.erro().codigoHttp());
-        assertEquals("simtr-gestao-documento", falha.erro().recurso());
+        assertEquals(RECURSO_GESTAO_DOCUMENTO, falha.erro().recurso());
         assertEquals("ARVDOCP0002", falha.erro().codigoErro());
         assertEquals(
                 "Erro retornado pelo serviço MTR fora do contrato esperado.",
