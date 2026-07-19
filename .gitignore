@@ -1,4 +1,6 @@
 target/
+.codex/.state/
+/sonar/
 .idea/
 .vscode/
 *.iml

@@ -48,10 +48,12 @@ Antes de executar qualquer item:
 
 ## Ponto de retomada
 
-- **Ultimo marco concluido:** Task 16.10 e escopo crítico da Fase 16 encerrados após auditoria
-  direta do CSV; Sonar Docker local verde como evidência secundária de não regressão.
-- **Fase atual:** Fase 16 encerrada na branch `refactor/sonar-quality-fase-16-baseline`.
-- **Proximo item:** nenhum; qualquer continuidade exige nova fase, branch, plano e GO humano.
+- **Ultimo marco concluido:** Fase 16 integrada à `main` pelo merge `f5ad763`; Task 16.10 e escopo
+  crítico encerrados após auditoria direta do CSV.
+- **Fase atual:** Fase 17 documental e de tooling local encerrada com GO humano no C17 na branch
+  `refactor/sonar-quality-fase-17-baseline`.
+- **Proximo item:** nenhum item posterior autorizado nesta branch; novo trabalho exige fase,
+  branch, plano e GO próprios.
 - **Concluido:** baseline inicial com 100 testes e zero falhas; 22 testes focados de
   caracterizacao HTTP/OpenAPI aprovados para processo, checklist, cinco operacoes de dossie
   produto e credencial de gestao de documento; suite completa com 122 testes, zero falhas, zero
@@ -1185,6 +1187,46 @@ suite e ArchUnit verdes; nenhum segredo no diff.
 | C16-16.9 | REGISTRADO | 2026-07-17 | Commit `a46b465`; três testes focados e 348 testes da suíte completa verdes; Sonar Docker analysis `35ee26e9-71a3-4370-a7e2-83ba70f57c69`: Quality Gate OK, 214 issues antes/depois, zero nova, zero S1192, cobertura 80,0% e duplicação 5,9% | Gate técnico automático |
 | C16-C | GO | 2026-07-17 | As 74 issues acionáveis foram corrigidas localmente; 348 testes e JaCoCo preservados; Quality Gate Docker OK, zero issue nova e zero S1192; verificação final contra o CSV autorizada | Usuario, GO registrado em conversa |
 | C16-16.10 | CONCLUIDO | 2026-07-17 | Auditoria direta da revisão `89c8d46`: 100/100 CRITICAL reconciliadas, sendo 74/74 acionáveis verificadas no código e 26 entradas obsoletas de três paths inexistentes, não rastreados e sem referências; zero falha de verificação. As 38 não críticas não foram declaradas resolvidas. Sonar Docker local, como evidência secundária, analysis `88eb9849-c4c9-4022-b135-412cc269068d`: CE SUCCESS, Quality Gate OK, zero issue nova, cobertura 80,0% e duplicação 5,9% | Gate técnico final |
+
+## Fase 17 - Automação local da análise SonarQube
+
+- [x] 17.0 Criar e confirmar a branch `refactor/sonar-quality-fase-17-baseline` a partir do merge
+  publicado da Fase 16;
+- [x] C17-PLAN Registrar plano e GO humano para a atualização documental e o script local;
+- [x] 17.1 Remover credencial literal e atualizar `doc/sonar/sonar-quebe-configuração.md`;
+- [x] 17.2 Criar `analisar-sonarqube.ps1` na raiz com defaults `simtr-hub-local`, importação do
+  XML JaCoCo e token somente em
+  `SONAR_TOKEN`;
+- [x] 17.3 Validar sintaxe, requisitos de segurança e diff final sem executar publicação Sonar;
+- [x] 17.4 Criar e validar o guia de exportação offline de issues e linhas duplicadas;
+- [x] 17.5 Extrair `exportar-relatorios-sonarqube.ps1`, testar com API simulada e atualizar o
+  guia para uso do script;
+- [x] 17.6 Criar hook de projeto do Codex para registrar o fingerprint no inicio da sessao e
+  exigir baseline e evidencia atualizada ao encerrar um turno com mudancas de codigo;
+- [x] 17.7 Criar checkpoint Sonar explicito com zero issue nova, zero `HIGH`/`BLOCKER`, cobertura
+  minima de 85% e duplicacao maxima de 5%;
+- [x] 17.8 Validar os hooks e o gate com API simulada e documentar o ciclo seguro do token;
+- [x] 17.9 Alterar o gate para evidenciar `NON_COMPLIANT` com decisao humana pendente, executar
+  analise completa antes do baseline e aceitar opcionalmente pacote imutavel de `sonar/`;
+- [x] 17.10 Isentar tarefas exclusivamente documentais de token, descoberta de pacotes, baseline
+  e checkpoints Sonar, mantendo a exigencia quando o fingerprint de codigo mudar;
+- [x] 17.11 Permitir baseline exclusivamente offline escolhido de `sonar/` quando o servidor
+  estiver indisponivel, mantendo metricas e gate como `UNVERIFIED`;
+- [x] C17 Revisar a evidência e encerrar a fase.
+
+| Checkpoint | Status | Data | Evidencias | Aprovador |
+|---|---|---|---|---|
+| C17-PLAN | GO | 2026-07-18 | Branch Fase 17 criada a partir do merge `f5ad763`; atualização do documento e criação do script seguro autorizadas | Usuario, GO registrado em conversa |
+| C17-IMPLEMENTACAO | REGISTRADO | 2026-07-18 | Parser PowerShell verde; execução controlada confirmou `clean verify sonar` sem token nos argumentos; falha segura sem `SONAR_TOKEN`; varredura sem token literal; `git diff --check` limpo; Maven e Sonar reais não executados | Gate técnico |
+| C17-EXPORTACAO | REGISTRADO | 2026-07-18 | Guia offline criado e vinculado; pacote inclui issues JSON/CSV, métricas e linhas de duplicação, respostas brutas, análise, revisão, catálogo API e manifesto sem autenticação; sete blocos PowerShell com sintaxe válida; servidor não consultado com credencial | Gate técnico |
+| C17-EXPORT-SCRIPT | REGISTRADO | 2026-07-18 | Automação extraída para script raiz e guia reduzido ao uso; teste reproduzível com API simulada verde após detectar e corrigir query sob StrictMode e campos opcionais; falha sem token, URL com credencial rejeitada, seis requests, 12 arquivos, contagens 2/2/2, intervalos 10-14 e pacote sem segredo | Gate técnico |
+| C17-AGENT-HOOK | REGISTRADO | 2026-07-18 | Hooks `SessionStart`/`Stop`, inicializador seguro e checkpoint implementados; `SessionStart` registra o fingerprint e o baseline é exigido antes de mudanças de código; cinco testes PowerShell verdes com API e Maven simulados; zero issue nova, zero HIGH/BLOCKER/CRITICAL, cobertura >=85% e duplicação <=5% verificados; proteção contra loop e nenhum token persistido | Gate técnico |
+| C17-HUMAN-DECISION | REGISTRADO | 2026-07-18 | Reprovação automática removida; a inicialização do baseline aguarda escolha local/offline; `-InitializeBaseline` executa análise completa; pacote sob `sonar/` é resumido como evidência imutável; `NON_COMPLIANT` gera `PENDING` e somente `-HumanDecision Reprovar` registra `REJECTED_BY_USER`; seis testes simulados verdes | Gate técnico |
+| C17-DOC-EXEMPTION | REGISTRADO | 2026-07-18 | Tarefas somente documentais dispensadas do fluxo Sonar; `SessionStart` não consulta pacotes e `Stop` não cobra baseline quando o fingerprint de código permanece igual; teste de regressão PowerShell incluído | Gate técnico |
+| C17-OFFLINE-ONLY | REGISTRADO | 2026-07-18 | `-OfflineOnlyBaseline` registra pacote escolhido sem token, Docker, Maven ou rede; issues, severidades, regras e fingerprint preservados; estado `OFFLINE_ONLY_READY`/`UNVERIFIED`; hook permite continuidade evidenciando métricas e issues atuais pendentes; oito testes PowerShell verdes com dependências externas simuladas | Gate técnico |
+| C17-SONAR | ACEITO_EXCEPCIONALMENTE | 2026-07-19 | Baseline e checkpoint reais concluídos com 348 testes Maven verdes; 214 issues abertas contra 214 no baseline, zero issue nova e zero `HIGH`/`BLOCKER`/`CRITICAL`; cobertura 80,0% e duplicação 5,9% mantiveram a situação técnica `NON_COMPLIANT`; Quality Gate nativo `OK` com cobertura nova 89,7%, duplicação nova 1,44665% e zero violação nova; oito testes PowerShell verdes após regressões do stream Maven e do fingerprint executável | Usuário, decisão `AceitarExcepcionalmente` registrada em conversa |
+| C17-TEST-LAYOUT | ACEITO_EXCEPCIONALMENTE | 2026-07-19 | Oito verificadores PowerShell removidos da árvore `src/` e colocados em `test/powershell/`; cálculos da raiz e guia atualizados; fingerprint passou a monitorar o novo diretório com cenário RED/GREEN dedicado; checkpoint posterior com 348 testes Maven verdes, 214 issues contra 214 no baseline, zero nova/severa, cobertura 80,0%, duplicação 5,9% e Quality Gate nativo `OK` | Usuário, ajuste e decisão `AceitarExcepcionalmente` registrados em conversa |
+| C17 | GO | 2026-07-19 | Evidência revisada; tooling e documentação concluídos; oito verificadores PowerShell verdes em `test/powershell/`; 348 testes Maven verdes; dois checkpoints sem issue nova ou severa; situações técnicas de cobertura 80,0% e duplicação 5,9% aceitas excepcionalmente; Quality Gate nativo `OK`; nenhum trabalho de produção, contrato, dependência ou configuração Quarkus | Usuário, GO registrado em conversa |
 
 ## Bloqueios que nao podem ser resolvidos por suposicao
 

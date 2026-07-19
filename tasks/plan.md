@@ -1893,3 +1893,118 @@ fronteiras DDD.
   vulnerabilidades 0 e security hotspots 0.
 - Nenhum arquivo de produção, dependência, property ou formato derivado mudou; nenhum token foi
   persistido. A Fase 16 está encerrada.
+
+## Fase 17 - Automação local da análise SonarQube
+
+**Status:** encerrada com GO humano no C17 em 2026-07-19. A execução permaneceu restrita à
+documentação operacional do SonarQube, ao tooling PowerShell local e ao guia de exportação para
+análise offline na branch `refactor/sonar-quality-fase-17-baseline`. O fechamento preserva a
+aceitação excepcional registrada para cobertura absoluta de 80,0% e duplicação de 5,9%, com
+Quality Gate nativo `OK`, zero issue nova e zero issue severa.
+
+### Objetivo
+
+Disponibilizar `analisar-sonarqube.ps1` na raiz do projeto para executar `clean verify` e publicar
+a análise Maven no SonarQube Community Build local, mantendo o token exclusivamente na variável
+de ambiente `SONAR_TOKEN`.
+
+### Ordem de execução
+
+1. Remover credenciais literais e corrigir a orientação insegura em
+   `doc/sonar/sonar-quebe-configuração.md`.
+2. Criar `analisar-sonarqube.ps1` com os padrões Maven `simtr-hub-local`, importação explícita do
+   XML JaCoCo, validação de parâmetros,
+   seleção de Maven Wrapper/global e verificação prévia do SonarQube.
+3. Validar a sintaxe PowerShell, os defaults do projeto, a ausência de token em argumentos/logs e
+   o diff final.
+4. Documentar a exportação autenticada de issues, métricas e blocos de duplicação para um pacote
+   que possa ser analisado por um agente sem acesso ao servidor SonarQube.
+5. Extrair a automação do guia para `exportar-relatorios-sonarqube.ps1`, validar o comportamento
+   com respostas simuladas e manter no Markdown somente instalação, uso, conteúdo e diagnóstico.
+6. Configurar hooks de projeto do Codex para registrar o fingerprint no inicio da sessao e
+   impedir o encerramento silencioso de um incremento de codigo sem baseline e checkpoint Sonar
+   atualizados.
+7. Executar o checkpoint somente depois de um incremento coerente, aguardando o Compute Engine e
+   exigindo zero issue nova, zero issue `HIGH`/`BLOCKER`, cobertura minima de 85% e duplicacao
+   maxima de 5%.
+8. Validar o protocolo dos hooks e o gate com respostas simuladas, sem persistir o token.
+9. Antes da primeira alteracao, perguntar se o baseline considera somente o Sonar Docker ou
+   tambem um pacote escolhido de `sonar/`; executar uma analise completa para o baseline e tratar
+   qualquer nao conformidade como evidencia com decisao humana pendente, nunca como reprovacao
+   automatica.
+10. Dispensar token, descoberta de pacotes, baseline e checkpoints quando o pedido e as mudancas
+    forem exclusivamente documentais; ativar o fluxo antes da primeira mudanca de codigo, build,
+    hook, script ou configuracao executavel.
+11. Permitir, por escolha humana explicita, um baseline exclusivamente offline de `sonar/` quando
+    o servidor estiver indisponivel, sem fabricar metricas ou aprovacao do gate.
+
+### Limites
+
+- não alterar código de produção, contratos, dependências ou configuração Quarkus;
+- não executar a publicação no SonarQube sem token fornecido pelo ambiente do usuário;
+- não persistir, receber por parâmetro nem imprimir tokens;
+- não incluir token, headers de autenticação ou cookies no pacote offline;
+- não permitir que o fluxo padrão pule os testes Maven;
+- não solicitar nem transmitir token pelo chat ou pela saida JSON dos hooks;
+- não executar uma analise Maven a cada edicao; o gate completo ocorre somente em checkpoints
+  coerentes definidos pelo agente;
+- não alterar formatos derivados `.ppt`, `.pptx`, `.pdf` ou `.html`.
+
+### Evidência técnica
+
+- o parser PowerShell validou `analisar-sonarqube.ps1` sem erros;
+- uma execução controlada, com SonarQube e Maven simulados, confirmou os goals `clean`, `verify`
+  e `sonar` e a ausência de credencial nos argumentos Maven;
+- a ausência de `SONAR_TOKEN` interrompe o script antes de qualquer acesso ao servidor;
+- a varredura local não encontrou token Sonar literal, e `git diff --check` passou;
+- a execução real em 2026-07-19 completou os 348 testes Maven sem falhas, erros ou testes
+  ignorados e publicou o baseline e o checkpoint final no SonarQube Docker local;
+- o checkpoint final (`analysisKey` `693fd424-3d90-40e3-b733-f0715067b867`, tarefa Compute
+  Engine `e2834d2a-92b8-436e-9d67-51580e0ecab2`) reconciliou 214 issues abertas contra 214 no
+  baseline, sem issue nova e sem issue `HIGH`, `BLOCKER` ou `CRITICAL`;
+- a cobertura absoluta de 80,0% e a duplicação de 5,9% produziram situação técnica
+  `NON_COMPLIANT`; o usuário registrou `AceitarExcepcionalmente` em 2026-07-19;
+- o Quality Gate nativo permaneceu `OK`, com cobertura do código novo de 89,7%, duplicação do
+  código novo de 1,44665% e zero violação nova;
+- `doc/sonar/exportacao-offline-sonarqube.md` documenta o pacote offline com issues, métricas,
+  blocos e intervalos de duplicação, manifesto, revisão e catálogo da Web API;
+- os sete blocos PowerShell do guia passaram no parser; nenhuma exportação autenticada foi
+  executada, pois o catálogo local exige credencial e o token não foi solicitado nem persistido.
+- a automação foi extraída para `exportar-relatorios-sonarqube.ps1`; o guia passou a documentar
+  uso, parâmetros, pacote, segurança e diagnóstico sem duplicar a implementação;
+- `ExportarRelatoriosSonarQubeTest.ps1` validou com API simulada a falha sem token, rejeição de
+  credencial na URL, autenticação somente em header, paginação, arquivos, contagens, linhas de
+  duplicação e ausência da credencial na saída.
+- os hooks de projeto `SessionStart` e `Stop`, o inicializador seguro do Codex e o checkpoint
+  explícito foram implementados sem alterar `src/main`, dependências ou configuração Quarkus;
+- cinco testes PowerShell passaram com Maven e Web API simulados, cobrindo autenticação somente
+  em header, baseline, Compute Engine, issues novas/severas, cobertura, duplicação, fingerprint e
+  proteção contra loop do evento `Stop`;
+- o token não é aceito por parâmetro, escrito no estado ou devolvido no JSON do hook; o estado
+  efêmero fica em `.codex/.state/`, ignorado pelo Git.
+- o fluxo revisado separa situacao tecnica e decisao: `NON_COMPLIANT` grava `PENDING`, apresenta
+  as quatro dimensoes do gate e somente a opcao humana `Reprovar` produz `REJECTED_BY_USER`;
+- `SessionStart` nao consulta nem congela baseline antes da escolha do usuario; o baseline executa
+  Maven, SonarScanner e Compute Engine completos e pode incorporar o resumo/fingerprint de um
+  pacote escolhido sob `sonar/` como evidencia externa imutavel;
+- `SonarHumanDecisionFlowTest.ps1` cobre com Maven/API simulados a escolha previa, analise de
+  baseline, pacote offline, quatro violacoes simultaneas sem excecao e registro posterior da
+  reprovacao humana.
+- `SonarDocumentationOnlyFlowTest.ps1` comprova que uma sessao sem token e sem mudanca no
+  fingerprint de codigo termina sem baseline nem lembrete de checkpoint; os cinco testes do
+  fluxo de hooks, API e gate permanecem verdes com dependencias simuladas.
+- `SonarOfflineOnlyBaselineTest.ps1` comprova que o pacote offline registra issues, severidades,
+  regras e fingerprint sem token, Maven ou rede; o estado permanece `UNVERIFIED` e o hook apenas
+  evidencia as verificacoes atuais pendentes, sem bloquear ou aprovar. Os oito testes PowerShell
+  do tooling passaram com Maven, API e servidor simulados.
+- a validação real revelou e corrigiu a poluição do success stream do PowerShell pela saída do
+  Maven e ampliou o fingerprint para cobrir scripts, hooks, wrappers e configuração executável;
+  os dois cenários receberam testes de regressão, e a suíte completa dos oito testes PowerShell
+  terminou verde após os ajustes.
+- por decisão do usuário, os oito verificadores PowerShell foram removidos da árvore `src/` e
+  colocados em `test/powershell/`, separando-os dos testes do código Java; os cálculos da raiz, o
+  guia de execução e o fingerprint executável foram atualizados para o novo path. O checkpoint
+  posterior (`analysisKey` `da350080-894a-494d-846d-78bfa031cff1`, tarefa Compute Engine
+  `1c3ad0bf-662f-4f1f-9611-2fea32f4f20d`) manteve 214 issues contra 214 no baseline, zero issue
+  nova ou severa, cobertura 80,0% e duplicação 5,9%; o usuário registrou novamente
+  `AceitarExcepcionalmente`, e o Quality Gate nativo permaneceu `OK`.
