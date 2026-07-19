@@ -4,9 +4,8 @@ Microsservico Quarkus que funciona como camada anticorrupcao entre consumidores 
 MTR de parametrizacao, dossie produto e gestao documental.
 
 O codigo esta organizado como monolito modular DDD. Cada capacidade possui nucleo proprio,
-portas de aplicacao e adapters independentes para REST publico, MTR e simulador. A refatoracao das
-oito capacidades existentes e seu aceite humano final foram concluidos no checkpoint C6 de
-`tasks/todo.md`.
+portas de aplicacao e adapters independentes para REST publico, MTR e simulador. A visão atual e
+as decisões vigentes estão em `doc/arquitetura-ddd-integracoes-atomicas.md` e `doc/adr/README.md`.
 
 ## Capacidades e endpoints
 
@@ -181,11 +180,11 @@ REST Client MTR
   -> adapter REST traduz para status e JSON publicos preservados
 ```
 
-Logs estruturados e spans mantem os nomes e atributos inventariados antes da migracao. Payloads de
+Logs estruturados e spans possuem nomes e atributos protegidos por testes. Payloads de
 REST Client sao mascarados para campos sensiveis; a obtencao de credencial nao registra SAS nem
 validade. Por padrao, o projeto grava logs JSON e nao exporta OpenTelemetry para fora.
 
-Consulte `tasks/inventario-observabilidade.md` para os sinais contratuais completos.
+Consulte `doc/catalogo-observabilidade.md` para os sinais contratuais completos.
 
 ## Execucao local
 
@@ -196,7 +195,7 @@ mvn quarkus:dev -Ddebug=false
 - Swagger UI: `http://localhost:8080/simtr-hub/doc`
 - OpenAPI gerado pelo Quarkus: `http://localhost:8080/simtr-hub/openapi`
 
-O OpenAPI nao possui arquivo estatico, filtro ou teste de documento nesta refatoracao.
+O OpenAPI nao possui arquivo estatico, filtro ou teste do documento gerado.
 
 ## Testes e cobertura
 
@@ -214,10 +213,12 @@ target/jacoco-report/index.html
 ## Documentacao
 
 - decisao arquitetural canonica: `doc/arquitetura-ddd-integracoes-atomicas.md`;
+- indice de decisoes arquiteturais: `doc/adr/README.md`;
 - especificacao funcional de referencia: `doc/api-integracao-mtr-pre-validacao-v1.md`;
-- verificacao final por capacidade: `tasks/equivalencia-final.md`;
-- plano e checkpoint: `tasks/plan.md` e `tasks/todo.md`;
-- observabilidade e operacao: `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`.
+- planejamento de novas features: `tasks/README.md`;
+- observabilidade e operacao: `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`;
+- catalogo de sinais: `doc/catalogo-observabilidade.md`.
 
 Quarkus Flow, novos workflows, persistencia de orquestracao, os cinco endpoints ausentes listados
-acima, quaisquer outros endpoints novos, upload e lifecycle de SAS permanecem fora deste escopo.
+acima, quaisquer outros endpoints novos, upload e lifecycle de SAS nao estao implementados e
+exigem feature, plano e GO proprios.

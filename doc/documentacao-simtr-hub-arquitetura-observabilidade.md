@@ -2,16 +2,16 @@
 
 ## Autoridade documental
 
-Este documento descreve o estado operacional depois da refatoracao DDD concluida em 2026-07-15.
+Este documento descreve o estado operacional atual do `simtr-hub`.
 
 - decisao arquitetural: `arquitetura-ddd-integracoes-atomicas.md`;
+- indice de ADRs: `adr/README.md`;
 - especificacao funcional de referencia: `api-integracao-mtr-pre-validacao-v1.md`;
-- capacidades e equivalencia: `../tasks/equivalencia-final.md`;
 - configuracao executavel: `../src/main/resources/application.properties`;
-- inventario contratual de sinais: `../tasks/inventario-observabilidade.md`.
+- catalogo contratual de sinais: `catalogo-observabilidade.md`.
 
-Documentos historicos de baseline mostram o comportamento antes e durante a migracao. Em caso de
-divergencia estrutural, esta documentacao e a decisao arquitetural acima prevalecem.
+Em caso de divergencia, código, contratos executáveis e testes representam o comportamento atual;
+a divergência documental deve ser registrada no plano da próxima feature.
 
 ## Fluxo atual
 
@@ -162,7 +162,7 @@ truncados e mascarados para campos sensiveis. SAS e validade de credencial nao s
 ### Traces
 
 Cada capacidade preserva spans nas fronteiras REST, caso de uso e adapter MTR. Os nomes e
-atributos completos ficam em `../tasks/inventario-observabilidade.md` e sao protegidos por
+atributos completos ficam em `catalogo-observabilidade.md` e sao protegidos por
 `ObservabilidadeSpansContratoTest` e pelos contratos ponta a ponta.
 
 Por padrao:
@@ -212,9 +212,6 @@ Se uma chamada MTR falhar, verificar nesta ordem:
 - Quarkus Flow, persistencia de workflow, os cinco endpoints ausentes listados acima, quaisquer
   outros endpoints novos, upload e lifecycle de SAS permanecem fora do escopo.
 
-A divida Jakarta Validation de formulario e documento foi encerrada na Fase 11. As seis listas
-REST usam `List<@Valid T>`; contratos executaveis preservam mensagens e nulabilidade sem introduzir
-novas restricoes.
-
-O desvio historico do package REST de `dossieproduto` foi encerrado na Fase 12: Resource, mappers,
-DTOs e testes residem em `dossieproduto.adaptador.entrada.rest`, sem mudanca nos contratos HTTP.
+As listas REST de formulario e documento usam `List<@Valid T>`; contratos executaveis preservam
+mensagens e nulabilidade. Resource, mappers, DTOs e testes de dossie residem na borda REST canônica
+do domínio, sem alterar os contratos HTTP.
