@@ -6,7 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import br.gov.caixa.simtr.hub.arvoredocumento.adaptador.saida.mtr.client.ParametrizacaoProcessoClient;
@@ -15,17 +17,21 @@ import br.gov.caixa.simtr.hub.arvoredocumento.adaptador.saida.mtr.erro.ProcessoP
 import br.gov.caixa.simtr.hub.arvoredocumento.adaptador.saida.mtr.mapper.ProcessoParametrizadoMtrMapper;
 import br.gov.caixa.simtr.hub.arvoredocumento.dominio.erro.FalhaConsultaProcessoParametrizado;
 import br.gov.caixa.simtr.hub.arvoredocumento.dominio.modelo.IdentificadorNegocialProcesso;
+import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Uni;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.eclipse.microprofile.faulttolerance.exceptions.TimeoutException;
 import org.junit.jupiter.api.Test;
 
+@QuarkusTest
 class ProcessoParametrizadoMtrAdapterTest {
 
     private static final String NOME_FUNCAO_DOCUMENTAL = "Formalizacao";
+    private static final String SERVICO_MTR = "simtr-parametrizacao";
 
     @Test
     void mapeiaArvoreCompletaNulosEListasMutaveisParaOAgregadoDeLeitura() {
@@ -121,7 +127,7 @@ class ProcessoParametrizadoMtrAdapterTest {
     void traduzErroDeNegocioSemPerderCamposOuElementosNulos() {
         var erro = new ProcessoParametrizadoMtrException.Erro(
                 404,
-                "simtr-parametrizacao",
+                SERVICO_MTR,
                 "processo-404",
                 "MTR-PROCESSO-404",
                 Arrays.asList(
@@ -141,7 +147,7 @@ class ProcessoParametrizadoMtrAdapterTest {
 
         assertEquals(FalhaConsultaProcessoParametrizado.Tipo.NEGOCIO, falha.tipo());
         assertEquals(404, falha.status());
-        assertEquals("simtr-parametrizacao", falha.recurso());
+        assertEquals(SERVICO_MTR, falha.recurso());
         assertEquals("processo-404", falha.idErro());
         assertEquals("MTR-PROCESSO-404", falha.codigoErro());
         assertEquals(Arrays.asList("processo nao localizado", null), falha.mensagens());
@@ -184,6 +190,138 @@ class ProcessoParametrizadoMtrAdapterTest {
         );
 
         assertEquals(FalhaConsultaProcessoParametrizado.Tipo.TIMEOUT, falha.tipo());
+        assertSame(origem, falha.getCause());
+    }
+
+    @Test
+    void preservaAusenciaDeIdentificadorEResposta() {
+        var client = mock(ParametrizacaoProcessoClient.class);
+        when(client.consultarPorIdentificadorNegocial(isNull()))
+                .thenReturn(Uni.createFrom().nullItem());
+        var adapter = new ProcessoParametrizadoMtrAdapter(
+                client, new ProcessoParametrizadoMtrMapper()
+        );
+
+        var resultado = adapter.obter(new IdentificadorNegocialProcesso(null))
+                .await().indefinitely();
+
+        assertNull(resultado);
+        verify(client).consultarPorIdentificadorNegocial(isNull());
+    }
+
+    @Test
+    void preservaCamposOpcionaisNulosNaRespostaParcial() {
+        var resposta = new ProcessoParametrizadoMtrResponse(
+                null, null, null, null, null, null, null, null, null, null, null
+        );
+        var client = mock(ParametrizacaoProcessoClient.class);
+        when(client.consultarPorIdentificadorNegocial(100L))
+                .thenReturn(Uni.createFrom().item(resposta));
+        var adapter = new ProcessoParametrizadoMtrAdapter(
+                client, new ProcessoParametrizadoMtrMapper()
+        );
+
+        var resultado = adapter.obter(new IdentificadorNegocialProcesso(100L))
+                .await().indefinitely();
+
+        assertNull(resultado.identificadorNegocial());
+        assertNull(resultado.nome());
+        assertNull(resultado.macroprocesso());
+        assertNull(resultado.relacionamentos());
+        assertNull(resultado.produtos());
+        assertNull(resultado.fases());
+        assertNull(resultado.documentos());
+        assertNull(resultado.checklist());
+    }
+
+    @Test
+    void traduzErroTecnicoSemCorpo() {
+        var origem = new ProcessoParametrizadoMtrException.TecnicaCliente(422, null);
+        var espera = adapterComFalha(origem).obter(new IdentificadorNegocialProcesso(100L))
+                .await();
+
+        var falha = assertThrows(
+                FalhaConsultaProcessoParametrizado.class,
+                espera::indefinitely
+        );
+
+        assertEquals(FalhaConsultaProcessoParametrizado.Tipo.TECNICA_CLIENTE, falha.tipo());
+        assertEquals(422, falha.status());
+        assertNull(falha.recurso());
+        assertNull(falha.idErro());
+        assertNull(falha.codigoErro());
+        assertNull(falha.mensagens());
+        assertNull(falha.detalhe());
+        assertNull(falha.stacktraceExterno());
+        assertSame(origem, falha.getCause());
+    }
+
+    @Test
+    void traduzErroDeServidorSemListaDeMensagens() {
+        var erro = new ProcessoParametrizadoMtrException.Erro(
+                503, SERVICO_MTR, "processo-503", "MTR-PROCESSO-503",
+                null, "indisponivel", null
+        );
+        var origem = new ProcessoParametrizadoMtrException.Servidor(503, erro);
+        var espera = adapterComFalha(origem).obter(new IdentificadorNegocialProcesso(100L))
+                .await();
+
+        var falha = assertThrows(
+                FalhaConsultaProcessoParametrizado.class,
+                espera::indefinitely
+        );
+
+        assertEquals(
+                FalhaConsultaProcessoParametrizado.Tipo.DEPENDENCIA_INDISPONIVEL,
+                falha.tipo()
+        );
+        assertEquals(503, falha.status());
+        assertEquals(SERVICO_MTR, falha.recurso());
+        assertNull(falha.mensagens());
+        assertSame(origem, falha.getCause());
+    }
+
+    @Test
+    void classificaSubtipoMtrDesconhecidoEPreservaMensagemNula() {
+        var erro = new ProcessoParametrizadoMtrException.Erro(
+                500, SERVICO_MTR, "processo-500", "MTR-PROCESSO-500",
+                Collections.singletonList(null), null, null
+        );
+        var origem = mock(ProcessoParametrizadoMtrException.class);
+        when(origem.status()).thenReturn(500);
+        when(origem.erro()).thenReturn(erro);
+        var espera = adapterComFalha(origem).obter(new IdentificadorNegocialProcesso(100L))
+                .await();
+
+        var falha = assertThrows(
+                FalhaConsultaProcessoParametrizado.class,
+                espera::indefinitely
+        );
+
+        assertEquals(
+                FalhaConsultaProcessoParametrizado.Tipo.DEPENDENCIA_INDISPONIVEL,
+                falha.tipo()
+        );
+        assertEquals(Collections.singletonList(null), falha.mensagens());
+        assertSame(origem, falha.getCause());
+    }
+
+    @Test
+    void traduzFalhaInesperadaComoDependenciaIndisponivel() {
+        var origem = new IllegalStateException("falha inesperada");
+        var espera = adapterComFalha(origem).obter(new IdentificadorNegocialProcesso(100L))
+                .await();
+
+        var falha = assertThrows(
+                FalhaConsultaProcessoParametrizado.class,
+                espera::indefinitely
+        );
+
+        assertEquals(
+                FalhaConsultaProcessoParametrizado.Tipo.DEPENDENCIA_INDISPONIVEL,
+                falha.tipo()
+        );
+        assertEquals(SERVICO_MTR, falha.recurso());
         assertSame(origem, falha.getCause());
     }
 

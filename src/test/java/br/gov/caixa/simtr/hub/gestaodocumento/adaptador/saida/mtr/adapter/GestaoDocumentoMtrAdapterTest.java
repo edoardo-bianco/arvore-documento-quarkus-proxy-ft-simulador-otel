@@ -5,20 +5,26 @@ import br.gov.caixa.simtr.hub.gestaodocumento.adaptador.saida.mtr.dto.v1.credenc
 import br.gov.caixa.simtr.hub.gestaodocumento.adaptador.saida.mtr.erro.GestaoDocumentoMtrException;
 import br.gov.caixa.simtr.hub.gestaodocumento.adaptador.saida.mtr.mapper.CredencialContainerMtrMapper;
 import br.gov.caixa.simtr.hub.gestaodocumento.dominio.erro.FalhaObtencaoCredencialContainer;
+import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Uni;
 import org.eclipse.microprofile.faulttolerance.exceptions.TimeoutException;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@QuarkusTest
 class GestaoDocumentoMtrAdapterTest {
+
+    private static final String SERVICO_MTR = "simtr-gestao-documento";
 
     @Test
     void obtemCredencialEMapeiaRespostaParaODominioSemInterpretarValidade() {
@@ -48,7 +54,7 @@ class GestaoDocumentoMtrAdapterTest {
     void traduzErroDeNegocioSemPerderCamposOuElementosNulos() {
         var erro = new GestaoDocumentoMtrException.Erro(
                 404,
-                "simtr-gestao-documento",
+                SERVICO_MTR,
                 "credencial-404",
                 "MTR-CREDENCIAL-404",
                 Arrays.asList(
@@ -67,7 +73,7 @@ class GestaoDocumentoMtrAdapterTest {
 
         assertEquals(FalhaObtencaoCredencialContainer.Tipo.NEGOCIO, falha.tipo());
         assertEquals(404, falha.status());
-        assertEquals("simtr-gestao-documento", falha.recurso());
+        assertEquals(SERVICO_MTR, falha.recurso());
         assertEquals("credencial-404", falha.idErro());
         assertEquals("MTR-CREDENCIAL-404", falha.codigoErro());
         assertEquals(Arrays.asList("container nao localizado", null), falha.mensagens());
@@ -112,6 +118,123 @@ class GestaoDocumentoMtrAdapterTest {
         );
 
         assertEquals(FalhaObtencaoCredencialContainer.Tipo.TIMEOUT, falha.tipo());
+        assertSame(origem, falha.getCause());
+    }
+
+    @Test
+    void preservaAusenciaDeResposta() {
+        var client = mock(GestaoDocumentoClient.class);
+        when(client.gerarCredencialContainer()).thenReturn(Uni.createFrom().nullItem());
+        var adapter = new GestaoDocumentoMtrAdapter(
+                client, new CredencialContainerMtrMapper()
+        );
+
+        var resultado = adapter.obter().await().indefinitely();
+
+        assertNull(resultado);
+    }
+
+    @Test
+    void preservaCamposOpcionaisNulosNaRespostaParcial() {
+        var resposta = new CredencialContainerMtrResponse(null, null, null, null);
+        var client = mock(GestaoDocumentoClient.class);
+        when(client.gerarCredencialContainer()).thenReturn(Uni.createFrom().item(resposta));
+        var adapter = new GestaoDocumentoMtrAdapter(
+                client, new CredencialContainerMtrMapper()
+        );
+
+        var resultado = adapter.obter().await().indefinitely();
+
+        assertNull(resultado.sas());
+        assertNull(resultado.validade());
+        assertNull(resultado.urlStorage());
+        assertNull(resultado.nomeContainer());
+    }
+
+    @Test
+    void traduzErroTecnicoSemCorpo() {
+        var origem = new GestaoDocumentoMtrException.TecnicaCliente(422, null);
+        var espera = adapterComFalha(origem).obter().await();
+
+        var falha = assertThrows(
+                FalhaObtencaoCredencialContainer.class,
+                espera::indefinitely
+        );
+
+        assertEquals(FalhaObtencaoCredencialContainer.Tipo.TECNICA_CLIENTE, falha.tipo());
+        assertEquals(422, falha.status());
+        assertNull(falha.recurso());
+        assertNull(falha.idErro());
+        assertNull(falha.codigoErro());
+        assertNull(falha.mensagens());
+        assertNull(falha.detalhe());
+        assertNull(falha.stacktraceExterno());
+        assertSame(origem, falha.getCause());
+    }
+
+    @Test
+    void traduzErroDeServidorSemListaDeMensagens() {
+        var erro = new GestaoDocumentoMtrException.Erro(
+                503, SERVICO_MTR, "credencial-503", "MTR-CREDENCIAL-503",
+                null, "indisponivel", null
+        );
+        var origem = new GestaoDocumentoMtrException.Servidor(503, erro);
+        var espera = adapterComFalha(origem).obter().await();
+
+        var falha = assertThrows(
+                FalhaObtencaoCredencialContainer.class,
+                espera::indefinitely
+        );
+
+        assertEquals(
+                FalhaObtencaoCredencialContainer.Tipo.DEPENDENCIA_INDISPONIVEL,
+                falha.tipo()
+        );
+        assertEquals(503, falha.status());
+        assertEquals(SERVICO_MTR, falha.recurso());
+        assertNull(falha.mensagens());
+        assertSame(origem, falha.getCause());
+    }
+
+    @Test
+    void classificaSubtipoMtrDesconhecidoEPreservaMensagemNula() {
+        var erro = new GestaoDocumentoMtrException.Erro(
+                500, SERVICO_MTR, "credencial-500", "MTR-CREDENCIAL-500",
+                Collections.singletonList(null), null, null
+        );
+        var origem = mock(GestaoDocumentoMtrException.class);
+        when(origem.status()).thenReturn(500);
+        when(origem.erro()).thenReturn(erro);
+        var espera = adapterComFalha(origem).obter().await();
+
+        var falha = assertThrows(
+                FalhaObtencaoCredencialContainer.class,
+                espera::indefinitely
+        );
+
+        assertEquals(
+                FalhaObtencaoCredencialContainer.Tipo.DEPENDENCIA_INDISPONIVEL,
+                falha.tipo()
+        );
+        assertEquals(Collections.singletonList(null), falha.mensagens());
+        assertSame(origem, falha.getCause());
+    }
+
+    @Test
+    void traduzFalhaInesperadaComoDependenciaIndisponivel() {
+        var origem = new IllegalStateException("falha inesperada");
+        var espera = adapterComFalha(origem).obter().await();
+
+        var falha = assertThrows(
+                FalhaObtencaoCredencialContainer.class,
+                espera::indefinitely
+        );
+
+        assertEquals(
+                FalhaObtencaoCredencialContainer.Tipo.DEPENDENCIA_INDISPONIVEL,
+                falha.tipo()
+        );
+        assertEquals(SERVICO_MTR, falha.recurso());
         assertSame(origem, falha.getCause());
     }
 

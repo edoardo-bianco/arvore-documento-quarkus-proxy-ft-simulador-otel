@@ -1,10 +1,13 @@
 package br.gov.caixa.simtr.hub.conformidade.adaptador.saida.mtr.adapter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import br.gov.caixa.simtr.hub.conformidade.adaptador.saida.mtr.client.ParametrizacaoChecklistClient;
@@ -13,14 +16,19 @@ import br.gov.caixa.simtr.hub.conformidade.adaptador.saida.mtr.erro.ChecklistMtr
 import br.gov.caixa.simtr.hub.conformidade.adaptador.saida.mtr.mapper.ChecklistMtrMapper;
 import br.gov.caixa.simtr.hub.conformidade.dominio.erro.FalhaConsultaChecklist;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.ComandoConsultaChecklist;
+import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Uni;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.eclipse.microprofile.faulttolerance.exceptions.TimeoutException;
 import org.junit.jupiter.api.Test;
 
+@QuarkusTest
 class ChecklistMtrAdapterTest {
+
+    private static final String SERVICO_MTR = "simtr-parametrizacao";
 
     @Test
     void enviaIdentificadorEVersaoEMapeiaRespostaParaODominio() {
@@ -61,7 +69,7 @@ class ChecklistMtrAdapterTest {
     void traduzErroDeNegocioSemPerderCamposOuElementosNulos() {
         var erro = new ChecklistMtrException.Erro(
                 404,
-                "simtr-parametrizacao",
+                SERVICO_MTR,
                 "checklist-404",
                 "MTR-CHECKLIST-404",
                 Arrays.asList(new ChecklistMtrException.Mensagem("nao localizado"), null),
@@ -78,7 +86,7 @@ class ChecklistMtrAdapterTest {
 
         assertEquals(FalhaConsultaChecklist.Tipo.NEGOCIO, falha.tipo());
         assertEquals(404, falha.status());
-        assertEquals("simtr-parametrizacao", falha.recurso());
+        assertEquals(SERVICO_MTR, falha.recurso());
         assertEquals("checklist-404", falha.idErro());
         assertEquals("MTR-CHECKLIST-404", falha.codigoErro());
         assertEquals(Arrays.asList("nao localizado", null), falha.mensagens());
@@ -118,6 +126,121 @@ class ChecklistMtrAdapterTest {
         );
 
         assertEquals(FalhaConsultaChecklist.Tipo.TIMEOUT, falha.tipo());
+        assertSame(origem, falha.getCause());
+    }
+
+    @Test
+    void preservaAusenciaDeComandoEResposta() {
+        var client = mock(ParametrizacaoChecklistClient.class);
+        when(client.consultarPorIdentificadorNegocialEVersao(isNull(), isNull()))
+                .thenReturn(Uni.createFrom().nullItem());
+        var adapter = new ChecklistMtrAdapter(client, new ChecklistMtrMapper());
+
+        var resultado = adapter.obter(new ComandoConsultaChecklist(null, null))
+                .await().indefinitely();
+
+        assertNull(resultado);
+        verify(client).consultarPorIdentificadorNegocialEVersao(isNull(), isNull());
+    }
+
+    @Test
+    void preservaCamposOpcionaisNulosNaRespostaParcial() {
+        var resposta = new ChecklistMtrResponse(
+                null, null, null, null, null, null, null, null
+        );
+        var client = mock(ParametrizacaoChecklistClient.class);
+        when(client.consultarPorIdentificadorNegocialEVersao(101L, 3))
+                .thenReturn(Uni.createFrom().item(resposta));
+        var adapter = new ChecklistMtrAdapter(client, new ChecklistMtrMapper());
+
+        var resultado = adapter.obter(new ComandoConsultaChecklist(101L, 3))
+                .await().indefinitely();
+
+        assertNull(resultado.identificadorNegocial());
+        assertNull(resultado.nome());
+        assertNull(resultado.versao());
+        assertNull(resultado.apontamentos());
+    }
+
+    @Test
+    void traduzErroTecnicoSemCorpo() {
+        var origem = new ChecklistMtrException.TecnicaCliente(422, null);
+        var espera = adapterComFalha(origem).obter(new ComandoConsultaChecklist(101L, 3))
+                .await();
+
+        var falha = assertThrows(
+                FalhaConsultaChecklist.class,
+                espera::indefinitely
+        );
+
+        assertEquals(FalhaConsultaChecklist.Tipo.TECNICA_CLIENTE, falha.tipo());
+        assertEquals(422, falha.status());
+        assertNull(falha.recurso());
+        assertNull(falha.idErro());
+        assertNull(falha.codigoErro());
+        assertNull(falha.mensagens());
+        assertNull(falha.detalhe());
+        assertNull(falha.stacktraceExterno());
+        assertSame(origem, falha.getCause());
+    }
+
+    @Test
+    void traduzErroDeServidorSemListaDeMensagens() {
+        var erro = new ChecklistMtrException.Erro(
+                503, SERVICO_MTR, "checklist-503", "MTR-CHECKLIST-503",
+                null, "indisponivel", null
+        );
+        var origem = new ChecklistMtrException.Servidor(503, erro);
+        var espera = adapterComFalha(origem).obter(new ComandoConsultaChecklist(101L, 3))
+                .await();
+
+        var falha = assertThrows(
+                FalhaConsultaChecklist.class,
+                espera::indefinitely
+        );
+
+        assertEquals(FalhaConsultaChecklist.Tipo.DEPENDENCIA_INDISPONIVEL, falha.tipo());
+        assertEquals(503, falha.status());
+        assertEquals(SERVICO_MTR, falha.recurso());
+        assertNull(falha.mensagens());
+        assertSame(origem, falha.getCause());
+    }
+
+    @Test
+    void classificaSubtipoMtrDesconhecidoEPreservaMensagemNula() {
+        var erro = new ChecklistMtrException.Erro(
+                500, SERVICO_MTR, "checklist-500", "MTR-CHECKLIST-500",
+                Collections.singletonList(null), null, null
+        );
+        var origem = mock(ChecklistMtrException.class);
+        when(origem.status()).thenReturn(500);
+        when(origem.erro()).thenReturn(erro);
+        var espera = adapterComFalha(origem).obter(new ComandoConsultaChecklist(101L, 3))
+                .await();
+
+        var falha = assertThrows(
+                FalhaConsultaChecklist.class,
+                espera::indefinitely
+        );
+
+        assertEquals(FalhaConsultaChecklist.Tipo.DEPENDENCIA_INDISPONIVEL, falha.tipo());
+        assertEquals(Collections.singletonList(null), falha.mensagens());
+        assertSame(origem, falha.getCause());
+    }
+
+    @Test
+    void traduzFalhaInesperadaComoDependenciaIndisponivel() {
+        var origem = new IllegalStateException("falha inesperada");
+        var espera = adapterComFalha(origem).obter(new ComandoConsultaChecklist(101L, 3))
+                .await();
+
+        var falha = assertThrows(
+                FalhaConsultaChecklist.class,
+                espera::indefinitely
+        );
+
+        assertEquals(FalhaConsultaChecklist.Tipo.DEPENDENCIA_INDISPONIVEL, falha.tipo());
+        assertEquals(SERVICO_MTR, falha.recurso());
         assertSame(origem, falha.getCause());
     }
 
