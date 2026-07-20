@@ -13,6 +13,7 @@ import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.GarantiaDocumentoDoss
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.PropriedadeDocumentoDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.VinculoDocumentoDossieProduto;
 import io.smallrye.mutiny.Uni;
+import io.quarkus.test.junit.QuarkusTest;
 import org.eclipse.microprofile.faulttolerance.exceptions.TimeoutException;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -22,13 +23,16 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@QuarkusTest
 class DocumentoDossieProdutoMtrAdapterTest {
 
     private static final String SERVICO_MTR = "simtr-dossie-produto";
@@ -103,6 +107,129 @@ class DocumentoDossieProdutoMtrAdapterTest {
 
         assertEquals(FalhaInclusaoDocumentoDossieProduto.Tipo.TIMEOUT, falha.tipo());
         assertEquals(SERVICO_MTR, falha.recurso());
+    }
+
+    @Test
+    void preservaAusenciaDeComandoEResposta() {
+        when(client.incluir(isNull(), isNull()))
+                .thenReturn(Uni.createFrom().nullItem());
+
+        var resultado = adapter.incluir(null).await().indefinitely();
+
+        assertNull(resultado);
+        verify(client).incluir(isNull(), isNull());
+    }
+
+    @Test
+    void preservaCamposOpcionaisNulosEConverteRespostaParcial() {
+        var comando = new ComandoInclusaoDocumentoDossieProduto(
+                null, null, null, null, null, null, null, null, null);
+        when(client.incluir(isNull(), any(DocumentoDossieProdutoMtrRequest.class)))
+                .thenReturn(Uni.createFrom().item(
+                        new DocumentoDossieProdutoMtrResponse(null, null)));
+
+        var resultado = adapter.incluir(comando).await().indefinitely();
+
+        ArgumentCaptor<DocumentoDossieProdutoMtrRequest> captor =
+                ArgumentCaptor.forClass(DocumentoDossieProdutoMtrRequest.class);
+        verify(client).incluir(isNull(), captor.capture());
+        var request = captor.getValue();
+        assertNull(request.id());
+        assertNull(request.pathStorage());
+        assertNull(request.codigoGed());
+        assertNull(request.objectStoreGed());
+        assertNull(request.tipoDocumento());
+        assertNull(request.vinculoDossie());
+        assertNull(request.atributos());
+        assertNull(request.propriedades());
+        assertNull(resultado.identificadorDocumento());
+        assertNull(resultado.identificadorInstanciaDocumento());
+    }
+
+    @Test
+    void classificaErroTecnicoSemCorpo() {
+        var erroMtr = new DocumentoDossieProdutoMtrException.TecnicaCliente(422, null);
+        when(client.incluir(eq(123L), any(DocumentoDossieProdutoMtrRequest.class)))
+                .thenReturn(Uni.createFrom().failure(erroMtr));
+
+        var espera = adapter.incluir(comando()).await();
+        FalhaInclusaoDocumentoDossieProduto falha = assertThrows(
+                FalhaInclusaoDocumentoDossieProduto.class,
+                espera::indefinitely);
+
+        assertEquals(FalhaInclusaoDocumentoDossieProduto.Tipo.TECNICA_CLIENTE, falha.tipo());
+        assertEquals(422, falha.status());
+        assertNull(falha.recurso());
+        assertNull(falha.idErro());
+        assertNull(falha.codigoErro());
+        assertNull(falha.mensagens());
+        assertNull(falha.detalhe());
+        assertNull(falha.stacktraceExterno());
+        assertSame(erroMtr, falha.getCause());
+    }
+
+    @Test
+    void classificaErroDeServidorComListaDeMensagensAusente() {
+        var erro = new DocumentoDossieProdutoMtrException.Erro(
+                503, SERVICO_MTR, "documento-503", "MTR-DOC-503",
+                null, "indisponivel", null);
+        var erroMtr = new DocumentoDossieProdutoMtrException.Servidor(503, erro);
+        when(client.incluir(eq(123L), any(DocumentoDossieProdutoMtrRequest.class)))
+                .thenReturn(Uni.createFrom().failure(erroMtr));
+
+        var espera = adapter.incluir(comando()).await();
+        FalhaInclusaoDocumentoDossieProduto falha = assertThrows(
+                FalhaInclusaoDocumentoDossieProduto.class,
+                espera::indefinitely);
+
+        assertEquals(
+                FalhaInclusaoDocumentoDossieProduto.Tipo.DEPENDENCIA_INDISPONIVEL,
+                falha.tipo());
+        assertEquals(503, falha.status());
+        assertEquals(SERVICO_MTR, falha.recurso());
+        assertNull(falha.mensagens());
+        assertSame(erroMtr, falha.getCause());
+    }
+
+    @Test
+    void classificaSubtipoMtrDesconhecidoEPreservaMensagemNula() {
+        var erro = new DocumentoDossieProdutoMtrException.Erro(
+                500, SERVICO_MTR, "documento-500", "MTR-DOC-500",
+                java.util.Collections.singletonList(null), null, null);
+        var erroMtr = mock(DocumentoDossieProdutoMtrException.class);
+        when(erroMtr.status()).thenReturn(500);
+        when(erroMtr.erro()).thenReturn(erro);
+        when(client.incluir(eq(123L), any(DocumentoDossieProdutoMtrRequest.class)))
+                .thenReturn(Uni.createFrom().failure(erroMtr));
+
+        var espera = adapter.incluir(comando()).await();
+        FalhaInclusaoDocumentoDossieProduto falha = assertThrows(
+                FalhaInclusaoDocumentoDossieProduto.class,
+                espera::indefinitely);
+
+        assertEquals(
+                FalhaInclusaoDocumentoDossieProduto.Tipo.DEPENDENCIA_INDISPONIVEL,
+                falha.tipo());
+        assertEquals(java.util.Collections.singletonList(null), falha.mensagens());
+        assertSame(erroMtr, falha.getCause());
+    }
+
+    @Test
+    void classificaFalhaInesperadaComoDependenciaIndisponivel() {
+        var erro = new IllegalStateException("falha inesperada");
+        when(client.incluir(eq(123L), any(DocumentoDossieProdutoMtrRequest.class)))
+                .thenReturn(Uni.createFrom().failure(erro));
+
+        var espera = adapter.incluir(comando()).await();
+        FalhaInclusaoDocumentoDossieProduto falha = assertThrows(
+                FalhaInclusaoDocumentoDossieProduto.class,
+                espera::indefinitely);
+
+        assertEquals(
+                FalhaInclusaoDocumentoDossieProduto.Tipo.DEPENDENCIA_INDISPONIVEL,
+                falha.tipo());
+        assertEquals(SERVICO_MTR, falha.recurso());
+        assertSame(erro, falha.getCause());
     }
 
     private static ComandoInclusaoDocumentoDossieProduto comando() {
