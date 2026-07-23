@@ -4,7 +4,7 @@
 
 - **Branch:** `fix/aguardar-span-teste-legado`
 - **Escopo:** teste e documentação de execução
-- **Próximo item:** CF — registrar encerramento humano da correção
+- **Próximo item:** nenhum — feature encerrada pelo usuário
 
 ## Checklist
 
@@ -20,7 +20,7 @@
 - [x] 2.3 Remover `Thread.sleep()` do polling preservando retorno imediato e timeout;
 - [x] 2.4 Executar novamente teste focado e suíte Maven;
 - [x] C2 Executar novo checkpoint SonarQube e tratar eventual `NON_COMPLIANT`;
-- [ ] CF Revisar diff, registrar evidências e encerrar a correção.
+- [x] CF Revisar diff, registrar evidências e encerrar a correção.
 
 ## Decisões humanas
 
@@ -28,7 +28,7 @@
 |---|---|---|---|---|
 | C0 | GO | 2026-07-22 | Usuário respondeu explicitamente `GO` após revisar o plano | usuário |
 | C1 | ContinuarAjustes | 2026-07-23 | Usuário escolheu explicitamente continuar os ajustes para remover a issue nova | usuário |
-| CF | PENDENTE | 2026-07-23 | Revisão técnica concluída; encerramento depende de decisão explícita | — |
+| CF | ENCERRADO | 2026-07-23 | Usuário respondeu explicitamente `encerrar` após revisar o resultado técnico | usuário |
 
 ## Evidências técnicas
 
@@ -70,3 +70,4 @@
   segurança, desempenho, testes ou escopo. O diff funcional altera somente o teste legado;
   `doc/sonar/sonar-issues-staging.csv` já estava modificado antes da implementação e permanece
   preservado fora do escopo.
+- 2026-07-23 — usuário aprovou o resultado e registrou explicitamente o encerramento da feature.
