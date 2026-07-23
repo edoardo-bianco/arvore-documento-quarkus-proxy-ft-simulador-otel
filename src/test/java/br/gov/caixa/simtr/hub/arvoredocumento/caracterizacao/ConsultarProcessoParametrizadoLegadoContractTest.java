@@ -16,8 +16,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import static io.restassured.RestAssured.given;
@@ -37,6 +41,7 @@ class ConsultarProcessoParametrizadoLegadoContractTest {
     private static final String PATH_PUBLICO =
             "/simtr-hub/v1/processo/identificador-negocial/{identificador}";
     private static final long IDENTIFICADOR = 1000016487L;
+    private static final long TIMEOUT_SPAN_SEGUNDOS = 5L;
     private static final String RESPOSTA_MTR_COM_NULOS = """
             {
               "identificador_negocial": 1000016487,
@@ -127,11 +132,7 @@ class ConsultarProcessoParametrizadoLegadoContractTest {
         assertEquals(true,
                 gateway.getAttributes().get(AttributeKey.booleanKey("mtr.resposta.sucesso")));
 
-        SpanData restClient = spanExporter.getFinishedSpanItems().stream()
-                .filter(span -> "ParametrizacaoProcessoClient".equals(
-                        span.getAttributes().get(AttributeKey.stringKey("rest_client.class"))))
-                .findFirst()
-                .orElseThrow();
+        SpanData restClient = aguardarSpanRestClient();
         assertEquals("consultarPorIdentificadorNegocial",
                 restClient.getAttributes().get(AttributeKey.stringKey("rest_client.operation")));
         assertTrue(spanExporter.getFinishedSpanItems().stream()
@@ -195,6 +196,46 @@ class ConsultarProcessoParametrizadoLegadoContractTest {
                 .accept(ContentType.JSON)
                 .when()
                 .get(PATH_PUBLICO, identificador);
+    }
+
+    private SpanData aguardarSpanRestClient() throws Exception {
+        Optional<SpanData> spanAtual = localizarSpanRestClient();
+        if (spanAtual.isPresent()) {
+            return spanAtual.get();
+        }
+
+        try (var executor = Executors.newSingleThreadScheduledExecutor()) {
+            var spanEncontrado = new CompletableFuture<SpanData>();
+            executor.scheduleWithFixedDelay(
+                    () -> localizarSpanRestClient().ifPresent(spanEncontrado::complete),
+                    0L,
+                    10L,
+                    TimeUnit.MILLISECONDS
+            );
+            try {
+                return spanEncontrado.get(TIMEOUT_SPAN_SEGUNDOS, TimeUnit.SECONDS);
+            } catch (TimeoutException timeout) {
+                throw timeoutSpanRestClient(timeout);
+            }
+        }
+    }
+
+    private Optional<SpanData> localizarSpanRestClient() {
+        return spanExporter.getFinishedSpanItems().stream()
+                .filter(item -> "ParametrizacaoProcessoClient".equals(
+                        item.getAttributes().get(AttributeKey.stringKey("rest_client.class"))))
+                .findFirst();
+    }
+
+    private AssertionError timeoutSpanRestClient(TimeoutException causa) {
+        List<String> spansRecebidos = spanExporter.getFinishedSpanItems().stream()
+                .map(SpanData::getName)
+                .toList();
+        return new AssertionError(
+                "Span do ParametrizacaoProcessoClient não foi exportado em até "
+                        + TIMEOUT_SPAN_SEGUNDOS + " segundos. Spans recebidos: " + spansRecebidos,
+                causa
+        );
     }
 
 }
