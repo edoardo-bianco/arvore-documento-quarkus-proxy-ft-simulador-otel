@@ -33,33 +33,42 @@ public class IniciarAnaliseConformidadeCasoDeUso implements IniciarAnaliseConfor
     @Override
     public Uni<VisaoAnaliseConformidade> executar(
             SolicitacaoAnaliseConformidade solicitacao) {
-        return Uni.createFrom().item(() -> iniciar(solicitacao));
+        return Uni.createFrom().deferred(() -> {
+            if (solicitacao == null) {
+                throw FalhaAnaliseConformidade.solicitacaoInvalida(
+                        "A solicitação da análise é obrigatória");
+            }
+
+            WorkflowInstance instancia = flow.instance(solicitacao);
+            String instanceId = instancia.id();
+            return estados.iniciar(instanceId, solicitacao)
+                    .chain(() -> estados.consultar(instanceId))
+                    .map(inicial -> inicial.orElseThrow(
+                            FalhaAnaliseConformidade::instanciaNaoEncontrada))
+                    .chain(inicial -> iniciarWorkflow(
+                            instancia,
+                            instanceId,
+                            inicial));
+        });
     }
 
-    private VisaoAnaliseConformidade iniciar(SolicitacaoAnaliseConformidade solicitacao) {
-        if (solicitacao == null) {
-            throw FalhaAnaliseConformidade.solicitacaoInvalida(
-                    "A solicitação da análise é obrigatória");
-        }
-
-        WorkflowInstance instancia = flow.instance(solicitacao);
-        String instanceId = instancia.id();
-        estados.iniciar(instanceId, solicitacao);
-        VisaoAnaliseConformidade inicial = estados.consultar(instanceId)
-                .orElseThrow(FalhaAnaliseConformidade::instanciaNaoEncontrada);
-
+    private Uni<VisaoAnaliseConformidade> iniciarWorkflow(
+            WorkflowInstance instancia,
+            String instanceId,
+            VisaoAnaliseConformidade inicial) {
         try {
             instancia.start().whenComplete((resultado, falha) -> {
                 if (falha != null) {
-                    estados.falhar(instanceId, mensagemFalha(falha));
+                    estados.falhar(instanceId, mensagemFalha(falha))
+                            .subscribeAsCompletionStage();
                 }
             });
+            return Uni.createFrom().item(inicial);
         } catch (RuntimeException _) {
-            estados.falhar(instanceId, MENSAGEM_FALHA_CONSULTA);
-            throw FalhaAnaliseConformidade.indisponibilidadeTecnica();
+            return estados.falhar(instanceId, MENSAGEM_FALHA_CONSULTA)
+                    .chain(() -> Uni.createFrom().failure(
+                            FalhaAnaliseConformidade.indisponibilidadeTecnica()));
         }
-
-        return inicial;
     }
 
     private static String mensagemFalha(Throwable falha) {

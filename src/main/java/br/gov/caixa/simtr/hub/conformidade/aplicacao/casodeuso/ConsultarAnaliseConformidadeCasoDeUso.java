@@ -21,8 +21,8 @@ public class ConsultarAnaliseConformidadeCasoDeUso implements ConsultarAnaliseCo
 
     @Override
     public Uni<VisaoAnaliseConformidade> executar(String instanceId) {
-        return Uni.createFrom().item(() ->
-                estados.consultar(instanceId)
-                        .orElseThrow(FalhaAnaliseConformidade::instanciaNaoEncontrada));
+        return estados.consultar(instanceId)
+                .map(atual -> atual.orElseThrow(
+                        FalhaAnaliseConformidade::instanciaNaoEncontrada));
     }
 }

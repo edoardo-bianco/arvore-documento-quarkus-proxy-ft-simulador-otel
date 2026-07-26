@@ -68,10 +68,10 @@ class CouchDbAnaliseConformidadeStoreIntegrationTest
                 1);
         var primeiroAdapter = novoAdapter();
 
-        primeiroAdapter.iniciar(INSTANCE_ID, solicitacao);
+        aguardar(primeiroAdapter.iniciar(INSTANCE_ID, solicitacao));
 
         var adapterAposReinicio = novoAdapter();
-        var visao = adapterAposReinicio.consultar(INSTANCE_ID).orElseThrow();
+        var visao = aguardar(adapterAposReinicio.consultar(INSTANCE_ID)).orElseThrow();
         assertEquals(CORRELATION_ID, visao.correlationId());
         assertEquals(INSTANCE_ID, visao.instanceId());
         assertEquals("DOC-2026-000123", visao.identificadorDocumento());
@@ -111,9 +111,9 @@ class CouchDbAnaliseConformidadeStoreIntegrationTest
                 OBJECT_MAPPER.writeValueAsString(entrada),
                 201);
 
-        novoAdapter().iniciar(instanceId, solicitacao);
+        aguardar(novoAdapter().iniciar(instanceId, solicitacao));
 
-        var visao = novoAdapter().consultar(instanceId).orElseThrow();
+        var visao = aguardar(novoAdapter().consultar(instanceId)).orElseThrow();
         assertEquals(correlationId, visao.correlationId());
         assertEquals(instanceId, visao.instanceId());
     }
@@ -130,9 +130,9 @@ class CouchDbAnaliseConformidadeStoreIntegrationTest
                 1);
         var checklist = checklist();
         var adapter = novoAdapter();
-        adapter.iniciar(instanceId, solicitacao);
+        aguardar(adapter.iniciar(instanceId, solicitacao));
 
-        adapter.registrarChecklist(instanceId, checklist);
+        aguardar(adapter.registrarChecklist(instanceId, checklist));
 
         var snapshot = documento(CouchDbIds.checklist(correlationId));
         String hash = snapshot.path("hashConteudo").asText();

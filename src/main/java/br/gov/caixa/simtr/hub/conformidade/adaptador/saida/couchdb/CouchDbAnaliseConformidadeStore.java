@@ -13,6 +13,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.smallrye.mutiny.Uni;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -59,146 +60,175 @@ public class CouchDbAnaliseConformidadeStore
     }
 
     @Override
-    public void iniciar(
+    public Uni<Void> iniciar(
             String instanceId,
             SolicitacaoAnaliseConformidade solicitacao) {
-        validarInstanceId(instanceId);
-        if (solicitacao == null) {
-            throw FalhaAnaliseConformidade.solicitacaoInvalida(
-                    "A solicitação da análise é obrigatória");
-        }
-        gravarImutavel(
-                CouchDbIds.entrada(solicitacao.correlationId()),
-                documentoEntrada(instanceId, solicitacao));
-        gravarNovo(
-                CouchDbIds.projecao(instanceId),
-                documentoProjecao(instanceId, solicitacao));
+        return Uni.createFrom().deferred(() -> {
+            validarInstanceId(instanceId);
+            if (solicitacao == null) {
+                throw FalhaAnaliseConformidade.solicitacaoInvalida(
+                        "A solicitação da análise é obrigatória");
+            }
+            return gravarImutavel(
+                            CouchDbIds.entrada(solicitacao.correlationId()),
+                            documentoEntrada(instanceId, solicitacao))
+                    .chain(() -> gravarNovo(
+                            CouchDbIds.projecao(instanceId),
+                            documentoProjecao(instanceId, solicitacao)));
+        });
     }
 
     @Override
-    public void registrarChecklist(String instanceId, Checklist checklist) {
-        ObjectNode projecao = projecaoObrigatoria(instanceId);
-        exigirStatus(projecao, StatusAnaliseConformidade.EM_PROCESSAMENTO);
-        validarChecklist(projecao, checklist);
-        String referencia = CouchDbIds.checklist(texto(projecao, CAMPO_CORRELATION_ID));
-        JsonNode snapshot = objectMapper.valueToTree(checklist);
-        String hash = hashCanonico(snapshot);
-        gravarImutavel(
-                referencia,
-                documentoFato(referencia, TIPO_CHECKLIST, projecao)
-                        .put(CAMPO_HASH_CONTEUDO, hash)
-                        .set(CAMPO_CHECKLIST, snapshot));
-        if (referencia.equals(textoOpcional(projecao, CAMPO_CHECKLIST_REF))) {
-            return;
-        }
-        atualizarProjecao(projecao, atualizada -> atualizada
-                .put(CAMPO_CHECKLIST_REF, referencia)
-                .put(CAMPO_CHECKLIST_HASH, hash));
+    public Uni<Void> registrarChecklist(String instanceId, Checklist checklist) {
+        return projecaoObrigatoria(instanceId).chain(projecao -> {
+            exigirStatus(projecao, StatusAnaliseConformidade.EM_PROCESSAMENTO);
+            validarChecklist(projecao, checklist);
+            String referencia = CouchDbIds.checklist(texto(projecao, CAMPO_CORRELATION_ID));
+            JsonNode snapshot = objectMapper.valueToTree(checklist);
+            String hash = hashCanonico(snapshot);
+            return gravarImutavel(
+                            referencia,
+                            documentoFato(referencia, TIPO_CHECKLIST, projecao)
+                                    .put(CAMPO_HASH_CONTEUDO, hash)
+                                    .set(CAMPO_CHECKLIST, snapshot))
+                    .chain(() -> {
+                        if (referencia.equals(textoOpcional(
+                                projecao,
+                                CAMPO_CHECKLIST_REF))) {
+                            return Uni.createFrom().voidItem();
+                        }
+                        return atualizarProjecao(projecao, atualizada -> atualizada
+                                .put(CAMPO_CHECKLIST_REF, referencia)
+                                .put(CAMPO_CHECKLIST_HASH, hash));
+                    });
+        });
     }
 
     @Override
-    public void aguardarRevisao(
+    public Uni<Void> aguardarRevisao(
             String instanceId,
             ResultadoAnaliseConformidade resultado) {
-        validarResultadoPreliminar(resultado);
-        ObjectNode projecao = projecaoObrigatoria(instanceId);
-        exigirStatus(projecao, StatusAnaliseConformidade.EM_PROCESSAMENTO);
-        exigirReferencia(projecao, CAMPO_CHECKLIST_REF);
-        validarIdentidadesResultado(projecao, resultado);
-        String referencia = CouchDbIds.resultadoPreliminar(
-                texto(projecao, CAMPO_CORRELATION_ID));
-        gravarImutavel(
-                referencia,
-                documentoFato(referencia, TIPO_RESULTADO_PRELIMINAR, projecao)
-                        .set(CAMPO_RESULTADO, objectMapper.valueToTree(resultado)));
-        atualizarProjecao(projecao, atualizada -> atualizada
-                .put(CAMPO_STATUS, StatusAnaliseConformidade.AGUARDANDO_REVISAO.name())
-                .put("resultadoPreliminarRef", referencia));
+        return Uni.createFrom().deferred(() -> {
+            validarResultadoPreliminar(resultado);
+            return projecaoObrigatoria(instanceId).chain(projecao -> {
+                exigirStatus(projecao, StatusAnaliseConformidade.EM_PROCESSAMENTO);
+                exigirReferencia(projecao, CAMPO_CHECKLIST_REF);
+                validarIdentidadesResultado(projecao, resultado);
+                String referencia = CouchDbIds.resultadoPreliminar(
+                        texto(projecao, CAMPO_CORRELATION_ID));
+                return gravarImutavel(
+                                referencia,
+                                documentoFato(referencia, TIPO_RESULTADO_PRELIMINAR, projecao)
+                                        .set(CAMPO_RESULTADO, objectMapper.valueToTree(resultado)))
+                        .chain(() -> atualizarProjecao(projecao, atualizada -> atualizada
+                                .put(
+                                        CAMPO_STATUS,
+                                        StatusAnaliseConformidade.AGUARDANDO_REVISAO.name())
+                                .put("resultadoPreliminarRef", referencia)));
+            });
+        });
     }
 
     @Override
-    public void reservarRevisao(
+    public Uni<Void> reservarRevisao(
             String instanceId,
             RevisaoHumanaConformidade revisao) {
-        if (revisao == null) {
-            throw FalhaAnaliseConformidade.revisaoInconsistente(
-                    "A revisão humana é obrigatória");
-        }
-        ObjectNode projecao = projecaoObrigatoria(instanceId);
-        exigirStatus(projecao, StatusAnaliseConformidade.AGUARDANDO_REVISAO);
-        String referencia = CouchDbIds.revisao(texto(projecao, CAMPO_CORRELATION_ID));
-        gravarImutavel(
-                referencia,
-                documentoFato(referencia, TIPO_REVISAO, projecao)
-                        .set("revisao", objectMapper.valueToTree(revisao)));
-        if (referencia.equals(textoOpcional(projecao, CAMPO_REVISAO_REF))) {
-            return;
-        }
-        try {
-            atualizarProjecao(
-                    projecao,
-                    atualizada -> atualizada.put(CAMPO_REVISAO_REF, referencia));
-        } catch (FalhaAnaliseConformidade falha) {
-            if (falha.tipo() != FalhaAnaliseConformidade.Tipo.TRANSICAO_INVALIDA
-                    || !referencia.equals(textoOpcional(
-                            projecaoObrigatoria(instanceId),
-                            CAMPO_REVISAO_REF))) {
-                throw falha;
+        return Uni.createFrom().deferred(() -> {
+            if (revisao == null) {
+                throw FalhaAnaliseConformidade.revisaoInconsistente(
+                        "A revisão humana é obrigatória");
             }
-        }
+            return projecaoObrigatoria(instanceId).chain(projecao -> {
+                exigirStatus(projecao, StatusAnaliseConformidade.AGUARDANDO_REVISAO);
+                String referencia = CouchDbIds.revisao(texto(projecao, CAMPO_CORRELATION_ID));
+                return gravarImutavel(
+                                referencia,
+                                documentoFato(referencia, TIPO_REVISAO, projecao)
+                                        .set("revisao", objectMapper.valueToTree(revisao)))
+                        .chain(() -> {
+                            if (referencia.equals(textoOpcional(
+                                    projecao,
+                                    CAMPO_REVISAO_REF))) {
+                                return Uni.createFrom().voidItem();
+                            }
+                            return atualizarProjecao(
+                                            projecao,
+                                            atualizada -> atualizada.put(
+                                                    CAMPO_REVISAO_REF,
+                                                    referencia))
+                                    .onFailure(FalhaAnaliseConformidade.class)
+                                    .recoverWithUni(falha -> recuperarReservaConcorrente(
+                                            instanceId,
+                                            referencia,
+                                            falha));
+                        });
+            });
+        });
     }
 
     @Override
-    public void concluir(
+    public Uni<Void> concluir(
             String instanceId,
             ResultadoAnaliseConformidade resultado) {
-        validarResultadoFinal(resultado);
-        ObjectNode projecao = projecaoObrigatoria(instanceId);
-        exigirStatus(projecao, StatusAnaliseConformidade.AGUARDANDO_REVISAO);
-        exigirReferencia(projecao, CAMPO_REVISAO_REF);
-        validarIdentidadesResultado(projecao, resultado);
-        String referencia = CouchDbIds.resultadoFinal(texto(projecao, CAMPO_CORRELATION_ID));
-        gravarImutavel(
-                referencia,
-                documentoFato(referencia, TIPO_RESULTADO_FINAL, projecao)
-                        .set(CAMPO_RESULTADO, objectMapper.valueToTree(resultado)));
-        atualizarProjecao(projecao, atualizada -> atualizada
-                .put(CAMPO_STATUS, StatusAnaliseConformidade.CONCLUIDA.name())
-                .put("resultadoFinalRef", referencia));
+        return Uni.createFrom().deferred(() -> {
+            validarResultadoFinal(resultado);
+            return projecaoObrigatoria(instanceId).chain(projecao -> {
+                exigirStatus(projecao, StatusAnaliseConformidade.AGUARDANDO_REVISAO);
+                exigirReferencia(projecao, CAMPO_REVISAO_REF);
+                validarIdentidadesResultado(projecao, resultado);
+                String referencia = CouchDbIds.resultadoFinal(
+                        texto(projecao, CAMPO_CORRELATION_ID));
+                return gravarImutavel(
+                                referencia,
+                                documentoFato(referencia, TIPO_RESULTADO_FINAL, projecao)
+                                        .set(CAMPO_RESULTADO, objectMapper.valueToTree(resultado)))
+                        .chain(() -> atualizarProjecao(projecao, atualizada -> atualizada
+                                .put(
+                                        CAMPO_STATUS,
+                                        StatusAnaliseConformidade.CONCLUIDA.name())
+                                .put("resultadoFinalRef", referencia)));
+            });
+        });
     }
 
     @Override
-    public void falhar(String instanceId, String mensagem) {
-        validarInstanceId(instanceId);
-        if (mensagem == null || mensagem.isBlank()) {
-            throw FalhaAnaliseConformidade.transicaoInvalida();
-        }
-        ObjectNode projecao = projecaoObrigatoria(instanceId);
-        StatusAnaliseConformidade status = status(projecao);
-        if (status != StatusAnaliseConformidade.EM_PROCESSAMENTO
-                && status != StatusAnaliseConformidade.AGUARDANDO_REVISAO) {
-            throw FalhaAnaliseConformidade.transicaoInvalida();
-        }
-        String referencia = CouchDbIds.falha(texto(projecao, CAMPO_CORRELATION_ID));
-        gravarImutavel(
-                referencia,
-                documentoFato(referencia, TIPO_FALHA, projecao)
-                        .put("mensagem", mensagem));
-        atualizarProjecao(projecao, atualizada -> atualizada
-                .put(CAMPO_STATUS, StatusAnaliseConformidade.FALHOU.name())
-                .put("falhaRef", referencia));
+    public Uni<Void> falhar(String instanceId, String mensagem) {
+        return Uni.createFrom().deferred(() -> {
+            validarInstanceId(instanceId);
+            if (mensagem == null || mensagem.isBlank()) {
+                throw FalhaAnaliseConformidade.transicaoInvalida();
+            }
+            return projecaoObrigatoria(instanceId).chain(projecao -> {
+                StatusAnaliseConformidade status = status(projecao);
+                if (status != StatusAnaliseConformidade.EM_PROCESSAMENTO
+                        && status != StatusAnaliseConformidade.AGUARDANDO_REVISAO) {
+                    throw FalhaAnaliseConformidade.transicaoInvalida();
+                }
+                String referencia = CouchDbIds.falha(texto(projecao, CAMPO_CORRELATION_ID));
+                return gravarImutavel(
+                                referencia,
+                                documentoFato(referencia, TIPO_FALHA, projecao)
+                                        .put("mensagem", mensagem))
+                        .chain(() -> atualizarProjecao(projecao, atualizada -> atualizada
+                                .put(CAMPO_STATUS, StatusAnaliseConformidade.FALHOU.name())
+                                .put("falhaRef", referencia)));
+            });
+        });
     }
 
     @Override
-    public Optional<VisaoAnaliseConformidade> consultar(String instanceId) {
+    public Uni<Optional<VisaoAnaliseConformidade>> consultar(String instanceId) {
         if (instanceId == null || instanceId.isBlank()) {
-            return Optional.empty();
+            return Uni.createFrom().item(Optional.empty());
         }
         return consultarDocumento(CouchDbIds.projecao(instanceId))
-                .map(documento -> mapearProjecao(instanceId, documento));
+                .chain(documento -> documento
+                        .map(valor -> mapearProjecao(instanceId, valor)
+                                .map(Optional::of))
+                        .orElseGet(() -> Uni.createFrom().item(Optional.empty())));
     }
 
-    private VisaoAnaliseConformidade mapearProjecao(
+    private Uni<VisaoAnaliseConformidade> mapearProjecao(
             String instanceId,
             JsonNode documento) {
         exigirTipoEVersao(documento, TIPO_PROJECAO);
@@ -206,19 +236,33 @@ public class CouchDbAnaliseConformidadeStore
         if (!instanceId.equals(instanceIdPersistido)) {
             throw FalhaAnaliseConformidade.indisponibilidadeTecnica();
         }
-        var resultadoPreliminar = resultadoReferenciado(
-                documento,
-                "resultadoPreliminarRef",
-                TIPO_RESULTADO_PRELIMINAR);
-        var resultadoFinal = resultadoReferenciado(
-                documento,
-                "resultadoFinalRef",
-                TIPO_RESULTADO_FINAL);
-        String mensagem = mensagemReferenciada(documento);
+        return resultadoReferenciado(
+                        documento,
+                        "resultadoPreliminarRef",
+                        TIPO_RESULTADO_PRELIMINAR)
+                .chain(resultadoPreliminar -> resultadoReferenciado(
+                                documento,
+                                "resultadoFinalRef",
+                                TIPO_RESULTADO_FINAL)
+                        .chain(resultadoFinal -> mensagemReferenciada(documento)
+                                .map(mensagem -> criarVisao(
+                                        documento,
+                                        instanceIdPersistido,
+                                        resultadoPreliminar,
+                                        resultadoFinal,
+                                        mensagem))));
+    }
+
+    private VisaoAnaliseConformidade criarVisao(
+            JsonNode documento,
+            String instanceId,
+            ResultadoAnaliseConformidade resultadoPreliminar,
+            ResultadoAnaliseConformidade resultadoFinal,
+            String mensagem) {
         try {
             return new VisaoAnaliseConformidade(
                     texto(documento, CAMPO_CORRELATION_ID),
-                    instanceIdPersistido,
+                    instanceId,
                     texto(documento, CAMPO_IDENTIFICADOR_DOCUMENTO),
                     inteiroLongo(documento, CAMPO_IDENTIFICADOR_CHECKLIST),
                     inteiro(documento, CAMPO_VERSAO_CHECKLIST),
@@ -231,65 +275,88 @@ public class CouchDbAnaliseConformidadeStore
         }
     }
 
-    private ResultadoAnaliseConformidade resultadoReferenciado(
+    private Uni<ResultadoAnaliseConformidade> resultadoReferenciado(
             JsonNode projecao,
             String campo,
             String tipo) {
         String referencia = textoOpcional(projecao, campo);
         if (referencia == null) {
-            return null;
+            return Uni.createFrom().nullItem();
         }
-        JsonNode documento = consultarDocumento(referencia)
-                .orElseThrow(FalhaAnaliseConformidade::indisponibilidadeTecnica);
-        exigirTipoEVersao(documento, tipo);
-        try {
-            return objectMapper.treeToValue(
-                    documento.path(CAMPO_RESULTADO),
-                    ResultadoAnaliseConformidade.class);
-        } catch (JsonProcessingException | FalhaAnaliseConformidade _) {
-            throw FalhaAnaliseConformidade.indisponibilidadeTecnica();
-        }
+        return consultarDocumento(referencia).map(documentoOpcional -> {
+            JsonNode documento = documentoOpcional.orElseThrow(
+                    FalhaAnaliseConformidade::indisponibilidadeTecnica);
+            exigirTipoEVersao(documento, tipo);
+            try {
+                return objectMapper.treeToValue(
+                        documento.path(CAMPO_RESULTADO),
+                        ResultadoAnaliseConformidade.class);
+            } catch (JsonProcessingException | FalhaAnaliseConformidade _) {
+                throw FalhaAnaliseConformidade.indisponibilidadeTecnica();
+            }
+        });
     }
 
-    private String mensagemReferenciada(JsonNode projecao) {
+    private Uni<String> mensagemReferenciada(JsonNode projecao) {
         String referencia = textoOpcional(projecao, "falhaRef");
         if (referencia == null) {
-            return null;
+            return Uni.createFrom().nullItem();
         }
-        JsonNode documento = consultarDocumento(referencia)
-                .orElseThrow(FalhaAnaliseConformidade::indisponibilidadeTecnica);
-        exigirTipoEVersao(documento, TIPO_FALHA);
-        return texto(documento, "mensagem");
+        return consultarDocumento(referencia).map(documentoOpcional -> {
+            JsonNode documento = documentoOpcional.orElseThrow(
+                    FalhaAnaliseConformidade::indisponibilidadeTecnica);
+            exigirTipoEVersao(documento, TIPO_FALHA);
+            return texto(documento, "mensagem");
+        });
     }
 
-    private ObjectNode projecaoObrigatoria(String instanceId) {
-        validarInstanceId(instanceId);
-        JsonNode documento = consultarDocumento(CouchDbIds.projecao(instanceId))
-                .orElseThrow(FalhaAnaliseConformidade::instanciaNaoEncontrada);
-        exigirTipoEVersao(documento, TIPO_PROJECAO);
-        if (!(documento instanceof ObjectNode objectNode)
-                || !instanceId.equals(texto(documento, CAMPO_INSTANCE_ID))) {
-            throw FalhaAnaliseConformidade.indisponibilidadeTecnica();
-        }
-        return objectNode;
+    private Uni<ObjectNode> projecaoObrigatoria(String instanceId) {
+        return Uni.createFrom().deferred(() -> {
+            validarInstanceId(instanceId);
+            return consultarDocumento(CouchDbIds.projecao(instanceId))
+                    .map(documentoOpcional -> {
+                        JsonNode documento = documentoOpcional.orElseThrow(
+                                FalhaAnaliseConformidade::instanciaNaoEncontrada);
+                        exigirTipoEVersao(documento, TIPO_PROJECAO);
+                        if (!(documento instanceof ObjectNode objectNode)
+                                || !instanceId.equals(texto(documento, CAMPO_INSTANCE_ID))) {
+                            throw FalhaAnaliseConformidade.indisponibilidadeTecnica();
+                        }
+                        return objectNode;
+                    });
+        });
     }
 
-    private void atualizarProjecao(
+    private Uni<Void> atualizarProjecao(
             ObjectNode atual,
             Consumer<ObjectNode> alteracao) {
         ObjectNode atualizada = atual.deepCopy();
         alteracao.accept(atualizada);
-        var response = client.gravar(
-                database,
-                texto(atualizada, "_id"),
-                atualizada);
-        if (response.status() == 201) {
-            return;
+        return chamarGravacao(texto(atualizada, "_id"), atualizada)
+                .map(response -> {
+                    if (response.status() == 201) {
+                        return null;
+                    }
+                    if (response.status() == 409) {
+                        throw FalhaAnaliseConformidade.transicaoInvalida();
+                    }
+                    throw FalhaAnaliseConformidade.indisponibilidadeTecnica();
+                });
+    }
+
+    private Uni<Void> recuperarReservaConcorrente(
+            String instanceId,
+            String referencia,
+            FalhaAnaliseConformidade falha) {
+        if (falha.tipo() != FalhaAnaliseConformidade.Tipo.TRANSICAO_INVALIDA) {
+            return Uni.createFrom().failure(falha);
         }
-        if (response.status() == 409) {
-            throw FalhaAnaliseConformidade.transicaoInvalida();
-        }
-        throw FalhaAnaliseConformidade.indisponibilidadeTecnica();
+        return projecaoObrigatoria(instanceId).chain(atual -> {
+            if (referencia.equals(textoOpcional(atual, CAMPO_REVISAO_REF))) {
+                return Uni.createFrom().voidItem();
+            }
+            return Uni.createFrom().failure(falha);
+        });
     }
 
     private ObjectNode documentoEntrada(
@@ -351,57 +418,66 @@ public class CouchDbAnaliseConformidadeStore
                 .put(CAMPO_VERSAO_CHECKLIST, inteiro(origem, CAMPO_VERSAO_CHECKLIST));
     }
 
-    private void gravarNovo(String documentId, JsonNode documento) {
-        var response = chamarGravacao(documentId, documento);
-        if (response.status() == 201) {
-            return;
-        }
-        if (response.status() == 409) {
-            throw FalhaAnaliseConformidade.transicaoInvalida();
-        }
-        throw FalhaAnaliseConformidade.indisponibilidadeTecnica();
-    }
-
-    private void gravarImutavel(String documentId, ObjectNode documento) {
-        var response = chamarGravacao(documentId, documento);
-        if (response.status() == 201) {
-            return;
-        }
-        if (response.status() != 409) {
+    private Uni<Void> gravarNovo(String documentId, JsonNode documento) {
+        return chamarGravacao(documentId, documento).map(response -> {
+            if (response.status() == 201) {
+                return null;
+            }
+            if (response.status() == 409) {
+                throw FalhaAnaliseConformidade.transicaoInvalida();
+            }
             throw FalhaAnaliseConformidade.indisponibilidadeTecnica();
-        }
-        JsonNode existente = consultarDocumento(documentId)
-                .orElseThrow(FalhaAnaliseConformidade::indisponibilidadeTecnica);
-        if (!normalizar(existente).equals(normalizar(documento))) {
-            throw FalhaAnaliseConformidade.transicaoInvalida();
-        }
+        });
     }
 
-    private CouchDbClient.Resposta chamarGravacao(
+    private Uni<Void> gravarImutavel(String documentId, ObjectNode documento) {
+        return chamarGravacao(documentId, documento).chain(response -> {
+            if (response.status() == 201) {
+                return Uni.createFrom().voidItem();
+            }
+            if (response.status() != 409) {
+                return Uni.createFrom().failure(
+                        FalhaAnaliseConformidade.indisponibilidadeTecnica());
+            }
+            return consultarDocumento(documentId).map(existenteOpcional -> {
+                JsonNode existente = existenteOpcional.orElseThrow(
+                        FalhaAnaliseConformidade::indisponibilidadeTecnica);
+                if (!normalizar(existente).equals(normalizar(documento))) {
+                    throw FalhaAnaliseConformidade.transicaoInvalida();
+                }
+                return null;
+            });
+        });
+    }
+
+    private Uni<CouchDbClient.Resposta> chamarGravacao(
             String documentId,
             JsonNode documento) {
-        try {
-            return client.gravar(database, documentId, documento);
-        } catch (RuntimeException _) {
-            throw FalhaAnaliseConformidade.indisponibilidadeTecnica();
-        }
+        return client.gravar(database, documentId, documento)
+                .onFailure()
+                .transform(CouchDbAnaliseConformidadeStore::sanitizarFalha);
     }
 
-    private Optional<JsonNode> consultarDocumento(String documentId) {
-        try {
-            var response = client.consultar(database, documentId);
-            if (response.status() == 404) {
-                return Optional.empty();
-            }
-            if (response.status() != 200 || response.body() == null) {
-                throw FalhaAnaliseConformidade.indisponibilidadeTecnica();
-            }
-            return Optional.of(response.body());
-        } catch (FalhaAnaliseConformidade falha) {
-            throw falha;
-        } catch (RuntimeException _) {
-            throw FalhaAnaliseConformidade.indisponibilidadeTecnica();
+    private Uni<Optional<JsonNode>> consultarDocumento(String documentId) {
+        return client.consultar(database, documentId)
+                .map(response -> {
+                    if (response.status() == 404) {
+                        return Optional.<JsonNode>empty();
+                    }
+                    if (response.status() != 200 || response.body() == null) {
+                        throw FalhaAnaliseConformidade.indisponibilidadeTecnica();
+                    }
+                    return Optional.of(response.body());
+                })
+                .onFailure()
+                .transform(CouchDbAnaliseConformidadeStore::sanitizarFalha);
+    }
+
+    private static Throwable sanitizarFalha(Throwable falha) {
+        if (falha instanceof FalhaAnaliseConformidade) {
+            return falha;
         }
+        return FalhaAnaliseConformidade.indisponibilidadeTecnica();
     }
 
     private JsonNode normalizar(JsonNode documento) {

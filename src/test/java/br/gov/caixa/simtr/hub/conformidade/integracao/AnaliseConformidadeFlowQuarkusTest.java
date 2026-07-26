@@ -103,7 +103,10 @@ class AnaliseConformidadeFlowQuarkusTest {
                 .extract()
                 .response();
         String instanceId = resposta.path("instanceId");
-        VisaoAnaliseConformidade inicial = estados.consultar(instanceId).orElseThrow();
+        VisaoAnaliseConformidade inicial = estados.consultar(instanceId)
+                .await()
+                .indefinitely()
+                .orElseThrow();
 
         assertEquals(resposta.path("correlationId"), inicial.correlationId());
         assertEquals(IDENTIFICADOR_DOCUMENTO, inicial.identificadorDocumento());
@@ -227,7 +230,11 @@ class AnaliseConformidadeFlowQuarkusTest {
         aguardarStatusFlow(flowPrimeira, WorkflowStatus.COMPLETED);
         assertEquals(
                 StatusAnaliseConformidade.AGUARDANDO_REVISAO,
-                estados.consultar(segunda).orElseThrow().status());
+                estados.consultar(segunda)
+                        .await()
+                        .indefinitely()
+                        .orElseThrow()
+                        .status());
         assertEquals(WorkflowStatus.WAITING, flowSegunda.status());
 
         enviarRevisao(segunda, 0.9d).statusCode(202);
@@ -247,7 +254,11 @@ class AnaliseConformidadeFlowQuarkusTest {
 
         assertEquals(
                 StatusAnaliseConformidade.AGUARDANDO_REVISAO,
-                estados.consultar(instanceId).orElseThrow().status());
+                estados.consultar(instanceId)
+                        .await()
+                        .indefinitely()
+                        .orElseThrow()
+                        .status());
         assertEquals(WorkflowStatus.WAITING, instancia.status());
 
         enviarRevisao(instanceId, 0.9d).statusCode(202);
@@ -368,7 +379,10 @@ class AnaliseConformidadeFlowQuarkusTest {
             StatusAnaliseConformidade statusEsperado) {
         long limite = System.nanoTime() + Duration.ofSeconds(2).toNanos();
         while (System.nanoTime() < limite) {
-            VisaoAnaliseConformidade atual = estados.consultar(instanceId).orElseThrow();
+            VisaoAnaliseConformidade atual = estados.consultar(instanceId)
+                    .await()
+                    .indefinitely()
+                    .orElseThrow();
             if (atual.status() == statusEsperado) {
                 return atual;
             }

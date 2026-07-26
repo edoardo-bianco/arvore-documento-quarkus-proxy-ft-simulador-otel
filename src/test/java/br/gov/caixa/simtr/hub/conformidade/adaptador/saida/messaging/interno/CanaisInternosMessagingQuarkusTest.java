@@ -102,7 +102,9 @@ class CanaisInternosMessagingQuarkusTest {
                 "DOC-2026-000123",
                 "Texto para análise",
                 1000012583L,
-                1));
+                1))
+                .await()
+                .indefinitely();
         estados.registrarChecklist(
                 "instancia-flow-out",
                 new Checklist(
@@ -119,7 +121,9 @@ class CanaisInternosMessagingQuarkusTest {
                                 "Descrição",
                                 "Orientação",
                                 false,
-                                1))));
+                                1))))
+                .await()
+                .indefinitely();
         var evento = CloudEventBuilder.v1()
                 .withId("evento-flow-out")
                 .withSource(URI.create("urn:simtr-hub:conformidade:workflow"))
@@ -147,7 +151,11 @@ class CanaisInternosMessagingQuarkusTest {
                                 .asLong()),
                 () -> assertEquals(
                         StatusAnaliseConformidade.AGUARDANDO_REVISAO,
-                        estados.consultar("instancia-flow-out").orElseThrow().status()),
+                        estados.consultar("instancia-flow-out")
+                                .await()
+                                .indefinitely()
+                                .orElseThrow()
+                                .status()),
                 () -> assertNotNull(flowOutPublisher),
                 () -> assertTrue(config
                         .getOptionalValue("mp.messaging.outgoing.flow-out.connector", String.class)

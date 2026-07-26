@@ -1,8 +1,8 @@
 package br.gov.caixa.simtr.hub.conformidade.adaptador.saida.messaging.interno;
 
+import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import java.util.concurrent.CompletionStage;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -23,13 +23,12 @@ public class FlowOutCloudEventConsumer {
 
     @Incoming(CANAL_FLOW_OUT)
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
-    public CompletionStage<Void> consumir(Message<byte[]> mensagem) {
-        try {
+    public Uni<Void> consumir(Message<byte[]> mensagem) {
+        return Uni.createFrom().deferred(() -> {
             EventoFlowOutRecebido evento = mapper.lerEventoSaida(mensagem.getPayload());
-            registrar.registrar(evento);
-        } catch (RuntimeException falha) {
-            return mensagem.nack(falha);
-        }
-        return mensagem.ack();
+            return registrar.registrar(evento)
+                    .chain(() -> Uni.createFrom().completionStage(mensagem::ack));
+        }).onFailure().recoverWithUni(falha ->
+                Uni.createFrom().completionStage(() -> mensagem.nack(falha)));
     }
 }

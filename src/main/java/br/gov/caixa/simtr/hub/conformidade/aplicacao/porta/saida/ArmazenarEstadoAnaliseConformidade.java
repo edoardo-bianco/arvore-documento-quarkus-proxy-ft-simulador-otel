@@ -5,29 +5,30 @@ import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.RevisaoHumanaC
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.ResultadoAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.SolicitacaoAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.VisaoAnaliseConformidade;
+import io.smallrye.mutiny.Uni;
 import java.util.Optional;
 
 public interface ArmazenarEstadoAnaliseConformidade {
 
-    void iniciar(String instanceId, SolicitacaoAnaliseConformidade solicitacao);
+    Uni<Void> iniciar(String instanceId, SolicitacaoAnaliseConformidade solicitacao);
 
-    void registrarChecklist(String instanceId, Checklist checklist);
+    Uni<Void> registrarChecklist(String instanceId, Checklist checklist);
 
-    void aguardarRevisao(
+    Uni<Void> aguardarRevisao(
             String instanceId,
             ResultadoAnaliseConformidade resultado);
 
-    void reservarRevisao(
+    Uni<Void> reservarRevisao(
             String instanceId,
             RevisaoHumanaConformidade revisao);
 
-    void concluir(
+    Uni<Void> concluir(
             String instanceId,
             ResultadoAnaliseConformidade resultado);
 
-    void falhar(
+    Uni<Void> falhar(
             String instanceId,
             String mensagem);
 
-    Optional<VisaoAnaliseConformidade> consultar(String instanceId);
+    Uni<Optional<VisaoAnaliseConformidade>> consultar(String instanceId);
 }

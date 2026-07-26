@@ -4,6 +4,7 @@ import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.ArmazenarEstado
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.ResultadoAnaliseConformidade;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.util.List;
@@ -32,18 +33,23 @@ public class EventosFlowOutEmMemoria implements RegistrarEventoFlowOut {
     }
 
     @Override
-    public void registrar(EventoFlowOutRecebido evento) {
-        ResultadoAnaliseConformidade resultado = lerResultado(evento);
-        switch (evento.tipo()) {
-            case CloudEventMapper.EVENTO_REVISAO_SOLICITADA ->
-                estados.aguardarRevisao(evento.instanceId(), resultado);
-            case CloudEventMapper.EVENTO_ANALISE_CONCLUIDA ->
-                estados.concluir(evento.instanceId(), resultado);
-            default -> throw new CloudEventInvalidoException(
-                    "Tipo de CloudEvent inválido para projeção");
-        }
-        eventos.computeIfAbsent(evento.instanceId(), ignored -> new CopyOnWriteArrayList<>())
-                .add(evento);
+    public Uni<Void> registrar(EventoFlowOutRecebido evento) {
+        return Uni.createFrom().deferred(() -> {
+            ResultadoAnaliseConformidade resultado = lerResultado(evento);
+            Uni<Void> projecao = switch (evento.tipo()) {
+                case CloudEventMapper.EVENTO_REVISAO_SOLICITADA ->
+                    estados.aguardarRevisao(evento.instanceId(), resultado);
+                case CloudEventMapper.EVENTO_ANALISE_CONCLUIDA ->
+                    estados.concluir(evento.instanceId(), resultado);
+                default -> throw new CloudEventInvalidoException(
+                        "Tipo de CloudEvent inválido para projeção");
+            };
+            return projecao.invoke(() ->
+                    eventos.computeIfAbsent(
+                                    evento.instanceId(),
+                                    ignored -> new CopyOnWriteArrayList<>())
+                            .add(evento));
+        });
     }
 
     private ResultadoAnaliseConformidade lerResultado(EventoFlowOutRecebido evento) {

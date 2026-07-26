@@ -59,7 +59,9 @@ class CasosDeUsoAnaliseConformidadeTest {
         assertEquals(CORRELATION_ID, visao.correlationId());
         assertEquals(IDENTIFICADOR_DOCUMENTO, visao.identificadorDocumento());
         assertEquals(StatusAnaliseConformidade.EM_PROCESSAMENTO, visao.status());
-        assertEquals(visao, store.consultar(visao.instanceId()).orElseThrow());
+        assertEquals(
+                visao,
+                aguardar(store.consultar(visao.instanceId())).orElseThrow());
         verify(instancia).start();
     }
 
@@ -101,7 +103,8 @@ class CasosDeUsoAnaliseConformidadeTest {
         assertEquals(
                 FalhaAnaliseConformidade.Tipo.INDISPONIBILIDADE_TECNICA,
                 falha.tipo());
-        var visao = store.consultar("01J3FLOWFALHA0000000000000").orElseThrow();
+        var visao = aguardar(store.consultar(
+                "01J3FLOWFALHA0000000000000")).orElseThrow();
         assertEquals(StatusAnaliseConformidade.FALHOU, visao.status());
         assertEquals(
                 "Não foi possível consultar o checklist para a análise",
@@ -164,7 +167,9 @@ class CasosDeUsoAnaliseConformidadeTest {
 
         FalhaAnaliseConformidade falha = assertThrows(
                 FalhaAnaliseConformidade.class,
-                () -> casoDeUso.executar("instancia-1", revisaoInconsistente));
+                () -> aguardar(casoDeUso.executar(
+                        "instancia-1",
+                        revisaoInconsistente)));
 
         assertEquals(FalhaAnaliseConformidade.Tipo.REVISAO_INCONSISTENTE, falha.tipo());
         assertDoesNotThrow(() -> casoDeUso.executar("instancia-1", revisaoValida())
@@ -182,7 +187,7 @@ class CasosDeUsoAnaliseConformidadeTest {
 
         FalhaAnaliseConformidade falha = assertThrows(
                 FalhaAnaliseConformidade.class,
-                () -> casoDeUso.executar("instancia-1", revisao));
+                () -> aguardar(casoDeUso.executar("instancia-1", revisao)));
 
         assertEquals(FalhaAnaliseConformidade.Tipo.TRANSICAO_INVALIDA, falha.tipo());
         verifyNoInteractions(publicador);
@@ -191,7 +196,9 @@ class CasosDeUsoAnaliseConformidadeTest {
     private static AnaliseConformidadeMemoryStore storeAguardandoRevisao() {
         var store = new AnaliseConformidadeMemoryStore();
         iniciar(store, "instancia-1");
-        store.aguardarRevisao("instancia-1", resultadoPreliminar());
+        aguardar(store.aguardarRevisao(
+                "instancia-1",
+                resultadoPreliminar()));
         return store;
     }
 
@@ -204,8 +211,8 @@ class CasosDeUsoAnaliseConformidadeTest {
                 "Texto para análise",
                 1000012583L,
                 1);
-        store.iniciar(instanceId, solicitacao);
-        store.registrarChecklist(instanceId, new Checklist(
+        aguardar(store.iniciar(instanceId, solicitacao));
+        aguardar(store.registrarChecklist(instanceId, new Checklist(
                 "Checklist documental",
                 1000012583L,
                 1,
@@ -219,7 +226,11 @@ class CasosDeUsoAnaliseConformidadeTest {
                         "Descrição",
                         "Orientação",
                         false,
-                        1))));
+                        1)))));
+    }
+
+    private static <T> T aguardar(Uni<T> operacao) {
+        return operacao.await().indefinitely();
     }
 
     private static ResultadoAnaliseConformidade resultadoPreliminar() {
