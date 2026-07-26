@@ -549,6 +549,9 @@
 - risco registrado sem alteração contratual: a especificação aprovada não define
   tamanho máximo para `identificadorDocumento`; o incremento valida somente
   obrigatoriedade/não vazio e não inventa um limite público;
+- esclarecimento humano recebido em 2026-07-26: `identificadorDocumento` permanece
+  `String`; um identificador originalmente numérico pode ser representado como texto,
+  e nenhuma conversão para `Long` será feita nesta evolução;
 - o checkpoint executou `clean verify`, SonarScanner e Compute Engine e terminou
   `COMPLIANT`: 219 issues atuais contra 219 no baseline, nenhuma issue nova ou
   `HIGH`, `BLOCKER` ou `CRITICAL`, cobertura de 86,2%, duplicação de 3,0% e decisão
@@ -594,6 +597,7 @@
 | Revalidação Sonar incremento 6 | COMPLIANT | 2026-07-26 | Baseline da sessão e checkpoint completos; 0 issues novas, cobertura 86,2%, duplicação 3,1% e decisão `NOT_REQUIRED` | — |
 | Sonar spike Task 7.1 | COMPLIANT | 2026-07-26 | 0 issues novas; cobertura 86,2%; duplicação 3,1%; decisão `NOT_REQUIRED` | — |
 | Sonar Task 7.2 | COMPLIANT | 2026-07-26 | 0 issues novas; cobertura 86,2%; duplicação 3,0%; decisão `NOT_REQUIRED` | — |
+| Tipo de `identificadorDocumento` | APROVADO | 2026-07-26 | Usuário confirmou manter `String`; tipos futuros ausentes ou ambíguos exigem pergunta e registro antes da especificação | Usuário |
 | CF | PENDENTE | — | Aguardará evidências finais | — |
 
 ## Regras de avanço
