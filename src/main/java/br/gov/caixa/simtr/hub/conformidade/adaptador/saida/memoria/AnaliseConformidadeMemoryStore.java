@@ -9,6 +9,7 @@ import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.ResultadoAnali
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.SolicitacaoAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.StatusAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.VisaoAnaliseConformidade;
+import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,137 +21,158 @@ public class AnaliseConformidadeMemoryStore implements ArmazenarEstadoAnaliseCon
     private final ConcurrentMap<String, EstadoArmazenado> estados = new ConcurrentHashMap<>();
 
     @Override
-    public void iniciar(
+    public Uni<Void> iniciar(
             String instanceId,
             SolicitacaoAnaliseConformidade solicitacao) {
-        validarInstanceId(instanceId);
-        if (solicitacao == null) {
-            throw FalhaAnaliseConformidade.solicitacaoInvalida(
-                    "A solicitação da análise é obrigatória");
-        }
-        var novo = new EstadoArmazenado(
-                VisaoAnaliseConformidade.emProcessamento(
-                        solicitacao.correlationId(),
-                        instanceId,
-                        solicitacao.identificadorDocumento(),
-                        solicitacao.identificadorChecklist(),
-                        solicitacao.versaoChecklist()),
-                null,
-                null);
-        if (estados.putIfAbsent(instanceId, novo) != null) {
-            throw FalhaAnaliseConformidade.transicaoInvalida();
-        }
-    }
-
-    @Override
-    public void registrarChecklist(String instanceId, Checklist checklist) {
-        validarInstanceId(instanceId);
-        estados.compute(instanceId, (id, atual) -> {
-            EstadoArmazenado encontrado = exigirEstado(atual);
-            validarChecklist(encontrado.visao(), checklist);
-            Checklist congelado = congelar(checklist);
-            if (encontrado.checklist() != null && !encontrado.checklist().equals(congelado)) {
+        return executar(() -> {
+            validarInstanceId(instanceId);
+            if (solicitacao == null) {
+                throw FalhaAnaliseConformidade.solicitacaoInvalida(
+                        "A solicitação da análise é obrigatória");
+            }
+            var novo = new EstadoArmazenado(
+                    VisaoAnaliseConformidade.emProcessamento(
+                            solicitacao.correlationId(),
+                            instanceId,
+                            solicitacao.identificadorDocumento(),
+                            solicitacao.identificadorChecklist(),
+                            solicitacao.versaoChecklist()),
+                    null,
+                    null);
+            if (estados.putIfAbsent(instanceId, novo) != null) {
                 throw FalhaAnaliseConformidade.transicaoInvalida();
             }
-            return new EstadoArmazenado(
-                    encontrado.visao(),
-                    congelado,
-                    encontrado.revisao());
         });
     }
 
     @Override
-    public void aguardarRevisao(
+    public Uni<Void> registrarChecklist(String instanceId, Checklist checklist) {
+        return executar(() -> {
+            validarInstanceId(instanceId);
+            estados.compute(instanceId, (id, atual) -> {
+                EstadoArmazenado encontrado = exigirEstado(atual);
+                validarChecklist(encontrado.visao(), checklist);
+                Checklist congelado = congelar(checklist);
+                if (encontrado.checklist() != null && !encontrado.checklist().equals(congelado)) {
+                    throw FalhaAnaliseConformidade.transicaoInvalida();
+                }
+                return new EstadoArmazenado(
+                        encontrado.visao(),
+                        congelado,
+                        encontrado.revisao());
+            });
+        });
+    }
+
+    @Override
+    public Uni<Void> aguardarRevisao(
             String instanceId,
             ResultadoAnaliseConformidade resultado) {
-        validarInstanceId(instanceId);
-        validarResultadoPreliminar(resultado);
-        estados.compute(instanceId, (id, atual) -> {
-            EstadoArmazenado encontrado = exigirEstado(atual);
-            if (encontrado.visao().status() != StatusAnaliseConformidade.EM_PROCESSAMENTO
-                    || encontrado.checklist() == null) {
-                throw FalhaAnaliseConformidade.transicaoInvalida();
-            }
-            return new EstadoArmazenado(
-                    encontrado.visao().aguardandoRevisao(resultado),
-                    encontrado.checklist(),
-                    null);
+        return executar(() -> {
+            validarInstanceId(instanceId);
+            validarResultadoPreliminar(resultado);
+            estados.compute(instanceId, (id, atual) -> {
+                EstadoArmazenado encontrado = exigirEstado(atual);
+                if (encontrado.visao().status() != StatusAnaliseConformidade.EM_PROCESSAMENTO
+                        || encontrado.checklist() == null) {
+                    throw FalhaAnaliseConformidade.transicaoInvalida();
+                }
+                return new EstadoArmazenado(
+                        encontrado.visao().aguardandoRevisao(resultado),
+                        encontrado.checklist(),
+                        null);
+            });
         });
     }
 
     @Override
-    public void reservarRevisao(
+    public Uni<Void> reservarRevisao(
             String instanceId,
             RevisaoHumanaConformidade revisao) {
-        validarInstanceId(instanceId);
-        if (revisao == null) {
-            throw FalhaAnaliseConformidade.revisaoInconsistente(
-                    "A revisão humana é obrigatória");
-        }
-        estados.compute(instanceId, (id, atual) -> {
-            EstadoArmazenado encontrado = exigirEstado(atual);
-            if (encontrado.visao().status() != StatusAnaliseConformidade.AGUARDANDO_REVISAO) {
-                throw FalhaAnaliseConformidade.transicaoInvalida();
+        return executar(() -> {
+            validarInstanceId(instanceId);
+            if (revisao == null) {
+                throw FalhaAnaliseConformidade.revisaoInconsistente(
+                        "A revisão humana é obrigatória");
             }
-            if (encontrado.revisao() != null) {
-                if (encontrado.revisao().equals(revisao)) {
-                    return encontrado;
+            estados.compute(instanceId, (id, atual) -> {
+                EstadoArmazenado encontrado = exigirEstado(atual);
+                if (encontrado.visao().status() != StatusAnaliseConformidade.AGUARDANDO_REVISAO) {
+                    throw FalhaAnaliseConformidade.transicaoInvalida();
                 }
-                throw FalhaAnaliseConformidade.transicaoInvalida();
-            }
-            return new EstadoArmazenado(
-                    encontrado.visao(),
-                    encontrado.checklist(),
-                    revisao);
+                if (encontrado.revisao() != null) {
+                    if (encontrado.revisao().equals(revisao)) {
+                        return encontrado;
+                    }
+                    throw FalhaAnaliseConformidade.transicaoInvalida();
+                }
+                return new EstadoArmazenado(
+                        encontrado.visao(),
+                        encontrado.checklist(),
+                        revisao);
+            });
         });
     }
 
     @Override
-    public void concluir(
+    public Uni<Void> concluir(
             String instanceId,
             ResultadoAnaliseConformidade resultado) {
-        validarInstanceId(instanceId);
-        validarResultadoFinal(resultado);
-        estados.compute(instanceId, (id, atual) -> {
-            EstadoArmazenado encontrado = exigirEstado(atual);
-            if (encontrado.visao().status() != StatusAnaliseConformidade.AGUARDANDO_REVISAO
-                    || encontrado.revisao() == null) {
-                throw FalhaAnaliseConformidade.transicaoInvalida();
-            }
-            return new EstadoArmazenado(
-                    encontrado.visao().concluida(resultado),
-                    encontrado.checklist(),
-                    encontrado.revisao());
+        return executar(() -> {
+            validarInstanceId(instanceId);
+            validarResultadoFinal(resultado);
+            estados.compute(instanceId, (id, atual) -> {
+                EstadoArmazenado encontrado = exigirEstado(atual);
+                if (encontrado.visao().status() != StatusAnaliseConformidade.AGUARDANDO_REVISAO
+                        || encontrado.revisao() == null) {
+                    throw FalhaAnaliseConformidade.transicaoInvalida();
+                }
+                return new EstadoArmazenado(
+                        encontrado.visao().concluida(resultado),
+                        encontrado.checklist(),
+                        encontrado.revisao());
+            });
         });
     }
 
     @Override
-    public void falhar(String instanceId, String mensagem) {
-        validarInstanceId(instanceId);
-        if (mensagem == null || mensagem.isBlank()) {
-            throw FalhaAnaliseConformidade.transicaoInvalida();
-        }
-        estados.compute(instanceId, (id, atual) -> {
-            EstadoArmazenado encontrado = exigirEstado(atual);
-            StatusAnaliseConformidade status = encontrado.visao().status();
-            if (status != StatusAnaliseConformidade.EM_PROCESSAMENTO
-                    && status != StatusAnaliseConformidade.AGUARDANDO_REVISAO) {
+    public Uni<Void> falhar(String instanceId, String mensagem) {
+        return executar(() -> {
+            validarInstanceId(instanceId);
+            if (mensagem == null || mensagem.isBlank()) {
                 throw FalhaAnaliseConformidade.transicaoInvalida();
             }
-            return new EstadoArmazenado(
-                    encontrado.visao().falhou(mensagem),
-                    encontrado.checklist(),
-                    encontrado.revisao());
+            estados.compute(instanceId, (id, atual) -> {
+                EstadoArmazenado encontrado = exigirEstado(atual);
+                StatusAnaliseConformidade status = encontrado.visao().status();
+                if (status != StatusAnaliseConformidade.EM_PROCESSAMENTO
+                        && status != StatusAnaliseConformidade.AGUARDANDO_REVISAO) {
+                    throw FalhaAnaliseConformidade.transicaoInvalida();
+                }
+                return new EstadoArmazenado(
+                        encontrado.visao().falhou(mensagem),
+                        encontrado.checklist(),
+                        encontrado.revisao());
+            });
         });
     }
 
     @Override
-    public Optional<VisaoAnaliseConformidade> consultar(String instanceId) {
-        if (instanceId == null || instanceId.isBlank()) {
-            return Optional.empty();
-        }
-        return Optional.ofNullable(estados.get(instanceId))
-                .map(EstadoArmazenado::visao);
+    public Uni<Optional<VisaoAnaliseConformidade>> consultar(String instanceId) {
+        return Uni.createFrom().item(() -> {
+            if (instanceId == null || instanceId.isBlank()) {
+                return Optional.empty();
+            }
+            return Optional.ofNullable(estados.get(instanceId))
+                    .map(EstadoArmazenado::visao);
+        });
+    }
+
+    private static Uni<Void> executar(Runnable operacao) {
+        return Uni.createFrom().item(() -> {
+            operacao.run();
+            return null;
+        });
     }
 
     private static void validarInstanceId(String instanceId) {

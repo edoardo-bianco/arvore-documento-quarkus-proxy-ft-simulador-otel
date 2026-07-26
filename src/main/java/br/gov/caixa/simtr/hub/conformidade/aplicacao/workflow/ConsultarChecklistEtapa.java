@@ -5,10 +5,10 @@ import br.gov.caixa.simtr.hub.conformidade.dominio.erro.FalhaAnaliseConformidade
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.Checklist;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.ComandoConsultaChecklist;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.SolicitacaoAnaliseConformidade;
+import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 @ApplicationScoped
 public class ConsultarChecklistEtapa {
@@ -20,10 +20,10 @@ public class ConsultarChecklistEtapa {
         this.consultarChecklist = consultarChecklist;
     }
 
-    public CompletableFuture<ContextoAnaliseConformidadeFlow> executar(
+    public Uni<ContextoAnaliseConformidadeFlow> executar(
             SolicitacaoAnaliseConformidade solicitacao) {
         if (solicitacao == null) {
-            return CompletableFuture.failedFuture(
+            return Uni.createFrom().failure(
                     FalhaAnaliseConformidade.solicitacaoInvalida(
                             "A solicitação da análise é obrigatória"));
         }
@@ -35,9 +35,7 @@ public class ConsultarChecklistEtapa {
                 .onItem().ifNull().failWith(() ->
                         FalhaAnaliseConformidade.checklistInvalido(
                                 "Checklist não localizado para a análise"))
-                .map(checklist -> contexto(solicitacao, checklist))
-                .subscribeAsCompletionStage()
-                .toCompletableFuture();
+                .map(checklist -> contexto(solicitacao, checklist));
     }
 
     private static ContextoAnaliseConformidadeFlow contexto(

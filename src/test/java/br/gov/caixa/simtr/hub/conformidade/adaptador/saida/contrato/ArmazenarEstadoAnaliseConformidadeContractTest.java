@@ -41,11 +41,11 @@ public abstract class ArmazenarEstadoAnaliseConformidadeContractTest {
                 "Texto protegido",
                 1000012583L,
                 1);
-        store.iniciar(instanceId, solicitacao);
+        aguardar(store.iniciar(instanceId, solicitacao));
 
         FalhaAnaliseConformidade falha = assertThrows(
                 FalhaAnaliseConformidade.class,
-                () -> store.iniciar(instanceId, solicitacao));
+                () -> aguardar(store.iniciar(instanceId, solicitacao)));
 
         assertEquals(FalhaAnaliseConformidade.Tipo.TRANSICAO_INVALIDA, falha.tipo());
     }
@@ -58,11 +58,13 @@ public abstract class ArmazenarEstadoAnaliseConformidadeContractTest {
         var finalizado = resultado(OrigemResultado.REVISAO_HUMANA);
 
         iniciar(store, cenario);
-        store.aguardarRevisao(cenario.instanceId(), preliminar);
-        store.reservarRevisao(cenario.instanceId(), revisao("Aprovada", finalizado));
-        store.concluir(cenario.instanceId(), finalizado);
+        aguardar(store.aguardarRevisao(cenario.instanceId(), preliminar));
+        aguardar(store.reservarRevisao(
+                cenario.instanceId(),
+                revisao("Aprovada", finalizado)));
+        aguardar(store.concluir(cenario.instanceId(), finalizado));
 
-        var concluida = store.consultar(cenario.instanceId()).orElseThrow();
+        var concluida = aguardar(store.consultar(cenario.instanceId())).orElseThrow();
         assertEquals(cenario.correlationId(), concluida.correlationId());
         assertEquals(cenario.instanceId(), concluida.instanceId());
         assertEquals("DOC-2026-000123", concluida.identificadorDocumento());
@@ -79,15 +81,17 @@ public abstract class ArmazenarEstadoAnaliseConformidadeContractTest {
         String instanceId = cenario.instanceId();
         var finalizado = resultado(OrigemResultado.REVISAO_HUMANA);
         iniciar(store, cenario);
-        store.aguardarRevisao(instanceId, resultado(OrigemResultado.AGENTE));
+        aguardar(store.aguardarRevisao(
+                instanceId,
+                resultado(OrigemResultado.AGENTE)));
         var primeira = revisao("Aprovada", finalizado);
         var contraditoria = revisao("Contraditória", finalizado);
 
-        store.reservarRevisao(instanceId, primeira);
-        store.reservarRevisao(instanceId, primeira);
+        aguardar(store.reservarRevisao(instanceId, primeira));
+        aguardar(store.reservarRevisao(instanceId, primeira));
         FalhaAnaliseConformidade falha = assertThrows(
                 FalhaAnaliseConformidade.class,
-                () -> store.reservarRevisao(instanceId, contraditoria));
+                () -> aguardar(store.reservarRevisao(instanceId, contraditoria)));
 
         assertEquals(FalhaAnaliseConformidade.Tipo.TRANSICAO_INVALIDA, falha.tipo());
     }
@@ -98,18 +102,18 @@ public abstract class ArmazenarEstadoAnaliseConformidadeContractTest {
         var store = novoStore();
         var preliminar = resultado(OrigemResultado.FALLBACK_TECNICO);
         iniciar(store, cenario);
-        store.aguardarRevisao(cenario.instanceId(), preliminar);
+        aguardar(store.aguardarRevisao(cenario.instanceId(), preliminar));
 
-        store.falhar(cenario.instanceId(), "Falha pública sanitizada");
+        aguardar(store.falhar(cenario.instanceId(), "Falha pública sanitizada"));
 
-        var falhou = store.consultar(cenario.instanceId()).orElseThrow();
+        var falhou = aguardar(store.consultar(cenario.instanceId())).orElseThrow();
         String instanceId = cenario.instanceId();
         assertEquals(StatusAnaliseConformidade.FALHOU, falhou.status());
         assertEquals(preliminar, falhou.resultadoPreliminar());
         assertEquals("Falha pública sanitizada", falhou.mensagemErro());
         FalhaAnaliseConformidade repeticao = assertThrows(
                 FalhaAnaliseConformidade.class,
-                () -> store.falhar(instanceId, "Outra falha"));
+                () -> aguardar(store.falhar(instanceId, "Outra falha")));
         assertEquals(FalhaAnaliseConformidade.Tipo.TRANSICAO_INVALIDA, repeticao.tipo());
     }
 
@@ -119,7 +123,9 @@ public abstract class ArmazenarEstadoAnaliseConformidadeContractTest {
         var store = novoStore();
         var finalizado = resultado(OrigemResultado.REVISAO_HUMANA);
         iniciar(store, cenario);
-        store.aguardarRevisao(cenario.instanceId(), resultado(OrigemResultado.AGENTE));
+        aguardar(store.aguardarRevisao(
+                cenario.instanceId(),
+                resultado(OrigemResultado.AGENTE)));
         var prontas = new CountDownLatch(2);
         var largada = new CountDownLatch(1);
         var executor = Executors.newFixedThreadPool(2);
@@ -164,7 +170,7 @@ public abstract class ArmazenarEstadoAnaliseConformidadeContractTest {
         prontas.countDown();
         largada.await();
         try {
-            store.reservarRevisao(instanceId, revisao);
+            aguardar(store.reservarRevisao(instanceId, revisao));
             return null;
         } catch (FalhaAnaliseConformidade falha) {
             return falha.tipo();
@@ -174,15 +180,19 @@ public abstract class ArmazenarEstadoAnaliseConformidadeContractTest {
     protected static void iniciar(
             ArmazenarEstadoAnaliseConformidade store,
             Cenario cenario) {
-        store.iniciar(
+        aguardar(store.iniciar(
                 cenario.instanceId(),
                 new SolicitacaoAnaliseConformidade(
                         cenario.correlationId(),
                         "DOC-2026-000123",
                         "Texto protegido",
                         1000012583L,
-                        1));
-        store.registrarChecklist(cenario.instanceId(), checklist());
+                        1)));
+        aguardar(store.registrarChecklist(cenario.instanceId(), checklist()));
+    }
+
+    protected static <T> T aguardar(io.smallrye.mutiny.Uni<T> operacao) {
+        return operacao.await().indefinitely();
     }
 
     protected static Cenario novoCenario() {

@@ -36,16 +36,16 @@ class ConsultarChecklistEtapaTest {
         var etapa = new ConsultarChecklistEtapa(consultar);
 
         var resultado = etapa.executar(SOLICITACAO);
+        var futuro = resultado.subscribeAsCompletionStage().toCompletableFuture();
 
-        assertFalse(resultado.toCompletableFuture().isDone());
+        assertFalse(futuro.isDone());
         assertEquals(
                 new ComandoConsultaChecklist(1000012583L, 1),
                 consultar.comandoRecebido);
 
         var apontamentos = new ArrayList<>(List.of(apontamento()));
         controlado.complete(checklist(apontamentos));
-        ContextoAnaliseConformidadeFlow contexto =
-                resultado.toCompletableFuture().join();
+        ContextoAnaliseConformidadeFlow contexto = futuro.join();
         apontamentos.clear();
 
         assertEquals(SOLICITACAO.correlationId(), contexto.correlationId());
@@ -78,7 +78,9 @@ class ConsultarChecklistEtapaTest {
         var falhaEsperada = new IllegalStateException("falha parametrização");
         var etapa = new ConsultarChecklistEtapa(
                 comando -> Uni.createFrom().failure(falhaEsperada));
-        var resultado = etapa.executar(SOLICITACAO).toCompletableFuture();
+        var resultado = etapa.executar(SOLICITACAO)
+                .subscribeAsCompletionStage()
+                .toCompletableFuture();
 
         CompletionException falha = assertThrows(
                 CompletionException.class,
@@ -88,8 +90,8 @@ class ConsultarChecklistEtapaTest {
     }
 
     private static FalhaAnaliseConformidade falhaDa(
-            java.util.concurrent.CompletionStage<ContextoAnaliseConformidadeFlow> resultado) {
-        var futuro = resultado.toCompletableFuture();
+            Uni<ContextoAnaliseConformidadeFlow> resultado) {
+        var futuro = resultado.subscribeAsCompletionStage().toCompletableFuture();
         CompletionException falha = assertThrows(
                 CompletionException.class,
                 futuro::join);

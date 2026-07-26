@@ -17,6 +17,7 @@ import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.RevisaoHumanaC
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.SolicitacaoAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.validacao.ValidadorAnaliseConformidade;
 import io.quarkiverse.flow.Flow;
+import io.smallrye.mutiny.Uni;
 import io.serverlessworkflow.api.types.Workflow;
 import io.serverlessworkflow.fluent.func.FuncWorkflowBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -83,41 +84,48 @@ public class AnaliseConformidadeFlow extends Flow {
                 .build();
     }
 
-    private ContextoAnaliseConformidadeFlow analisar(
+    private Uni<ContextoAnaliseConformidadeFlow> analisar(
             String identificadorInstancia,
             ContextoAnaliseConformidadeFlow contexto) {
-        if (contexto == null || contexto.resultado() != null) {
-            throw FalhaAnaliseConformidade.resultadoInvalido(
-                    "O contexto do agente deve possuir checklist e não pode estar analisado");
-        }
-        String instanceId = identificadorRaiz(identificadorInstancia);
-        estados.registrarChecklist(instanceId, contexto.checklist());
-        var entrada = new EntradaAnaliseAgente(
-                contexto.texto(),
-                contexto.checklist());
-        var resultado = analisarTexto.analisar(
-                instanceId,
-                entrada);
-        return new ContextoAnaliseConformidadeFlow(
-                contexto.correlationId(),
-                contexto.identificadorDocumento(),
-                contexto.texto(),
-                contexto.checklist(),
-                resultado);
+        return Uni.createFrom().deferred(() -> {
+            if (contexto == null || contexto.resultado() != null) {
+                throw FalhaAnaliseConformidade.resultadoInvalido(
+                        "O contexto do agente deve possuir checklist e não pode estar analisado");
+            }
+            String instanceId = identificadorRaiz(identificadorInstancia);
+            return estados.registrarChecklist(instanceId, contexto.checklist())
+                    .map(ignorado -> {
+                        var entrada = new EntradaAnaliseAgente(
+                                contexto.texto(),
+                                contexto.checklist());
+                        var resultado = analisarTexto.analisar(
+                                instanceId,
+                                entrada);
+                        return new ContextoAnaliseConformidadeFlow(
+                                contexto.correlationId(),
+                                contexto.identificadorDocumento(),
+                                contexto.texto(),
+                                contexto.checklist(),
+                                resultado);
+                    });
+        });
     }
 
-    private ResultadoAnaliseConformidade consolidarRevisao(
+    private Uni<ResultadoAnaliseConformidade> consolidarRevisao(
             String instanceId,
             RevisaoHumanaConformidade[] revisoes) {
-        if (revisoes == null || revisoes.length != 1 || revisoes[0] == null) {
-            throw FalhaAnaliseConformidade.revisaoInconsistente(
-                    "O workflow exige exatamente uma revisão humana");
-        }
-        var atual = estados.consultar(instanceId)
-                .orElseThrow(FalhaAnaliseConformidade::instanciaNaoEncontrada);
-        return validador.consolidarRevisao(
-                atual.resultadoPreliminar(),
-                revisoes[0]);
+        return Uni.createFrom().deferred(() -> {
+            if (revisoes == null || revisoes.length != 1 || revisoes[0] == null) {
+                throw FalhaAnaliseConformidade.revisaoInconsistente(
+                        "O workflow exige exatamente uma revisão humana");
+            }
+            return estados.consultar(instanceId)
+                    .map(atual -> atual.orElseThrow(
+                            FalhaAnaliseConformidade::instanciaNaoEncontrada))
+                    .map(atual -> validador.consolidarRevisao(
+                            atual.resultadoPreliminar(),
+                            revisoes[0]));
+        });
     }
 
     private static String identificadorRaiz(String identificadorTarefa) {

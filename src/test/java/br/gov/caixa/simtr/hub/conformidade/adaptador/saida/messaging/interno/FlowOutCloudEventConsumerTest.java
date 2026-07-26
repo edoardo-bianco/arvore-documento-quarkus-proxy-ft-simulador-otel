@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.smallrye.mutiny.Uni;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +24,8 @@ class FlowOutCloudEventConsumerTest {
     @Test
     void confirmaSomenteDepoisDeRegistrarEventoValido() {
         List<String> ordem = new ArrayList<>();
-        RegistrarEventoFlowOut registrar = evento -> ordem.add("processar");
+        RegistrarEventoFlowOut registrar = evento ->
+                Uni.createFrom().voidItem().invoke(() -> ordem.add("processar"));
         FlowOutCloudEventConsumer consumer = new FlowOutCloudEventConsumer(mapper, registrar);
         byte[] envelope = CloudEventMapperTest.eventoEstruturado(
                 EVENTO_REVISAO_SOLICITADA,
@@ -41,7 +43,7 @@ class FlowOutCloudEventConsumerTest {
                     return completedFuture(null);
                 });
 
-        consumer.consumir(mensagem).toCompletableFuture().join();
+        consumer.consumir(mensagem).await().indefinitely();
 
         assertEquals(List.of("processar", "ack"), ordem);
     }
@@ -51,7 +53,8 @@ class FlowOutCloudEventConsumerTest {
         AtomicBoolean processou = new AtomicBoolean();
         AtomicBoolean confirmou = new AtomicBoolean();
         AtomicReference<Throwable> rejeicao = new AtomicReference<>();
-        RegistrarEventoFlowOut registrar = evento -> processou.set(true);
+        RegistrarEventoFlowOut registrar = evento ->
+                Uni.createFrom().voidItem().invoke(() -> processou.set(true));
         FlowOutCloudEventConsumer consumer = new FlowOutCloudEventConsumer(mapper, registrar);
         Message<byte[]> mensagem = Message.of(
                 "{invalido".getBytes(StandardCharsets.UTF_8),
@@ -64,7 +67,7 @@ class FlowOutCloudEventConsumerTest {
                     return completedFuture(null);
                 });
 
-        consumer.consumir(mensagem).toCompletableFuture().join();
+        consumer.consumir(mensagem).await().indefinitely();
 
         assertFalse(processou.get());
         assertFalse(confirmou.get());
@@ -76,9 +79,8 @@ class FlowOutCloudEventConsumerTest {
     void rejeitaQuandoRegistroFalhaSemConfirmar() {
         AtomicBoolean confirmou = new AtomicBoolean();
         AtomicReference<Throwable> rejeicao = new AtomicReference<>();
-        RegistrarEventoFlowOut registrar = evento -> {
-            throw new IllegalStateException("store indisponível");
-        };
+        RegistrarEventoFlowOut registrar = evento -> Uni.createFrom().failure(
+                new IllegalStateException("store indisponível"));
         FlowOutCloudEventConsumer consumer = new FlowOutCloudEventConsumer(mapper, registrar);
         byte[] envelope = CloudEventMapperTest.eventoEstruturado(
                 EVENTO_REVISAO_SOLICITADA,
@@ -96,7 +98,7 @@ class FlowOutCloudEventConsumerTest {
                     return completedFuture(null);
                 });
 
-        consumer.consumir(mensagem).toCompletableFuture().join();
+        consumer.consumir(mensagem).await().indefinitely();
 
         assertFalse(confirmou.get());
         assertInstanceOf(IllegalStateException.class, rejeicao.get());

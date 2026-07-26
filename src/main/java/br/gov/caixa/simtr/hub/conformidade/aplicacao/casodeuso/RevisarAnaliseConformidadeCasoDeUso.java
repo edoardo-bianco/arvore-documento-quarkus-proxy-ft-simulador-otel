@@ -6,6 +6,7 @@ import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.PublicarRevisao
 import br.gov.caixa.simtr.hub.conformidade.dominio.erro.FalhaAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.RevisaoHumanaConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.StatusAnaliseConformidade;
+import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.VisaoAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.validacao.ValidadorAnaliseConformidade;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -31,15 +32,22 @@ public class RevisarAnaliseConformidadeCasoDeUso implements RevisarAnaliseConfor
     public Uni<Void> executar(
             String instanceId,
             RevisaoHumanaConformidade revisao) {
-        var atual = estados.consultar(instanceId)
-                .orElseThrow(FalhaAnaliseConformidade::instanciaNaoEncontrada);
+        return estados.consultar(instanceId)
+                .map(atual -> atual.orElseThrow(
+                        FalhaAnaliseConformidade::instanciaNaoEncontrada))
+                .invoke(atual -> validarRevisao(atual, revisao))
+                .chain(() -> estados.reservarRevisao(instanceId, revisao))
+                .chain(() -> publicarRevisao.publicar(instanceId, revisao));
+    }
+
+    private void validarRevisao(
+            VisaoAnaliseConformidade atual,
+            RevisaoHumanaConformidade revisao) {
         if (atual.status() != StatusAnaliseConformidade.AGUARDANDO_REVISAO) {
             throw FalhaAnaliseConformidade.transicaoInvalida();
         }
 
         atual.validarIdentidadesPersistidas();
         validador.consolidarRevisao(atual.resultadoPreliminar(), revisao);
-        estados.reservarRevisao(instanceId, revisao);
-        return publicarRevisao.publicar(instanceId, revisao);
     }
 }

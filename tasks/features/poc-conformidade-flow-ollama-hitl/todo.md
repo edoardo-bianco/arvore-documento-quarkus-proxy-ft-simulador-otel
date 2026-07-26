@@ -589,6 +589,20 @@
 - o novo checkpoint Sonar terminou `COMPLIANT`: 219 issues atuais contra 219 no
   baseline, nenhuma issue nova ou `HIGH`, `BLOCKER` ou `CRITICAL`, cobertura de
   85,1%, duplicação de 2,9% e decisão `NOT_REQUIRED`.
+- RED do contrato reativo falhou ao encontrar `void` nas escritas da porta
+  documental; o GREEN converteu escritas para `Uni<Void>` e leitura para
+  `Uni<Optional<VisaoAnaliseConformidade>>`;
+- o store em memória, o adapter CouchDB, os casos de uso, a projeção interna, o
+  consumidor Reactive Messaging e os callbacks Flow passaram a propagar `Uni`;
+- o cliente CouchDB deixou de usar `HttpClient.send` e passou a usar
+  `HttpClient.sendAsync`, sem `await`, `join` ou chamada HTTP bloqueante no código
+  de produção da conformidade;
+- os contratos compartilhados dos stores em memória e CouchDB real, os testes de
+  casos de uso, Flow, Reactive Messaging e a suíte completa terminaram com código
+  0;
+- o checkpoint Sonar desta fatia foi tentado em 2026-07-26, mas encerrou antes de
+  Maven/SonarScanner porque `SONAR_TOKEN` não estava disponível no processo;
+  situação `UNVERIFIED`, sem aprovação ou reprovação técnica.
 
 ### Planejamento da evolução durável
 
@@ -682,6 +696,7 @@
 | C6 | APROVADO | 2026-07-26 | Usuário confirmou Quarkus reativo/`Uni` em toda borda suportada, Cosmos por Entra ID com identidade gerenciada/federada e RBAC mínimo, CouchDB automático no `quarkus:dev` e Kubernetes local posterior | Usuário |
 | Sonar Task 7.3 — primeira execução | CONTINUAR_AJUSTES | 2026-07-26 | 21 issues novas, 10 `CRITICAL`, cobertura 80,1%, duplicação 2,9%; decisão registrada pelo script | Usuário |
 | Sonar Task 7.3 — reexecução | COMPLIANT | 2026-07-26 | 0 issues novas, cobertura 85,1%, duplicação 2,9% e decisão `NOT_REQUIRED` | — |
+| Sonar Task 7.3 — propagação de `Uni` | UNVERIFIED | 2026-07-26 | Script encerrou antes da análise porque o processo atual não herdou `SONAR_TOKEN`; suíte local completa aprovada | — |
 | CF | PENDENTE | — | Aguardará evidências finais | — |
 
 ## Regras de avanço

@@ -4,6 +4,7 @@ import static java.net.http.HttpResponse.BodyHandlers.ofString;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.smallrye.mutiny.Uni;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -29,35 +30,47 @@ final class CouchDbClient {
         this.authorization = authorization(username, password);
     }
 
-    Resposta gravar(String database, String documentId, JsonNode document) {
-        try {
-            var request = request(database, documentId)
-                    .header("Content-Type", "application/json")
-                    .PUT(HttpRequest.BodyPublishers.ofString(
-                            objectMapper.writeValueAsString(document)))
-                    .build();
-            return enviar(request);
-        } catch (IOException falha) {
-            throw new IllegalStateException("Falha ao serializar documento CouchDB", falha);
-        }
+    Uni<Resposta> gravar(String database, String documentId, JsonNode document) {
+        return Uni.createFrom().deferred(() -> {
+            try {
+                var request = request(database, documentId)
+                        .header("Content-Type", "application/json")
+                        .PUT(HttpRequest.BodyPublishers.ofString(
+                                objectMapper.writeValueAsString(document)))
+                        .build();
+                return enviar(request);
+            } catch (IOException falha) {
+                return Uni.createFrom().failure(
+                        new IllegalStateException("Falha ao serializar documento CouchDB", falha));
+            }
+        });
     }
 
-    Resposta consultar(String database, String documentId) {
+    Uni<Resposta> consultar(String database, String documentId) {
         return enviar(request(database, documentId).GET().build());
     }
 
-    private Resposta enviar(HttpRequest request) {
+    private Uni<Resposta> enviar(HttpRequest request) {
+        return Uni.createFrom()
+                .completionStage(() -> httpClient.sendAsync(
+                        request,
+                        ofString(StandardCharsets.UTF_8)))
+                .map(response -> resposta(
+                        response.statusCode(),
+                        response.body()))
+                .onFailure()
+                .transform(falha ->
+                        new IllegalStateException("Falha na chamada CouchDB", falha));
+    }
+
+    private Resposta resposta(int status, String body) {
         try {
-            var response = httpClient.send(request, ofString(StandardCharsets.UTF_8));
-            JsonNode body = response.body().isBlank()
+            JsonNode conteudo = body.isBlank()
                     ? null
-                    : objectMapper.readTree(response.body());
-            return new Resposta(response.statusCode(), body);
-        } catch (InterruptedException falha) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Chamada CouchDB interrompida", falha);
+                    : objectMapper.readTree(body);
+            return new Resposta(status, conteudo);
         } catch (IOException falha) {
-            throw new IllegalStateException("Falha na chamada CouchDB", falha);
+            throw new IllegalStateException("Resposta CouchDB inválida", falha);
         }
     }
 

@@ -45,17 +45,17 @@ class AnaliseConformidadeMemoryStoreTest {
         iniciar();
         assertEquals(
                 StatusAnaliseConformidade.EM_PROCESSAMENTO,
-                store.consultar(INSTANCE_ID).orElseThrow().status());
+                aguardar(store.consultar(INSTANCE_ID)).orElseThrow().status());
 
-        store.aguardarRevisao(INSTANCE_ID, preliminar);
-        var aguardando = store.consultar(INSTANCE_ID).orElseThrow();
+        aguardar(store.aguardarRevisao(INSTANCE_ID, preliminar));
+        var aguardando = aguardar(store.consultar(INSTANCE_ID)).orElseThrow();
         assertEquals(StatusAnaliseConformidade.AGUARDANDO_REVISAO, aguardando.status());
         assertSame(preliminar, aguardando.resultadoPreliminar());
 
-        store.reservarRevisao(INSTANCE_ID, revisao(finalizado));
-        store.concluir(INSTANCE_ID, finalizado);
+        aguardar(store.reservarRevisao(INSTANCE_ID, revisao(finalizado)));
+        aguardar(store.concluir(INSTANCE_ID, finalizado));
 
-        var concluida = store.consultar(INSTANCE_ID).orElseThrow();
+        var concluida = aguardar(store.consultar(INSTANCE_ID)).orElseThrow();
         assertEquals(CORRELATION_ID, concluida.correlationId());
         assertEquals(IDENTIFICADOR_DOCUMENTO, concluida.identificadorDocumento());
         assertEquals(1000012583L, concluida.identificadorChecklist());
@@ -73,15 +73,15 @@ class AnaliseConformidadeMemoryStoreTest {
 
         FalhaAnaliseConformidade ausente = assertThrows(
                 FalhaAnaliseConformidade.class,
-                () -> store.aguardarRevisao("ausente", preliminar));
+                () -> aguardar(store.aguardarRevisao("ausente", preliminar)));
         iniciar();
         FalhaAnaliseConformidade conclusaoAntecipada = assertThrows(
                 FalhaAnaliseConformidade.class,
-                () -> store.concluir(INSTANCE_ID, finalizado));
+                () -> aguardar(store.concluir(INSTANCE_ID, finalizado)));
         RevisaoHumanaConformidade revisaoAntecipada = revisao(finalizado);
         FalhaAnaliseConformidade reservaAntecipada = assertThrows(
                 FalhaAnaliseConformidade.class,
-                () -> store.reservarRevisao(INSTANCE_ID, revisaoAntecipada));
+                () -> aguardar(store.reservarRevisao(INSTANCE_ID, revisaoAntecipada)));
         FalhaAnaliseConformidade inicioDuplicado = assertThrows(
                 FalhaAnaliseConformidade.class,
                 this::iniciar);
@@ -97,7 +97,7 @@ class AnaliseConformidadeMemoryStoreTest {
         var revisao = revisao(resultado(OrigemResultado.REVISAO_HUMANA));
         FalhaAnaliseConformidade falha = assertThrows(
                 FalhaAnaliseConformidade.class,
-                () -> store.reservarRevisao(" ", revisao));
+                () -> aguardar(store.reservarRevisao(" ", revisao)));
 
         assertEquals(FalhaAnaliseConformidade.Tipo.TRANSICAO_INVALIDA, falha.tipo());
     }
@@ -106,24 +106,26 @@ class AnaliseConformidadeMemoryStoreTest {
     void permiteFalharSomenteEstadoNaoTerminalEPreservaPreliminar() {
         ResultadoAnaliseConformidade preliminar = resultado(OrigemResultado.FALLBACK_TECNICO);
         iniciar();
-        store.aguardarRevisao(INSTANCE_ID, preliminar);
+        aguardar(store.aguardarRevisao(INSTANCE_ID, preliminar));
 
-        store.falhar(INSTANCE_ID, "Falha pública sanitizada");
+        aguardar(store.falhar(INSTANCE_ID, "Falha pública sanitizada"));
 
-        var falhou = store.consultar(INSTANCE_ID).orElseThrow();
+        var falhou = aguardar(store.consultar(INSTANCE_ID)).orElseThrow();
         assertEquals(StatusAnaliseConformidade.FALHOU, falhou.status());
         assertSame(preliminar, falhou.resultadoPreliminar());
         assertEquals("Falha pública sanitizada", falhou.mensagemErro());
         FalhaAnaliseConformidade repeticao = assertThrows(
                 FalhaAnaliseConformidade.class,
-                () -> store.falhar(INSTANCE_ID, "Outra falha"));
+                () -> aguardar(store.falhar(INSTANCE_ID, "Outra falha")));
         assertEquals(FalhaAnaliseConformidade.Tipo.TRANSICAO_INVALIDA, repeticao.tipo());
     }
 
     @Test
     void aceitaSomenteUmaDeDuasReservasDeRevisaoConcorrentes() throws Exception {
         iniciar();
-        store.aguardarRevisao(INSTANCE_ID, resultado(OrigemResultado.AGENTE));
+        aguardar(store.aguardarRevisao(
+                INSTANCE_ID,
+                resultado(OrigemResultado.AGENTE)));
         CountDownLatch prontas = new CountDownLatch(2);
         CountDownLatch iniciar = new CountDownLatch(1);
         ExecutorService executor = Executors.newFixedThreadPool(2);
@@ -168,15 +170,17 @@ class AnaliseConformidadeMemoryStoreTest {
     @Test
     void aceitaRepeticaoIdenticaDaReservaDeRevisao() {
         iniciar();
-        store.aguardarRevisao(INSTANCE_ID, resultado(OrigemResultado.AGENTE));
+        aguardar(store.aguardarRevisao(
+                INSTANCE_ID,
+                resultado(OrigemResultado.AGENTE)));
         var revisao = revisao(resultado(OrigemResultado.REVISAO_HUMANA));
 
-        store.reservarRevisao(INSTANCE_ID, revisao);
-        store.reservarRevisao(INSTANCE_ID, revisao);
+        aguardar(store.reservarRevisao(INSTANCE_ID, revisao));
+        aguardar(store.reservarRevisao(INSTANCE_ID, revisao));
 
         assertEquals(
                 StatusAnaliseConformidade.AGUARDANDO_REVISAO,
-                store.consultar(INSTANCE_ID).orElseThrow().status());
+                aguardar(store.consultar(INSTANCE_ID)).orElseThrow().status());
     }
 
     private FalhaAnaliseConformidade.Tipo tentarReservarRevisao(
@@ -186,7 +190,7 @@ class AnaliseConformidadeMemoryStoreTest {
         prontas.countDown();
         iniciar.await();
         try {
-            store.reservarRevisao(INSTANCE_ID, revisao);
+            aguardar(store.reservarRevisao(INSTANCE_ID, revisao));
             return null;
         } catch (FalhaAnaliseConformidade falha) {
             return falha.tipo();
@@ -200,8 +204,12 @@ class AnaliseConformidadeMemoryStoreTest {
                 "Texto para análise",
                 1000012583L,
                 1);
-        store.iniciar(INSTANCE_ID, solicitacao);
-        store.registrarChecklist(INSTANCE_ID, checklist());
+        aguardar(store.iniciar(INSTANCE_ID, solicitacao));
+        aguardar(store.registrarChecklist(INSTANCE_ID, checklist()));
+    }
+
+    private static <T> T aguardar(io.smallrye.mutiny.Uni<T> operacao) {
+        return operacao.await().indefinitely();
     }
 
     private static Checklist checklist() {
