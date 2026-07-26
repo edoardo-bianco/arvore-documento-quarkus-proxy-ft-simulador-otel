@@ -88,6 +88,11 @@ contraditório, concorrência otimista e tradução de falhas.
 Hashes canônicos serão `String`, calculados com SHA-256 e representados por 64
 caracteres hexadecimais minúsculos no Java e no JSON.
 
+A porta documental será não bloqueante: operações de escrita retornarão
+`Uni<Void>` e a consulta retornará
+`Uni<Optional<VisaoAnaliseConformidade>>`. Adapters e consumidores não usarão
+`await`, `join` nem bloqueio do event loop.
+
 ### Backend por ambiente
 
 - **DES:** Apache CouchDB, acessado por sua API HTTP/JSON e limitado à rede interna;
@@ -100,9 +105,12 @@ características do serviço gerenciado que ele não reproduz. MongoDB não é a
 desta decisão: seu protocolo corresponderia ao Azure Cosmos DB for MongoDB, enquanto
 a API produtiva escolhida é Azure Cosmos DB for NoSQL.
 
-A autenticação produtiva do Cosmos será definida em checkpoint de segurança próprio.
-Até essa decisão, nenhuma chave, connection string ou mecanismo de identidade será
-fixado silenciosamente em código ou configuração.
+A autenticação produtiva do Cosmos usará Microsoft Entra ID por
+`DefaultAzureCredential`. A implantação Azure usará Managed Identity ou, quando
+executada em Kubernetes, Workload Identity, com RBAC de plano de dados de menor
+privilégio. Chave e connection string do Cosmos ficam proibidas em PRD. A integração
+opt-in com Emulator ou conta não produtiva pode usar somente credencial externa
+específica do teste e não define o mecanismo produtivo.
 
 ### Checkpoints técnicos no Redis/Valkey
 
@@ -159,12 +167,21 @@ nos dois backends.
 
 ### Containers e múltiplos pods
 
-Fornecer execução local de DES em containers para aplicação, CouchDB, Redis/Valkey e
-Ollama, com volumes duráveis, health checks e segredos somente por configuração
-externa. Docker Compose validará inicialmente uma réplica. O Cosmos Emulator será
-opt-in e não substituirá o CouchDB como backend normal de DES.
+No primeiro recorte, `mvn quarkus:dev` inicia automaticamente o CouchDB `3.5.2` por
+`compose-devservices.yml`; a aplicação permanece como JVM no host. O serviço terá
+health check, inicialização idempotente do banco e volume nomeado preservado entre
+reinícios do Quarkus. Os testes continuam usando containers efêmeros isolados e não
+reutilizam esse volume.
 
-Para múltiplos pods, usar Kubernetes e `quarkus-flow-durable-kubernetes`:
+Em recorte posterior, fornecer execução local completa de uma réplica em containers
+para aplicação, CouchDB, Redis/Valkey e Ollama, com volumes duráveis, health checks e
+segredos somente por configuração externa. O Cosmos Emulator será opt-in e não
+substituirá o CouchDB como backend normal de DES.
+
+Para múltiplos pods, usar kind ou k3d e
+`quarkus-flow-durable-kubernetes`, com duas réplicas da aplicação, CouchDB em
+`StatefulSet` de um pod com PVC, Redis/Valkey e Ollama. Cosmos e seu emulador não
+serão implantados no ambiente Kubernetes local:
 
 - cada pod adquire um Lease estável;
 - o Lease define o `WorkflowApplication` ID;
@@ -249,15 +266,16 @@ de distribuição exige novo checkpoint humano, sem adoção automática de Kafk
   <https://learn.microsoft.com/en-us/azure/cosmos-db/change-feed-processor>;
 - Cosmos DB Emulator e suas diferenças para o serviço:
   <https://learn.microsoft.com/en-us/azure/cosmos-db/emulator>;
-- RBAC nativo do plano de dados e Microsoft Entra ID, como fonte para o checkpoint
-  de autenticação ainda pendente:
+- RBAC nativo do plano de dados e Microsoft Entra ID:
   <https://learn.microsoft.com/en-us/azure/cosmos-db/how-to-connect-role-based-access-control>.
+- Compose Dev Services do Quarkus:
+  <https://quarkus.io/guides/compose-dev-services>.
 
 ## Critério de aceitação
 
-Os checkpoints C4 e C5 já autorizaram a implementação desta proposta. O ADR permanece
-`Proposto` até a prova cross-pod/failover e uma decisão humana posterior de aceitação.
-As condições vigentes são:
+Os checkpoints C4, C5 e C6 já autorizaram a implementação desta proposta. O ADR
+permanece `Proposto` até a prova cross-pod/failover e uma decisão humana posterior
+de aceitação. As condições vigentes são:
 
 1. porta documental neutra e contrato executável compartilhado;
 2. CouchDB em DES e Azure Cosmos DB for NoSQL em PRD;
@@ -270,7 +288,12 @@ As condições vigentes são:
    `EventConsumer` -> CloudEvent como caminho de retomada sem Kafka;
 7. `correlationId`, `instanceId`, `identificadorDocumento`,
    `identificadorChecklist` e `versaoChecklist` no contrato e na página;
-8. checkpoint de segurança antes de fixar a autenticação produtiva do Cosmos;
-9. Kubernetes Leases e teste cross-pod/failover antes de declarar suporte a múltiplos
+8. Cosmos em PRD autenticado por Entra ID com Managed/Workload Identity e RBAC de
+   plano de dados de menor privilégio, sem chave ou connection string;
+9. porta documental com `Uni<Void>` nas escritas e
+   `Uni<Optional<VisaoAnaliseConformidade>>` na leitura;
+10. CouchDB automático no `quarkus:dev`, com volume persistente, e testes em
+    containers efêmeros isolados;
+11. Kubernetes Leases e teste cross-pod/failover antes de declarar suporte a múltiplos
    pods;
-10. manutenção do ADR como `Proposto` se a entrega cross-pod não for comprovada.
+12. manutenção do ADR como `Proposto` se a entrega cross-pod não for comprovada.

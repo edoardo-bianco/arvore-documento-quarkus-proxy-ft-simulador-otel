@@ -373,6 +373,16 @@ representado por `Short` no Java e número inteiro no JSON.
 Hashes canônicos são `String` no Java e no JSON, calculados com SHA-256 e
 representados por 64 caracteres hexadecimais minúsculos.
 
+A porta documental é assíncrona: escritas retornam `Uni<Void>` e a leitura da
+projeção retorna `Uni<Optional<VisaoAnaliseConformidade>>`. Nenhum adapter ou
+consumidor pode usar `await`, `join` ou bloquear o event loop.
+
+Em PRD, o Cosmos usa Microsoft Entra ID por `DefaultAzureCredential`, com Managed
+Identity ou Workload Identity e RBAC de plano de dados de menor privilégio. Chave e
+connection string do Cosmos são proibidas em PRD. Credencial específica de teste
+para Emulator ou conta não produtiva deve ser externa e não pode definir o mecanismo
+produtivo.
+
 O checkpoint no Redis/Valkey contém somente `correlationId`, `instanceId`,
 referências determinísticas, hashes e estado técnico mínimo. Ele não pode duplicar os
 documentos JSON de negócio.
@@ -381,6 +391,17 @@ Não adicionar `quarkus-flow-jpa`, banco relacional ou `quarkus-flow-mvstore`. R
 da aplicação deve preservar os documentos de negócio e permitir restauração de uma
 instância pausada. Testes devem diferenciar claramente recuperação da projeção no
 backend documental e recuperação do checkpoint do Flow.
+
+Ao executar `mvn quarkus:dev`, o Quarkus deve iniciar automaticamente CouchDB
+`3.5.2` por `compose-devservices.yml`, mantendo a aplicação na JVM do host. O serviço
+deve ter health check, inicialização idempotente do banco e volume nomeado preservado
+entre reinícios do Quarkus. A suíte padrão continua usando containers efêmeros
+isolados e não compartilha esse volume.
+
+O Compose completo posterior executa uma réplica da aplicação com CouchDB,
+Redis/Valkey e Ollama. O ambiente Kubernetes local posterior usa kind ou k3d, duas
+réplicas da aplicação, CouchDB em `StatefulSet` de um pod com PVC, Redis/Valkey e
+Ollama. Cosmos e seu emulador não fazem parte desses pods locais.
 
 ---
 
@@ -1599,9 +1620,10 @@ Regras:
    `0.10.2`;
 10. manter o acesso HTTP/JSON do CouchDB confinado ao adapter DES;
 11. usar a API assíncrona do Azure Cosmos DB Java SDK v4 e um cliente singleton;
-12. não adicionar `azure-identity`, chave ou connection string antes do checkpoint
-    de segurança da autenticação PRD;
-13. não adicionar JPA, driver PostgreSQL, MongoDB, Kafka ou AMQP.
+12. usar `azure-identity`/`DefaultAzureCredential`, Managed Identity ou Workload
+    Identity e RBAC de plano de dados de menor privilégio em PRD;
+13. proibir chave e connection string do Cosmos em PRD;
+14. não adicionar JPA, driver PostgreSQL, MongoDB, Kafka ou AMQP.
 
 ---
 
@@ -1625,13 +1647,18 @@ conformidade.persistencia.backend=${CONFORMIDADE_PERSISTENCIA_BACKEND}
 %dev.conformidade.persistencia.backend=couchdb
 %test.conformidade.persistencia.backend=couchdb
 
-# CouchDB — DES
-conformidade.couchdb.url=${COUCHDB_URL:http://localhost:5984}
+# CouchDB — DES; compose-devservices.yml mapeia host/porta descobertos
+conformidade.couchdb.host=${COUCHDB_HOST:localhost}
+conformidade.couchdb.port=${COUCHDB_PORT:5984}
 conformidade.couchdb.database=${COUCHDB_DATABASE:conformidade}
 conformidade.couchdb.username=${COUCHDB_USERNAME:}
 conformidade.couchdb.password=${COUCHDB_PASSWORD:}
 
-# Azure Cosmos DB for NoSQL — PRD
+# Compose Dev Services — preservar CouchDB entre reinícios do quarkus:dev
+%dev.quarkus.compose.devservices.remove-volumes=false
+%test.quarkus.compose.devservices.enabled=false
+
+# Azure Cosmos DB for NoSQL — PRD; credencial por DefaultAzureCredential
 conformidade.cosmos.endpoint=${COSMOS_ENDPOINT:}
 conformidade.cosmos.database=${COSMOS_DATABASE:conformidade}
 conformidade.cosmos.container=${COSMOS_CONTAINER:analises}
@@ -1655,10 +1682,11 @@ quarkus.langchain4j.timeout=60s
 
 Não adicionar configurações Kafka. Credenciais de CouchDB e Redis/Valkey não podem
 ser versionadas; devem vir de variável/secret. Fora de dev/test, backend e
-configuração obrigatória ausente devem falhar no startup. Não definir chave,
-connection string, `azure-identity` ou mecanismo de autenticação Cosmos antes do
-checkpoint de segurança. Configuração de cursor/leases, reconexão, health/readiness
-e timeouts requer checkpoint observável antes da implementação.
+configuração obrigatória ausente devem falhar no startup. O Cosmos em PRD deve usar
+`azure-identity`/`DefaultAzureCredential`, Managed Identity ou Workload Identity e
+RBAC de plano de dados de menor privilégio; chave e connection string são proibidas.
+Configuração de cursor/leases, reconexão, health/readiness e timeouts requer
+checkpoint observável antes da implementação.
 
 Antes de registrar prompt e resposta integralmente, considerar que o texto pode conter dados sensíveis. Para a PoC, documentar o risco e permitir desabilitar logging.
 
@@ -2097,10 +2125,12 @@ O plano deve dividir a implementação em incrementos compiláveis.
 
 ### Incremento 8 — Containers e múltiplos pods
 
-- criar imagens e Docker Compose de DES para uma réplica, CouchDB, Redis/Valkey e
-  Ollama;
+- estender o `compose-devservices.yml` usado pelo `quarkus:dev` e criar imagens e
+  Docker Compose de DES completo para uma réplica, CouchDB, Redis/Valkey e Ollama;
 - configurar volumes, health checks e credenciais externas;
-- preparar manifests Kubernetes e Leases do Flow;
+- preparar kind ou k3d, manifests Kubernetes, Leases do Flow, duas réplicas da
+  aplicação, CouchDB em `StatefulSet` de um pod com PVC, Redis/Valkey e Ollama;
+- não implantar Cosmos nem Emulator nos pods locais;
 - provar com duas réplicas o roteamento cruzado e o failover;
 - manter ADR e suporte multipod pendentes se a prova falhar.
 
@@ -2182,7 +2212,12 @@ Restrições obrigatórias:
 - persistir checkpoints técnicos do Flow somente no Redis/Valkey;
 - usar `_changes`/Change Feed e `EventConsumer` para entregar a revisão ao `listen`;
 - executar o mesmo contrato nos dois adapters e validar Cosmos antes da promoção;
-- não escolher autenticação Cosmos sem checkpoint humano de segurança;
+- usar Cosmos em PRD por Entra ID com Managed/Workload Identity, RBAC de plano de
+  dados de menor privilégio e sem chave/connection string;
+- usar `Uni<Void>` nas escritas e
+  `Uni<Optional<VisaoAnaliseConformidade>>` na leitura da porta documental;
+- iniciar CouchDB automaticamente no `quarkus:dev`, com volume persistente, sem
+  compartilhar esse ambiente com os containers efêmeros dos testes;
 - manter no contexto do Flow somente referências e hashes;
 - não usar Kafka;
 - não usar broker externo;
@@ -2246,6 +2281,8 @@ Não implemente código nesta primeira resposta.
   `https://learn.microsoft.com/en-us/azure/cosmos-db/emulator`
 - Azure Cosmos DB — RBAC de plano de dados e Microsoft Entra ID:
   `https://learn.microsoft.com/en-us/azure/cosmos-db/how-to-connect-role-based-access-control`
+- Quarkus — Compose Dev Services:
+  `https://quarkus.io/guides/compose-dev-services`
 - Quarkus Messaging:
   `https://quarkus.io/guides/messaging`
 - Projeto-alvo:

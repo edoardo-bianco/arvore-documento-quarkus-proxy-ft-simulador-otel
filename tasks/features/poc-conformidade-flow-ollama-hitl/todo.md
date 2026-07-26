@@ -47,6 +47,8 @@
   versão;
 - [x] C5 Aprovar persistência por ambiente: CouchDB em DES, Azure Cosmos DB for
   NoSQL em PRD, porta neutra, contrato compartilhado e gate Cosmos pré-promoção;
+- [x] C6 Aprovar assincronia da porta documental, autenticação Cosmos por Entra ID,
+  CouchDB automático no `quarkus:dev` e desenho do Kubernetes local;
 - [ ] 7.3 Persistir documentos de negócio e projeção pela porta neutra, com adapters
   CouchDB e Cosmos DB for NoSQL;
 - [ ] 7.4 Reduzir contexto e habilitar checkpoint Redis/Valkey;
@@ -627,6 +629,26 @@
 - ADR-0010 permanece `Proposto`; C5 autoriza a implementação da arquitetura por
   ambiente, mas não antecipa sua aceitação final nem a prova multipod.
 
+### Checkpoint C6 — Assincronia, autenticação e ambientes locais
+
+- o usuário confirmou em 2026-07-26 `Uni<Void>` para as escritas e
+  `Uni<Optional<VisaoAnaliseConformidade>>` para as leituras da porta documental;
+- o adapter Cosmos em PRD usará Microsoft Entra ID por
+  `DefaultAzureCredential`, com Managed Identity ou Workload Identity e RBAC de
+  plano de dados de menor privilégio;
+- chave e connection string do Cosmos ficam proibidas em PRD;
+- `mvn quarkus:dev` deverá iniciar automaticamente CouchDB `3.5.2` por
+  `compose-devservices.yml`, com health check, inicialização idempotente do banco e
+  volume nomeado preservado entre reinícios do Quarkus;
+- testes CouchDB permanecem isolados em containers efêmeros e não compartilham o
+  volume de DES;
+- o Compose completo de uma réplica permanece planejado para a Task 8.1;
+- o ambiente Kubernetes local posterior usará kind ou k3d, duas réplicas da
+  aplicação, CouchDB em `StatefulSet` de um pod com PVC, Redis/Valkey e Ollama;
+  Cosmos e seu emulador não serão implantados nesses pods;
+- ADR-0010 continua `Proposto` até a prova cross-pod/failover e decisão humana
+  posterior.
+
 ## Decisões humanas
 
 | Checkpoint | Status | Data | Evidência | Aprovador |
@@ -651,6 +673,7 @@
 | Tipo de `versaoSchema` | APROVADO | 2026-07-26 | Usuário definiu `small int`; representação `Short` no Java e número inteiro no JSON | Usuário |
 | Tipo de hash canônico | APROVADO | 2026-07-26 | Usuário definiu `String`; adotada representação SHA-256 hexadecimal minúscula com 64 caracteres | Usuário |
 | C5 | APROVADO | 2026-07-26 | Usuário aceitou a recomendação: CouchDB em DES, Azure Cosmos DB for NoSQL em PRD, porta neutra, contratos compartilhados e validação Cosmos obrigatória antes da promoção | Usuário |
+| C6 | APROVADO | 2026-07-26 | Usuário confirmou `Uni` na porta documental, Cosmos por Entra ID com identidade gerenciada/federada e RBAC mínimo, CouchDB automático no `quarkus:dev` e Kubernetes local posterior | Usuário |
 | Sonar Task 7.3 — primeira execução | CONTINUAR_AJUSTES | 2026-07-26 | 21 issues novas, 10 `CRITICAL`, cobertura 80,1%, duplicação 2,9%; decisão registrada pelo script | Usuário |
 | Sonar Task 7.3 — reexecução | COMPLIANT | 2026-07-26 | 0 issues novas, cobertura 85,1%, duplicação 2,9% e decisão `NOT_REQUIRED` | — |
 | CF | PENDENTE | — | Aguardará evidências finais | — |
@@ -665,7 +688,7 @@
 - qualquer `NON_COMPLIANT` Sonar exige decisão humana registrada pelo script;
 - teste real com Ollama é opt-in; a suíte padrão usa agente falso.
 - ADR-0010 permanece `Proposto` e ADR-0009 permanece `Aceito` até decisão humana;
-- C5 não autoriza escolher silenciosamente o mecanismo de autenticação do Cosmos;
-  essa decisão de segurança deve ser registrada antes da configuração de PRD;
+- C6 proíbe chave/connection string do Cosmos em PRD e exige Entra ID,
+  Managed/Workload Identity e RBAC de plano de dados de menor privilégio;
 - falha da prova cross-pod interrompe a evolução multipod e exige novo checkpoint,
   sem adoção automática de Kafka.
