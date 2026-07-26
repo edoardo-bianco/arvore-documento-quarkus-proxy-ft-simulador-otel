@@ -370,6 +370,8 @@ O mesmo contrato executável deve passar para os dois adapters. Nenhum DTO, toke
 versão ou exceção nativa pode atravessar a borda. `correlationId` é a chave lógica de
 partição no Cosmos. Cada documento canônico contém `versaoSchema` do tipo `small int`,
 representado por `Short` no Java e número inteiro no JSON.
+Hashes canônicos são `String` no Java e no JSON, calculados com SHA-256 e
+representados por 64 caracteres hexadecimais minúsculos.
 
 O checkpoint no Redis/Valkey contém somente `correlationId`, `instanceId`,
 referências determinísticas, hashes e estado técnico mínimo. Ele não pode duplicar os

@@ -2,8 +2,11 @@ package br.gov.caixa.simtr.hub.conformidade.adaptador.saida.memoria;
 
 import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.ArmazenarEstadoAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.erro.FalhaAnaliseConformidade;
+import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.Checklist;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.OrigemResultado;
+import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.RevisaoHumanaConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.ResultadoAnaliseConformidade;
+import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.SolicitacaoAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.StatusAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.VisaoAnaliseConformidade;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -18,23 +21,42 @@ public class AnaliseConformidadeMemoryStore implements ArmazenarEstadoAnaliseCon
 
     @Override
     public void iniciar(
-            String correlationId,
             String instanceId,
-            String identificadorDocumento,
-            Long identificadorChecklist,
-            Integer versaoChecklist) {
+            SolicitacaoAnaliseConformidade solicitacao) {
         validarInstanceId(instanceId);
+        if (solicitacao == null) {
+            throw FalhaAnaliseConformidade.solicitacaoInvalida(
+                    "A solicitação da análise é obrigatória");
+        }
         var novo = new EstadoArmazenado(
                 VisaoAnaliseConformidade.emProcessamento(
-                        correlationId,
+                        solicitacao.correlationId(),
                         instanceId,
-                        identificadorDocumento,
-                        identificadorChecklist,
-                        versaoChecklist),
-                false);
+                        solicitacao.identificadorDocumento(),
+                        solicitacao.identificadorChecklist(),
+                        solicitacao.versaoChecklist()),
+                null,
+                null);
         if (estados.putIfAbsent(instanceId, novo) != null) {
             throw FalhaAnaliseConformidade.transicaoInvalida();
         }
+    }
+
+    @Override
+    public void registrarChecklist(String instanceId, Checklist checklist) {
+        validarInstanceId(instanceId);
+        estados.compute(instanceId, (id, atual) -> {
+            EstadoArmazenado encontrado = exigirEstado(atual);
+            validarChecklist(encontrado.visao(), checklist);
+            Checklist congelado = congelar(checklist);
+            if (encontrado.checklist() != null && !encontrado.checklist().equals(congelado)) {
+                throw FalhaAnaliseConformidade.transicaoInvalida();
+            }
+            return new EstadoArmazenado(
+                    encontrado.visao(),
+                    congelado,
+                    encontrado.revisao());
+        });
     }
 
     @Override
@@ -45,25 +67,41 @@ public class AnaliseConformidadeMemoryStore implements ArmazenarEstadoAnaliseCon
         validarResultadoPreliminar(resultado);
         estados.compute(instanceId, (id, atual) -> {
             EstadoArmazenado encontrado = exigirEstado(atual);
-            if (encontrado.visao().status() != StatusAnaliseConformidade.EM_PROCESSAMENTO) {
+            if (encontrado.visao().status() != StatusAnaliseConformidade.EM_PROCESSAMENTO
+                    || encontrado.checklist() == null) {
                 throw FalhaAnaliseConformidade.transicaoInvalida();
             }
             return new EstadoArmazenado(
                     encontrado.visao().aguardandoRevisao(resultado),
-                    false);
+                    encontrado.checklist(),
+                    null);
         });
     }
 
     @Override
-    public void reservarRevisao(String instanceId) {
+    public void reservarRevisao(
+            String instanceId,
+            RevisaoHumanaConformidade revisao) {
         validarInstanceId(instanceId);
+        if (revisao == null) {
+            throw FalhaAnaliseConformidade.revisaoInconsistente(
+                    "A revisão humana é obrigatória");
+        }
         estados.compute(instanceId, (id, atual) -> {
             EstadoArmazenado encontrado = exigirEstado(atual);
-            if (encontrado.visao().status() != StatusAnaliseConformidade.AGUARDANDO_REVISAO
-                    || encontrado.revisaoReservada()) {
+            if (encontrado.visao().status() != StatusAnaliseConformidade.AGUARDANDO_REVISAO) {
                 throw FalhaAnaliseConformidade.transicaoInvalida();
             }
-            return new EstadoArmazenado(encontrado.visao(), true);
+            if (encontrado.revisao() != null) {
+                if (encontrado.revisao().equals(revisao)) {
+                    return encontrado;
+                }
+                throw FalhaAnaliseConformidade.transicaoInvalida();
+            }
+            return new EstadoArmazenado(
+                    encontrado.visao(),
+                    encontrado.checklist(),
+                    revisao);
         });
     }
 
@@ -76,12 +114,13 @@ public class AnaliseConformidadeMemoryStore implements ArmazenarEstadoAnaliseCon
         estados.compute(instanceId, (id, atual) -> {
             EstadoArmazenado encontrado = exigirEstado(atual);
             if (encontrado.visao().status() != StatusAnaliseConformidade.AGUARDANDO_REVISAO
-                    || !encontrado.revisaoReservada()) {
+                    || encontrado.revisao() == null) {
                 throw FalhaAnaliseConformidade.transicaoInvalida();
             }
             return new EstadoArmazenado(
                     encontrado.visao().concluida(resultado),
-                    true);
+                    encontrado.checklist(),
+                    encontrado.revisao());
         });
     }
 
@@ -100,7 +139,8 @@ public class AnaliseConformidadeMemoryStore implements ArmazenarEstadoAnaliseCon
             }
             return new EstadoArmazenado(
                     encontrado.visao().falhou(mensagem),
-                    encontrado.revisaoReservada());
+                    encontrado.checklist(),
+                    encontrado.revisao());
         });
     }
 
@@ -140,8 +180,34 @@ public class AnaliseConformidadeMemoryStore implements ArmazenarEstadoAnaliseCon
         }
     }
 
+    private static void validarChecklist(
+            VisaoAnaliseConformidade visao,
+            Checklist checklist) {
+        if (checklist == null
+                || checklist.apontamentos() == null
+                || checklist.apontamentos().isEmpty()
+                || !visao.identificadorChecklist().equals(checklist.identificadorNegocial())
+                || !visao.versaoChecklist().equals(checklist.versao())) {
+            throw FalhaAnaliseConformidade.checklistInvalido(
+                    "O checklist não corresponde à análise");
+        }
+    }
+
+    private static Checklist congelar(Checklist checklist) {
+        return new Checklist(
+                checklist.nome(),
+                checklist.identificadorNegocial(),
+                checklist.versao(),
+                checklist.dataHoraCriacao(),
+                checklist.dataHoraUltimaAlteracao(),
+                checklist.verificacaoPrevia(),
+                checklist.orientacaoOperador(),
+                java.util.List.copyOf(checklist.apontamentos()));
+    }
+
     private record EstadoArmazenado(
             VisaoAnaliseConformidade visao,
-            boolean revisaoReservada) {
+            Checklist checklist,
+            RevisaoHumanaConformidade revisao) {
     }
 }

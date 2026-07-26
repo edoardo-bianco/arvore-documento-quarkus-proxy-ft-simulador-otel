@@ -4,6 +4,8 @@ import br.gov.caixa.simtr.hub.conformidade.adaptador.saida.memoria.AnaliseConfor
 import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.PublicarRevisaoNoWorkflow;
 import br.gov.caixa.simtr.hub.conformidade.aplicacao.workflow.AnaliseConformidadeFlow;
 import br.gov.caixa.simtr.hub.conformidade.dominio.erro.FalhaAnaliseConformidade;
+import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.ApontamentoChecklist;
+import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.Checklist;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.OrigemResultado;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.ParecerConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.ResultadoAnaliseConformidade;
@@ -23,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -121,7 +124,7 @@ class CasosDeUsoAnaliseConformidadeTest {
     }
 
     @Test
-    void revisarValidaEReservaExatamenteUmaVez() {
+    void revisarAceitaRepeticaoIdenticaERepublicaParaEntregaIdempotente() {
         var store = storeAguardandoRevisao();
         var publicador = mock(PublicarRevisaoNoWorkflow.class);
         RevisaoHumanaConformidade revisao = revisaoValida();
@@ -133,11 +136,10 @@ class CasosDeUsoAnaliseConformidadeTest {
                 .await()
                 .indefinitely());
 
-        FalhaAnaliseConformidade falha = assertThrows(
-                FalhaAnaliseConformidade.class,
-                () -> casoDeUso.executar("instancia-1", revisao));
-        assertEquals(FalhaAnaliseConformidade.Tipo.TRANSICAO_INVALIDA, falha.tipo());
-        verify(publicador).publicar("instancia-1", revisao);
+        assertDoesNotThrow(() -> casoDeUso.executar("instancia-1", revisao)
+                .await()
+                .indefinitely());
+        verify(publicador, times(2)).publicar("instancia-1", revisao);
     }
 
     @Test
@@ -194,12 +196,28 @@ class CasosDeUsoAnaliseConformidadeTest {
     private static void iniciar(
             AnaliseConformidadeMemoryStore store,
             String instanceId) {
-        store.iniciar(
+        var solicitacao = new SolicitacaoAnaliseConformidade(
                 CORRELATION_ID,
-                instanceId,
                 IDENTIFICADOR_DOCUMENTO,
+                "Texto para análise",
                 1000012583L,
                 1);
+        store.iniciar(instanceId, solicitacao);
+        store.registrarChecklist(instanceId, new Checklist(
+                "Checklist documental",
+                1000012583L,
+                1,
+                "2026-07-26T00:00:00Z",
+                "2026-07-26T00:00:00Z",
+                false,
+                "Orientação",
+                List.of(new ApontamentoChecklist(
+                        10L,
+                        "Documento identificado",
+                        "Descrição",
+                        "Orientação",
+                        false,
+                        1))));
     }
 
     private static ResultadoAnaliseConformidade resultadoPreliminar() {
