@@ -189,6 +189,35 @@ atomicamente e publica a revisão em `flow-in`; e o workflow correlacionado reto
 `CONCLUIDA` sem trocar as identidades. A entrega interna continua sem garantia durável ou
 recuperação após falha, e a página da PoC ainda não está implementada.
 
+### Evolução durável aprovada e ainda não concluída
+
+O ADR-0010 permanece `Proposto`, embora os checkpoints C4, C5 e C6 já tenham autorizado sua
+implementação incremental. O estado parcial da Task 7.3 contém a porta documental neutra, o
+contrato executável compartilhado e adapters em memória e CouchDB testados. O adapter CouchDB
+ainda não está selecionado no runtime normal; Cosmos, seleção por ambiente, Compose Dev Services,
+`EventPublisher`, feed durável e checkpoints Redis/Valkey ainda não estão implementados.
+
+C6 estabelece Quarkus reativo sempre que a API suportar:
+
+- escritas da porta documental retornam `Uni<Void>`;
+- a leitura documental retorna `Uni<Optional<VisaoAnaliseConformidade>>`;
+- `IniciarAnaliseConformidade` e `ConsultarAnaliseConformidade` retornam
+  `Uni<VisaoAnaliseConformidade>`;
+- recursos REST e projeção interna propagam `Uni`;
+- callbacks do Flow retornam `Uni` diretamente.
+
+O Quarkus Flow `0.10.2` registra `Uni2CompletableFuture` como conversor do runtime. Portanto, a
+aplicação não converte manualmente `Uni` para `CompletionStage` nessa borda; uma conversão explícita
+só é aceita quando uma API externa comprovadamente não suportar `Uni`. `await`, `join` e bloqueio do
+event loop permanecem proibidos.
+
+A mesma evolução prevê CouchDB `3.5.2` iniciado automaticamente por
+`compose-devservices.yml` no `quarkus:dev`, Azure Cosmos DB for NoSQL em PRD autenticado por
+Microsoft Entra ID com Managed Identity ou Workload Identity e RBAC de plano de dados de menor
+privilégio, sem chave ou connection string. O ambiente Kubernetes local posterior será validado
+com kind ou k3d e duas réplicas da aplicação; esses itens continuam sendo estado planejado, não
+capacidade atual.
+
 Um futuro orquestrador do mesmo domínio pode compor portas de entrada atômicas. Ao atravessar um
 domínio, usa uma porta de saída do consumidor e uma camada anticorrupção. Dentro do mesmo processo,
 não chama endpoints REST locais.
@@ -239,6 +268,10 @@ descrito aqui.
 não bloqueiam event loop e não criam threads. Adapters bloqueantes deslocam o trabalho para worker
 thread sem expor esse detalhe ao domínio.
 
+Na evolução da conformidade, a preferência é manter `Uni` ponta a ponta nas portas, casos de uso,
+REST, projeção e callbacks Flow. Converter para outro tipo reativo é uma decisão da borda de
+integração e exige evidência de que a API chamada não aceita `Uni`.
+
 ## Fault tolerance e idempotência
 
 Timeout, retry, circuit breaker e classificação de exceções pertencem ao adapter da integração:
@@ -285,7 +318,8 @@ contrato, arquitetura, segurança ou comportamento observável exigem checkpoint
 - possui runtime Flow, ponte interna, API, agente Ollama e pausa/retomada HITL completa no mesmo
   processo, mas sem entrega durável ou recuperação após falha;
 - não possui MCP Server ou tools;
-- possui somente projeção volátil da PoC, sem persistência ou recuperação de estado;
+- o runtime normal ainda usa a projeção volátil; o adapter CouchDB parcial existe e está coberto
+  por contrato, mas seleção por ambiente e recuperação completa ainda não estão concluídas;
 - não calcula árvore documental nem executa ainda a análise de conformidade ponta a ponta;
 - não implementa os cinco endpoints ausentes listados acima.
 

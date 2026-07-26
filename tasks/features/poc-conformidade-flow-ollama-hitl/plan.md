@@ -40,8 +40,11 @@ continua condicionado ao GO humano e aos checkpoints adicionais.
   for NoSQL em PRD como sistemas de registro dos dados de negócio;
 - aplicar o mesmo contrato executável aos dois adapters e exigir integração Cosmos
   opt-in antes da promoção para PRD;
-- expor a porta documental com `Uni<Void>` nas escritas e
-  `Uni<Optional<VisaoAnaliseConformidade>>` nas leituras;
+- usar Quarkus reativo sempre que a API permitir: porta documental com
+  `Uni<Void>` nas escritas e
+  `Uni<Optional<VisaoAnaliseConformidade>>` nas leituras, portas de entrada e REST
+  com `Uni`, projeção interna com `Uni<Void>` e callbacks Flow retornando `Uni`
+  diretamente;
 - iniciar automaticamente o CouchDB pelo Compose Dev Services no
   `mvn quarkus:dev`, com volume nomeado preservado entre reinícios do Quarkus;
 - autenticar o Cosmos em PRD por Microsoft Entra ID com Managed Identity ou
@@ -1203,6 +1206,14 @@ C6 foi aprovado em 2026-07-26 antes da continuação da Task 7.3:
 
 - porta documental com `Uni<Void>` nas escritas e
   `Uni<Optional<VisaoAnaliseConformidade>>` nas leituras;
+- `IniciarAnaliseConformidade` e `ConsultarAnaliseConformidade` com
+  `Uni<VisaoAnaliseConformidade>`;
+- POST com `Uni<Response>`, GET com
+  `Uni<VisaoAnaliseConformidadeResponse>` e projeção interna de eventos com
+  `Uni<Void>`;
+- callbacks do Flow retornando `Uni` diretamente; o conversor
+  `Uni2CompletableFuture` da versão `0.10.2` faz a adaptação interna, sem conversão
+  manual na aplicação;
 - Azure Cosmos DB for NoSQL em PRD autenticado por Microsoft Entra ID com
   `DefaultAzureCredential`, usando Managed Identity ou Workload Identity e RBAC de
   plano de dados de menor privilégio;
@@ -1296,6 +1307,8 @@ referenciais do Flow por um `EventPublisher` que dependa somente da porta.
 - porta documental usa `Uni<Void>` nas escritas e
   `Uni<Optional<VisaoAnaliseConformidade>>` nas leituras, sem `await`, `join` ou
   bloqueio do event loop;
+- portas de entrada, recursos REST, projeção de eventos e callbacks Flow propagam
+  `Uni` até a borda suportada;
 - Cosmos usa `DefaultAzureCredential` e RBAC de plano de dados; chave e connection
   string são rejeitadas em PRD;
 - `mvn quarkus:dev` sobe CouchDB automaticamente e preserva seu volume entre

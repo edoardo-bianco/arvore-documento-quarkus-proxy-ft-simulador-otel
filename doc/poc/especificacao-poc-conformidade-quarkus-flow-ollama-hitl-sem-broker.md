@@ -377,6 +377,13 @@ A porta documental é assíncrona: escritas retornam `Uni<Void>` e a leitura da
 projeção retorna `Uni<Optional<VisaoAnaliseConformidade>>`. Nenhum adapter ou
 consumidor pode usar `await`, `join` ou bloquear o event loop.
 
+Usar Quarkus reativo sempre que a API suportar: `IniciarAnaliseConformidade` e
+`ConsultarAnaliseConformidade` retornam `Uni<VisaoAnaliseConformidade>`; recursos
+REST propagam `Uni`; a projeção interna retorna `Uni<Void>`; callbacks Flow retornam
+`Uni` diretamente. O conversor `Uni2CompletableFuture` incluído no Quarkus Flow
+`0.10.2` realiza a adaptação interna. Não converter manualmente para
+`CompletionStage`, salvo exigência comprovada de uma API externa.
+
 Em PRD, o Cosmos usa Microsoft Entra ID por `DefaultAzureCredential`, com Managed
 Identity ou Workload Identity e RBAC de plano de dados de menor privilégio. Chave e
 connection string do Cosmos são proibidas em PRD. Credencial específica de teste
@@ -2216,6 +2223,8 @@ Restrições obrigatórias:
   dados de menor privilégio e sem chave/connection string;
 - usar `Uni<Void>` nas escritas e
   `Uni<Optional<VisaoAnaliseConformidade>>` na leitura da porta documental;
+- propagar `Uni` pelas portas de início/consulta, recursos REST, projeção interna e
+  callbacks Flow sempre que suportado;
 - iniciar CouchDB automaticamente no `quarkus:dev`, com volume persistente, sem
   compartilhar esse ambiente com os containers efêmeros dos testes;
 - manter no contexto do Flow somente referências e hashes;
