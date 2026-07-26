@@ -40,6 +40,12 @@ continua condicionado ao GO humano e aos checkpoints adicionais.
   for NoSQL em PRD como sistemas de registro dos dados de negócio;
 - aplicar o mesmo contrato executável aos dois adapters e exigir integração Cosmos
   opt-in antes da promoção para PRD;
+- expor a porta documental com `Uni<Void>` nas escritas e
+  `Uni<Optional<VisaoAnaliseConformidade>>` nas leituras;
+- iniciar automaticamente o CouchDB pelo Compose Dev Services no
+  `mvn quarkus:dev`, com volume nomeado preservado entre reinícios do Quarkus;
+- autenticar o Cosmos em PRD por Microsoft Entra ID com Managed Identity ou
+  Workload Identity e RBAC de plano de dados com menor privilégio;
 - usar `quarkus-flow-redis` com Redis/Valkey somente para checkpoints técnicos;
 - limitar o contexto persistido do Flow a IDs, referências e hashes;
 - tratar a entrega como pelo menos uma vez, com IDs determinísticos, concorrência
@@ -61,9 +67,9 @@ continua condicionado ao GO humano e aos checkpoints adicionais.
   Redis/Valkey;
 - tratar MongoDB como emulador ou protocolo do Azure Cosmos DB for NoSQL;
 - alta disponibilidade produtiva, backup corporativo ou retenção regulatória;
-- autenticação ou autorização nova;
-- fixar chave, connection string ou mecanismo de identidade do Cosmos antes do
-  checkpoint de segurança correspondente;
+- autenticação ou autorização nova para a API ou a página;
+- chave ou connection string do Cosmos em PRD;
+- Cosmos Emulator no caminho normal de DES ou nos pods locais;
 - alteração dos contratos existentes de consulta de checklist ou MTR;
 - DTO compartilhado entre REST, MTR, mensageria e IA;
 - retry adicional ao redor de `ConsultarChecklist`;
@@ -250,9 +256,10 @@ com.azure:azure-cosmos:4.80.0
 continuar explícitas. `quarkus-flow-redis` e
 `quarkus-flow-durable-kubernetes` só entram depois do spike da Task 7.1. Não adicionar
 `quarkus-messaging-kafka`. O SDK v4 do Cosmos será usado pela API assíncrona, com um
-cliente singleton por processo. A dependência e o mecanismo de autenticação Azure
-serão separados: nenhuma biblioteca de identidade entra antes do checkpoint de
-segurança.
+cliente singleton por processo. A autenticação Azure usará `azure-identity` com
+`DefaultAzureCredential`: Managed Identity na implantação Azure ou Workload
+Identity no Kubernetes, sempre com RBAC de plano de dados de menor privilégio. Chave
+e connection string ficam proibidas em PRD.
 
 ### Gate de compatibilidade
 
@@ -303,13 +310,18 @@ conformidade.persistencia.backend=${CONFORMIDADE_PERSISTENCIA_BACKEND}
 %dev.conformidade.persistencia.backend=couchdb
 %test.conformidade.persistencia.backend=couchdb
 
-# CouchDB — DES
-conformidade.couchdb.url=${COUCHDB_URL:http://localhost:5984}
+# CouchDB — DES; compose-devservices.yml mapeia host/porta descobertos
+conformidade.couchdb.host=${COUCHDB_HOST:localhost}
+conformidade.couchdb.port=${COUCHDB_PORT:5984}
 conformidade.couchdb.database=${COUCHDB_DATABASE:conformidade}
 conformidade.couchdb.username=${COUCHDB_USERNAME:}
 conformidade.couchdb.password=${COUCHDB_PASSWORD:}
 
-# Cosmos DB for NoSQL — PRD; autenticação será definida em checkpoint próprio
+# Compose Dev Services — somente DES; preservar o volume nomeado do CouchDB
+%dev.quarkus.compose.devservices.remove-volumes=false
+%test.quarkus.compose.devservices.enabled=false
+
+# Cosmos DB for NoSQL — PRD; credencial resolvida por DefaultAzureCredential
 conformidade.cosmos.endpoint=${COSMOS_ENDPOINT:}
 conformidade.cosmos.database=${COSMOS_DATABASE:conformidade}
 conformidade.cosmos.container=${COSMOS_CONTAINER:analises}
@@ -341,10 +353,18 @@ Regras:
   versionado;
 - falhar no startup fora de dev/test quando o backend não estiver explicitamente
   selecionado ou sua configuração obrigatória estiver ausente;
-- não criar configuração de chave/connection string do Cosmos antes do checkpoint
-  de segurança; endpoint, nomes de database/container e escolha do backend não são
-  credenciais;
+- proibir chave e connection string do Cosmos em PRD; usar Microsoft Entra ID com
+  Managed Identity ou Workload Identity e RBAC de plano de dados de menor
+  privilégio;
+- limitar credenciais locais do CouchDB ao ambiente de DES e nunca versionar valor
+  produtivo;
 - manter a API assíncrona do Cosmos e um cliente singleton, sem bloquear event loop;
+- definir a porta documental com `Uni<Void>` para escrita e
+  `Uni<Optional<VisaoAnaliseConformidade>>` para leitura;
+- usar `compose-devservices.yml` somente no `quarkus:dev`, com CouchDB `3.5.2`,
+  health check, inicialização idempotente do banco e volume nomeado preservado;
+- manter os testes isolados em containers efêmeros próprios, sem reutilizar o
+  volume do `quarkus:dev`;
 - validar nomes e defaults de Redis/Valkey, cursor, Leases, health, timeouts e
   reconexão antes de alterar propriedades de produção;
 - desabilitar chamadas reais ao Ollama nos testes padrão e substituir a porta de IA;
@@ -718,7 +738,7 @@ responsabilidade:
 | Comportamento observável | novas propriedades, timeout/retry/circuit breaker, eventos, logs e spans | sim, C1 e C3 |
 | Contrato da evolução | `identificadorDocumento` obrigatório e cinco valores de identidade nas respostas/página | sim, C4 |
 | Arquitetura da evolução | porta neutra, CouchDB/DES, Cosmos/PRD, Redis/Valkey, feeds nativos, contexto referencial, containers e Leases | sim, C4 e C5 |
-| Segurança da evolução | credenciais externas, dados persistidos e conteúdo fora do checkpoint/log | C4; autenticação Cosmos ainda exige checkpoint próprio |
+| Segurança da evolução | credenciais externas, dados persistidos e conteúdo fora do checkpoint/log | C4 e C6; Cosmos por Entra ID, identidade gerenciada/federada e RBAC de plano de dados |
 | Comportamento observável da evolução | backend, cursor/lease, reconexão, health/readiness, replay, restart, timeouts e failover | sim, C4/C5 e checkpoint antes da configuração final |
 
 ## Ordem de implementação e tarefas
@@ -1177,6 +1197,26 @@ C5 foi aprovado em 2026-07-26 antes da continuação da Task 7.3:
 - gate opt-in contra Cosmos Emulator ou conta não produtiva antes da promoção;
 - autenticação do Cosmos excluída de C5 e sujeita a checkpoint de segurança próprio.
 
+### Checkpoint C6 — Assincronia, autenticação e ambientes locais
+
+C6 foi aprovado em 2026-07-26 antes da continuação da Task 7.3:
+
+- porta documental com `Uni<Void>` nas escritas e
+  `Uni<Optional<VisaoAnaliseConformidade>>` nas leituras;
+- Azure Cosmos DB for NoSQL em PRD autenticado por Microsoft Entra ID com
+  `DefaultAzureCredential`, usando Managed Identity ou Workload Identity e RBAC de
+  plano de dados de menor privilégio;
+- chave e connection string do Cosmos proibidas em PRD;
+- `mvn quarkus:dev` inicia automaticamente CouchDB `3.5.2` por
+  `compose-devservices.yml`, com health check, inicialização idempotente e volume
+  nomeado preservado entre reinícios do Quarkus;
+- testes continuam isolados em containers efêmeros, sem compartilhar o volume de
+  DES;
+- o Compose completo de uma réplica permanece na Task 8.1;
+- o ambiente Kubernetes local posterior usará kind ou k3d, duas réplicas da
+  aplicação, CouchDB em `StatefulSet` de um pod com PVC, além de Valkey/Redis e
+  Ollama; Cosmos/Emulator não fará parte desses pods.
+
 ### Incremento 7 — Persistência durável e contrato
 
 #### Task 7.1 — Provar compatibilidade e roteamento mínimo
@@ -1253,14 +1293,21 @@ referenciais do Flow por um `EventPublisher` que dependa somente da porta.
 - a mesma suíte de contrato passa para os dois adapters;
 - nenhum DTO CouchDB ou Cosmos atravessa a borda do adapter;
 - configuração fora de dev/test falha se o backend não estiver selecionado;
-- nenhuma credencial Cosmos é definida antes do checkpoint de segurança.
+- porta documental usa `Uni<Void>` nas escritas e
+  `Uni<Optional<VisaoAnaliseConformidade>>` nas leituras, sem `await`, `join` ou
+  bloqueio do event loop;
+- Cosmos usa `DefaultAzureCredential` e RBAC de plano de dados; chave e connection
+  string são rejeitadas em PRD;
+- `mvn quarkus:dev` sobe CouchDB automaticamente e preserva seu volume entre
+  reinícios do Quarkus;
+- testes CouchDB permanecem isolados em containers efêmeros.
 
 **Verificação:** RED/GREEN por fatias; contrato compartilhado; CouchDB real em
 container; Cosmos Emulator ou conta não produtiva em teste opt-in; concorrência,
 conflitos, restart da aplicação, REST, ArchUnit e busca negativa por tipos de
 fornecedor fora dos adapters.
 
-**Dependências:** Task 7.2 e C5.
+**Dependências:** Task 7.2, C5 e C6.
 
 **Arquivos prováveis:** portas de persistência, contratos de teste, documentos e
 mappers dos adapters CouchDB/Cosmos, casos de uso, seleção de backend e testes.
@@ -1342,9 +1389,10 @@ revisão sem reprocessamento automático.
 
 #### Task 8.1 — Empacotar execução local de uma réplica
 
-**Descrição:** fornecer imagem da aplicação e Compose de DES para aplicação, CouchDB,
-Redis/Valkey e Ollama, com volumes e health checks; manter Cosmos Emulator como
-integração opt-in separada.
+**Descrição:** estender o `compose-devservices.yml` já usado para iniciar
+automaticamente o CouchDB no `quarkus:dev` e fornecer imagem da aplicação e Compose
+completo de DES para aplicação, CouchDB, Redis/Valkey e Ollama, com volumes e health
+checks; manter Cosmos Emulator como integração opt-in separada.
 
 **Critérios de aceitação:** restart de containers preserva análise/revisão;
 credenciais vêm de configuração externa; nenhum segredo entra na imagem ou no Git.
@@ -1357,8 +1405,10 @@ credenciais vêm de configuração externa; nenhum segredo entra na imagem ou no
 
 #### Task 8.2 — Configurar identidade durável em Kubernetes
 
-**Descrição:** preparar manifests locais com duas réplicas,
-`quarkus-flow-durable-kubernetes`, Leases, readiness e backends compartilhados.
+**Descrição:** preparar ambiente kind ou k3d e manifests locais com duas réplicas da
+aplicação, `quarkus-flow-durable-kubernetes`, Leases, readiness, CouchDB em
+`StatefulSet` de um pod com PVC, Redis/Valkey e Ollama compartilhados. Cosmos e seu
+emulador não serão implantados nesse ambiente local.
 
 **Critérios de aceitação:** cada pod adquire identidade estável; pod sem Lease não
 fica ready; rolling restart preserva Lease recuperável.
@@ -1558,7 +1608,7 @@ testes locais e registrar que o estado Sonar atual permanece `UNVERIFIED`.
 | Perda de dado de negócio em restart | alto | persistência durável e teste de restart por backend |
 | DES divergir semanticamente de PRD | alto | porta neutra, contrato compartilhado e gate Cosmos antes da promoção |
 | Configuração iniciar com backend incorreto | alto | seleção explícita fora de dev/test e falha rápida por configuração ausente |
-| Credencial Cosmos escolhida ou vazada por suposição | alto | checkpoint de segurança, segredo externo e teste negativo |
+| Credencial Cosmos configurada por chave/connection string ou com privilégio excessivo | alto | `DefaultAzureCredential`, Managed/Workload Identity, RBAC de plano de dados mínimo e testes negativos |
 | Checkpoint conter payload negocial | alto | contexto referencial e inspeção serializada |
 | Cursor/lease do feed perdido ou mudança repetida | alto | retomada persistida, replay e duas camadas de idempotência |
 | Documento inválido bloquear o feed | alto | validação, registro observável e avanço controlado |
@@ -1584,7 +1634,7 @@ testes locais e registrar que o estado Sonar atual permanece `UNVERIFIED`.
 8. eventual fallback de `@SequenceAgent` para um único `@RegisterAiService`;
 9. C4 para ADR-0010, Redis/Valkey, identidades, contexto referencial e Kubernetes;
 10. C5 para porta neutra, CouchDB/DES, Cosmos/PRD, feeds e gate de promoção;
-11. mecanismo de autenticação produtiva do Cosmos em checkpoint de segurança;
+11. C6 para assincronia da porta, autenticação Cosmos e ambientes locais;
 12. valores finais de cursor/leases/reconexão/health/readiness e telemetria;
 13. decisão arquitetural nova se o teste cross-pod falhar;
 14. mudança de ADR-0010 para `Aceito` e ADR-0009 para `Substituído` somente após
