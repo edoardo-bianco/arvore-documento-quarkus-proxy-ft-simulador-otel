@@ -222,3 +222,82 @@ C1 deve aprovar ou rejeitar:
 2. a dependência direta `quarkus-flow-messaging`;
 3. o shim CDI interno sem connector;
 4. a permanência em Quarkus `3.33.2.1` e Java 25.
+
+## Spike durável da Task 7.1 — 2026-07-26
+
+### Isolamento
+
+O profile Maven `spike-persistencia-duravel` usa
+`src/spike-test/java` como source set exclusivo de testes. As dependências
+`quarkus-flow-redis` e `quarkus-flow-durable-kubernetes` só existem quando o
+profile é ativado. O build padrão continuou sem esses recursos instalados e
+`mvn -q test` terminou com código 0.
+
+O spike não alterou `src/main`, configuração de produção, endpoint, DTO, JSON,
+OpenAPI, ADR ou consolidado arquitetural.
+
+### Grafo resolvido
+
+```text
+io.quarkiverse.flow:quarkus-flow-redis:0.10.2
+\- io.quarkus:quarkus-redis-client:3.33.2.1
+
+io.quarkiverse.flow:quarkus-flow-durable-kubernetes:0.10.2
+\- io.quarkus:quarkus-kubernetes-client:3.33.2.1
+
+io.serverlessworkflow:serverlessworkflow-persistence-tests:7.22.2.Final:test
+org.testcontainers:testcontainers:2.0.4:test
+```
+
+### Contratos oficiais confirmados
+
+- [Flow persistence 0.10.2](https://github.com/quarkiverse/quarkus-flow/blob/0.10.2/docs/modules/ROOT/pages/persistence.adoc):
+  um provider por aplicação, extensão Redis e restauração associada à identidade
+  da aplicação;
+- [Flow messaging 0.10.2](https://github.com/quarkiverse/quarkus-flow/blob/0.10.2/docs/modules/ROOT/pages/messaging.adoc):
+  um bean CDI `EventConsumer`, zero ou mais `EventPublisher` e substituição da
+  ponte default por beans próprios;
+- [Flow Durable Kubernetes 0.10.2](https://github.com/quarkiverse/quarkus-flow/blob/0.10.2/docs/modules/ROOT/pages/concepts-durable-workflow-k8s.adoc):
+  Lease de membro como identidade da `WorkflowApplication`, pool de réplicas,
+  RBAC e cuidados de rollout;
+- [CouchDB `_changes`](https://docs.couchdb.org/en/stable/api/database/changes.html):
+  cursor `since`, feeds repetíveis e necessidade de consumidor idempotente.
+
+As assinaturas efetivas dos JARs confirmaram:
+
+```text
+EventConsumer.listen(EventFilter, WorkflowApplication)
+EventPublisher.publish(CloudEvent) -> CompletableFuture<Void>
+WorkflowApplication.Builder.withId(String)
+MemberLeaseCoordinator.awaitLease(Duration)
+```
+
+### Evidências executadas
+
+- RED do mapper: falha de compilação por `CouchDbChangeEventMapper` ausente;
+- GREEN unitário: replay da mesma mudança gera o mesmo CloudEvent sem `data`;
+- CouchDB `3.5.2`: documento real consultado duas vezes desde `since=0`;
+- Valkey `7.2-alpine`: contrato oficial de writer/reader/scan/restauração;
+- Durable Kubernetes: `LeaseStartupEvent`, espera de 30 segundos e
+  `Builder.withId(leaseName)` verificados sem cluster;
+- suíte opt-in: 6 testes, 0 falhas e 0 erros;
+- suíte padrão: código 0;
+- Sonar: `COMPLIANT`, 0 issues novas, cobertura 86,2%, duplicação 3,1%.
+
+### Limites da evidência
+
+O contrato Redis comprovou gravação e restauração pelos handlers no mesmo processo;
+não comprovou restart da aplicação. O teste Kubernetes comprovou o vínculo de
+identidade, mas não Lease real, readiness, duas réplicas, roteamento cross-pod ou
+failover. Nenhum fallback foi implementado.
+
+O bootstrap do profile exibiu duas limitações adicionais:
+
+- sem o producer OpenTelemetry in-memory da suíte padrão, tentou exportar para
+  `localhost:4317`, que estava indisponível;
+- Quarkus advertiu que `quarkus.flow.persistence.auto-restore` não foi reconhecida,
+  apesar de `FlowPersistenceConfig` expor o prefixo
+  `quarkus.flow.persistence` e o método `autoRestore()` no JAR `0.10.2`.
+
+Essas ocorrências foram registradas como risco de integração; não justificam mudar
+produção, adicionar fallback, antecipar a Task 7.2 ou aceitar o ADR-0010.

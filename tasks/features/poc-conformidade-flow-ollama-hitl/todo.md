@@ -5,8 +5,8 @@
 - **Branch:** `feature/poc-conformidade-flow-ollama-hitl`
 - **Escopo:** concluir baseline HITL volátil e evoluir para CouchDB + Redis/Valkey +
   `_changes` + containers/Kubernetes após C4
-- **Próximo item:** 7.1 — provar compatibilidade de CouchDB, Redis/Valkey, Flow
-  persistence, `EventConsumer` e Durable Kubernetes
+- **Próximo item:** 7.2 — evoluir o contrato de identidades; permanece pendente e
+  fora do escopo desta retomada
 - **Especificação:** `doc/poc/especificacao-poc-conformidade-quarkus-flow-ollama-hitl-sem-broker.md`
 - **Plano:** `tasks/features/poc-conformidade-flow-ollama-hitl/plan.md`
 - **Baseline Sonar:** SonarQube Docker local, inicializado em 2026-07-24
@@ -40,7 +40,7 @@
   incremento 6;
 - [x] C4 Aprovar arquitetura/contrato da ADR-0010 para implementação, mantendo-a
   `Proposto` até a prova multipod;
-- [ ] 7.1 Provar compatibilidade de CouchDB, Redis/Valkey, Flow persistence,
+- [x] 7.1 Provar compatibilidade de CouchDB, Redis/Valkey, Flow persistence,
   `EventConsumer` e Durable Kubernetes;
 - [ ] 7.2 Evoluir contrato com `correlationId`, `identificadorDocumento`, checklist e
   versão;
@@ -475,6 +475,54 @@
 - próximo passo: Task 7.1, limitada ao spike de compatibilidade e roteamento
   mínimo, sem iniciar a evolução do contrato público da Task 7.2.
 
+### Task 7.1 — Compatibilidade e roteamento mínimo durável
+
+- as fontes oficiais do Flow foram fixadas na tag `0.10.2`; elas confirmaram um
+  único provider de persistência, `quarkus-flow-redis`, os SPIs
+  `EventConsumer`/`EventPublisher` e a associação da Lease ao ID da
+  `WorkflowApplication`;
+- foi criado o profile Maven opt-in `spike-persistencia-duravel`, que troca apenas
+  o source set de testes por `src/spike-test/java`; sem o profile, Redis,
+  Kubernetes e Testcontainers não entram no classpath e nenhuma classe de
+  produção, contrato REST, OpenAPI ou DTO foi alterado;
+- a árvore do profile resolveu `quarkus-flow-redis:0.10.2`,
+  `quarkus-flow-durable-kubernetes:0.10.2`, clientes Quarkus `3.33.2.1`,
+  `serverlessworkflow-persistence-tests:7.22.2.Final` e
+  `testcontainers:2.0.4`, sem upgrade da plataforma;
+- RED: o teste referencial falhou na compilação somente pela ausência de
+  `CouchDbChangeEventMapper`; GREEN: o mapper test-only passou a produzir ID
+  determinístico por documento/revisão, extensões de referência, hash, sequência
+  e revisão, sem `data`;
+- `CouchDbChangesIntegrationTest` subiu `couchdb:3.5.2`, criou um documento,
+  repetiu `_changes?since=0&include_docs=true` e comprovou o mesmo CloudEvent
+  referencial nas duas leituras, sem transportar o campo de negócio `parecer`;
+- `RedisCheckpointCompatibilidadeQuarkusTest` subiu
+  `valkey/valkey:7.2-alpine` e executou o contrato oficial
+  `AbstractHandlerPersistenceTest`: writer, reader, scan e restauração de contexto
+  terminaram com código 0;
+- `LeaseWorkflowApplicationCompatibilidadeTest` comprovou que, fora da estratégia
+  dev/test, a extensão dispara `LeaseStartupEvent`, espera até 30 segundos pela
+  Lease de membro e usa o nome obtido em `WorkflowApplication.Builder.withId`;
+- o teste de SPI confirmou `EventConsumer.listen(EventFilter,
+  WorkflowApplication)`, `EventPublisher.publish(CloudEvent)` assíncrono e
+  `WorkflowApplication.Builder.withId(String)` na versão efetiva;
+- `mvn -q -Pspike-persistencia-duravel test` executou 6 testes com 0 falhas e
+  0 erros; `mvn -q test` preservou a suíte padrão com código 0;
+- o checkpoint executou `clean verify`, SonarScanner e Compute Engine e terminou
+  `COMPLIANT`: 219 issues atuais contra 219 no baseline, nenhuma issue nova ou
+  `HIGH`, `BLOCKER` ou `CRITICAL`, cobertura de 86,2%, duplicação de 3,1% e
+  decisão `NOT_REQUIRED`;
+- limitação observada: o profile isolado não possui o exporter OpenTelemetry
+  in-memory da suíte padrão e tentou acessar o OTLP local indisponível; também
+  registrou advertência para `quarkus.flow.persistence.auto-restore`, embora a
+  interface de configuração `FlowPersistenceConfig` exponha esse prefixo e
+  propriedade na versão `0.10.2`; nenhuma correção foi feita fora do spike;
+- não foram comprovados restart entre processos, duas réplicas, Lease real,
+  roteamento cross-pod ou failover. Nenhum fallback distribuído foi criado. Essas
+  provas permanecem nas Tasks 8.2/8.3 e o ADR-0010 continua `Proposto`;
+- próximo item formal: Task 7.2. Por instrução desta retomada, ela permanece
+  pendente e nenhum contrato público foi antecipado.
+
 ### Planejamento da evolução durável
 
 - o usuário autorizou planejar a mudança para CouchDB nos dados de negócio e
@@ -511,6 +559,7 @@
 | C4 | APROVADO | 2026-07-25 | `C4 GO` explícito; autoriza a implementação, mas ADR-0010 permanece `Proposto` até a prova cross-pod da Task 8.3 | Usuário |
 | Sonar incremento 6 | UNVERIFIED | 2026-07-25 | Processo sem `SONAR_TOKEN`; usuário autorizou continuar sem checkpoint, sem aprovação ou reprovação técnica | Usuário |
 | Revalidação Sonar incremento 6 | COMPLIANT | 2026-07-26 | Baseline da sessão e checkpoint completos; 0 issues novas, cobertura 86,2%, duplicação 3,1% e decisão `NOT_REQUIRED` | — |
+| Sonar spike Task 7.1 | COMPLIANT | 2026-07-26 | 0 issues novas; cobertura 86,2%; duplicação 3,1%; decisão `NOT_REQUIRED` | — |
 | CF | PENDENTE | — | Aguardará evidências finais | — |
 
 ## Regras de avanço
