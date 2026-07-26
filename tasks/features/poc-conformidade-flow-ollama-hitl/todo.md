@@ -3,10 +3,11 @@
 ## Estado
 
 - **Branch:** `feature/poc-conformidade-flow-ollama-hitl`
-- **Escopo:** concluir baseline HITL volátil e evoluir para CouchDB + Redis/Valkey +
-  `_changes` + containers/Kubernetes após C4
-- **Próximo item:** 7.3 — persistir documentos de negócio e projeção no CouchDB;
-  permanece pendente e fora do escopo desta retomada
+- **Escopo:** concluir baseline HITL volátil e evoluir para persistência documental
+  neutra, com CouchDB em DES, Azure Cosmos DB for NoSQL em PRD, Redis/Valkey para
+  checkpoints e entrega referencial sem broker
+- **Próximo item:** 7.3 — implementar a porta neutra, o contrato compartilhado e os
+  adapters CouchDB/DES e Cosmos DB for NoSQL/PRD
 - **Especificação:** `doc/poc/especificacao-poc-conformidade-quarkus-flow-ollama-hitl-sem-broker.md`
 - **Plano:** `tasks/features/poc-conformidade-flow-ollama-hitl/plan.md`
 - **Baseline Sonar:** SonarQube Docker local, inicializado em 2026-07-24
@@ -44,10 +45,13 @@
   `EventConsumer` e Durable Kubernetes;
 - [x] 7.2 Evoluir contrato com `correlationId`, `identificadorDocumento`, checklist e
   versão;
-- [ ] 7.3 Persistir documentos de negócio e projeção no CouchDB;
+- [x] C5 Aprovar persistência por ambiente: CouchDB em DES, Azure Cosmos DB for
+  NoSQL em PRD, porta neutra, contrato compartilhado e gate Cosmos pré-promoção;
+- [ ] 7.3 Persistir documentos de negócio e projeção pela porta neutra, com adapters
+  CouchDB e Cosmos DB for NoSQL;
 - [ ] 7.4 Reduzir contexto e habilitar checkpoint Redis/Valkey;
-- [ ] 7.5 Completar `EventPublisher` + `_changes` -> `EventConsumer` -> CloudEvent
-  com idempotência;
+- [ ] 7.5 Completar `EventPublisher` + feed nativo do backend -> `EventConsumer` ->
+  CloudEvent com idempotência;
 - [ ] 7.6 Executar suíte e checkpoint Sonar do incremento 7;
 - [ ] 8.1 Empacotar app, CouchDB, Redis/Valkey e Ollama para uma réplica;
 - [ ] 8.2 Configurar Kubernetes Leases, readiness e duas réplicas;
@@ -552,6 +556,8 @@
 - esclarecimento humano recebido em 2026-07-26: `identificadorDocumento` permanece
   `String`; um identificador originalmente numérico pode ser representado como texto,
   e nenhuma conversão para `Long` será feita nesta evolução;
+- esclarecimento humano recebido em 2026-07-26 para a Task 7.3: `versaoSchema` é
+  `small int`, representado por `Short` no Java e por número inteiro no JSON;
 - o checkpoint executou `clean verify`, SonarScanner e Compute Engine e terminou
   `COMPLIANT`: 219 issues atuais contra 219 no baseline, nenhuma issue nova ou
   `HIGH`, `BLOCKER` ou `CRITICAL`, cobertura de 86,2%, duplicação de 3,0% e decisão
@@ -577,6 +583,27 @@
 - nenhum código, POM, propriedade executável, script, consolidado arquitetural ou
   formato derivado foi alterado nesta etapa documental.
 
+### Checkpoint C5 — Persistência documental por ambiente
+
+- o usuário confirmou em 2026-07-26 a recomendação de manter Apache CouchDB em DES
+  e usar Azure Cosmos DB for NoSQL em PRD;
+- a aplicação dependerá de portas de persistência orientadas às necessidades do
+  domínio; `_rev`, `_etag`, `_changes`, Change Feed e DTOs dos fornecedores ficarão
+  confinados aos respectivos adapters;
+- os dois adapters deverão cumprir o mesmo contrato executável para documentos,
+  projeção, idempotência, concorrência otimista e falhas;
+- CouchDB usará `_rev` e `_changes`; Cosmos DB for NoSQL usará `_etag`/`If-Match`,
+  Azure Cosmos DB Java SDK v4 e Change Feed Processor;
+- uma integração opt-in contra Cosmos DB Emulator ou conta Cosmos não produtiva será
+  gate obrigatório antes da promoção para PRD; o emulador não será tratado como
+  substituto completo do serviço;
+- MongoDB não foi selecionado: seu protocolo corresponde ao Azure Cosmos DB for
+  MongoDB, não ao Azure Cosmos DB for NoSQL escolhido;
+- a forma de autenticação do adapter Cosmos em PRD não foi fixada por suposição e
+  exigirá checkpoint de segurança antes da configuração executável;
+- ADR-0010 permanece `Proposto`; C5 autoriza a implementação da arquitetura por
+  ambiente, mas não antecipa sua aceitação final nem a prova multipod.
+
 ## Decisões humanas
 
 | Checkpoint | Status | Data | Evidência | Aprovador |
@@ -598,6 +625,8 @@
 | Sonar spike Task 7.1 | COMPLIANT | 2026-07-26 | 0 issues novas; cobertura 86,2%; duplicação 3,1%; decisão `NOT_REQUIRED` | — |
 | Sonar Task 7.2 | COMPLIANT | 2026-07-26 | 0 issues novas; cobertura 86,2%; duplicação 3,0%; decisão `NOT_REQUIRED` | — |
 | Tipo de `identificadorDocumento` | APROVADO | 2026-07-26 | Usuário confirmou manter `String`; tipos futuros ausentes ou ambíguos exigem pergunta e registro antes da especificação | Usuário |
+| Tipo de `versaoSchema` | APROVADO | 2026-07-26 | Usuário definiu `small int`; representação `Short` no Java e número inteiro no JSON | Usuário |
+| C5 | APROVADO | 2026-07-26 | Usuário aceitou a recomendação: CouchDB em DES, Azure Cosmos DB for NoSQL em PRD, porta neutra, contratos compartilhados e validação Cosmos obrigatória antes da promoção | Usuário |
 | CF | PENDENTE | — | Aguardará evidências finais | — |
 
 ## Regras de avanço
@@ -610,5 +639,7 @@
 - qualquer `NON_COMPLIANT` Sonar exige decisão humana registrada pelo script;
 - teste real com Ollama é opt-in; a suíte padrão usa agente falso.
 - ADR-0010 permanece `Proposto` e ADR-0009 permanece `Aceito` até decisão humana;
+- C5 não autoriza escolher silenciosamente o mecanismo de autenticação do Cosmos;
+  essa decisão de segurança deve ser registrada antes da configuração de PRD;
 - falha da prova cross-pod interrompe a evolução multipod e exige novo checkpoint,
   sem adoção automática de Kafka.

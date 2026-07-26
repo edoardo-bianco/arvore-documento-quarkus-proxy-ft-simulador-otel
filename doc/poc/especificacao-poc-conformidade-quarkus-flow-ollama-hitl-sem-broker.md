@@ -133,16 +133,16 @@ Esta especificação começou como uma PoC exclusivamente em memória e os incre
 próximos incrementos, os requisitos de volatilidade, `ConcurrentHashMap` e canais
 exclusivamente locais pelos requisitos duráveis abaixo:
 
-- CouchDB como único sistema de registro dos documentos JSON e da projeção de
-  negócio da análise;
+- porta documental neutra, com CouchDB em DES e Azure Cosmos DB for NoSQL em PRD,
+  como sistema de registro dos documentos JSON e da projeção de negócio;
 - Redis ou Valkey, por `quarkus-flow-redis`, somente para checkpoints técnicos do
   Quarkus Flow;
 - contexto do Flow limitado a identificadores, referências e hashes, sem texto,
   checklist, revisão ou resultados completos;
 - revisão REST persistida antes da entrega ao Flow;
-- adapter do feed `_changes` do CouchDB para CloudEvent v1 e `listen(...)`, sem
-  Kafka ou AMQP;
-- semântica de entrega pelo menos uma vez, com idempotência no CouchDB e no
+- adapters do `_changes` do CouchDB e do Change Feed Processor do Cosmos para
+  CloudEvent v1 e `listen(...)`, sem Kafka ou AMQP;
+- semântica de entrega pelo menos uma vez, com idempotência na porta documental e no
   workflow;
 - execução local em containers e validação posterior em Kubernetes com duas
   réplicas e identidade durável por Leases;
@@ -151,9 +151,9 @@ exclusivamente locais pelos requisitos duráveis abaixo:
   na página.
 
 Quando um trecho histórico deste documento contradisser esta emenda, prevalecem esta
-seção, a seção específica atualizada e o ADR-0010 depois de aceito. O ADR-0010
-permanece `Proposto` até o checkpoint humano C4; nenhuma alteração executável dessa
-evolução é autorizada antes desse checkpoint.
+seção, a seção específica atualizada e o ADR-0010 depois de aceito. C4 e C5
+autorizaram a implementação, mas o ADR-0010 permanece `Proposto` até a prova
+cross-pod/failover e uma decisão humana posterior.
 
 ---
 
@@ -172,10 +172,10 @@ Validar, dentro do `simtr-hub`, os seguintes conceitos:
 7. pausa real do workflow para revisão humana;
 8. retomada do workflow após a revisão;
 9. uso de CloudEvents **sem Kafka e sem broker externo**, com entrega derivada do
-   feed durável `_changes` do CouchDB;
+   feed nativo do backend documental;
 10. interface HTML estática com polling para acompanhar a evolução do workflow;
-11. persistência dos dados de negócio no CouchDB e dos checkpoints técnicos do Flow
-    no Redis/Valkey;
+11. persistência dos dados de negócio no CouchDB em DES ou Cosmos DB for NoSQL em
+    PRD, e dos checkpoints técnicos do Flow no Redis/Valkey;
 12. retomada após reinício e validação de roteamento entre duas réplicas.
 
 A PoC não pretende ser uma solução produtiva. Ela deve demonstrar que os conceitos funcionam juntos e permitir avaliar limitações, ergonomia e riscos.
@@ -194,19 +194,20 @@ A página estática deve permitir que uma pessoa informe:
 Ao iniciar a análise, o sistema deve:
 
 1. validar a requisição;
-2. criar `correlationId`, documento inicial e projeção no CouchDB;
+2. criar `correlationId`, documento inicial e projeção pela porta documental;
 3. criar uma instância do Quarkus Flow e retornar todas as identidades;
 4. consultar o checklist usando a capacidade já existente no domínio `conformidade`;
 5. montar a entrada do agente;
 6. chamar o modelo Ollama local;
 7. receber um resultado estruturado;
 8. validar e normalizar o resultado;
-9. persistir o snapshot do checklist e o resultado preliminar no CouchDB;
+9. persistir o snapshot do checklist e o resultado preliminar pelo contrato
+   documental;
 10. colocar o workflow em estado de espera por revisão humana e gravar seu
     checkpoint no Redis/Valkey;
 11. disponibilizar o resultado preliminar à página;
 12. permitir que a pessoa altere parecer, justificativa e evidência;
-13. persistir a revisão idempotente no CouchDB;
+13. persistir a revisão idempotente no backend selecionado;
 14. converter a mudança persistida em CloudEvent correlacionado;
 15. retomar o workflow;
 16. validar a revisão;
@@ -227,6 +228,8 @@ Não implementar nesta PoC:
 - RabbitMQ;
 - AMQP externo;
 - banco relacional;
+- MongoDB ou Azure Cosmos DB for MongoDB;
+- tratar um banco de DES como emulador transparente do Cosmos DB for NoSQL;
 - autenticação específica para a página da PoC;
 - WebSocket;
 - Server-Sent Events;
@@ -312,9 +315,10 @@ O domínio e a aplicação devem depender de portas.
 Os adaptadores devem encapsular:
 
 - Ollama/LangChain4j;
-- CouchDB;
+- CouchDB em DES;
+- Azure Cosmos DB for NoSQL em PRD;
 - Redis/Valkey por meio do provider do Flow;
-- feed `_changes`;
+- `_rev`, `_etag`, `_changes` e Change Feed;
 - CloudEvents;
 - REST;
 - página HTML.
@@ -347,7 +351,7 @@ Adicionar `quarkus-flow-redis` como único provider de checkpoint do Flow. Usar 
 ou Valkey compatível com o protocolo Redis, conforme a combinação validada para Flow
 `0.10.2`.
 
-O CouchDB é o único sistema de registro para:
+A aplicação depende de uma porta documental neutra. Seu contrato lógico abrange:
 
 - texto inicial e `identificadorDocumento`;
 - snapshot do checklist aplicado;
@@ -356,6 +360,17 @@ O CouchDB é o único sistema de registro para:
 - projeção consultada pela API;
 - correlação e falha sanitizada.
 
+O backend que implementa esse contrato é:
+
+- Apache CouchDB em DES, com `_rev`/MVCC e `_changes`;
+- Azure Cosmos DB for NoSQL em PRD, com Azure Cosmos DB Java SDK v4,
+  `_etag`/`If-Match` e Change Feed Processor.
+
+O mesmo contrato executável deve passar para os dois adapters. Nenhum DTO, token de
+versão ou exceção nativa pode atravessar a borda. `correlationId` é a chave lógica de
+partição no Cosmos. Cada documento canônico contém `versaoSchema` do tipo `small int`,
+representado por `Short` no Java e número inteiro no JSON.
+
 O checkpoint no Redis/Valkey contém somente `correlationId`, `instanceId`,
 referências determinísticas, hashes e estado técnico mínimo. Ele não pode duplicar os
 documentos JSON de negócio.
@@ -363,7 +378,7 @@ documentos JSON de negócio.
 Não adicionar `quarkus-flow-jpa`, banco relacional ou `quarkus-flow-mvstore`. Reinício
 da aplicação deve preservar os documentos de negócio e permitir restauração de uma
 instância pausada. Testes devem diferenciar claramente recuperação da projeção no
-CouchDB e recuperação do checkpoint do Flow.
+backend documental e recuperação do checkpoint do Flow.
 
 ---
 
@@ -371,9 +386,12 @@ CouchDB e recuperação do checkpoint do Flow.
 
 ### 6.1 Decisão
 
-Não usar Kafka, AMQP nem connector externo. O feed `_changes` do CouchDB será a fonte
+Não usar Kafka, AMQP nem connector externo. O feed nativo do backend será a fonte
 durável das revisões aceitas e um adapter do SPI `EventConsumer` do Quarkus Flow
-converterá cada mudança relevante em CloudEvent.
+converterá cada mudança relevante em CloudEvent:
+
+- `_changes` com cursor persistido no CouchDB/DES;
+- Change Feed Processor com container de leases no Cosmos/PRD.
 
 Não usar:
 
@@ -390,7 +408,7 @@ Não adicionar:
 
 O adapter próprio substitui a dependência de entrega do `flow-in` local. O
 `emitJson(...)` permanece para os eventos de domínio do workflow; sua projeção
-durável deve ser gravada no CouchDB por porta de aplicação. A ponte local já
+durável deve ser gravada pela porta documental. A ponte local já
 implementada pode coexistir apenas durante a migração e deve ser removida quando o
 caminho durável estiver comprovado.
 
@@ -400,9 +418,9 @@ Fluxo de entrada:
 
 ```text
 REST de revisão
-    -> documento imutável no CouchDB
-    -> feed _changes com cursor persistido
-    -> EventConsumer adapter
+    -> documento imutável pela porta documental
+    -> _changes/cursor em DES ou Change Feed/leases em PRD
+    -> EventConsumer do backend
     -> CloudEvent v1 referenciando o documento
     -> correlação do CloudEvent
     -> retomada da instância
@@ -413,7 +431,7 @@ Fluxo de saída:
 ```text
 emitJson do workflow
     -> EventPublisher adapter
-    -> fato referencial e projeção no CouchDB
+    -> fato referencial e projeção pela porta documental
     -> polling REST
 ```
 
@@ -421,7 +439,7 @@ emitJson do workflow
 
 O endpoint só confirma `202` depois de persistir uma revisão válida. O adapter deve:
 
-- retomar o cursor do `_changes` depois de reconexão;
+- retomar o cursor do `_changes` ou os leases do Change Feed depois de reconexão;
 - filtrar documentos pelo tipo e pela versão de schema;
 - produzir `id` determinístico;
 - aceitar repetições sem concluir duas vezes;
@@ -431,10 +449,11 @@ O endpoint só confirma `202` depois de persistir uma revisão válida. O adapte
 
 ### 6.4 Estratégia de testes
 
-Fakes podem substituir CouchDB, Redis/Valkey ou o `EventConsumer` em testes unitários.
-Testes de integração devem usar containers reais, provar replay/repetição e executar
-sem Kafka. O teste multipod deve usar Kubernetes local; Docker Compose valida somente
-uma réplica.
+Fakes podem substituir a porta documental, Redis/Valkey ou o `EventConsumer` em
+testes unitários. O mesmo contrato deve ser executado contra CouchDB e Cosmos. Testes
+de integração usam CouchDB real em container e Cosmos Emulator ou conta não produtiva
+em execução opt-in, provam replay/repetição e executam sem Kafka. O teste multipod
+deve usar Kubernetes local; Docker Compose valida somente uma réplica.
 
 ---
 
@@ -448,8 +467,8 @@ CloudEvent será o envelope de correlação entre:
 - o endpoint que recebe a revisão humana.
 
 CloudEvent não implica uso de broker nem fornece durabilidade sozinho. Nesta evolução,
-a durabilidade vem do documento no CouchDB e do checkpoint no Redis/Valkey; CloudEvent
-é o contrato entregue ao `listen(...)`.
+a durabilidade vem do documento no backend selecionado e do checkpoint no
+Redis/Valkey; CloudEvent é o contrato entregue ao `listen(...)`.
 
 ### 7.2 Tipos de evento
 
@@ -475,7 +494,7 @@ O endpoint de revisão deve criar um CloudEvent contendo:
 ```text
 flowinstanceid = instanceId recebido na URL
 correlationId = correlação persistida da análise
-revisaoRef = identificador determinístico do documento no CouchDB
+revisaoRef = identificador determinístico do documento no backend
 revisaoHash = hash canônico do conteúdo aceito
 ```
 
@@ -503,20 +522,24 @@ Os canais padrão do Quarkus Flow transportam CloudEvent estruturado como:
 byte[]
 ```
 
+O `data` referencial contém somente referência, hash e `versaoSchema`. O tipo de
+`versaoSchema` é `small int`, representado por `Short` no Java e número inteiro no
+JSON.
+
 O endpoint de revisão deve:
 
 1. validar a revisão contra a projeção corrente;
 2. construir o documento imutável com ID e hash determinísticos;
-3. gravá-lo no CouchDB, aceitando repetição idêntica;
+3. gravá-lo pela porta documental, aceitando repetição idêntica;
 4. responder `202` somente depois da gravação.
 
-O adapter do `_changes` deve:
+O adapter do feed selecionado deve:
 
 1. receber a mudança e carregar o documento;
 2. validar tipo, versão, estado e correlação;
 3. construir CloudEvent v1 com referência, nunca com o payload negocial completo;
 4. entregar o evento ao Flow;
-5. registrar processamento idempotente e avançar o cursor.
+5. registrar processamento idempotente e avançar o cursor ou checkpoint do feed.
 
 ---
 
@@ -769,7 +792,7 @@ public record Checklist(
 }
 ```
 
-O workflow deve gravar um snapshot imutável do checklist no CouchDB e manter no
+O workflow deve gravar um snapshot imutável do checklist pela porta documental e manter no
 contexto da instância somente a referência e o hash até a revisão humana terminar.
 Cada etapa que precisar do conteúdo deve carregá-lo por uma porta de aplicação.
 
@@ -797,7 +820,7 @@ O workflow não deve duplicar essas políticas.
 
 Se a consulta falhar após a política existente:
 
-- atualizar a projeção no CouchDB para `FALHOU`;
+- atualizar a projeção no backend documental para `FALHOU`;
 - registrar uma mensagem sanitizada;
 - interromper o fluxo;
 - não chamar o agente.
@@ -1078,7 +1101,7 @@ O consumidor da emissão deve:
 
 - extrair `flowinstanceid`;
 - validar `correlationId`;
-- gravar status `AGUARDANDO_REVISAO` no CouchDB;
+- gravar status `AGUARDANDO_REVISAO` no backend documental;
 - gravar resultado preliminar ou sua referência imutável;
 - tornar o resultado disponível para polling.
 
@@ -1179,9 +1202,9 @@ Requisitos:
 
 - bean `@ApplicationScoped`;
 - registros imutáveis;
-- documentos JSON no CouchDB;
+- documentos JSON pelo contrato neutro, com schema lógico idêntico nos dois adapters;
 - índice consultável por `instanceId` e chave estável por `correlationId`;
-- atualização concorrente por `_rev`/MVCC;
+- atualização concorrente por `_rev`/MVCC em DES e `_etag`/`If-Match` em PRD;
 - fatos de revisão com IDs determinísticos e sem sobrescrita;
 - retenção explícita, sem expiração automática silenciosa;
 - sem estado estático global fora do CDI;
@@ -1195,7 +1218,8 @@ São responsabilidades diferentes:
 
 - Quarkus Flow: controlar execução e espera;
 - Redis/Valkey: armazenar o checkpoint técnico do Flow;
-- CouchDB: armazenar os documentos de negócio e a projeção para a interface.
+- backend documental selecionado: armazenar os documentos de negócio e a projeção
+  para a interface.
 
 O reinício de um pod não pode exigir reconstrução manual da projeção nem nova resposta
 humana. Redis/Valkey não é a fonte da API de polling.
@@ -1425,7 +1449,8 @@ Renderizar cada apontamento em uma linha ou cartão contendo:
 Exibir:
 
 ```text
-Dados de negócio são persistidos no CouchDB e checkpoints técnicos no Redis/Valkey.
+Dados de negócio são persistidos pelo backend documental selecionado e checkpoints
+técnicos no Redis/Valkey.
 O suporte a múltiplos pods só é válido quando o teste Kubernetes desta versão estiver aprovado.
 ```
 
@@ -1487,8 +1512,12 @@ br.gov.caixa.simtr.hub.conformidade
         │       └── ...
         ├── couchdb
         │   ├── AnaliseConformidadeCouchDbStore.java
-        │   ├── FlowCouchDbEventPublisher.java
         │   └── RevisaoCouchDbChangesConsumer.java
+        ├── cosmos
+        │   ├── AnaliseConformidadeCosmosStore.java
+        │   └── RevisaoCosmosChangeFeedConsumer.java
+        ├── evento
+        │   └── FlowDocumentoEventPublisher.java
         └── messaging
             └── interno
                 └── CloudEventMapper.java
@@ -1546,6 +1575,12 @@ Dependências funcionais esperadas:
     <groupId>io.quarkiverse.flow</groupId>
     <artifactId>quarkus-flow-durable-kubernetes</artifactId>
 </dependency>
+
+<dependency>
+    <groupId>com.azure</groupId>
+    <artifactId>azure-cosmos</artifactId>
+    <version>4.80.0</version>
+</dependency>
 ```
 
 Regras:
@@ -1560,9 +1595,11 @@ Regras:
 8. manter Java 25;
 9. validar o provider Redis e o módulo Kubernetes exatamente na versão Flow
    `0.10.2`;
-10. selecionar o acesso HTTP ao CouchDB somente no spike, preferindo capacidades já
-    presentes no projeto e sem acoplar DTOs de negócio ao cliente;
-11. não adicionar JPA, driver PostgreSQL, Kafka ou AMQP.
+10. manter o acesso HTTP/JSON do CouchDB confinado ao adapter DES;
+11. usar a API assíncrona do Azure Cosmos DB Java SDK v4 e um cliente singleton;
+12. não adicionar `azure-identity`, chave ou connection string antes do checkpoint
+    de segurança da autenticação PRD;
+13. não adicionar JPA, driver PostgreSQL, MongoDB, Kafka ou AMQP.
 
 ---
 
@@ -1581,11 +1618,22 @@ quarkus.flow.devui.backend.storage.enabled=true
 # Os nomes exatos das propriedades de persistência Redis e durable Kubernetes
 # devem ser copiados da documentação/API da versão 0.10.2 após o spike.
 
-# CouchDB e Redis/Valkey
+# Seleção textual obrigatória fora de dev/test: couchdb ou cosmosdb
+conformidade.persistencia.backend=${CONFORMIDADE_PERSISTENCIA_BACKEND}
+%dev.conformidade.persistencia.backend=couchdb
+%test.conformidade.persistencia.backend=couchdb
+
+# CouchDB — DES
 conformidade.couchdb.url=${COUCHDB_URL:http://localhost:5984}
 conformidade.couchdb.database=${COUCHDB_DATABASE:conformidade}
 conformidade.couchdb.username=${COUCHDB_USERNAME:}
 conformidade.couchdb.password=${COUCHDB_PASSWORD:}
+
+# Azure Cosmos DB for NoSQL — PRD
+conformidade.cosmos.endpoint=${COSMOS_ENDPOINT:}
+conformidade.cosmos.database=${COSMOS_DATABASE:conformidade}
+conformidade.cosmos.container=${COSMOS_CONTAINER:analises}
+conformidade.cosmos.lease-container=${COSMOS_LEASE_CONTAINER:analises-leases}
 
 # Ollama local
 quarkus.langchain4j.ollama.base-url=${OLLAMA_BASE_URL:http://localhost:11434}
@@ -1604,8 +1652,11 @@ quarkus.langchain4j.timeout=60s
 ```
 
 Não adicionar configurações Kafka. Credenciais de CouchDB e Redis/Valkey não podem
-ser versionadas; devem vir de variável/secret. Configuração de cursor, reconexão,
-health/readiness e timeouts requer checkpoint observável antes da implementação.
+ser versionadas; devem vir de variável/secret. Fora de dev/test, backend e
+configuração obrigatória ausente devem falhar no startup. Não definir chave,
+connection string, `azure-identity` ou mecanismo de autenticação Cosmos antes do
+checkpoint de segurança. Configuração de cursor/leases, reconexão, health/readiness
+e timeouts requer checkpoint observável antes da implementação.
 
 Antes de registrar prompt e resposta integralmente, considerar que o texto pode conter dados sensíveis. Para a PoC, documentar o risco e permitir desabilitar logging.
 
@@ -1670,14 +1721,18 @@ flowchart LR
     FLOW[Quarkus Flow<br/>Análise de conformidade]
     AGENT[Porta de saída<br/>AnalisarTextoComChecklist]
     OLLAMA[LangChain4j Agentic<br/>Ollama local]
-    COUCH[(CouchDB<br/>dados de negócio e projeção)]
+    STORE[Porta documental<br/>dados de negócio e projeção]
+    COUCH[(CouchDB<br/>DES)]
+    COSMOS[(Cosmos DB for NoSQL<br/>PRD)]
     REDIS[(Redis/Valkey<br/>checkpoints Flow)]
-    CHANGES[Adapter EventConsumer<br/>CouchDB _changes]
+    CHANGES[Adapter EventConsumer<br/>feed do backend]
     LEASE[Kubernetes Leases<br/>identidade do worker]
 
     UI -->|POST iniciar análise| REST
     REST --> START
-    START -->|documento, correlação e projeção| COUCH
+    START -->|documento, correlação e projeção| STORE
+    STORE -->|DES| COUCH
+    STORE -->|PRD| COSMOS
     START -->|referências| FLOW
 
     FLOW --> QUERY
@@ -1686,17 +1741,18 @@ flowchart LR
     FLOW -->|checkpoint técnico| REDIS
     LEASE --> FLOW
 
-    FLOW -->|snapshot, resultado e status| COUCH
+    FLOW -->|snapshot, resultado e status| STORE
 
     UI -->|GET status por polling| REST
-    REST --> COUCH
+    REST --> STORE
 
     UI -->|PUT revisão humana| REST
-    REST -->|documento imutável| COUCH
+    REST -->|documento imutável| STORE
     COUCH -->|_changes| CHANGES
+    COSMOS -->|Change Feed| CHANGES
     CHANGES -->|CloudEvent referencial| FLOW
 
-    FLOW -->|Resultado final| COUCH
+    FLOW -->|Resultado final| STORE
 ```
 
 ### Responsabilidades dos componentes
@@ -1708,11 +1764,13 @@ flowchart LR
 - **Quarkus Flow**: coordena a consulta do checklist, a análise agentic, a espera pela revisão humana e a finalização do fluxo.
 - **AnalisarTextoComChecklist**: representa a porta de saída responsável por executar a análise do texto com o checklist.
 - **LangChain4j Agentic e Ollama**: aplicam os apontamentos do checklist sobre o texto e retornam um resultado estruturado.
-- **CouchDB**: sistema de registro do texto/documento, checklist congelado, resultados,
-  revisão e projeção consultada pela página.
+- **Porta documental**: contrato neutro para texto/documento, checklist congelado,
+  resultados, revisão e projeção.
+- **CouchDB/Cosmos DB for NoSQL**: implementam o mesmo contrato, respectivamente em
+  DES e PRD, sem expor seus tipos nativos.
 - **Redis/Valkey**: armazena somente checkpoints técnicos do Flow.
-- **Adapter `_changes`**: transforma revisão persistida em CloudEvent referencial,
-  controla cursor e tolera repetição.
+- **Adapter do feed**: transforma revisão persistida em CloudEvent referencial,
+  controla cursor CouchDB ou leases Cosmos e tolera repetição.
 - **Kubernetes Leases**: fornece identidade estável ao worker em múltiplos pods; não
   substitui o teste de roteamento cross-pod.
 
@@ -1729,13 +1787,13 @@ sequenceDiagram
     participant Checklist as ConsultarChecklist
     participant MTR as MTR ou Simulador
     participant Agente as LangChain4j/Ollama
-    participant Couch as CouchDB
+    participant Store as Backend documental
     participant Redis as Redis/Valkey
-    participant Changes as Adapter _changes
+    participant Changes as Adapter de feed
 
     Pessoa->>Pagina: Informa documento/texto, checklist e versão
     Pagina->>API: POST /analises
-    API->>Couch: cria documento, correlação e projeção
+    API->>Store: cria documento, correlação e projeção
     API->>Flow: cria instância e start() com referências
     API-->>Pagina: 202 + todas as identidades
 
@@ -1744,34 +1802,34 @@ sequenceDiagram
     Checklist->>MTR: consulta checklist
     MTR-->>Checklist: checklist
     Checklist-->>Flow: Uni<Checklist>
-    Flow->>Couch: snapshot imutável do checklist
+    Flow->>Store: snapshot imutável do checklist
 
     Flow->>Agente: texto + checklist
     Agente-->>Flow: resultado estruturado
     Flow->>Flow: valida e normaliza
 
-    Flow->>Couch: AGUARDANDO_REVISAO + resultado
+    Flow->>Store: AGUARDANDO_REVISAO + resultado
     Flow->>Flow: listen revisão.concluida
     Flow->>Redis: checkpoint WAITING
 
     loop polling
         Pagina->>API: GET /analises/{instanceId}
-        API->>Couch: consultar
-        Couch-->>API: estado
+        API->>Store: consultar
+        Store-->>API: estado
         API-->>Pagina: estado
     end
 
     Pagina-->>Pessoa: apresenta resultado editável
     Pessoa->>Pagina: corrige e confirma
     Pagina->>API: PUT /analises/{instanceId}/revisao
-    API->>Couch: grava revisão imutável
+    API->>Store: grava revisão imutável
     API-->>Pagina: 202
-    Couch-->>Changes: _changes
+    Store-->>Changes: _changes ou Change Feed
     Changes->>Flow: CloudEvent com referências
-    Flow->>Couch: carrega e valida revisão
+    Flow->>Store: carrega e valida revisão
 
     Flow->>Flow: valida revisão
-    Flow->>Couch: CONCLUIDA + resultado final
+    Flow->>Store: CONCLUIDA + resultado final
     Flow->>Redis: checkpoint terminal
 
     loop polling
@@ -1828,13 +1886,16 @@ O teste deve provar que o fluxo não conclui antes da revisão.
 
 ### 25.4 Teste da entrega durável
 
-Subir `@QuarkusTest` sem Kafka e sem broker.
+Subir `@QuarkusTest` sem Kafka e sem broker. Executar o mesmo contrato documental
+contra os dois adapters.
 
 Validar:
 
-- aplicação inicia com CouchDB e Redis/Valkey e sem connector;
+- aplicação DES inicia com CouchDB e Redis/Valkey e sem connector;
+- adapter PRD passa em integração opt-in contra Cosmos Emulator ou conta não
+  produtiva antes da promoção;
 - revisão só é publicada depois de persistida;
-- `_changes` pode repetir a mudança sem repetir a conclusão;
+- `_changes` e Change Feed podem repetir a mudança sem repetir a conclusão;
 - CloudEvent referencial preserva `flowinstanceid` e `correlationId`;
 - restart restaura a espera e mantém a projeção;
 - documento inválido não bloqueia mudanças posteriores;
@@ -1907,12 +1968,12 @@ A PoC será considerada válida quando:
 13. Fault Tolerance for aplicado à chamada ao agente;
 14. a indisponibilidade do Ollama produzir fallback revisável ou erro controlado;
 15. o workflow persistir a solicitação de revisão;
-16. a revisão humana ser persistida no CouchDB antes da entrega;
+16. a revisão humana ser persistida no backend documental antes da entrega;
 17. o workflow realmente aguardar revisão;
 18. a página detectar `AGUARDANDO_REVISAO` por polling;
 19. a pessoa conseguir editar os resultados;
 20. a revisão ser enviada por REST;
-21. o adapter `_changes` emitir CloudEvent referencial, sem Kafka;
+21. o adapter do feed nativo emitir CloudEvent referencial, sem Kafka;
 22. `flowinstanceid` e `correlationId` retomarem a instância correta;
 23. o workflow concluir;
 24. a página exibir o resultado final;
@@ -1922,7 +1983,9 @@ A PoC será considerada válida quando:
 27. uma revisão repetida não concluir duas vezes;
 28. o teste com duas réplicas provar a retomada cross-pod antes de declarar suporte
     multipod;
-29. testes e guardrails existentes continuarem passando.
+29. o mesmo contrato executável passar nos adapters CouchDB e Cosmos;
+30. a validação Cosmos opt-in passar antes de qualquer promoção para PRD;
+31. testes e guardrails existentes continuarem passando.
 
 ---
 
@@ -1936,7 +1999,7 @@ O Codex deve analisar explicitamente:
 4. API exata da DSL `agent`, `emitJson`, `listen` e correlação;
 5. ativação da dependência condicional `quarkus-flow-messaging` apenas com `quarkus-messaging`;
 6. compatibilidade dos SPIs `EventPublisher`/`EventConsumer` com emissões
-   referenciais e `_changes` sem connector;
+   referenciais e feeds nativos sem connector;
 7. assinatura assíncrona necessária para usar `Uni`;
 8. suporte do modelo Ollama selecionado a structured output;
 9. tamanho do contexto ao serializar o checklist;
@@ -1949,11 +2012,15 @@ O Codex deve analisar explicitamente:
 16. API de status da instância disponível na versão usada;
 17. formato e compatibilidade do checkpoint Redis do Flow `0.10.2`;
 18. tamanho e serialização do contexto mínimo por referência;
-19. comportamento do `_changes` em reconexão, repetição e mudança inválida;
-20. uso de `_rev`/MVCC para impedir revisões contraditórias;
+19. comportamento do `_changes` e Change Feed em reconexão, repetição e mudança
+    inválida;
+20. uso de `_rev` e `_etag` para impedir revisões contraditórias;
 21. roteamento cross-pod do `EventConsumer` sem broker;
 22. identidade estável e readiness por Kubernetes Leases;
-23. disponibilidade e saúde independentes de CouchDB e Redis/Valkey.
+23. disponibilidade e saúde independentes dos backends documentais e Redis/Valkey;
+24. divergência semântica entre CouchDB/DES e Cosmos/PRD;
+25. autenticação Cosmos, menor privilégio e ausência de segredo em código/log;
+26. diferenças do Cosmos Emulator para o serviço gerenciado.
 
 Nenhum desses riscos autoriza adicionar Kafka.
 
@@ -2018,15 +2085,18 @@ O plano deve dividir a implementação em incrementos compiláveis.
 - executar spike de compatibilidade do CouchDB, `quarkus-flow-redis`,
   `quarkus-flow-durable-kubernetes` e SPI `EventConsumer`;
 - acrescentar `correlationId` e `identificadorDocumento` ao contrato;
-- persistir documentos de negócio e projeção no CouchDB;
+- implementar porta documental neutra e contrato compartilhado;
+- persistir documentos e projeção no CouchDB/DES e Cosmos/PRD;
 - reduzir o contexto do Flow a referências e hashes;
 - habilitar checkpoints no Redis/Valkey;
-- substituir a retomada volátil por `_changes` -> CloudEvent;
+- substituir a retomada volátil por `_changes` ou Change Feed -> CloudEvent;
+- validar Cosmos em integração opt-in antes da promoção;
 - provar replay, idempotência e restart.
 
 ### Incremento 8 — Containers e múltiplos pods
 
-- criar imagens e Docker Compose para uma réplica, CouchDB, Redis/Valkey e Ollama;
+- criar imagens e Docker Compose de DES para uma réplica, CouchDB, Redis/Valkey e
+  Ollama;
 - configurar volumes, health checks e credenciais externas;
 - preparar manifests Kubernetes e Leases do Flow;
 - provar com duas réplicas o roteamento cruzado e o failover;
@@ -2057,7 +2127,7 @@ O Codex deve produzir um plano contendo:
 8. arquivos a modificar;
 9. responsabilidades de cada arquivo;
 10. fluxo de dados;
-11. desenho da entrega `EventPublisher`/`_changes`/`EventConsumer`;
+11. desenho da entrega `EventPublisher`/feed nativo/`EventConsumer`;
 12. desenho de CloudEvent e correlação;
 13. estratégia de integração com `Uni`;
 14. estratégia do agente;
@@ -2105,9 +2175,12 @@ Restrições obrigatórias:
 - usar SmallRye Fault Tolerance;
 - usar Human-in-the-Loop real com emit + listen;
 - usar CloudEvents;
-- persistir dados de negócio somente no CouchDB;
+- persistir dados de negócio por porta neutra, com CouchDB em DES e Azure Cosmos DB
+  for NoSQL em PRD;
 - persistir checkpoints técnicos do Flow somente no Redis/Valkey;
-- usar `_changes` e `EventConsumer` para entregar a revisão ao `listen`;
+- usar `_changes`/Change Feed e `EventConsumer` para entregar a revisão ao `listen`;
+- executar o mesmo contrato nos dois adapters e validar Cosmos antes da promoção;
+- não escolher autenticação Cosmos sem checkpoint humano de segurança;
 - manter no contexto do Flow somente referências e hashes;
 - não usar Kafka;
 - não usar broker externo;
@@ -2161,6 +2234,16 @@ Não implemente código nesta primeira resposta.
   `https://docs.couchdb.org/en/stable/replication/conflicts.html`
 - imagem oficial CouchDB:
   `https://hub.docker.com/_/couchdb/`
+- Azure Cosmos DB Java SDK v4:
+  `https://learn.microsoft.com/en-us/azure/cosmos-db/sdk-java-v4`
+- Azure Cosmos DB — concorrência otimista por `_etag`:
+  `https://learn.microsoft.com/en-us/azure/cosmos-db/database-transactions-optimistic-concurrency`
+- Azure Cosmos DB — Change Feed Processor:
+  `https://learn.microsoft.com/en-us/azure/cosmos-db/change-feed-processor`
+- Azure Cosmos DB Emulator:
+  `https://learn.microsoft.com/en-us/azure/cosmos-db/emulator`
+- Azure Cosmos DB — RBAC de plano de dados e Microsoft Entra ID:
+  `https://learn.microsoft.com/en-us/azure/cosmos-db/how-to-connect-role-based-access-control`
 - Quarkus Messaging:
   `https://quarkus.io/guides/messaging`
 - Projeto-alvo:
