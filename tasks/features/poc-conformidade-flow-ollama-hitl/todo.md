@@ -602,7 +602,31 @@
   0;
 - o checkpoint Sonar desta fatia foi tentado em 2026-07-26, mas encerrou antes de
   Maven/SonarScanner porque `SONAR_TOKEN` não estava disponível no processo;
-  situação `UNVERIFIED`, sem aprovação ou reprovação técnica.
+  situação `UNVERIFIED`, sem aprovação ou reprovação técnica;
+- RED de compatibilidade comprovou a ausência inicial do Azure Cosmos DB Java SDK;
+  o GREEN adicionou o BOM oficial `azure-sdk-bom` 1.3.8, `azure-cosmos` 4.81.0,
+  `azure-identity` 1.18.4 e o adaptador oficial Reactor/Java Flow do Mutiny;
+- o núcleo documental foi extraído para um store compartilhado sem tipos de
+  fornecedor; CouchDB e Cosmos DB implementam a mesma interface interna de
+  criação, substituição otimista e consulta;
+- o adapter Cosmos usa `correlationId` como chave lógica de partição, `_etag` com
+  `If-Match` nas substituições e consulta parametrizada pelo `id` somente quando a
+  partição ainda não é conhecida;
+- um RED arquitetural expôs o token de concorrência dentro do conteúdo comum; o
+  GREEN separou conteúdo e versão na interface neutra, deixando `_rev`, `_etag` e
+  os demais metadados de sistema confinados aos adapters;
+- o contrato compartilhado passou para CouchDB real e para um repositório Cosmos
+  determinístico; os testes unitários do adapter Cosmos comprovaram `409`/`412`
+  como conflito, `404` como ausência, partition key e propagação do `_etag`;
+- `ArchUnitProgressivoTest` e a suíte completa terminaram com código 0; foram
+  registrados 122 relatórios Surefire, 496 testes, 0 falhas, 0 erros e 1 teste
+  opt-in ignorado;
+- o checkpoint Sonar desta nova fatia foi tentado em 2026-07-26, mas novamente
+  encerrou antes de Maven/SonarScanner porque o processo não herdou `SONAR_TOKEN`;
+  situação `UNVERIFIED`, sem aprovação ou reprovação técnica;
+- a integração opt-in contra Cosmos DB Emulator ou conta não produtiva, a seleção
+  do adapter por ambiente e a inicialização automática do CouchDB em DES continuam
+  pendentes nesta Task 7.3.
 
 ### Planejamento da evolução durável
 
@@ -697,6 +721,7 @@
 | Sonar Task 7.3 — primeira execução | CONTINUAR_AJUSTES | 2026-07-26 | 21 issues novas, 10 `CRITICAL`, cobertura 80,1%, duplicação 2,9%; decisão registrada pelo script | Usuário |
 | Sonar Task 7.3 — reexecução | COMPLIANT | 2026-07-26 | 0 issues novas, cobertura 85,1%, duplicação 2,9% e decisão `NOT_REQUIRED` | — |
 | Sonar Task 7.3 — propagação de `Uni` | UNVERIFIED | 2026-07-26 | Script encerrou antes da análise porque o processo atual não herdou `SONAR_TOKEN`; suíte local completa aprovada | — |
+| Sonar Task 7.3 — adapter Cosmos | UNVERIFIED | 2026-07-26 | Script encerrou antes da análise porque o processo atual não herdou `SONAR_TOKEN`; 496 testes locais e ArchUnit aprovados | — |
 | CF | PENDENTE | — | Aguardará evidências finais | — |
 
 ## Regras de avanço
