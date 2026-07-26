@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import br.gov.caixa.simtr.hub.conformidade.dominio.erro.FalhaAnaliseConformidade;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 
@@ -17,8 +18,14 @@ class ModelosAnaliseConformidadeTest {
     void aceitaSolicitacaoNoLimiteSemAlterarOTexto() {
         String textoNoLimite = "x".repeat(SolicitacaoAnaliseConformidade.TAMANHO_MAXIMO_TEXTO);
 
-        var solicitacao = new SolicitacaoAnaliseConformidade(textoNoLimite, 1000012583L, 1);
+        var solicitacao = SolicitacaoAnaliseConformidade.nova(
+                "DOC-2026-000123",
+                textoNoLimite,
+                1000012583L,
+                1);
 
+        UUID.fromString(solicitacao.correlationId());
+        assertEquals("DOC-2026-000123", solicitacao.identificadorDocumento());
         assertEquals(textoNoLimite, solicitacao.texto());
         assertEquals(1000012583L, solicitacao.identificadorChecklist());
         assertEquals(1, solicitacao.versaoChecklist());
@@ -30,10 +37,12 @@ class ModelosAnaliseConformidadeTest {
 
         FalhaAnaliseConformidade vazia = assertThrows(
                 FalhaAnaliseConformidade.class,
-                () -> new SolicitacaoAnaliseConformidade(" ", 1000012583L, 1));
+                () -> SolicitacaoAnaliseConformidade.nova(
+                        "DOC-2026-000123", " ", 1000012583L, 1));
         FalhaAnaliseConformidade excedente = assertThrows(
                 FalhaAnaliseConformidade.class,
-                () -> new SolicitacaoAnaliseConformidade(textoExcedente, 1000012583L, 1));
+                () -> SolicitacaoAnaliseConformidade.nova(
+                        "DOC-2026-000123", textoExcedente, 1000012583L, 1));
 
         assertEquals(FalhaAnaliseConformidade.Tipo.SOLICITACAO_INVALIDA, vazia.tipo());
         assertEquals(FalhaAnaliseConformidade.Tipo.SOLICITACAO_INVALIDA, excedente.tipo());
@@ -41,15 +50,46 @@ class ModelosAnaliseConformidadeTest {
 
     @Test
     void rejeitaReferenciaDeChecklistInvalida() {
+        FalhaAnaliseConformidade documentoInvalido = assertThrows(
+                FalhaAnaliseConformidade.class,
+                () -> SolicitacaoAnaliseConformidade.nova(" ", "texto", 1000012583L, 1));
         FalhaAnaliseConformidade identificadorInvalido = assertThrows(
                 FalhaAnaliseConformidade.class,
-                () -> new SolicitacaoAnaliseConformidade("texto", 0L, 1));
+                () -> SolicitacaoAnaliseConformidade.nova(
+                        "DOC-2026-000123", "texto", 0L, 1));
         FalhaAnaliseConformidade versaoInvalida = assertThrows(
                 FalhaAnaliseConformidade.class,
-                () -> new SolicitacaoAnaliseConformidade("texto", 1000012583L, 0));
+                () -> SolicitacaoAnaliseConformidade.nova(
+                        "DOC-2026-000123", "texto", 1000012583L, 0));
 
+        assertEquals(FalhaAnaliseConformidade.Tipo.SOLICITACAO_INVALIDA, documentoInvalido.tipo());
         assertEquals(FalhaAnaliseConformidade.Tipo.SOLICITACAO_INVALIDA, identificadorInvalido.tipo());
         assertEquals(FalhaAnaliseConformidade.Tipo.SOLICITACAO_INVALIDA, versaoInvalida.tipo());
+    }
+
+    @Test
+    void impedeTrocaDeIdentidadeDuranteTransicao() {
+        var visao = VisaoAnaliseConformidade.emProcessamento(
+                "7aa3ca4d-3c7e-4f61-a3a1-996571d3397a",
+                "instancia-1",
+                "DOC-2026-000123",
+                1000012583L,
+                1);
+        var resultadoDeOutroChecklist = new ResultadoAnaliseConformidade(
+                999L,
+                2,
+                "Outro checklist",
+                "Resumo",
+                List.of(apontamentoValido()),
+                OrigemResultado.AGENTE);
+
+        FalhaAnaliseConformidade falha = assertThrows(
+                FalhaAnaliseConformidade.class,
+                () -> visao.aguardandoRevisao(resultadoDeOutroChecklist));
+
+        assertEquals(FalhaAnaliseConformidade.Tipo.TRANSICAO_INVALIDA, falha.tipo());
+        assertEquals("7aa3ca4d-3c7e-4f61-a3a1-996571d3397a", visao.correlationId());
+        assertEquals("DOC-2026-000123", visao.identificadorDocumento());
     }
 
     @Test

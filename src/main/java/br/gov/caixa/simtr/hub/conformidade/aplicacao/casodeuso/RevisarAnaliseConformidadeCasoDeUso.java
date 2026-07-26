@@ -37,6 +37,7 @@ public class RevisarAnaliseConformidadeCasoDeUso implements RevisarAnaliseConfor
             throw FalhaAnaliseConformidade.transicaoInvalida();
         }
 
+        atual.validarIdentidadesPersistidas();
         validador.consolidarRevisao(atual.resultadoPreliminar(), revisao);
         estados.reservarRevisao(instanceId);
         return publicarRevisao.publicar(instanceId, revisao);

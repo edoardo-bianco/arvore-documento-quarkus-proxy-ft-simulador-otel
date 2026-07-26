@@ -47,9 +47,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 class AnaliseConformidadeFlowQuarkusTest {
 
     private static final String BASE_PATH = "/simtr-hub/v1/conformidade/analises";
+    private static final String CORRELATION_ID = "7aa3ca4d-3c7e-4f61-a3a1-996571d3397a";
+    private static final String IDENTIFICADOR_DOCUMENTO = "DOC-2026-000123";
 
     private static final SolicitacaoAnaliseConformidade SOLICITACAO =
             new SolicitacaoAnaliseConformidade(
+                    CORRELATION_ID,
+                    IDENTIFICADOR_DOCUMENTO,
                     "Texto documental",
                     1000012583L,
                     1);
@@ -86,6 +90,7 @@ class AnaliseConformidadeFlowQuarkusTest {
                 .accept(ContentType.JSON)
                 .body("""
                         {
+                          "identificadorDocumento": "DOC-2026-000123",
                           "texto": "Texto documental",
                           "identificadorChecklist": 1000012583,
                           "versaoChecklist": 1
@@ -100,6 +105,8 @@ class AnaliseConformidadeFlowQuarkusTest {
         String instanceId = resposta.path("instanceId");
         VisaoAnaliseConformidade inicial = estados.consultar(instanceId).orElseThrow();
 
+        assertEquals(resposta.path("correlationId"), inicial.correlationId());
+        assertEquals(IDENTIFICADOR_DOCUMENTO, inicial.identificadorDocumento());
         assertEquals(StatusAnaliseConformidade.EM_PROCESSAMENTO, inicial.status());
         assertEquals("EM_PROCESSAMENTO", resposta.path("status"));
         assertEquals(BASE_PATH + "/" + instanceId, resposta.header("Location"));
@@ -134,6 +141,7 @@ class AnaliseConformidadeFlowQuarkusTest {
                 .accept(ContentType.JSON)
                 .body("""
                         {
+                          "identificadorDocumento": "DOC-2026-000123",
                           "texto": "Texto documental",
                           "identificadorChecklist": 1000012583,
                           "versaoChecklist": 1
@@ -183,6 +191,9 @@ class AnaliseConformidadeFlowQuarkusTest {
         aguardarStatusFlow(instancia, WorkflowStatus.COMPLETED);
 
         assertEquals(OrigemResultado.REVISAO_HUMANA, concluida.resultadoFinal().origem());
+        assertEquals(IDENTIFICADOR_DOCUMENTO, concluida.identificadorDocumento());
+        assertEquals(1000012583L, concluida.identificadorChecklist());
+        assertEquals(1, concluida.versaoChecklist());
         assertEquals(
                 ParecerConformidade.INCONFORME,
                 concluida.resultadoFinal().apontamentos().getFirst().parecer());
@@ -295,6 +306,7 @@ class AnaliseConformidadeFlowQuarkusTest {
                 .accept(ContentType.JSON)
                 .body("""
                         {
+                          "identificadorDocumento": "DOC-2026-000123",
                           "texto": "Texto documental",
                           "identificadorChecklist": 1000012583,
                           "versaoChecklist": 1

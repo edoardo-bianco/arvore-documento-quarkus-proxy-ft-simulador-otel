@@ -22,6 +22,8 @@ class ConsultarChecklistEtapaTest {
 
     private static final SolicitacaoAnaliseConformidade SOLICITACAO =
             new SolicitacaoAnaliseConformidade(
+                    "7aa3ca4d-3c7e-4f61-a3a1-996571d3397a",
+                    "DOC-2026-000123",
                     "Texto documental",
                     1000012583L,
                     1);
@@ -46,6 +48,8 @@ class ConsultarChecklistEtapaTest {
                 resultado.toCompletableFuture().join();
         apontamentos.clear();
 
+        assertEquals(SOLICITACAO.correlationId(), contexto.correlationId());
+        assertEquals(SOLICITACAO.identificadorDocumento(), contexto.identificadorDocumento());
         assertEquals("Texto documental", contexto.texto());
         assertEquals(1, contexto.checklist().apontamentos().size());
         List<ApontamentoChecklist> apontamentosCongelados =

@@ -17,10 +17,20 @@ public class AnaliseConformidadeMemoryStore implements ArmazenarEstadoAnaliseCon
     private final ConcurrentMap<String, EstadoArmazenado> estados = new ConcurrentHashMap<>();
 
     @Override
-    public void iniciar(String instanceId) {
+    public void iniciar(
+            String correlationId,
+            String instanceId,
+            String identificadorDocumento,
+            Long identificadorChecklist,
+            Integer versaoChecklist) {
         validarInstanceId(instanceId);
         var novo = new EstadoArmazenado(
-                VisaoAnaliseConformidade.emProcessamento(instanceId),
+                VisaoAnaliseConformidade.emProcessamento(
+                        correlationId,
+                        instanceId,
+                        identificadorDocumento,
+                        identificadorChecklist,
+                        versaoChecklist),
                 false);
         if (estados.putIfAbsent(instanceId, novo) != null) {
             throw FalhaAnaliseConformidade.transicaoInvalida();
@@ -39,7 +49,7 @@ public class AnaliseConformidadeMemoryStore implements ArmazenarEstadoAnaliseCon
                 throw FalhaAnaliseConformidade.transicaoInvalida();
             }
             return new EstadoArmazenado(
-                    VisaoAnaliseConformidade.aguardandoRevisao(id, resultado),
+                    encontrado.visao().aguardandoRevisao(resultado),
                     false);
         });
     }
@@ -70,10 +80,7 @@ public class AnaliseConformidadeMemoryStore implements ArmazenarEstadoAnaliseCon
                 throw FalhaAnaliseConformidade.transicaoInvalida();
             }
             return new EstadoArmazenado(
-                    VisaoAnaliseConformidade.concluida(
-                            id,
-                            encontrado.visao().resultadoPreliminar(),
-                            resultado),
+                    encontrado.visao().concluida(resultado),
                     true);
         });
     }
@@ -92,10 +99,7 @@ public class AnaliseConformidadeMemoryStore implements ArmazenarEstadoAnaliseCon
                 throw FalhaAnaliseConformidade.transicaoInvalida();
             }
             return new EstadoArmazenado(
-                    VisaoAnaliseConformidade.falhou(
-                            id,
-                            encontrado.visao().resultadoPreliminar(),
-                            mensagem),
+                    encontrado.visao().falhou(mensagem),
                     encontrado.revisaoReservada());
         });
     }

@@ -6,7 +6,12 @@ import java.util.Optional;
 
 public interface ArmazenarEstadoAnaliseConformidade {
 
-    void iniciar(String instanceId);
+    void iniciar(
+            String correlationId,
+            String instanceId,
+            String identificadorDocumento,
+            Long identificadorChecklist,
+            Integer versaoChecklist);
 
     void aguardarRevisao(
             String instanceId,

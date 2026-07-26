@@ -30,10 +30,15 @@ import static org.mockito.Mockito.when;
 @QuarkusTest
 class CasosDeUsoAnaliseConformidadeTest {
 
+    private static final String CORRELATION_ID = "7aa3ca4d-3c7e-4f61-a3a1-996571d3397a";
+    private static final String IDENTIFICADOR_DOCUMENTO = "DOC-2026-000123";
+
     @Test
     void iniciarCriaInstanciaEmProcessamentoSemArmazenarOTexto() {
         var store = new AnaliseConformidadeMemoryStore();
         var solicitacao = new SolicitacaoAnaliseConformidade(
+                CORRELATION_ID,
+                IDENTIFICADOR_DOCUMENTO,
                 "Documento potencialmente sensível",
                 1000012583L,
                 1);
@@ -47,6 +52,8 @@ class CasosDeUsoAnaliseConformidadeTest {
         var visao = casoDeUso.executar(solicitacao);
 
         assertEquals("01J3FLOWTESTE00000000000000", visao.instanceId());
+        assertEquals(CORRELATION_ID, visao.correlationId());
+        assertEquals(IDENTIFICADOR_DOCUMENTO, visao.identificadorDocumento());
         assertEquals(StatusAnaliseConformidade.EM_PROCESSAMENTO, visao.status());
         assertEquals(visao, store.consultar(visao.instanceId()).orElseThrow());
         verify(instancia).start();
@@ -71,6 +78,8 @@ class CasosDeUsoAnaliseConformidadeTest {
     void iniciarTraduzFalhaSincronaDoFlowEFinalizaAProjecao() {
         var store = new AnaliseConformidadeMemoryStore();
         var solicitacao = new SolicitacaoAnaliseConformidade(
+                CORRELATION_ID,
+                IDENTIFICADOR_DOCUMENTO,
                 "Documento",
                 1000012583L,
                 1);
@@ -98,7 +107,7 @@ class CasosDeUsoAnaliseConformidadeTest {
     @Test
     void consultarRetornaVisaoOuFalhaControladaParaInstanciaAusente() {
         var store = new AnaliseConformidadeMemoryStore();
-        store.iniciar("instancia-existente");
+        iniciar(store, "instancia-existente");
         var casoDeUso = new ConsultarAnaliseConformidadeCasoDeUso(store);
 
         assertEquals(
@@ -162,7 +171,7 @@ class CasosDeUsoAnaliseConformidadeTest {
     @Test
     void revisarPriorizaEstadoDaInstanciaAntesDoConteudo() {
         var store = new AnaliseConformidadeMemoryStore();
-        store.iniciar("instancia-1");
+        iniciar(store, "instancia-1");
         var publicador = mock(PublicarRevisaoNoWorkflow.class);
         var casoDeUso = new RevisarAnaliseConformidadeCasoDeUso(store, publicador);
         var revisao = revisaoValida();
@@ -177,9 +186,20 @@ class CasosDeUsoAnaliseConformidadeTest {
 
     private static AnaliseConformidadeMemoryStore storeAguardandoRevisao() {
         var store = new AnaliseConformidadeMemoryStore();
-        store.iniciar("instancia-1");
+        iniciar(store, "instancia-1");
         store.aguardarRevisao("instancia-1", resultadoPreliminar());
         return store;
+    }
+
+    private static void iniciar(
+            AnaliseConformidadeMemoryStore store,
+            String instanceId) {
+        store.iniciar(
+                CORRELATION_ID,
+                instanceId,
+                IDENTIFICADOR_DOCUMENTO,
+                1000012583L,
+                1);
     }
 
     private static ResultadoAnaliseConformidade resultadoPreliminar() {

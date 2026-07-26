@@ -15,6 +15,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import io.smallrye.mutiny.Uni;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -32,6 +33,8 @@ import static org.mockito.Mockito.when;
 class AnaliseConformidadeResourceQuarkusTest {
 
     private static final String BASE_PATH = "/simtr-hub/v1/conformidade/analises";
+    private static final String CORRELATION_ID = "7aa3ca4d-3c7e-4f61-a3a1-996571d3397a";
+    private static final String IDENTIFICADOR_DOCUMENTO = "DOC-2026-000123";
 
     @InjectMock
     IniciarAnaliseConformidade iniciar;
@@ -45,13 +48,14 @@ class AnaliseConformidadeResourceQuarkusTest {
     @Test
     void postMapeiaSolicitacaoERetornaLocationComEstadoInicial() {
         when(iniciar.executar(any()))
-                .thenReturn(VisaoAnaliseConformidade.emProcessamento("instancia-123"));
+                .thenReturn(visaoEmProcessamento());
 
         given()
                 .contentType(ContentType.JSON)
                 .accept(ContentType.JSON)
                 .body("""
                         {
+                          "identificadorDocumento": "DOC-2026-000123",
                           "texto": "Texto para análise",
                           "identificadorChecklist": 1000012583,
                           "versaoChecklist": 1
@@ -63,13 +67,19 @@ class AnaliseConformidadeResourceQuarkusTest {
                 .statusCode(202)
                 .header("Location", BASE_PATH + "/instancia-123")
                 .contentType(ContentType.JSON)
+                .body("correlationId", equalTo(CORRELATION_ID))
                 .body("instanceId", equalTo("instancia-123"))
+                .body("identificadorDocumento", equalTo(IDENTIFICADOR_DOCUMENTO))
+                .body("identificadorChecklist", equalTo(1000012583))
+                .body("versaoChecklist", equalTo(1))
                 .body("status", equalTo("EM_PROCESSAMENTO"))
                 .body("$", not(hasKey("resultadoPreliminar")));
 
         ArgumentCaptor<SolicitacaoAnaliseConformidade> captor =
                 ArgumentCaptor.forClass(SolicitacaoAnaliseConformidade.class);
         verify(iniciar).executar(captor.capture());
+        UUID.fromString(captor.getValue().correlationId());
+        assertEquals(IDENTIFICADOR_DOCUMENTO, captor.getValue().identificadorDocumento());
         assertEquals("Texto para análise", captor.getValue().texto());
         assertEquals(1000012583L, captor.getValue().identificadorChecklist());
         assertEquals(1, captor.getValue().versaoChecklist());
@@ -78,9 +88,7 @@ class AnaliseConformidadeResourceQuarkusTest {
     @Test
     void getMapeiaVisaoCompletaSemExporOrigemInterna() {
         when(consultar.executar("instancia-123"))
-                .thenReturn(VisaoAnaliseConformidade.aguardandoRevisao(
-                        "instancia-123",
-                        resultadoPreliminar()));
+                .thenReturn(visaoEmProcessamento().aguardandoRevisao(resultadoPreliminar()));
 
         given()
                 .accept(ContentType.JSON)
@@ -89,7 +97,11 @@ class AnaliseConformidadeResourceQuarkusTest {
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
+                .body("correlationId", equalTo(CORRELATION_ID))
                 .body("instanceId", equalTo("instancia-123"))
+                .body("identificadorDocumento", equalTo(IDENTIFICADOR_DOCUMENTO))
+                .body("identificadorChecklist", equalTo(1000012583))
+                .body("versaoChecklist", equalTo(1))
                 .body("status", equalTo("AGUARDANDO_REVISAO"))
                 .body("resultadoPreliminar.identificadorChecklist", equalTo(1000012583))
                 .body("resultadoPreliminar.apontamentos[0].identificadorApontamento", equalTo(10))
@@ -151,5 +163,14 @@ class AnaliseConformidadeResourceQuarkusTest {
                         null,
                         0.5d)),
                 OrigemResultado.AGENTE);
+    }
+
+    private static VisaoAnaliseConformidade visaoEmProcessamento() {
+        return VisaoAnaliseConformidade.emProcessamento(
+                CORRELATION_ID,
+                "instancia-123",
+                IDENTIFICADOR_DOCUMENTO,
+                1000012583L,
+                1);
     }
 }
