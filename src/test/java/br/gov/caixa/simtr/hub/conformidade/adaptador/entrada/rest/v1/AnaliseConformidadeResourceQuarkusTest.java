@@ -48,7 +48,7 @@ class AnaliseConformidadeResourceQuarkusTest {
     @Test
     void postMapeiaSolicitacaoERetornaLocationComEstadoInicial() {
         when(iniciar.executar(any()))
-                .thenReturn(visaoEmProcessamento());
+                .thenReturn(Uni.createFrom().item(visaoEmProcessamento()));
 
         given()
                 .contentType(ContentType.JSON)
@@ -88,7 +88,8 @@ class AnaliseConformidadeResourceQuarkusTest {
     @Test
     void getMapeiaVisaoCompletaSemExporOrigemInterna() {
         when(consultar.executar("instancia-123"))
-                .thenReturn(visaoEmProcessamento().aguardandoRevisao(resultadoPreliminar()));
+                .thenReturn(Uni.createFrom().item(
+                        visaoEmProcessamento().aguardandoRevisao(resultadoPreliminar())));
 
         given()
                 .accept(ContentType.JSON)

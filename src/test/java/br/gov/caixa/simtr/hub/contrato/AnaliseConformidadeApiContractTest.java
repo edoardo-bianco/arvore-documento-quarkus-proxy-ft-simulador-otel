@@ -10,6 +10,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import io.smallrye.mutiny.Uni;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -55,7 +56,7 @@ class AnaliseConformidadeApiContractTest {
     @Test
     void preservaContratoJsonELocationDoInicio() {
         when(iniciar.executar(any()))
-                .thenReturn(visaoEmProcessamento());
+                .thenReturn(Uni.createFrom().item(visaoEmProcessamento()));
 
         JsonNode resposta = given()
                 .contentType(ContentType.JSON)
@@ -92,7 +93,7 @@ class AnaliseConformidadeApiContractTest {
     @Test
     void preservaContratoJsonDaConsultaEmProcessamento() {
         when(consultar.executar("instancia-contrato"))
-                .thenReturn(visaoEmProcessamento());
+                .thenReturn(Uni.createFrom().item(visaoEmProcessamento()));
 
         JsonNode resposta = given()
                 .accept(ContentType.JSON)
@@ -200,7 +201,8 @@ class AnaliseConformidadeApiContractTest {
     @Test
     void preserva404ParaInstanciaDesconhecida() {
         when(consultar.executar("desconhecida"))
-                .thenThrow(FalhaAnaliseConformidade.instanciaNaoEncontrada());
+                .thenReturn(Uni.createFrom().failure(
+                        FalhaAnaliseConformidade.instanciaNaoEncontrada()));
 
         validarErroDominio(
                 given().accept(ContentType.JSON)
@@ -242,7 +244,8 @@ class AnaliseConformidadeApiContractTest {
     @Test
     void preserva503SanitizadoParaIndisponibilidadeTecnica() {
         when(iniciar.executar(any()))
-                .thenThrow(FalhaAnaliseConformidade.indisponibilidadeTecnica());
+                .thenReturn(Uni.createFrom().failure(
+                        FalhaAnaliseConformidade.indisponibilidadeTecnica()));
 
         validarErroDominio(
                 given().contentType(ContentType.JSON).accept(ContentType.JSON)
