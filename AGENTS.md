@@ -30,6 +30,12 @@ Antes de planejar qualquer mudança:
 - Mudança de escopo atualiza plano e checklist antes da implementação.
 - Somente o usuário registra GO, NO-GO, aceitação excepcional ou encerramento. O agente nunca
   infere decisão humana.
+- Antes de definir o tipo de um novo campo, confirme-o em requisito explícito, contrato
+  autoritativo existente ou decisão humana registrada. Se o tipo estiver ausente, ambíguo ou em
+  conflito, pergunte ao usuário antes de fixá-lo em especificação, plano, JSON/OpenAPI, DTO ou
+  modelo. Não infira o tipo somente pelo nome, por exemplos criados pelo próprio agente, por
+  conveniência técnica, por campos vizinhos ou por convenção presumida. Registre a confirmação na
+  pasta de tasks da feature antes da implementação.
 
 Checkpoints humanos adicionais são obrigatórios antes de mudanças em:
 
