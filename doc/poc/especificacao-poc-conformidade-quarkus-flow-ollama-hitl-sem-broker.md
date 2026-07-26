@@ -1,5 +1,112 @@
 # Especificação da PoC — Análise de Conformidade com Quarkus Flow, LangChain4j, Ollama e Human-in-the-Loop
 
+- [1. Finalidade deste documento](#1-finalidade-deste-documento)
+- [2. Objetivo da PoC](#2-objetivo-da-poc)
+- [3. Escopo funcional](#3-escopo-funcional)
+- [4. Fora do escopo](#4-fora-do-escopo)
+- [5. Decisões arquiteturais obrigatórias](#5-decisões-arquiteturais-obrigatórias)
+  - [5.1 Bounded context](#51-bounded-context)
+  - [5.2 Reutilização da consulta de checklist](#52-reutilização-da-consulta-de-checklist)
+  - [5.3 Quarkus Flow na camada de aplicação](#53-quarkus-flow-na-camada-de-aplicação)
+  - [5.4 Arquitetura hexagonal](#54-arquitetura-hexagonal)
+  - [5.5 Execução reativa](#55-execução-reativa)
+  - [5.6 Persistência durável e separação entre negócio e checkpoint](#56-persistência-durável-e-separação-entre-negócio-e-checkpoint)
+- [6. Entrega interna sem broker](#6-entrega-interna-sem-broker)
+  - [6.1 Decisão](#61-decisão)
+  - [6.2 Caminhos de evento](#62-caminhos-de-evento)
+  - [6.3 Condição de cadeia durável](#63-condição-de-cadeia-durável)
+  - [6.4 Estratégia de testes](#64-estratégia-de-testes)
+- [7. Uso de CloudEvents](#7-uso-de-cloudevents)
+  - [7.1 Objetivo](#71-objetivo)
+  - [7.2 Tipos de evento](#72-tipos-de-evento)
+  - [7.3 Correlação](#73-correlação)
+  - [7.4 Formato](#74-formato)
+- [8. Fluxo do workflow](#8-fluxo-do-workflow)
+  - [8.1 Etapas](#81-etapas)
+  - [8.2 Pausa Human-in-the-Loop](#82-pausa-human-in-the-loop)
+  - [8.3 Sem loop de nova inferência](#83-sem-loop-de-nova-inferência)
+- [9. Modelo de domínio proposto](#9-modelo-de-domínio-proposto)
+  - [9.1 Solicitação](#91-solicitação)
+  - [9.2 Parecer](#92-parecer)
+  - [9.3 Resultado por apontamento](#93-resultado-por-apontamento)
+  - [9.4 Resultado geral](#94-resultado-geral)
+  - [9.5 Revisão humana](#95-revisão-humana)
+  - [9.6 Estado consultável pela página](#96-estado-consultável-pela-página)
+- [10. Consulta e congelamento do checklist](#10-consulta-e-congelamento-do-checklist)
+  - [10.1 Entrada](#101-entrada)
+  - [10.2 Resultado](#102-resultado)
+  - [10.3 Checklist vazio](#103-checklist-vazio)
+  - [10.4 Falha da parametrização](#104-falha-da-parametrização)
+- [11. Agente LangChain4j](#11-agente-langchain4j)
+  - [11.1 Porta de aplicação](#111-porta-de-aplicação)
+  - [11.2 Entrada do agente](#112-entrada-do-agente)
+  - [11.3 Implementação agentic](#113-implementação-agentic)
+    - [AplicadorChecklistAgent](#aplicadorchecklistagent)
+    - [RevisorCoberturaAgent](#revisorcoberturaagent)
+  - [11.4 Structured output](#114-structured-output)
+- [12. Prompt obrigatório](#12-prompt-obrigatório)
+  - [12.1 System prompt](#121-system-prompt)
+  - [12.2 User prompt](#122-user-prompt)
+  - [12.3 Proteção contra prompt injection](#123-proteção-contra-prompt-injection)
+- [13. Validação determinística do resultado](#13-validação-determinística-do-resultado)
+- [14. Fault Tolerance](#14-fault-tolerance)
+  - [14.1 Consulta do checklist](#141-consulta-do-checklist)
+  - [14.2 Chamada ao Ollama](#142-chamada-ao-ollama)
+  - [14.3 Fallback](#143-fallback)
+- [15. Human-in-the-Loop](#15-human-in-the-loop)
+  - [15.1 Emissão da solicitação](#151-emissão-da-solicitação)
+  - [15.2 Espera](#152-espera)
+  - [15.3 Correção humana](#153-correção-humana)
+  - [15.4 Validação da revisão](#154-validação-da-revisão)
+  - [15.5 Resultado final](#155-resultado-final)
+- [16. Estado durável para polling](#16-estado-durável-para-polling)
+  - [16.1 Porta](#161-porta)
+  - [16.2 Adaptador](#162-adaptador)
+  - [16.3 Distinção entre estados](#163-distinção-entre-estados)
+- [17. API REST proposta](#17-api-rest-proposta)
+  - [17.1 Iniciar](#171-iniciar)
+  - [17.2 Consultar status](#172-consultar-status)
+  - [17.3 Enviar revisão](#173-enviar-revisão)
+  - [17.4 Erros](#174-erros)
+- [18. Página HTML estática](#18-página-html-estática)
+  - [18.1 Localização](#181-localização)
+  - [18.2 Tecnologia](#182-tecnologia)
+  - [18.3 Estados da tela](#183-estados-da-tela)
+  - [18.4 Polling](#184-polling)
+  - [18.5 Revisão](#185-revisão)
+  - [18.6 Identidades e aviso operacional](#186-identidades-e-aviso-operacional)
+- [19. Estrutura de pacotes proposta](#19-estrutura-de-pacotes-proposta)
+- [20. Dependências a validar](#20-dependências-a-validar)
+- [21. Configuração proposta](#21-configuração-proposta)
+- [22. Observabilidade](#22-observabilidade)
+- [23. Diagrama de componentes](#23-diagrama-de-componentes)
+  - [Responsabilidades dos componentes](#responsabilidades-dos-componentes)
+- [24. Diagrama de sequência](#24-diagrama-de-sequência)
+- [25. Testes obrigatórios](#25-testes-obrigatórios)
+  - [25.1 Testes de domínio](#251-testes-de-domínio)
+  - [25.2 Testes do caso de uso](#252-testes-do-caso-de-uso)
+  - [25.3 Teste do workflow](#253-teste-do-workflow)
+  - [25.4 Teste da entrega durável](#254-teste-da-entrega-durável)
+  - [25.5 Teste REST](#255-teste-rest)
+  - [25.6 Teste com agente falso](#256-teste-com-agente-falso)
+  - [25.7 Teste opcional com Ollama](#257-teste-opcional-com-ollama)
+  - [25.8 Guardrails](#258-guardrails)
+- [26. Critérios de aceite](#26-critérios-de-aceite)
+- [27. Riscos a validar na fase de planejamento](#27-riscos-a-validar-na-fase-de-planejamento)
+- [28. Estratégia incremental esperada](#28-estratégia-incremental-esperada)
+  - [Incremento 1 — Compatibilidade e dependências](#incremento-1--compatibilidade-e-dependências)
+  - [Incremento 2 — Canais internos](#incremento-2--canais-internos)
+  - [Incremento 3 — API e estado volátil inicial](#incremento-3--api-e-estado-volátil-inicial)
+  - [Incremento 4 — Consulta de checklist](#incremento-4--consulta-de-checklist)
+  - [Incremento 5 — Ollama e agente](#incremento-5--ollama-e-agente)
+  - [Incremento 6 — Human-in-the-Loop](#incremento-6--human-in-the-loop)
+  - [Incremento 7 — Persistência e contrato durável](#incremento-7--persistência-e-contrato-durável)
+  - [Incremento 8 — Containers e múltiplos pods](#incremento-8--containers-e-múltiplos-pods)
+  - [Incremento 9 — Página, testes e documentação](#incremento-9--página-testes-e-documentação)
+- [29. Saída exigida do Codex na fase de planejamento](#29-saída-exigida-do-codex-na-fase-de-planejamento)
+- [30. Instrução pronta para o Codex](#30-instrução-pronta-para-o-codex)
+- [31. Referências técnicas](#31-referências-técnicas)
+
 ## 1. Finalidade deste documento
 
 Este documento especifica uma prova de conceito a ser implementada no projeto:
@@ -19,6 +126,35 @@ O documento deve ser fornecido ao Codex para que ele:
 
 A primeira execução do Codex deve produzir **apenas o plano**. Não deve alterar código.
 
+### 1.1 Emenda de evolução durável
+
+Esta especificação começou como uma PoC exclusivamente em memória e os incrementos
+1 a 6 comprovam esse estágio. A evolução solicitada em 2026-07-25 substitui, para os
+próximos incrementos, os requisitos de volatilidade, `ConcurrentHashMap` e canais
+exclusivamente locais pelos requisitos duráveis abaixo:
+
+- CouchDB como único sistema de registro dos documentos JSON e da projeção de
+  negócio da análise;
+- Redis ou Valkey, por `quarkus-flow-redis`, somente para checkpoints técnicos do
+  Quarkus Flow;
+- contexto do Flow limitado a identificadores, referências e hashes, sem texto,
+  checklist, revisão ou resultados completos;
+- revisão REST persistida antes da entrega ao Flow;
+- adapter do feed `_changes` do CouchDB para CloudEvent v1 e `listen(...)`, sem
+  Kafka ou AMQP;
+- semântica de entrega pelo menos uma vez, com idempotência no CouchDB e no
+  workflow;
+- execução local em containers e validação posterior em Kubernetes com duas
+  réplicas e identidade durável por Leases;
+- exposição permanente de `correlationId`, `instanceId`,
+  `identificadorDocumento`, `identificadorChecklist` e `versaoChecklist` na API e
+  na página.
+
+Quando um trecho histórico deste documento contradisser esta emenda, prevalecem esta
+seção, a seção específica atualizada e o ADR-0010 depois de aceito. O ADR-0010
+permanece `Proposto` até o checkpoint humano C4; nenhuma alteração executável dessa
+evolução é autorizada antes desse checkpoint.
+
 ---
 
 ## 2. Objetivo da PoC
@@ -35,9 +171,12 @@ Validar, dentro do `simtr-hub`, os seguintes conceitos:
 6. aplicação de Fault Tolerance na chamada ao modelo;
 7. pausa real do workflow para revisão humana;
 8. retomada do workflow após a revisão;
-9. uso de CloudEvents e Reactive Messaging **sem Kafka e sem broker externo**;
+9. uso de CloudEvents **sem Kafka e sem broker externo**, com entrega derivada do
+   feed durável `_changes` do CouchDB;
 10. interface HTML estática com polling para acompanhar a evolução do workflow;
-11. persistência exclusivamente em memória.
+11. persistência dos dados de negócio no CouchDB e dos checkpoints técnicos do Flow
+    no Redis/Valkey;
+12. retomada após reinício e validação de roteamento entre duas réplicas.
 
 A PoC não pretende ser uma solução produtiva. Ela deve demonstrar que os conceitos funcionam juntos e permitir avaliar limitações, ergonomia e riscos.
 
@@ -48,27 +187,31 @@ A PoC não pretende ser uma solução produtiva. Ela deve demonstrar que os conc
 A página estática deve permitir que uma pessoa informe:
 
 - texto a ser analisado;
+- identificador negocial do texto/documento;
 - identificador negocial do checklist;
 - versão do checklist.
 
 Ao iniciar a análise, o sistema deve:
 
 1. validar a requisição;
-2. criar uma instância do Quarkus Flow;
-3. retornar o `instanceId`;
+2. criar `correlationId`, documento inicial e projeção no CouchDB;
+3. criar uma instância do Quarkus Flow e retornar todas as identidades;
 4. consultar o checklist usando a capacidade já existente no domínio `conformidade`;
 5. montar a entrada do agente;
 6. chamar o modelo Ollama local;
 7. receber um resultado estruturado;
 8. validar e normalizar o resultado;
-9. colocar o workflow em estado de espera por revisão humana;
-10. disponibilizar o resultado preliminar à página;
-11. permitir que a pessoa altere parecer, justificativa e evidência;
-12. enviar a revisão ao workflow;
-13. retomar o workflow;
-14. validar a revisão;
-15. concluir a instância;
-16. disponibilizar o resultado final.
+9. persistir o snapshot do checklist e o resultado preliminar no CouchDB;
+10. colocar o workflow em estado de espera por revisão humana e gravar seu
+    checkpoint no Redis/Valkey;
+11. disponibilizar o resultado preliminar à página;
+12. permitir que a pessoa altere parecer, justificativa e evidência;
+13. persistir a revisão idempotente no CouchDB;
+14. converter a mudança persistida em CloudEvent correlacionado;
+15. retomar o workflow;
+16. validar a revisão;
+17. concluir a instância;
+18. persistir e disponibilizar o resultado final.
 
 ---
 
@@ -84,15 +227,9 @@ Não implementar nesta PoC:
 - RabbitMQ;
 - AMQP externo;
 - banco relacional;
-- Redis;
-- persistência de checkpoints;
-- recuperação após reinício;
 - autenticação específica para a página da PoC;
 - WebSocket;
 - Server-Sent Events;
-- processamento distribuído;
-- execução em múltiplas réplicas;
-- histórico permanente;
 - auditoria corporativa;
 - integração com Azure OpenAI;
 - integração com Azure Document Intelligence;
@@ -101,7 +238,10 @@ Não implementar nesta PoC:
 - memória conversacional persistente;
 - alteração das capacidades atuais do MTR.
 
-O texto será digitado diretamente na página. Documento binário será tratado em uma evolução posterior.
+O texto será digitado diretamente na página e terá um identificador negocial próprio.
+Documento binário, alta disponibilidade produtiva, backup corporativo e retenção
+regulatória continuam para evolução posterior. A validação com múltiplas réplicas
+comprova o comportamento técnico da PoC, não uma garantia de produção.
 
 ---
 
@@ -172,8 +312,9 @@ O domínio e a aplicação devem depender de portas.
 Os adaptadores devem encapsular:
 
 - Ollama/LangChain4j;
-- armazenamento em memória;
-- Reactive Messaging;
+- CouchDB;
+- Redis/Valkey por meio do provider do Flow;
+- feed `_changes`;
 - CloudEvents;
 - REST;
 - página HTML.
@@ -200,32 +341,39 @@ uni.subscribeAsCompletionStage()
 
 A conversão deve permanecer na borda de integração com o workflow, não no domínio.
 
-### 5.6 Persistência em memória
+### 5.6 Persistência durável e separação entre negócio e checkpoint
 
-Não adicionar provider de persistência do Quarkus Flow.
+Adicionar `quarkus-flow-redis` como único provider de checkpoint do Flow. Usar Redis
+ou Valkey compatível com o protocolo Redis, conforme a combinação validada para Flow
+`0.10.2`.
 
-Não adicionar:
+O CouchDB é o único sistema de registro para:
 
-- `quarkus-flow-redis`;
-- `quarkus-flow-jpa`;
-- `quarkus-flow-mvstore`.
+- texto inicial e `identificadorDocumento`;
+- snapshot do checklist aplicado;
+- resultado preliminar e final;
+- solicitação e resposta da revisão;
+- projeção consultada pela API;
+- correlação e falha sanitizada.
 
-O comportamento esperado é:
+O checkpoint no Redis/Valkey contém somente `correlationId`, `instanceId`,
+referências determinísticas, hashes e estado técnico mínimo. Ele não pode duplicar os
+documentos JSON de negócio.
 
-- instâncias vivem somente na JVM atual;
-- reiniciar a aplicação perde workflows em execução;
-- reiniciar a aplicação perde resultados e revisões;
-- a limitação deve estar documentada na interface e no README da PoC.
+Não adicionar `quarkus-flow-jpa`, banco relacional ou `quarkus-flow-mvstore`. Reinício
+da aplicação deve preservar os documentos de negócio e permitir restauração de uma
+instância pausada. Testes devem diferenciar claramente recuperação da projeção no
+CouchDB e recuperação do checkpoint do Flow.
 
 ---
 
-## 6. Mensageria interna sem broker
+## 6. Entrega interna sem broker
 
 ### 6.1 Decisão
 
-Usar Quarkus Messaging/SmallRye Reactive Messaging com canais internos na mesma JVM.
-
-Não configurar connector.
+Não usar Kafka, AMQP nem connector externo. O feed `_changes` do CouchDB será a fonte
+durável das revisões aceitas e um adapter do SPI `EventConsumer` do Quarkus Flow
+converterá cada mudança relevante em CloudEvent.
 
 Não usar:
 
@@ -240,38 +388,22 @@ Não adicionar:
 <artifactId>quarkus-messaging-kafka</artifactId>
 ```
 
-Adicionar apenas a extensão base de messaging, caso exigida pela combinação de versões:
+O adapter próprio substitui a dependência de entrega do `flow-in` local. O
+`emitJson(...)` permanece para os eventos de domínio do workflow; sua projeção
+durável deve ser gravada no CouchDB por porta de aplicação. A ponte local já
+implementada pode coexistir apenas durante a migração e deve ser removida quando o
+caminho durável estiver comprovado.
 
-```xml
-<dependency>
-    <groupId>io.quarkus</groupId>
-    <artifactId>quarkus-messaging</artifactId>
-</dependency>
-```
-
-Ativar a ponte padrão do Quarkus Flow:
-
-```properties
-quarkus.flow.messaging.defaults-enabled=true
-```
-
-Não configurar `mp.messaging.*.connector`.
-
-### 6.2 Canais
-
-Serão usados os canais padrão do Quarkus Flow:
-
-```text
-flow-in
-flow-out
-```
+### 6.2 Caminhos de evento
 
 Fluxo de entrada:
 
 ```text
 REST de revisão
-    -> MutinyEmitter<byte[]> em flow-in
-    -> FlowMessagingConsumer
+    -> documento imutável no CouchDB
+    -> feed _changes com cursor persistido
+    -> EventConsumer adapter
+    -> CloudEvent v1 referenciando o documento
     -> correlação do CloudEvent
     -> retomada da instância
 ```
@@ -280,33 +412,29 @@ Fluxo de saída:
 
 ```text
 emitJson do workflow
-    -> FlowDomainEventsPublisher
-    -> flow-out
-    -> consumidor local @Incoming("flow-out")
-    -> atualização do estado em memória
+    -> EventPublisher adapter
+    -> fato referencial e projeção no CouchDB
+    -> polling REST
 ```
 
-### 6.3 Condição de cadeia completa
+### 6.3 Condição de cadeia durável
 
-Como não existe connector, cada canal interno precisa ter produtor e consumidor dentro da aplicação.
+O endpoint só confirma `202` depois de persistir uma revisão válida. O adapter deve:
 
-Para `flow-in`:
+- retomar o cursor do `_changes` depois de reconexão;
+- filtrar documentos pelo tipo e pela versão de schema;
+- produzir `id` determinístico;
+- aceitar repetições sem concluir duas vezes;
+- isolar documentos inválidos sem bloquear os seguintes;
+- confirmar avanço do cursor somente depois de registrar o resultado do
+  processamento.
 
-- produtor: endpoint REST de revisão, por meio de `MutinyEmitter<byte[]>`;
-- consumidor: consumidor padrão do Quarkus Flow.
+### 6.4 Estratégia de testes
 
-Para `flow-out`:
-
-- produtor: publisher padrão do Quarkus Flow;
-- consumidor: adaptador local da PoC anotado com `@Incoming("flow-out")`.
-
-### 6.4 In-memory connector de testes
-
-Não usar `smallrye-in-memory` na execução normal da PoC.
-
-O `InMemoryConnector` é uma ferramenta de teste. A execução normal deve usar **canais internos**, sem connector.
-
-O `InMemoryConnector` poderá ser utilizado somente em testes específicos, se realmente necessário.
+Fakes podem substituir CouchDB, Redis/Valkey ou o `EventConsumer` em testes unitários.
+Testes de integração devem usar containers reais, provar replay/repetição e executar
+sem Kafka. O teste multipod deve usar Kubernetes local; Docker Compose valida somente
+uma réplica.
 
 ---
 
@@ -319,7 +447,9 @@ CloudEvent será o envelope de correlação entre:
 - o workflow aguardando revisão;
 - o endpoint que recebe a revisão humana.
 
-CloudEvent não implica uso de broker. Nesta PoC ele trafegará em memória por Reactive Messaging.
+CloudEvent não implica uso de broker nem fornece durabilidade sozinho. Nesta evolução,
+a durabilidade vem do documento no CouchDB e do checkpoint no Redis/Valkey; CloudEvent
+é o contrato entregue ao `listen(...)`.
 
 ### 7.2 Tipos de evento
 
@@ -344,6 +474,9 @@ O endpoint de revisão deve criar um CloudEvent contendo:
 
 ```text
 flowinstanceid = instanceId recebido na URL
+correlationId = correlação persistida da análise
+revisaoRef = identificador determinístico do documento no CouchDB
+revisaoHash = hash canônico do conteúdo aceito
 ```
 
 O `listen` deve correlacionar explicitamente pelo identificador da instância, usando a API disponível na versão selecionada.
@@ -372,20 +505,18 @@ byte[]
 
 O endpoint de revisão deve:
 
-1. serializar o payload da revisão com Jackson;
-2. construir CloudEvent v1;
-3. serializar o CloudEvent em formato JSON estruturado;
-4. emitir os bytes para `flow-in`.
+1. validar a revisão contra a projeção corrente;
+2. construir o documento imutável com ID e hash determinísticos;
+3. gravá-lo no CouchDB, aceitando repetição idêntica;
+4. responder `202` somente depois da gravação.
 
-O consumidor de `flow-out` deve:
+O adapter do `_changes` deve:
 
-1. receber `byte[]`;
-2. desserializar o CloudEvent;
-3. identificar o tipo;
-4. extrair `flowinstanceid`;
-5. desserializar `data`;
-6. atualizar o estado da análise em memória;
-7. confirmar a mensagem somente após o processamento.
+1. receber a mudança e carregar o documento;
+2. validar tipo, versão, estado e correlação;
+3. construir CloudEvent v1 com referência, nunca com o payload negocial completo;
+4. entregar o evento ao Flow;
+5. registrar processamento idempotente e avançar o cursor.
 
 ---
 
@@ -451,7 +582,7 @@ O objetivo da PoC é comprovar que:
 - o Flow libera a thread;
 - a instância permanece aguardando;
 - um CloudEvent correlacionado retoma a execução;
-- o contexto do workflow é preservado em memória.
+- o contexto referencial é persistido e restaurável pelo provider Redis/Valkey.
 
 ### 8.3 Sem loop de nova inferência
 
@@ -585,7 +716,11 @@ public enum StatusAnaliseConformidade {
 
 ```java
 public record VisaoAnaliseConformidade(
+        String correlationId,
         String instanceId,
+        String identificadorDocumento,
+        Long identificadorChecklist,
+        Integer versaoChecklist,
         StatusAnaliseConformidade status,
         ResultadoAnaliseConformidade resultadoPreliminar,
         ResultadoAnaliseConformidade resultadoFinal,
@@ -634,11 +769,11 @@ public record Checklist(
 }
 ```
 
-O workflow deve manter esse checklist no contexto da instância até a revisão humana terminar.
+O workflow deve gravar um snapshot imutável do checklist no CouchDB e manter no
+contexto da instância somente a referência e o hash até a revisão humana terminar.
+Cada etapa que precisar do conteúdo deve carregá-lo por uma porta de aplicação.
 
-Como a persistência é em memória, não é necessário criar snapshot em banco.
-
-Mesmo assim, o resultado final deve registrar:
+O snapshot e o resultado final devem registrar:
 
 - identificador do checklist;
 - versão;
@@ -662,7 +797,7 @@ O workflow não deve duplicar essas políticas.
 
 Se a consulta falhar após a política existente:
 
-- atualizar a visão em memória para `FALHOU`;
+- atualizar a projeção no CouchDB para `FALHOU`;
 - registrar uma mensagem sanitizada;
 - interromper o fluxo;
 - não chamar o agente.
@@ -939,11 +1074,12 @@ emitJson(
 )
 ```
 
-O consumidor local de `flow-out` deve:
+O consumidor da emissão deve:
 
 - extrair `flowinstanceid`;
-- gravar status `AGUARDANDO_REVISAO`;
-- gravar resultado preliminar;
+- validar `correlationId`;
+- gravar status `AGUARDANDO_REVISAO` no CouchDB;
+- gravar resultado preliminar ou sua referência imutável;
 - tornar o resultado disponível para polling.
 
 ### 15.2 Espera
@@ -968,6 +1104,8 @@ Não permitir alterar:
 
 - identificador do apontamento;
 - nome do apontamento;
+- `correlationId`;
+- `identificadorDocumento`;
 - identificador do checklist;
 - versão do checklist;
 - `instanceId`.
@@ -980,9 +1118,12 @@ A revisão deve:
 - não conter apontamentos extras;
 - preservar identificadores;
 - possuir parecer e justificativa;
+- possuir correlação, referência e hash compatíveis com a solicitação;
 - estar associada a uma instância em `AGUARDANDO_REVISAO`.
 
-Se a instância não estiver aguardando revisão, retornar `409 Conflict`.
+Se a instância não estiver aguardando revisão, retornar `409 Conflict`. Repetição com
+o mesmo conteúdo e a mesma chave lógica é idempotente; conteúdo diferente para a
+mesma resposta humana é conflito.
 
 ### 15.5 Resultado final
 
@@ -996,7 +1137,7 @@ Após a revisão:
 
 ---
 
-## 16. Estado em memória para polling
+## 16. Estado durável para polling
 
 ### 16.1 Porta
 
@@ -1005,7 +1146,13 @@ Criar uma porta de saída de aplicação, por exemplo:
 ```java
 public interface ArmazenarEstadoAnaliseConformidade {
 
-    void iniciar(String instanceId);
+    void iniciar(
+            String correlationId,
+            String instanceId,
+            String identificadorDocumento,
+            Long identificadorChecklist,
+            Integer versaoChecklist
+    );
 
     void aguardarRevisao(
             String instanceId,
@@ -1028,19 +1175,15 @@ public interface ArmazenarEstadoAnaliseConformidade {
 
 ### 16.2 Adaptador
 
-Implementar com:
-
-```java
-ConcurrentHashMap<String, VisaoAnaliseConformidade>
-```
-
 Requisitos:
 
 - bean `@ApplicationScoped`;
 - registros imutáveis;
-- atualização atômica;
-- chave por `instanceId`;
-- sem expiração automática nesta primeira PoC;
+- documentos JSON no CouchDB;
+- índice consultável por `instanceId` e chave estável por `correlationId`;
+- atualização concorrente por `_rev`/MVCC;
+- fatos de revisão com IDs determinísticos e sem sobrescrita;
+- retenção explícita, sem expiração automática silenciosa;
 - sem estado estático global fora do CDI;
 - sem salvar texto completo em logs.
 
@@ -1051,7 +1194,11 @@ O estado consultável pela página não substitui o estado interno do Quarkus Fl
 São responsabilidades diferentes:
 
 - Quarkus Flow: controlar execução e espera;
-- store da PoC: fornecer uma projeção simples para a interface.
+- Redis/Valkey: armazenar o checkpoint técnico do Flow;
+- CouchDB: armazenar os documentos de negócio e a projeção para a interface.
+
+O reinício de um pod não pode exigir reconstrução manual da projeção nem nova resposta
+humana. Redis/Valkey não é a fonte da API de polling.
 
 ---
 
@@ -1076,6 +1223,7 @@ Request:
 
 ```json
 {
+  "identificadorDocumento": "DOC-2026-000123",
   "texto": "Texto a ser analisado...",
   "identificadorChecklist": 1000012583,
   "versaoChecklist": 1
@@ -1091,7 +1239,11 @@ Location: /simtr-hub/v1/conformidade/analises/{instanceId}
 
 ```json
 {
+  "correlationId": "01...",
   "instanceId": "01...",
+  "identificadorDocumento": "DOC-2026-000123",
+  "identificadorChecklist": 1000012583,
+  "versaoChecklist": 1,
   "status": "EM_PROCESSAMENTO"
 }
 ```
@@ -1106,7 +1258,11 @@ Enquanto processa:
 
 ```json
 {
+  "correlationId": "01...",
   "instanceId": "01...",
+  "identificadorDocumento": "DOC-2026-000123",
+  "identificadorChecklist": 1000012583,
+  "versaoChecklist": 1,
   "status": "EM_PROCESSAMENTO",
   "resultadoPreliminar": null,
   "resultadoFinal": null,
@@ -1118,7 +1274,11 @@ Aguardando revisão:
 
 ```json
 {
+  "correlationId": "01...",
   "instanceId": "01...",
+  "identificadorDocumento": "DOC-2026-000123",
+  "identificadorChecklist": 1000012583,
+  "versaoChecklist": 1,
   "status": "AGUARDANDO_REVISAO",
   "resultadoPreliminar": {
     "identificadorChecklist": 1000012583,
@@ -1162,6 +1322,9 @@ Response:
 ```http
 202 Accepted
 ```
+
+Reenvio idêntico da revisão deve preservar o mesmo efeito e continuar aceito sem
+segunda conclusão. Reenvio contraditório para a mesma análise deve retornar `409`.
 
 ### 17.4 Erros
 
@@ -1209,6 +1372,14 @@ A página deve possuir quatro estados:
 3. revisão humana;
 4. conclusão ou erro.
 
+Em todos os estados após o `POST`, exibir como somente leitura:
+
+- `correlationId`;
+- `instanceId`;
+- `identificadorDocumento`;
+- `identificadorChecklist`;
+- `versaoChecklist`.
+
 ### 18.4 Polling
 
 Depois do `POST`, iniciar polling:
@@ -1249,13 +1420,18 @@ Renderizar cada apontamento em uma linha ou cartão contendo:
 - textarea de evidência;
 - confiança, somente leitura ou editável conforme decisão do plano.
 
-### 18.6 Aviso de volatilidade
+### 18.6 Identidades e aviso operacional
 
 Exibir:
 
 ```text
-Esta é uma PoC com estado em memória. Reiniciar a aplicação perde análises em andamento e resultados.
+Dados de negócio são persistidos no CouchDB e checkpoints técnicos no Redis/Valkey.
+O suporte a múltiplos pods só é válido quando o teste Kubernetes desta versão estiver aprovado.
 ```
+
+As identidades devem permanecer visíveis durante processamento, revisão, conclusão e
+falha para que a pessoa consiga correlacionar a tela, a instância técnica, o texto ou
+documento e o checklist aplicado.
 
 ---
 
@@ -1309,12 +1485,12 @@ br.gov.caixa.simtr.hub.conformidade
         │       ├── AnaliseConformidadeAiService.java
         │       ├── OllamaAnaliseConformidadeAdapter.java
         │       └── ...
-        ├── memoria
-        │   └── AnaliseConformidadeMemoryStore.java
+        ├── couchdb
+        │   ├── AnaliseConformidadeCouchDbStore.java
+        │   ├── FlowCouchDbEventPublisher.java
+        │   └── RevisaoCouchDbChangesConsumer.java
         └── messaging
             └── interno
-                ├── RevisaoHumanaCloudEventPublisher.java
-                ├── FlowOutCloudEventConsumer.java
                 └── CloudEventMapper.java
 ```
 
@@ -1360,6 +1536,16 @@ Dependências funcionais esperadas:
     <groupId>io.quarkus</groupId>
     <artifactId>quarkus-messaging</artifactId>
 </dependency>
+
+<dependency>
+    <groupId>io.quarkiverse.flow</groupId>
+    <artifactId>quarkus-flow-redis</artifactId>
+</dependency>
+
+<dependency>
+    <groupId>io.quarkiverse.flow</groupId>
+    <artifactId>quarkus-flow-durable-kubernetes</artifactId>
+</dependency>
 ```
 
 Regras:
@@ -1371,7 +1557,12 @@ Regras:
 5. executar `mvn dependency:tree`;
 6. verificar conflitos de LangChain4j;
 7. compilar antes de implementar o fluxo completo;
-8. manter Java 25.
+8. manter Java 25;
+9. validar o provider Redis e o módulo Kubernetes exatamente na versão Flow
+   `0.10.2`;
+10. selecionar o acesso HTTP ao CouchDB somente no spike, preferindo capacidades já
+    presentes no projeto e sem acoplar DTOs de negócio ao cliente;
+11. não adicionar JPA, driver PostgreSQL, Kafka ou AMQP.
 
 ---
 
@@ -1381,10 +1572,20 @@ Configuração inicial sujeita à API exata da versão:
 
 ```properties
 # Quarkus Flow
-quarkus.flow.messaging.defaults-enabled=true
+# Alvo depois da migração para EventPublisher/EventConsumer próprios
+quarkus.flow.messaging.defaults-enabled=false
 quarkus.flow.messaging.lifecycle-enabled=false
 quarkus.flow.tracing.enabled=true
 quarkus.flow.devui.backend.storage.enabled=true
+
+# Os nomes exatos das propriedades de persistência Redis e durable Kubernetes
+# devem ser copiados da documentação/API da versão 0.10.2 após o spike.
+
+# CouchDB e Redis/Valkey
+conformidade.couchdb.url=${COUCHDB_URL:http://localhost:5984}
+conformidade.couchdb.database=${COUCHDB_DATABASE:conformidade}
+conformidade.couchdb.username=${COUCHDB_USERNAME:}
+conformidade.couchdb.password=${COUCHDB_PASSWORD:}
 
 # Ollama local
 quarkus.langchain4j.ollama.base-url=${OLLAMA_BASE_URL:http://localhost:11434}
@@ -1402,7 +1603,9 @@ quarkus.langchain4j.timeout=60s
 %poc.simtr-hub.simulador.parametrizacao-checklist.habilitado=true
 ```
 
-Não adicionar configurações Kafka.
+Não adicionar configurações Kafka. Credenciais de CouchDB e Redis/Valkey não podem
+ser versionadas; devem vir de variável/secret. Configuração de cursor, reconexão,
+health/readiness e timeouts requer checkpoint observável antes da implementação.
 
 Antes de registrar prompt e resposta integralmente, considerar que o texto pode conter dados sensíveis. Para a PoC, documentar o risco e permitir desabilitar logging.
 
@@ -1416,6 +1619,8 @@ Criar spans ou atributos para:
 
 ```text
 conformidade.analise.instance_id
+conformidade.analise.correlation_id
+conformidade.documento.identificador
 conformidade.checklist.identificador
 conformidade.checklist.versao
 conformidade.checklist.quantidade_apontamentos
@@ -1423,6 +1628,10 @@ conformidade.agente.modelo
 conformidade.agente.origem_resultado
 conformidade.analise.status
 conformidade.revisao.humana
+conformidade.revisao.event_id
+conformidade.revisao.replayed
+conformidade.persistence.backend
+conformidade.flow.worker_id
 ```
 
 Não registrar:
@@ -1453,37 +1662,59 @@ conformidade.analise.falhou
 
 ```mermaid
 flowchart LR
-    UI[HTML estático<br/>Fetch + Polling]
+    UI[HTML estático<br/>Fetch e polling]
 
     REST[Adaptador REST<br/>Conformidade]
     START[Caso de uso<br/>Iniciar análise]
     QUERY[Caso de uso existente<br/>ConsultarChecklist]
-    FLOW[Quarkus Flow<br/>Análise de Conformidade]
-    AGENT[Porta<br/>AnalisarTextoComChecklist]
+    FLOW[Quarkus Flow<br/>Análise de conformidade]
+    AGENT[Porta de saída<br/>AnalisarTextoComChecklist]
     OLLAMA[LangChain4j Agentic<br/>Ollama local]
-    STORE[Estado em memória<br/>ConcurrentHashMap]
-    IN[Canal interno<br/>flow-in]
-    OUT[Canal interno<br/>flow-out]
+    COUCH[(CouchDB<br/>dados de negócio e projeção)]
+    REDIS[(Redis/Valkey<br/>checkpoints Flow)]
+    CHANGES[Adapter EventConsumer<br/>CouchDB _changes]
+    LEASE[Kubernetes Leases<br/>identidade do worker]
 
-    UI -->|POST iniciar| REST
+    UI -->|POST iniciar análise| REST
     REST --> START
-    START --> FLOW
+    START -->|documento, correlação e projeção| COUCH
+    START -->|referências| FLOW
+
     FLOW --> QUERY
     FLOW --> AGENT
     AGENT --> OLLAMA
+    FLOW -->|checkpoint técnico| REDIS
+    LEASE --> FLOW
 
-    FLOW -->|emit CloudEvent| OUT
-    OUT --> STORE
+    FLOW -->|snapshot, resultado e status| COUCH
 
-    UI -->|GET status polling| REST
-    REST --> STORE
+    UI -->|GET status por polling| REST
+    REST --> COUCH
 
-    UI -->|PUT revisão| REST
-    REST -->|CloudEvent byte[]| IN
-    IN --> FLOW
+    UI -->|PUT revisão humana| REST
+    REST -->|documento imutável| COUCH
+    COUCH -->|_changes| CHANGES
+    CHANGES -->|CloudEvent referencial| FLOW
 
-    FLOW -->|resultado final| STORE
+    FLOW -->|Resultado final| COUCH
 ```
+
+### Responsabilidades dos componentes
+
+- **HTML estático**: recebe o texto, o identificador negocial e a versão do checklist; inicia o workflow; consulta periodicamente seu estado; apresenta os apontamentos para revisão humana; envia as correções ou a aprovação.
+- **Adaptador REST de conformidade**: expõe os endpoints utilizados pela página e converte os contratos REST para os contratos da aplicação.
+- **Caso de uso Iniciar análise**: valida a solicitação e cria uma nova instância do workflow.
+- **ConsultarChecklist**: reutiliza a capacidade existente do domínio de conformidade para consultar o checklist no MTR ou no simulador configurado.
+- **Quarkus Flow**: coordena a consulta do checklist, a análise agentic, a espera pela revisão humana e a finalização do fluxo.
+- **AnalisarTextoComChecklist**: representa a porta de saída responsável por executar a análise do texto com o checklist.
+- **LangChain4j Agentic e Ollama**: aplicam os apontamentos do checklist sobre o texto e retornam um resultado estruturado.
+- **CouchDB**: sistema de registro do texto/documento, checklist congelado, resultados,
+  revisão e projeção consultada pela página.
+- **Redis/Valkey**: armazena somente checkpoints técnicos do Flow.
+- **Adapter `_changes`**: transforma revisão persistida em CloudEvent referencial,
+  controla cursor e tolera repetição.
+- **Kubernetes Leases**: fornece identidade estável ao worker em múltiplos pods; não
+  substitui o teste de roteamento cross-pod.
 
 ---
 
@@ -1498,46 +1729,50 @@ sequenceDiagram
     participant Checklist as ConsultarChecklist
     participant MTR as MTR ou Simulador
     participant Agente as LangChain4j/Ollama
-    participant Out as flow-out interno
-    participant Store as Estado em memória
-    participant In as flow-in interno
+    participant Couch as CouchDB
+    participant Redis as Redis/Valkey
+    participant Changes as Adapter _changes
 
-    Pessoa->>Pagina: Informa texto, identificador e versão
+    Pessoa->>Pagina: Informa documento/texto, checklist e versão
     Pagina->>API: POST /analises
-    API->>Flow: cria instância e start()
-    API-->>Pagina: 202 + instanceId
+    API->>Couch: cria documento, correlação e projeção
+    API->>Flow: cria instância e start() com referências
+    API-->>Pagina: 202 + todas as identidades
 
-    Flow->>Store: status EM_PROCESSAMENTO
+    Flow->>Redis: checkpoint técnico
     Flow->>Checklist: executar(comando)
     Checklist->>MTR: consulta checklist
     MTR-->>Checklist: checklist
     Checklist-->>Flow: Uni<Checklist>
+    Flow->>Couch: snapshot imutável do checklist
 
     Flow->>Agente: texto + checklist
     Agente-->>Flow: resultado estruturado
     Flow->>Flow: valida e normaliza
 
-    Flow->>Out: emit revisão.solicitada
-    Out->>Store: AGUARDANDO_REVISAO + resultado
+    Flow->>Couch: AGUARDANDO_REVISAO + resultado
     Flow->>Flow: listen revisão.concluida
+    Flow->>Redis: checkpoint WAITING
 
     loop polling
         Pagina->>API: GET /analises/{instanceId}
-        API->>Store: consultar
-        Store-->>API: estado
+        API->>Couch: consultar
+        Couch-->>API: estado
         API-->>Pagina: estado
     end
 
     Pagina-->>Pessoa: apresenta resultado editável
     Pessoa->>Pagina: corrige e confirma
     Pagina->>API: PUT /analises/{instanceId}/revisao
-    API->>In: CloudEvent com flowinstanceid
-    In->>Flow: correlaciona e retoma
+    API->>Couch: grava revisão imutável
     API-->>Pagina: 202
+    Couch-->>Changes: _changes
+    Changes->>Flow: CloudEvent com referências
+    Flow->>Couch: carrega e valida revisão
 
     Flow->>Flow: valida revisão
-    Flow->>Store: CONCLUIDA + resultado final
-    Flow->>Out: emit análise.concluida
+    Flow->>Couch: CONCLUIDA + resultado final
+    Flow->>Redis: checkpoint terminal
 
     loop polling
         Pagina->>API: GET /analises/{instanceId}
@@ -1591,24 +1826,28 @@ Validar:
 
 O teste deve provar que o fluxo não conclui antes da revisão.
 
-### 25.4 Teste dos canais internos
+### 25.4 Teste da entrega durável
 
 Subir `@QuarkusTest` sem Kafka e sem broker.
 
 Validar:
 
-- aplicação inicia sem connector;
-- `flow-out` possui consumidor local;
-- `flow-in` recebe bytes emitidos pelo endpoint;
-- CloudEvent é desserializado;
-- `flowinstanceid` é preservado;
-- a instância correta é retomada.
+- aplicação inicia com CouchDB e Redis/Valkey e sem connector;
+- revisão só é publicada depois de persistida;
+- `_changes` pode repetir a mudança sem repetir a conclusão;
+- CloudEvent referencial preserva `flowinstanceid` e `correlationId`;
+- restart restaura a espera e mantém a projeção;
+- documento inválido não bloqueia mudanças posteriores;
+- duas réplicas comprovam retomada da instância correta ou mantêm o suporte
+  multipod como não aceito.
 
 ### 25.5 Teste REST
 
 Cobrir:
 
 - `POST` retorna `202`;
+- `POST` exige `identificadorDocumento`;
+- respostas expõem todas as identidades;
 - `GET` retorna `EM_PROCESSAMENTO`;
 - `GET` retorna `AGUARDANDO_REVISAO`;
 - `PUT` aceita revisão;
@@ -1667,18 +1906,23 @@ A PoC será considerada válida quando:
 12. o resultado for validado em Java;
 13. Fault Tolerance for aplicado à chamada ao agente;
 14. a indisponibilidade do Ollama produzir fallback revisável ou erro controlado;
-15. o workflow emitir um CloudEvent de revisão;
-16. o CloudEvent trafegar por canal interno, sem connector;
+15. o workflow persistir a solicitação de revisão;
+16. a revisão humana ser persistida no CouchDB antes da entrega;
 17. o workflow realmente aguardar revisão;
 18. a página detectar `AGUARDANDO_REVISAO` por polling;
 19. a pessoa conseguir editar os resultados;
 20. a revisão ser enviada por REST;
-21. o endpoint emitir CloudEvent em `flow-in`;
-22. o `flowinstanceid` retomar a instância correta;
+21. o adapter `_changes` emitir CloudEvent referencial, sem Kafka;
+22. `flowinstanceid` e `correlationId` retomarem a instância correta;
 23. o workflow concluir;
 24. a página exibir o resultado final;
-25. reiniciar a JVM perder a instância, conforme limitação documentada;
-26. testes e guardrails existentes continuarem passando.
+25. reiniciar um pod preservar dados de negócio e restaurar a espera;
+26. a página exibir `correlationId`, `instanceId`, `identificadorDocumento`,
+    `identificadorChecklist` e `versaoChecklist` em todos os estados;
+27. uma revisão repetida não concluir duas vezes;
+28. o teste com duas réplicas provar a retomada cross-pod antes de declarar suporte
+    multipod;
+29. testes e guardrails existentes continuarem passando.
 
 ---
 
@@ -1691,7 +1935,8 @@ O Codex deve analisar explicitamente:
 3. compatibilidade com Java 25;
 4. API exata da DSL `agent`, `emitJson`, `listen` e correlação;
 5. ativação da dependência condicional `quarkus-flow-messaging` apenas com `quarkus-messaging`;
-6. possibilidade de usar `flow-in` e `flow-out` como canais internos sem connector;
+6. compatibilidade dos SPIs `EventPublisher`/`EventConsumer` com emissões
+   referenciais e `_changes` sem connector;
 7. assinatura assíncrona necessária para usar `Uni`;
 8. suporte do modelo Ollama selecionado a structured output;
 9. tamanho do contexto ao serializar o checklist;
@@ -1701,7 +1946,14 @@ O Codex deve analisar explicitamente:
 13. impacto das regras ArchUnit;
 14. impacto das configurações OIDC locais;
 15. exposição de prompt e texto em logs;
-16. API de status da instância disponível na versão usada.
+16. API de status da instância disponível na versão usada;
+17. formato e compatibilidade do checkpoint Redis do Flow `0.10.2`;
+18. tamanho e serialização do contexto mínimo por referência;
+19. comportamento do `_changes` em reconexão, repetição e mudança inválida;
+20. uso de `_rev`/MVCC para impedir revisões contraditórias;
+21. roteamento cross-pod do `EventConsumer` sem broker;
+22. identidade estável e readiness por Kubernetes Leases;
+23. disponibilidade e saúde independentes de CouchDB e Redis/Valkey.
 
 Nenhum desses riscos autoriza adicionar Kafka.
 
@@ -1729,7 +1981,7 @@ O plano deve dividir a implementação em incrementos compiláveis.
 - emitir e receber CloudEvent simples;
 - testar correlação.
 
-### Incremento 3 — API e estado em memória
+### Incremento 3 — API e estado volátil inicial
 
 - criar contratos;
 - criar store;
@@ -1761,16 +2013,33 @@ O plano deve dividir a implementação em incrementos compiláveis.
 - enviar revisão;
 - retomar e concluir.
 
-### Incremento 7 — Testes e documentação
+### Incremento 7 — Persistência e contrato durável
 
-- testes unitários;
-- testes de workflow;
-- testes REST;
-- teste sem broker;
-- documentação de execução;
-- comandos e exemplos;
-- validação ArchUnit;
-- relatório de limitações.
+- executar spike de compatibilidade do CouchDB, `quarkus-flow-redis`,
+  `quarkus-flow-durable-kubernetes` e SPI `EventConsumer`;
+- acrescentar `correlationId` e `identificadorDocumento` ao contrato;
+- persistir documentos de negócio e projeção no CouchDB;
+- reduzir o contexto do Flow a referências e hashes;
+- habilitar checkpoints no Redis/Valkey;
+- substituir a retomada volátil por `_changes` -> CloudEvent;
+- provar replay, idempotência e restart.
+
+### Incremento 8 — Containers e múltiplos pods
+
+- criar imagens e Docker Compose para uma réplica, CouchDB, Redis/Valkey e Ollama;
+- configurar volumes, health checks e credenciais externas;
+- preparar manifests Kubernetes e Leases do Flow;
+- provar com duas réplicas o roteamento cruzado e o failover;
+- manter ADR e suporte multipod pendentes se a prova falhar.
+
+### Incremento 9 — Página, testes e documentação
+
+- criar página e polling;
+- exibir todas as identidades como somente leitura;
+- fechar testes unitários, REST, workflow, persistência e entrega;
+- validar observabilidade e ArchUnit;
+- documentar execução, restart, replay, limites e rollback;
+- atualizar o consolidado arquitetural somente com o estado implementado.
 
 ---
 
@@ -1788,7 +2057,7 @@ O Codex deve produzir um plano contendo:
 8. arquivos a modificar;
 9. responsabilidades de cada arquivo;
 10. fluxo de dados;
-11. desenho dos canais internos;
+11. desenho da entrega `EventPublisher`/`_changes`/`EventConsumer`;
 12. desenho de CloudEvent e correlação;
 13. estratégia de integração com `Uni`;
 14. estratégia do agente;
@@ -1836,13 +2105,18 @@ Restrições obrigatórias:
 - usar SmallRye Fault Tolerance;
 - usar Human-in-the-Loop real com emit + listen;
 - usar CloudEvents;
-- usar Reactive Messaging com canais internos;
+- persistir dados de negócio somente no CouchDB;
+- persistir checkpoints técnicos do Flow somente no Redis/Valkey;
+- usar `_changes` e `EventConsumer` para entregar a revisão ao `listen`;
+- manter no contexto do Flow somente referências e hashes;
 - não usar Kafka;
 - não usar broker externo;
 - não usar WebSocket;
 - usar polling HTTP na página estática;
-- usar estado e checkpoints somente em memória;
-- não adicionar Redis, JPA ou MVStore;
+- não adicionar JPA, banco relacional ou MVStore;
+- validar containers em uma réplica e Kubernetes com duas réplicas;
+- expor correlationId, instanceId, identificadorDocumento,
+  identificadorChecklist e versaoChecklist;
 - não duplicar a consulta de checklist;
 - não chamar o REST Client MTR diretamente a partir do workflow;
 - preservar arquitetura hexagonal e testes ArchUnit.
@@ -1876,7 +2150,17 @@ Não implemente código nesta primeira resposta.
 - Quarkus Flow — Messaging:
   `https://docs.quarkiverse.io/quarkus-flow/dev/messaging.html`
 - Quarkus Flow — Persistence:
-  `https://docs.quarkiverse.io/quarkus-flow/dev/persistence.html`
+  `https://github.com/quarkiverse/quarkus-flow/blob/0.10.2/docs/modules/ROOT/pages/persistence.adoc`
+- Quarkus Flow — Messaging e SPI:
+  `https://github.com/quarkiverse/quarkus-flow/blob/0.10.2/docs/modules/ROOT/pages/messaging.adoc`
+- Quarkus Flow — Durable Workflow em Kubernetes:
+  `https://github.com/quarkiverse/quarkus-flow/blob/0.10.2/docs/modules/ROOT/pages/concepts-durable-workflow-k8s.adoc`
+- CouchDB — feed `_changes`:
+  `https://docs.couchdb.org/en/stable/api/database/changes.html`
+- CouchDB — MVCC e conflitos:
+  `https://docs.couchdb.org/en/stable/replication/conflicts.html`
+- imagem oficial CouchDB:
+  `https://hub.docker.com/_/couchdb/`
 - Quarkus Messaging:
   `https://quarkus.io/guides/messaging`
 - Projeto-alvo:

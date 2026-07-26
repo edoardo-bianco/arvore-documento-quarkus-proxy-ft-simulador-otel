@@ -19,7 +19,9 @@ correção.
 
 O `simtr-hub` é um monólito modular Quarkus organizado por domínios de negócio. Ele expõe doze
 capacidades atômicas por REST e integra cada uma ao MTR ou ao simulador por adapters de saída
-intercambiáveis.
+intercambiáveis. Além delas, a PoC de análise de conformidade expõe três endpoints sobre estado
+volátil e inicia um workflow que consulta e congela o checklist, executa um agente sequencial no
+Ollama local e produz um resultado preliminar validado.
 
 ```text
 cliente HTTP
@@ -33,8 +35,11 @@ cliente HTTP
 ```
 
 O caso de uso não conhece Resource, REST Client, URL, DTO MTR, fixture nem o mecanismo CDI que
-seleciona o adapter. Não existem atualmente endpoint único de pré-validação, orquestrador local,
-motor de workflow, MCP Server ou comunicação distribuída entre os domínios.
+seleciona o adapter. Não existem atualmente endpoint único de pré-validação, MCP Server ou
+comunicação distribuída entre os domínios. O runtime do Quarkus Flow, sua ponte de Messaging
+interna e o `AnaliseConformidadeFlow` já estão presentes para a PoC. O workflow executável alcança
+o resultado preliminar do agente ou do fallback técnico, pausa para a revisão humana correlacionada
+e retoma até a conclusão.
 
 Além da borda REST, a consulta de documentos do dossiê pode ser iniciada pelo consumidor CDI local
 `br.gov.caixa.simtr.dossie.ConsultaDocumentosDossieProduto`, no mesmo artifact e runtime Quarkus.
@@ -46,7 +51,7 @@ externa.
 | Domínio | Responsabilidade | Capacidades atuais |
 |---|---|---|
 | `arvoredocumento` | Dados parametrizados usados por uma futura árvore documental | `ConsultarProcessoParametrizado` |
-| `conformidade` | Consulta de checklist por identificador e versão | `ConsultarChecklist` |
+| `conformidade` | Consulta de checklist e PoC de análise/revisão humana | `ConsultarChecklist`; modelos, validação determinística, projeção volátil, API e workflow HITL até o resultado final revisado |
 | `dossieproduto` | Operações atômicas do ciclo de vida do dossiê no MTR | `ConsultarDossieProduto`, `ConsultarDocumentosDossieProduto`, `CriarDossieProduto`, `AtualizarFormularioDossieProduto`, `IncluirDocumentoDossieProduto`, `RegistrarValidacaoNegocialDossieProduto`, `AlterarProdutosContratadosDossieProduto`, `CapturarDossieProduto`, `IniciarOuAvancarWorkflowDossieProduto` |
 | `gestaodocumento` | Obtenção de credencial para o container documental | `ObterCredencialContainer` |
 
@@ -73,6 +78,9 @@ existirem requisitos, contratos e autorização próprios.
 | `POST` | `/simtr-hub/v1/dossie-produto/{id}/capturar` |
 | `POST` | `/simtr-hub/v1/dossie-produto/{id}/workflow` |
 | `POST` | `/simtr-hub/v1/storage/container/credencial` |
+| `POST` | `/simtr-hub/v1/conformidade/analises` |
+| `GET` | `/simtr-hub/v1/conformidade/analises/{instanceId}` |
+| `PUT` | `/simtr-hub/v1/conformidade/analises/{instanceId}/revisao` |
 
 Duas operações descritas na especificação de pré-validação ainda não existem no Hub:
 
@@ -153,6 +161,54 @@ adapter, Resource e REST Client permanecem fora desse limite.
 - um adapter MTR pode implementar várias portas pequenas do mesmo domínio;
 - não existe `Service` genérico que exponha operações de todos os contextos.
 
+### PoC de análise de conformidade em implementação
+
+O estado implementado até a Task 6.1 inclui:
+
+- canais internos `flow-in` e `flow-out` com CloudEvent v1, sem connector ou broker;
+- shim de Messaging confinado ao adapter e à versão Flow `0.10.2`;
+- modelos imutáveis de solicitação, resultado, revisão e visão da análise;
+- validação determinística de cobertura, identidade, nomes e confiança;
+- porta de estado e store `ConcurrentHashMap` com transições atômicas;
+- reserva interna compare-and-set para aceitar somente uma revisão por instância;
+- três portas e casos de uso de entrada para iniciar, consultar e revisar;
+- adapter REST v1 com DTOs próprios, JSON camelCase e `Location` relativo;
+- validação de borda do texto em até 20.000 caracteres e da lista completa de revisão;
+- tradução de falhas para o contrato `ErroPadraoDto` com
+  `400`/`404`/`409`/`422`/`503`, sem stack trace ou detalhe interno;
+- `AnaliseConformidadeFlow` registrado como `WorkflowDefinition`, com o identificador nativo da
+  instância usado também pela projeção e pelo contrato REST;
+- início assíncrono sem espera bloqueante e etapa que acessa exclusivamente a porta
+  `ConsultarChecklist`;
+- checklist copiado para o contexto do workflow com lista imutável; item nulo, checklist vazio e
+  falha técnica encerram o workflow e transitam a projeção para `FALHOU`;
+- porta `AnalisarTextoComChecklist` e task `agent(...)` no workflow, com o identificador raiz da
+  instância usado como `memoryId`;
+- capacidade Agentic sequencial `AplicadorChecklistAgent -> RevisorCoberturaAgent`, executada com
+  `llama3.2:3b` no Ollama local e retorno em records exclusivos do adapter;
+- projeção JSON mínima do checklist, cláusulas contra prompt injection e validação Java que rejeita
+  identificadores extras/duplicados e completa item ausente como `NAO_ANALISADO`;
+- timeout HTTP de 60 s e política MicroProfile FT no adapter Ollama, com timeout de 65 s, até duas
+  novas tentativas, circuit breaker e fallback completo para revisão humana;
+- retry interno do provider desabilitado por `ModelBuilderCustomizer`, mantendo a política FT como
+  fonte única de repetição;
+- tracing textual integral do Flow desabilitado por padrão; spans próprios do workflow e do agente
+  carregam somente identificadores, versão, quantidade, modelo, origem e estado;
+- evento `flow-out` complementado no adapter de Messaging com `source` estável e `time` UTC, sem
+  remover as extensões de correlação nativas do Flow;
+- pausa real no `listen`, publicação assíncrona da revisão pelo `flow-in` e retomada somente da
+  instância correlacionada;
+- dupla validação da revisão, antes da publicação e dentro do workflow retomado;
+- evento final e projeção `CONCLUIDA` com origem `REVISAO_HUMANA`.
+
+A projeção possui os estados `EM_PROCESSAMENTO`, `AGUARDANDO_REVISAO`, `CONCLUIDA` e `FALHOU`.
+Ela é exclusivamente volátil, não substitui o estado do Flow e não oferece recuperação após
+reinício. O POST cria a projeção `EM_PROCESSAMENTO` e inicia o Flow sem aguardar a consulta; o
+resultado preliminar publicado em `flow-out` projeta `AGUARDANDO_REVISAO`; o PUT valida, reserva
+atomicamente e publica a revisão em `flow-in`; e o workflow correlacionado retoma até projetar
+`CONCLUIDA`. A entrega interna continua sem garantia durável ou recuperação após falha, e a página
+da PoC ainda não está implementada.
+
 Um futuro orquestrador do mesmo domínio pode compor portas de entrada atômicas. Ao atravessar um
 domínio, usa uma porta de saída do consumidor e uma camada anticorrupção. Dentro do mesmo processo,
 não chama endpoints REST locais.
@@ -225,8 +281,9 @@ thread sem expor esse detalhe ao domínio.
 
 ## Fault tolerance e idempotência
 
-Timeout, retry, circuit breaker e classificação de exceções pertencem ao adapter MTR. As políticas
-não são aplicadas automaticamente ao simulador.
+Timeout, retry, circuit breaker e classificação de exceções pertencem ao adapter da integração:
+adapters MTR mantêm suas políticas atuais e o adapter Ollama possui a política específica aprovada
+para a PoC. Essas políticas não pertencem ao domínio, ao workflow nem ao simulador.
 
 Criação de dossiê, inclusão de documento, alteração de produtos contratados, captura e avanço de
 workflow são operações mutáveis. Antes de um workflow, orquestrador ou agente repetir essas
@@ -240,6 +297,11 @@ aprovada. Sem essa evidência, a composição mutável fica bloqueada.
 - novas entradas preservam correlação até o MTR e identificam sua origem;
 - tokens, credenciais, argumentos sensíveis, URLs internas e payloads protegidos não aparecem em
   respostas, logs, traces, relatórios ou memória de conversa;
+- a PoC mantém request/response completos do LangChain4j desligados por padrão e só admite o
+  perfil `%poc` com dados sintéticos; o tracing textual do Flow também permanece desligado;
+- os spans `simtr-hub.flow.conformidade.analise` e
+  `simtr-hub.agent.conformidade.analisar` não registram texto, prompt, resposta, evidência,
+  credencial, detalhe de erro ou stack;
 - exposição de `ObterCredencialContainer` a agentes exige decisão de segurança própria.
 
 `ConsultarDocumentosDossieProduto` publica os spans
@@ -273,10 +335,11 @@ prova negativa que rejeita dependência no caso de uso concreto.
 
 - o Hub não faz upload para Azure Blob Storage;
 - não mantém cache nem renova SAS;
-- não possui workflow ou orquestrador local;
+- possui runtime Flow, ponte interna, API, agente Ollama e pausa/retomada HITL completa no mesmo
+  processo, mas sem entrega durável ou recuperação após falha;
 - não possui MCP Server ou tools;
-- não possui persistência de estado de fluxo;
-- não calcula árvore documental nem executa análise de conformidade;
+- possui somente projeção volátil da PoC, sem persistência ou recuperação de estado;
+- não calcula árvore documental nem executa ainda a análise de conformidade ponta a ponta;
 - não implementa os dois endpoints ausentes listados acima.
 
 Essas restrições descrevem o estado atual, não uma proibição permanente. Uma feature pode mudá-las
