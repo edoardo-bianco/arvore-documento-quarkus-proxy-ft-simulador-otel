@@ -68,14 +68,14 @@ public class AnaliseConformidadeResource {
             responseCode = "503",
             description = "Serviço de análise temporariamente indisponível.",
             content = @Content(schema = @Schema(implementation = ErroPadraoDto.class)))
-    public Response iniciar(
+    public Uni<Response> iniciar(
             @NotNull(message = "O corpo da requisição deve ser informado.")
             @Valid IniciarAnaliseConformidadeRequest request) {
-        var visao = iniciar.executar(AnaliseConformidadeRestMapper.paraSolicitacao(request));
-        var resposta = AnaliseConformidadeRestMapper.paraInicio(visao);
-        return Response.accepted(resposta)
-                .header(HttpHeaders.LOCATION, BASE_PATH + "/" + visao.instanceId())
-                .build();
+        return iniciar.executar(AnaliseConformidadeRestMapper.paraSolicitacao(request))
+                .map(visao -> Response
+                        .accepted(AnaliseConformidadeRestMapper.paraInicio(visao))
+                        .header(HttpHeaders.LOCATION, BASE_PATH + "/" + visao.instanceId())
+                        .build());
     }
 
     @GET
@@ -90,11 +90,12 @@ public class AnaliseConformidadeResource {
             responseCode = "404",
             description = "Instância não localizada.",
             content = @Content(schema = @Schema(implementation = ErroPadraoDto.class)))
-    public VisaoAnaliseConformidadeResponse consultar(
+    public Uni<VisaoAnaliseConformidadeResponse> consultar(
             @PathParam("instanceId")
             @NotBlank(message = "O identificador da instância deve ser informado.")
             String instanceId) {
-        return AnaliseConformidadeRestMapper.paraVisao(consultar.executar(instanceId));
+        return consultar.executar(instanceId)
+                .map(AnaliseConformidadeRestMapper::paraVisao);
     }
 
     @PUT

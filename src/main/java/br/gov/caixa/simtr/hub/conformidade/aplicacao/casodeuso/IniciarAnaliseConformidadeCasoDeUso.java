@@ -6,6 +6,7 @@ import br.gov.caixa.simtr.hub.conformidade.aplicacao.workflow.AnaliseConformidad
 import br.gov.caixa.simtr.hub.conformidade.dominio.erro.FalhaAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.SolicitacaoAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.VisaoAnaliseConformidade;
+import io.smallrye.mutiny.Uni;
 import io.serverlessworkflow.impl.WorkflowInstance;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -30,7 +31,12 @@ public class IniciarAnaliseConformidadeCasoDeUso implements IniciarAnaliseConfor
     }
 
     @Override
-    public VisaoAnaliseConformidade executar(SolicitacaoAnaliseConformidade solicitacao) {
+    public Uni<VisaoAnaliseConformidade> executar(
+            SolicitacaoAnaliseConformidade solicitacao) {
+        return Uni.createFrom().item(() -> iniciar(solicitacao));
+    }
+
+    private VisaoAnaliseConformidade iniciar(SolicitacaoAnaliseConformidade solicitacao) {
         if (solicitacao == null) {
             throw FalhaAnaliseConformidade.solicitacaoInvalida(
                     "A solicitação da análise é obrigatória");

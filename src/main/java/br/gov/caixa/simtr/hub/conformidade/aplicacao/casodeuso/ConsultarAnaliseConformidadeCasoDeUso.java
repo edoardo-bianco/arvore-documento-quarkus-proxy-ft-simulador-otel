@@ -4,6 +4,7 @@ import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.entrada.ConsultarAnal
 import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.ArmazenarEstadoAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.erro.FalhaAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.VisaoAnaliseConformidade;
+import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -19,8 +20,9 @@ public class ConsultarAnaliseConformidadeCasoDeUso implements ConsultarAnaliseCo
     }
 
     @Override
-    public VisaoAnaliseConformidade executar(String instanceId) {
-        return estados.consultar(instanceId)
-                .orElseThrow(FalhaAnaliseConformidade::instanciaNaoEncontrada);
+    public Uni<VisaoAnaliseConformidade> executar(String instanceId) {
+        return Uni.createFrom().item(() ->
+                estados.consultar(instanceId)
+                        .orElseThrow(FalhaAnaliseConformidade::instanciaNaoEncontrada));
     }
 }

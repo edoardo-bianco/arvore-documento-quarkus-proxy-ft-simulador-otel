@@ -52,7 +52,8 @@ class CasosDeUsoAnaliseConformidadeTest {
         when(instancia.start()).thenReturn(new CompletableFuture<WorkflowModel>());
         var casoDeUso = new IniciarAnaliseConformidadeCasoDeUso(store, flow);
 
-        var visao = casoDeUso.executar(solicitacao);
+        var visao = casoDeUso.executar(solicitacao)
+                .await().indefinitely();
 
         assertEquals("01J3FLOWTESTE00000000000000", visao.instanceId());
         assertEquals(CORRELATION_ID, visao.correlationId());
@@ -71,7 +72,7 @@ class CasosDeUsoAnaliseConformidadeTest {
 
         FalhaAnaliseConformidade falha = assertThrows(
                 FalhaAnaliseConformidade.class,
-                () -> casoDeUso.executar(null));
+                () -> casoDeUso.executar(null).await().indefinitely());
 
         assertEquals(FalhaAnaliseConformidade.Tipo.SOLICITACAO_INVALIDA, falha.tipo());
         verifyNoInteractions(flow);
@@ -95,7 +96,7 @@ class CasosDeUsoAnaliseConformidadeTest {
 
         FalhaAnaliseConformidade falha = assertThrows(
                 FalhaAnaliseConformidade.class,
-                () -> casoDeUso.executar(solicitacao));
+                () -> casoDeUso.executar(solicitacao).await().indefinitely());
 
         assertEquals(
                 FalhaAnaliseConformidade.Tipo.INDISPONIBILIDADE_TECNICA,
@@ -115,11 +116,12 @@ class CasosDeUsoAnaliseConformidadeTest {
 
         assertEquals(
                 "instancia-existente",
-                casoDeUso.executar("instancia-existente").instanceId());
+                casoDeUso.executar("instancia-existente")
+                        .await().indefinitely().instanceId());
 
         FalhaAnaliseConformidade falha = assertThrows(
                 FalhaAnaliseConformidade.class,
-                () -> casoDeUso.executar("instancia-ausente"));
+                () -> casoDeUso.executar("instancia-ausente").await().indefinitely());
         assertEquals(FalhaAnaliseConformidade.Tipo.INSTANCIA_NAO_ENCONTRADA, falha.tipo());
     }
 

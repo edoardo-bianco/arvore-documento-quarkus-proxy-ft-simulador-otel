@@ -261,7 +261,8 @@ class AnaliseConformidadeFlowQuarkusTest {
     void checklistNuloFalhaAProjecaoSemNovaTentativa() {
         consultarChecklist.preparar(Uni.createFrom().nullItem());
 
-        VisaoAnaliseConformidade inicial = iniciar.executar(SOLICITACAO);
+        VisaoAnaliseConformidade inicial = iniciar.executar(SOLICITACAO)
+                .await().indefinitely();
         VisaoAnaliseConformidade falhou = aguardarFalha(inicial.instanceId());
 
         assertEquals(StatusAnaliseConformidade.EM_PROCESSAMENTO, inicial.status());
@@ -276,7 +277,8 @@ class AnaliseConformidadeFlowQuarkusTest {
         consultarChecklist.preparar(Uni.createFrom().failure(
                 new IllegalStateException("detalhe interno sensível")));
 
-        VisaoAnaliseConformidade inicial = iniciar.executar(SOLICITACAO);
+        VisaoAnaliseConformidade inicial = iniciar.executar(SOLICITACAO)
+                .await().indefinitely();
         VisaoAnaliseConformidade falhou = aguardarFalha(inicial.instanceId());
 
         assertEquals(StatusAnaliseConformidade.EM_PROCESSAMENTO, inicial.status());
