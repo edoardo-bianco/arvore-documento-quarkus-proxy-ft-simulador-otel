@@ -85,6 +85,8 @@ campos nativos e os DTOs de cada banco não atravessarão a borda do adapter.
 O mesmo contrato executável deverá ser aplicado aos dois adapters. Ele comprovará
 documentos canônicos, projeção, imutabilidade, repetição idêntica, conflito
 contraditório, concorrência otimista e tradução de falhas.
+Hashes canônicos serão `String`, calculados com SHA-256 e representados por 64
+caracteres hexadecimais minúsculos no Java e no JSON.
 
 ### Backend por ambiente
 

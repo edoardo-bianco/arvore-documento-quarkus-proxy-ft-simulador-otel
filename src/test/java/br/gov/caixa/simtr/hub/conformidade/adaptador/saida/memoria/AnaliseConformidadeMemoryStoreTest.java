@@ -8,10 +8,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import br.gov.caixa.simtr.hub.conformidade.dominio.erro.FalhaAnaliseConformidade;
+import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.ApontamentoChecklist;
+import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.Checklist;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.OrigemResultado;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.ParecerConformidade;
+import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.RevisaoHumanaConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.ResultadoAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.ResultadoApontamentoConformidade;
+import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.SolicitacaoAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.StatusAnaliseConformidade;
 import java.util.List;
 import java.util.Objects;
@@ -48,7 +52,7 @@ class AnaliseConformidadeMemoryStoreTest {
         assertEquals(StatusAnaliseConformidade.AGUARDANDO_REVISAO, aguardando.status());
         assertSame(preliminar, aguardando.resultadoPreliminar());
 
-        store.reservarRevisao(INSTANCE_ID);
+        store.reservarRevisao(INSTANCE_ID, revisao(finalizado));
         store.concluir(INSTANCE_ID, finalizado);
 
         var concluida = store.consultar(INSTANCE_ID).orElseThrow();
@@ -74,9 +78,10 @@ class AnaliseConformidadeMemoryStoreTest {
         FalhaAnaliseConformidade conclusaoAntecipada = assertThrows(
                 FalhaAnaliseConformidade.class,
                 () -> store.concluir(INSTANCE_ID, finalizado));
+        RevisaoHumanaConformidade revisaoAntecipada = revisao(finalizado);
         FalhaAnaliseConformidade reservaAntecipada = assertThrows(
                 FalhaAnaliseConformidade.class,
-                () -> store.reservarRevisao(INSTANCE_ID));
+                () -> store.reservarRevisao(INSTANCE_ID, revisaoAntecipada));
         FalhaAnaliseConformidade inicioDuplicado = assertThrows(
                 FalhaAnaliseConformidade.class,
                 this::iniciar);
@@ -89,9 +94,10 @@ class AnaliseConformidadeMemoryStoreTest {
 
     @Test
     void rejeitaIdentificadorDeInstanciaVazioDeModoControlado() {
+        var revisao = revisao(resultado(OrigemResultado.REVISAO_HUMANA));
         FalhaAnaliseConformidade falha = assertThrows(
                 FalhaAnaliseConformidade.class,
-                () -> store.reservarRevisao(" "));
+                () -> store.reservarRevisao(" ", revisao));
 
         assertEquals(FalhaAnaliseConformidade.Tipo.TRANSICAO_INVALIDA, falha.tipo());
     }
@@ -121,12 +127,25 @@ class AnaliseConformidadeMemoryStoreTest {
         CountDownLatch prontas = new CountDownLatch(2);
         CountDownLatch iniciar = new CountDownLatch(1);
         ExecutorService executor = Executors.newFixedThreadPool(2);
-        Callable<FalhaAnaliseConformidade.Tipo> tentativa =
-                () -> tentarReservarRevisao(prontas, iniciar);
+        var resultadoFinal = resultado(OrigemResultado.REVISAO_HUMANA);
+        Callable<FalhaAnaliseConformidade.Tipo> primeiraTentativa =
+                () -> tentarReservarRevisao(
+                        prontas,
+                        iniciar,
+                        new RevisaoHumanaConformidade(
+                                "Primeira revisão",
+                                resultadoFinal.apontamentos()));
+        Callable<FalhaAnaliseConformidade.Tipo> segundaTentativa =
+                () -> tentarReservarRevisao(
+                        prontas,
+                        iniciar,
+                        new RevisaoHumanaConformidade(
+                                "Segunda revisão",
+                                resultadoFinal.apontamentos()));
 
         try {
-            Future<FalhaAnaliseConformidade.Tipo> primeira = executor.submit(tentativa);
-            Future<FalhaAnaliseConformidade.Tipo> segunda = executor.submit(tentativa);
+            Future<FalhaAnaliseConformidade.Tipo> primeira = executor.submit(primeiraTentativa);
+            Future<FalhaAnaliseConformidade.Tipo> segunda = executor.submit(segundaTentativa);
             assertTrue(prontas.await(5, SECONDS));
             iniciar.countDown();
 
@@ -146,13 +165,28 @@ class AnaliseConformidadeMemoryStoreTest {
         }
     }
 
+    @Test
+    void aceitaRepeticaoIdenticaDaReservaDeRevisao() {
+        iniciar();
+        store.aguardarRevisao(INSTANCE_ID, resultado(OrigemResultado.AGENTE));
+        var revisao = revisao(resultado(OrigemResultado.REVISAO_HUMANA));
+
+        store.reservarRevisao(INSTANCE_ID, revisao);
+        store.reservarRevisao(INSTANCE_ID, revisao);
+
+        assertEquals(
+                StatusAnaliseConformidade.AGUARDANDO_REVISAO,
+                store.consultar(INSTANCE_ID).orElseThrow().status());
+    }
+
     private FalhaAnaliseConformidade.Tipo tentarReservarRevisao(
             CountDownLatch prontas,
-            CountDownLatch iniciar) throws InterruptedException {
+            CountDownLatch iniciar,
+            RevisaoHumanaConformidade revisao) throws InterruptedException {
         prontas.countDown();
         iniciar.await();
         try {
-            store.reservarRevisao(INSTANCE_ID);
+            store.reservarRevisao(INSTANCE_ID, revisao);
             return null;
         } catch (FalhaAnaliseConformidade falha) {
             return falha.tipo();
@@ -160,12 +194,39 @@ class AnaliseConformidadeMemoryStoreTest {
     }
 
     private void iniciar() {
-        store.iniciar(
+        var solicitacao = new SolicitacaoAnaliseConformidade(
                 CORRELATION_ID,
-                INSTANCE_ID,
                 IDENTIFICADOR_DOCUMENTO,
+                "Texto para análise",
                 1000012583L,
                 1);
+        store.iniciar(INSTANCE_ID, solicitacao);
+        store.registrarChecklist(INSTANCE_ID, checklist());
+    }
+
+    private static Checklist checklist() {
+        return new Checklist(
+                "Checklist exemplo",
+                1000012583L,
+                1,
+                "2026-07-26T00:00:00Z",
+                "2026-07-26T00:00:00Z",
+                false,
+                "Orientação",
+                List.of(new ApontamentoChecklist(
+                        1L,
+                        "Apontamento",
+                        "Descrição",
+                        "Orientação",
+                        false,
+                        1)));
+    }
+
+    private static RevisaoHumanaConformidade revisao(
+            ResultadoAnaliseConformidade resultado) {
+        return new RevisaoHumanaConformidade(
+                "Revisão",
+                resultado.apontamentos());
     }
 
     private static ResultadoAnaliseConformidade resultado(OrigemResultado origem) {

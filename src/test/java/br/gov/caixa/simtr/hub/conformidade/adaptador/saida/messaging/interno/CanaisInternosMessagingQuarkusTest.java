@@ -9,11 +9,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.ArmazenarEstadoAnaliseConformidade;
+import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.ApontamentoChecklist;
+import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.Checklist;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.OrigemResultado;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.ParecerConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.ResultadoAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.ResultadoApontamentoConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.RevisaoHumanaConformidade;
+import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.SolicitacaoAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.StatusAnaliseConformidade;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cloudevents.core.builder.CloudEventBuilder;
@@ -93,11 +96,30 @@ class CanaisInternosMessagingQuarkusTest {
                         0.9d)),
                 OrigemResultado.AGENTE);
         estados.iniciar(
-                "7aa3ca4d-3c7e-4f61-a3a1-996571d3397a",
                 "instancia-flow-out",
+                new SolicitacaoAnaliseConformidade(
+                "7aa3ca4d-3c7e-4f61-a3a1-996571d3397a",
                 "DOC-2026-000123",
+                "Texto para análise",
                 1000012583L,
-                1);
+                1));
+        estados.registrarChecklist(
+                "instancia-flow-out",
+                new Checklist(
+                        "Checklist documental",
+                        1000012583L,
+                        1,
+                        "2026-07-26T00:00:00Z",
+                        "2026-07-26T00:00:00Z",
+                        false,
+                        "Orientação",
+                        java.util.List.of(new ApontamentoChecklist(
+                                10L,
+                                "Documento identificado",
+                                "Descrição",
+                                "Orientação",
+                                false,
+                                1))));
         var evento = CloudEventBuilder.v1()
                 .withId("evento-flow-out")
                 .withSource(URI.create("urn:simtr-hub:conformidade:workflow"))

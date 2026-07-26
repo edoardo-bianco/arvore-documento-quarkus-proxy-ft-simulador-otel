@@ -38,12 +38,7 @@ public class IniciarAnaliseConformidadeCasoDeUso implements IniciarAnaliseConfor
 
         WorkflowInstance instancia = flow.instance(solicitacao);
         String instanceId = instancia.id();
-        estados.iniciar(
-                solicitacao.correlationId(),
-                instanceId,
-                solicitacao.identificadorDocumento(),
-                solicitacao.identificadorChecklist(),
-                solicitacao.versaoChecklist());
+        estados.iniciar(instanceId, solicitacao);
         VisaoAnaliseConformidade inicial = estados.consultar(instanceId)
                 .orElseThrow(FalhaAnaliseConformidade::instanciaNaoEncontrada);
 

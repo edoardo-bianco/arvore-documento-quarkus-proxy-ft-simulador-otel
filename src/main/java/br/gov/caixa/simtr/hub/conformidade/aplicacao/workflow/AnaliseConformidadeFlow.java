@@ -90,11 +90,13 @@ public class AnaliseConformidadeFlow extends Flow {
             throw FalhaAnaliseConformidade.resultadoInvalido(
                     "O contexto do agente deve possuir checklist e não pode estar analisado");
         }
+        String instanceId = identificadorRaiz(identificadorInstancia);
+        estados.registrarChecklist(instanceId, contexto.checklist());
         var entrada = new EntradaAnaliseAgente(
                 contexto.texto(),
                 contexto.checklist());
         var resultado = analisarTexto.analisar(
-                identificadorRaiz(identificadorInstancia),
+                instanceId,
                 entrada);
         return new ContextoAnaliseConformidadeFlow(
                 contexto.correlationId(),

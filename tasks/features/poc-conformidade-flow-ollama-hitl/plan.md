@@ -1241,7 +1241,8 @@ referenciais do Flow por um `EventPublisher` que dependa somente da porta.
 **Critérios de aceitação:**
 
 - texto e `identificadorDocumento` são persistidos sem aparecer em logs;
-- snapshot do checklist é imutável, possui hash e `versaoSchema` `Short`;
+- snapshot do checklist é imutável, possui hash `String` SHA-256 em hexadecimal
+  minúsculo e `versaoSchema` `Short`;
 - `emitJson` publica referência por `EventPublisher`, sem payload negocial completo;
 - projeção é consultável por `instanceId` e correlacionada por `correlationId`;
 - porta de aplicação não expõe token, DTO ou exceção de fornecedor;

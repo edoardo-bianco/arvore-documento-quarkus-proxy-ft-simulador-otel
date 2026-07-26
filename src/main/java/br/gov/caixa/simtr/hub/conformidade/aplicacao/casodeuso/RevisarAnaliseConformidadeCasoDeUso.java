@@ -39,7 +39,7 @@ public class RevisarAnaliseConformidadeCasoDeUso implements RevisarAnaliseConfor
 
         atual.validarIdentidadesPersistidas();
         validador.consolidarRevisao(atual.resultadoPreliminar(), revisao);
-        estados.reservarRevisao(instanceId);
+        estados.reservarRevisao(instanceId, revisao);
         return publicarRevisao.publicar(instanceId, revisao);
     }
 }

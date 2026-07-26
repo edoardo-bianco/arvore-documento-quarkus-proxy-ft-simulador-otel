@@ -565,6 +565,29 @@
 - Task 7.3 permanece pendente; nenhum adapter CouchDB, persistência, `_changes` ou
   checkpoint Redis/Valkey foi iniciado.
 
+### Task 7.3 — Persistência documental por ambiente
+
+- esclarecimento humano recebido em 2026-07-26: hashes canônicos são `String`;
+  adotada a representação recomendada SHA-256 com 64 caracteres hexadecimais
+  minúsculos;
+- RED/GREEN do contrato compartilhado comprovou sequência completa, revisão
+  idêntica, conflito contraditório, concorrência e falha sanitizada nos stores em
+  memória e CouchDB;
+- RED/GREEN de recuperação parcial comprovou que o adapter CouchDB retoma a criação
+  da projeção quando o documento inicial imutável já foi persistido;
+- `mvn -q test` terminou com código 0 antes do primeiro checkpoint desta task;
+- o checkpoint Sonar terminou `NON_COMPLIANT`: 21 issues novas, das quais 10
+  `CRITICAL`, cobertura de 80,1% e duplicação de 2,9%;
+- decisão humana `ContinuarAjustes` registrada pelo script em 2026-07-26; as issues
+  e a cobertura foram corrigidas antes do novo checkpoint;
+- RED/GREEN do hash comprovou snapshot com `hashConteudo` `String` SHA-256 em
+  hexadecimal minúsculo e a mesma referência/hash na projeção;
+- a suíte completa após os ajustes terminou com código 0 e o relatório JaCoCo local
+  registrou 4.341 linhas cobertas e 361 não cobertas;
+- o novo checkpoint Sonar terminou `COMPLIANT`: 219 issues atuais contra 219 no
+  baseline, nenhuma issue nova ou `HIGH`, `BLOCKER` ou `CRITICAL`, cobertura de
+  85,1%, duplicação de 2,9% e decisão `NOT_REQUIRED`.
+
 ### Planejamento da evolução durável
 
 - o usuário autorizou planejar a mudança para CouchDB nos dados de negócio e
@@ -626,7 +649,10 @@
 | Sonar Task 7.2 | COMPLIANT | 2026-07-26 | 0 issues novas; cobertura 86,2%; duplicação 3,0%; decisão `NOT_REQUIRED` | — |
 | Tipo de `identificadorDocumento` | APROVADO | 2026-07-26 | Usuário confirmou manter `String`; tipos futuros ausentes ou ambíguos exigem pergunta e registro antes da especificação | Usuário |
 | Tipo de `versaoSchema` | APROVADO | 2026-07-26 | Usuário definiu `small int`; representação `Short` no Java e número inteiro no JSON | Usuário |
+| Tipo de hash canônico | APROVADO | 2026-07-26 | Usuário definiu `String`; adotada representação SHA-256 hexadecimal minúscula com 64 caracteres | Usuário |
 | C5 | APROVADO | 2026-07-26 | Usuário aceitou a recomendação: CouchDB em DES, Azure Cosmos DB for NoSQL em PRD, porta neutra, contratos compartilhados e validação Cosmos obrigatória antes da promoção | Usuário |
+| Sonar Task 7.3 — primeira execução | CONTINUAR_AJUSTES | 2026-07-26 | 21 issues novas, 10 `CRITICAL`, cobertura 80,1%, duplicação 2,9%; decisão registrada pelo script | Usuário |
+| Sonar Task 7.3 — reexecução | COMPLIANT | 2026-07-26 | 0 issues novas, cobertura 85,1%, duplicação 2,9% e decisão `NOT_REQUIRED` | — |
 | CF | PENDENTE | — | Aguardará evidências finais | — |
 
 ## Regras de avanço
