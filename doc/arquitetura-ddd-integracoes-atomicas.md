@@ -20,8 +20,9 @@ correção.
 O `simtr-hub` é um monólito modular Quarkus organizado por domínios de negócio. Ele expõe doze
 capacidades atômicas por REST e integra cada uma ao MTR ou ao simulador por adapters de saída
 intercambiáveis. Além delas, a PoC de análise de conformidade expõe três endpoints sobre estado
-volátil e inicia um workflow que consulta e congela o checklist, executa um agente sequencial no
-Ollama local e produz um resultado preliminar validado.
+volátil, exige um identificador negocial do documento, gera uma correlação estável e inicia um
+workflow que consulta e congela o checklist, executa um agente sequencial no Ollama local e produz
+um resultado preliminar validado.
 
 ```text
 cliente HTTP
@@ -163,7 +164,7 @@ adapter, Resource e REST Client permanecem fora desse limite.
 
 ### PoC de análise de conformidade em implementação
 
-O estado implementado até a Task 6.1 inclui:
+O estado de produção implementado até a Task 7.2 inclui:
 
 - canais internos `flow-in` e `flow-out` com CloudEvent v1, sem connector ou broker;
 - shim de Messaging confinado ao adapter e à versão Flow `0.10.2`;
@@ -173,6 +174,11 @@ O estado implementado até a Task 6.1 inclui:
 - reserva interna compare-and-set para aceitar somente uma revisão por instância;
 - três portas e casos de uso de entrada para iniciar, consultar e revisar;
 - adapter REST v1 com DTOs próprios, JSON camelCase e `Location` relativo;
+- `identificadorDocumento` obrigatório no POST e `correlationId` gerado pelo Hub;
+- respostas do POST e GET com `correlationId`, `instanceId`, `identificadorDocumento`,
+  `identificadorChecklist` e `versaoChecklist`, mantendo `instanceId` nos paths;
+- identidades preservadas pela visão imutável em todas as transições e conferidas contra os
+  resultados do checklist antes da revisão, sem campos de identidade no contrato do PUT;
 - validação de borda do texto em até 20.000 caracteres e da lista completa de revisão;
 - tradução de falhas para o contrato `ErroPadraoDto` com
   `400`/`404`/`409`/`422`/`503`, sem stack trace ou detalhe interno;
@@ -203,11 +209,12 @@ O estado implementado até a Task 6.1 inclui:
 
 A projeção possui os estados `EM_PROCESSAMENTO`, `AGUARDANDO_REVISAO`, `CONCLUIDA` e `FALHOU`.
 Ela é exclusivamente volátil, não substitui o estado do Flow e não oferece recuperação após
-reinício. O POST cria a projeção `EM_PROCESSAMENTO` e inicia o Flow sem aguardar a consulta; o
-resultado preliminar publicado em `flow-out` projeta `AGUARDANDO_REVISAO`; o PUT valida, reserva
+reinício. O POST cria a projeção `EM_PROCESSAMENTO` com as cinco identidades e inicia o Flow sem
+aguardar a consulta; o resultado preliminar publicado em `flow-out` projeta
+`AGUARDANDO_REVISAO`; o PUT localiza por `instanceId`, valida as identidades persistidas, reserva
 atomicamente e publica a revisão em `flow-in`; e o workflow correlacionado retoma até projetar
-`CONCLUIDA`. A entrega interna continua sem garantia durável ou recuperação após falha, e a página
-da PoC ainda não está implementada.
+`CONCLUIDA` sem trocar as identidades. A entrega interna continua sem garantia durável ou
+recuperação após falha, e a página da PoC ainda não está implementada.
 
 Um futuro orquestrador do mesmo domínio pode compor portas de entrada atômicas. Ao atravessar um
 domínio, usa uma porta de saída do consumidor e uma camada anticorrupção. Dentro do mesmo processo,

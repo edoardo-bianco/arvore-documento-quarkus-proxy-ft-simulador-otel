@@ -5,8 +5,8 @@
 - **Branch:** `feature/poc-conformidade-flow-ollama-hitl`
 - **Escopo:** concluir baseline HITL volátil e evoluir para CouchDB + Redis/Valkey +
   `_changes` + containers/Kubernetes após C4
-- **Próximo item:** 7.2 — evoluir o contrato de identidades; permanece pendente e
-  fora do escopo desta retomada
+- **Próximo item:** 7.3 — persistir documentos de negócio e projeção no CouchDB;
+  permanece pendente e fora do escopo desta retomada
 - **Especificação:** `doc/poc/especificacao-poc-conformidade-quarkus-flow-ollama-hitl-sem-broker.md`
 - **Plano:** `tasks/features/poc-conformidade-flow-ollama-hitl/plan.md`
 - **Baseline Sonar:** SonarQube Docker local, inicializado em 2026-07-24
@@ -42,7 +42,7 @@
   `Proposto` até a prova multipod;
 - [x] 7.1 Provar compatibilidade de CouchDB, Redis/Valkey, Flow persistence,
   `EventConsumer` e Durable Kubernetes;
-- [ ] 7.2 Evoluir contrato com `correlationId`, `identificadorDocumento`, checklist e
+- [x] 7.2 Evoluir contrato com `correlationId`, `identificadorDocumento`, checklist e
   versão;
 - [ ] 7.3 Persistir documentos de negócio e projeção no CouchDB;
 - [ ] 7.4 Reduzir contexto e habilitar checkpoint Redis/Valkey;
@@ -523,6 +523,39 @@
 - próximo item formal: Task 7.2. Por instrução desta retomada, ela permanece
   pendente e nenhum contrato público foi antecipado.
 
+### Task 7.2 — Contrato estável de identidades
+
+- RED: os testes de contrato, domínio e store falharam na compilação pela ausência
+  da fábrica que gera `correlationId`, dos campos de identidade na visão e da
+  inicialização completa da projeção;
+- o POST passou a exigir `identificadorDocumento`; o mapper cria a solicitação com
+  `correlationId` UUID gerado pelo Hub, sem aceitar correlação fornecida pelo cliente;
+- POST e GET expõem exatamente `correlationId`, `instanceId`,
+  `identificadorDocumento`, `identificadorChecklist` e `versaoChecklist`, mantendo
+  os paths atuais baseados em `instanceId`;
+- a visão imutável preserva as cinco identidades nas transições e rejeita resultado
+  cujo checklist/versão não corresponda à análise; o caso de uso de revisão valida
+  novamente as identidades persistidas;
+- o PUT continua aceitando somente observação e apontamentos; o teste OpenAPI
+  comprova as cinco identidades nas respostas e a ausência delas no DTO de revisão;
+- DTOs permaneceram exclusivos do adapter REST; `ArchUnitProgressivoTest` terminou
+  com código 0;
+- testes focados de contrato, domínio, casos de uso, mapper, store, Flow e Messaging
+  terminaram com código 0; a suíte executada pelo checkpoint registrou 115 relatórios
+  Surefire, 466 testes, 0 falhas, 0 erros e 1 teste opt-in ignorado;
+- revisão nos eixos de correção, simplicidade, arquitetura, segurança e desempenho
+  não encontrou bloqueadores; não foram adicionadas dependências, logs, spans,
+  persistência ou mudança de autenticação;
+- risco registrado sem alteração contratual: a especificação aprovada não define
+  tamanho máximo para `identificadorDocumento`; o incremento valida somente
+  obrigatoriedade/não vazio e não inventa um limite público;
+- o checkpoint executou `clean verify`, SonarScanner e Compute Engine e terminou
+  `COMPLIANT`: 219 issues atuais contra 219 no baseline, nenhuma issue nova ou
+  `HIGH`, `BLOCKER` ou `CRITICAL`, cobertura de 86,2%, duplicação de 3,0% e decisão
+  `NOT_REQUIRED`;
+- Task 7.3 permanece pendente; nenhum adapter CouchDB, persistência, `_changes` ou
+  checkpoint Redis/Valkey foi iniciado.
+
 ### Planejamento da evolução durável
 
 - o usuário autorizou planejar a mudança para CouchDB nos dados de negócio e
@@ -560,6 +593,7 @@
 | Sonar incremento 6 | UNVERIFIED | 2026-07-25 | Processo sem `SONAR_TOKEN`; usuário autorizou continuar sem checkpoint, sem aprovação ou reprovação técnica | Usuário |
 | Revalidação Sonar incremento 6 | COMPLIANT | 2026-07-26 | Baseline da sessão e checkpoint completos; 0 issues novas, cobertura 86,2%, duplicação 3,1% e decisão `NOT_REQUIRED` | — |
 | Sonar spike Task 7.1 | COMPLIANT | 2026-07-26 | 0 issues novas; cobertura 86,2%; duplicação 3,1%; decisão `NOT_REQUIRED` | — |
+| Sonar Task 7.2 | COMPLIANT | 2026-07-26 | 0 issues novas; cobertura 86,2%; duplicação 3,0%; decisão `NOT_REQUIRED` | — |
 | CF | PENDENTE | — | Aguardará evidências finais | — |
 
 ## Regras de avanço
