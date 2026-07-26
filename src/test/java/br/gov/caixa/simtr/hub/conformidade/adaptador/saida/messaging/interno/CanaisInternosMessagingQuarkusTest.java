@@ -92,7 +92,12 @@ class CanaisInternosMessagingQuarkusTest {
                         null,
                         0.9d)),
                 OrigemResultado.AGENTE);
-        estados.iniciar("instancia-flow-out");
+        estados.iniciar(
+                "7aa3ca4d-3c7e-4f61-a3a1-996571d3397a",
+                "instancia-flow-out",
+                "DOC-2026-000123",
+                1000012583L,
+                1);
         var evento = CloudEventBuilder.v1()
                 .withId("evento-flow-out")
                 .withSource(URI.create("urn:simtr-hub:conformidade:workflow"))

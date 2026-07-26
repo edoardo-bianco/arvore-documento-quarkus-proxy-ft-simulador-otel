@@ -6,6 +6,8 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 public record IniciarAnaliseConformidadeRequest(
+        @NotBlank(message = "O identificador do documento deve ser informado.")
+        String identificadorDocumento,
         @NotBlank(message = "O texto deve ser informado.")
         @Size(
                 max = 20_000,

@@ -97,6 +97,8 @@ public class AnaliseConformidadeFlow extends Flow {
                 identificadorRaiz(identificadorInstancia),
                 entrada);
         return new ContextoAnaliseConformidadeFlow(
+                contexto.correlationId(),
+                contexto.identificadorDocumento(),
                 contexto.texto(),
                 contexto.checklist(),
                 resultado);

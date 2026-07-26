@@ -34,7 +34,8 @@ public class AnaliseConformidadeRestMapper
             throw FalhaAnaliseConformidade.solicitacaoInvalida(
                     "A solicitação da análise é obrigatória");
         }
-        return new SolicitacaoAnaliseConformidade(
+        return SolicitacaoAnaliseConformidade.nova(
+                request.identificadorDocumento(),
                 request.texto(),
                 request.identificadorChecklist(),
                 request.versaoChecklist());
@@ -62,14 +63,22 @@ public class AnaliseConformidadeRestMapper
     static IniciarAnaliseConformidadeResponse paraInicio(
             VisaoAnaliseConformidade visao) {
         return new IniciarAnaliseConformidadeResponse(
+                visao.correlationId(),
                 visao.instanceId(),
+                visao.identificadorDocumento(),
+                visao.identificadorChecklist(),
+                visao.versaoChecklist(),
                 StatusAnaliseConformidadeDto.valueOf(visao.status().name()));
     }
 
     static VisaoAnaliseConformidadeResponse paraVisao(
             VisaoAnaliseConformidade visao) {
         return new VisaoAnaliseConformidadeResponse(
+                visao.correlationId(),
                 visao.instanceId(),
+                visao.identificadorDocumento(),
+                visao.identificadorChecklist(),
+                visao.versaoChecklist(),
                 StatusAnaliseConformidadeDto.valueOf(visao.status().name()),
                 paraResultado(visao.resultadoPreliminar()),
                 paraResultado(visao.resultadoFinal()),

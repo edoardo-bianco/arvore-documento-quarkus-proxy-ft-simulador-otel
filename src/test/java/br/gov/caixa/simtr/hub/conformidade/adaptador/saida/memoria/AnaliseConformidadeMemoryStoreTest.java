@@ -27,7 +27,9 @@ import org.junit.jupiter.api.Test;
 @QuarkusTest
 class AnaliseConformidadeMemoryStoreTest {
 
+    private static final String CORRELATION_ID = "7aa3ca4d-3c7e-4f61-a3a1-996571d3397a";
     private static final String INSTANCE_ID = "instancia-analise-1";
+    private static final String IDENTIFICADOR_DOCUMENTO = "DOC-2026-000123";
 
     private final AnaliseConformidadeMemoryStore store = new AnaliseConformidadeMemoryStore();
 
@@ -36,7 +38,7 @@ class AnaliseConformidadeMemoryStoreTest {
         ResultadoAnaliseConformidade preliminar = resultado(OrigemResultado.AGENTE);
         ResultadoAnaliseConformidade finalizado = resultado(OrigemResultado.REVISAO_HUMANA);
 
-        store.iniciar(INSTANCE_ID);
+        iniciar();
         assertEquals(
                 StatusAnaliseConformidade.EM_PROCESSAMENTO,
                 store.consultar(INSTANCE_ID).orElseThrow().status());
@@ -50,6 +52,10 @@ class AnaliseConformidadeMemoryStoreTest {
         store.concluir(INSTANCE_ID, finalizado);
 
         var concluida = store.consultar(INSTANCE_ID).orElseThrow();
+        assertEquals(CORRELATION_ID, concluida.correlationId());
+        assertEquals(IDENTIFICADOR_DOCUMENTO, concluida.identificadorDocumento());
+        assertEquals(1000012583L, concluida.identificadorChecklist());
+        assertEquals(1, concluida.versaoChecklist());
         assertEquals(StatusAnaliseConformidade.CONCLUIDA, concluida.status());
         assertSame(preliminar, concluida.resultadoPreliminar());
         assertSame(finalizado, concluida.resultadoFinal());
@@ -64,7 +70,7 @@ class AnaliseConformidadeMemoryStoreTest {
         FalhaAnaliseConformidade ausente = assertThrows(
                 FalhaAnaliseConformidade.class,
                 () -> store.aguardarRevisao("ausente", preliminar));
-        store.iniciar(INSTANCE_ID);
+        iniciar();
         FalhaAnaliseConformidade conclusaoAntecipada = assertThrows(
                 FalhaAnaliseConformidade.class,
                 () -> store.concluir(INSTANCE_ID, finalizado));
@@ -73,7 +79,7 @@ class AnaliseConformidadeMemoryStoreTest {
                 () -> store.reservarRevisao(INSTANCE_ID));
         FalhaAnaliseConformidade inicioDuplicado = assertThrows(
                 FalhaAnaliseConformidade.class,
-                () -> store.iniciar(INSTANCE_ID));
+                this::iniciar);
 
         assertEquals(FalhaAnaliseConformidade.Tipo.INSTANCIA_NAO_ENCONTRADA, ausente.tipo());
         assertEquals(FalhaAnaliseConformidade.Tipo.TRANSICAO_INVALIDA, conclusaoAntecipada.tipo());
@@ -93,7 +99,7 @@ class AnaliseConformidadeMemoryStoreTest {
     @Test
     void permiteFalharSomenteEstadoNaoTerminalEPreservaPreliminar() {
         ResultadoAnaliseConformidade preliminar = resultado(OrigemResultado.FALLBACK_TECNICO);
-        store.iniciar(INSTANCE_ID);
+        iniciar();
         store.aguardarRevisao(INSTANCE_ID, preliminar);
 
         store.falhar(INSTANCE_ID, "Falha pública sanitizada");
@@ -110,7 +116,7 @@ class AnaliseConformidadeMemoryStoreTest {
 
     @Test
     void aceitaSomenteUmaDeDuasReservasDeRevisaoConcorrentes() throws Exception {
-        store.iniciar(INSTANCE_ID);
+        iniciar();
         store.aguardarRevisao(INSTANCE_ID, resultado(OrigemResultado.AGENTE));
         CountDownLatch prontas = new CountDownLatch(2);
         CountDownLatch iniciar = new CountDownLatch(1);
@@ -151,6 +157,15 @@ class AnaliseConformidadeMemoryStoreTest {
         } catch (FalhaAnaliseConformidade falha) {
             return falha.tipo();
         }
+    }
+
+    private void iniciar() {
+        store.iniciar(
+                CORRELATION_ID,
+                INSTANCE_ID,
+                IDENTIFICADOR_DOCUMENTO,
+                1000012583L,
+                1);
     }
 
     private static ResultadoAnaliseConformidade resultado(OrigemResultado origem) {

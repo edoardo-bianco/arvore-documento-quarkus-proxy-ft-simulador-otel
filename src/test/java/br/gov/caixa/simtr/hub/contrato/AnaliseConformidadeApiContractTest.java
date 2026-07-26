@@ -27,6 +27,8 @@ import static org.mockito.Mockito.when;
 class AnaliseConformidadeApiContractTest {
 
     private static final String BASE_PATH = "/simtr-hub/v1/conformidade/analises";
+    private static final String CORRELATION_ID = "7aa3ca4d-3c7e-4f61-a3a1-996571d3397a";
+    private static final String IDENTIFICADOR_DOCUMENTO = "DOC-2026-000123";
     private static final String REVISAO_VALIDA = """
             {
               "observacao": "Revisão concluída",
@@ -53,13 +55,14 @@ class AnaliseConformidadeApiContractTest {
     @Test
     void preservaContratoJsonELocationDoInicio() {
         when(iniciar.executar(any()))
-                .thenReturn(VisaoAnaliseConformidade.emProcessamento("instancia-contrato"));
+                .thenReturn(visaoEmProcessamento());
 
         JsonNode resposta = given()
                 .contentType(ContentType.JSON)
                 .accept(ContentType.JSON)
                 .body("""
                         {
+                          "identificadorDocumento": "DOC-2026-000123",
                           "texto": "Texto para análise",
                           "identificadorChecklist": 1000012583,
                           "versaoChecklist": 1
@@ -76,7 +79,11 @@ class AnaliseConformidadeApiContractTest {
 
         assertJsonExato("""
                 {
+                  "correlationId": "7aa3ca4d-3c7e-4f61-a3a1-996571d3397a",
                   "instanceId": "instancia-contrato",
+                  "identificadorDocumento": "DOC-2026-000123",
+                  "identificadorChecklist": 1000012583,
+                  "versaoChecklist": 1,
                   "status": "EM_PROCESSAMENTO"
                 }
                 """, resposta);
@@ -85,7 +92,7 @@ class AnaliseConformidadeApiContractTest {
     @Test
     void preservaContratoJsonDaConsultaEmProcessamento() {
         when(consultar.executar("instancia-contrato"))
-                .thenReturn(VisaoAnaliseConformidade.emProcessamento("instancia-contrato"));
+                .thenReturn(visaoEmProcessamento());
 
         JsonNode resposta = given()
                 .accept(ContentType.JSON)
@@ -99,7 +106,11 @@ class AnaliseConformidadeApiContractTest {
 
         assertJsonExato("""
                 {
+                  "correlationId": "7aa3ca4d-3c7e-4f61-a3a1-996571d3397a",
                   "instanceId": "instancia-contrato",
+                  "identificadorDocumento": "DOC-2026-000123",
+                  "identificadorChecklist": 1000012583,
+                  "versaoChecklist": 1,
                   "status": "EM_PROCESSAMENTO",
                   "resultadoPreliminar": null,
                   "resultadoFinal": null,
@@ -113,6 +124,7 @@ class AnaliseConformidadeApiContractTest {
         validarErro400(
                 given().contentType(ContentType.JSON).accept(ContentType.JSON)
                         .body("{}").post(BASE_PATH),
+                "O identificador do documento deve ser informado.",
                 "O texto deve ser informado.",
                 "O identificador do checklist deve ser informado.",
                 "A versão do checklist deve ser informada.");
@@ -121,6 +133,7 @@ class AnaliseConformidadeApiContractTest {
                 given().contentType(ContentType.JSON).accept(ContentType.JSON)
                         .body("""
                                 {
+                                  "identificadorDocumento": "DOC-2026-000123",
                                   "texto": "%s",
                                   "identificadorChecklist": 1000012583,
                                   "versaoChecklist": 1
@@ -133,6 +146,7 @@ class AnaliseConformidadeApiContractTest {
                 given().contentType(ContentType.JSON).accept(ContentType.JSON)
                         .body("""
                                 {
+                                  "identificadorDocumento": "DOC-2026-000123",
                                   "texto": "Texto para análise",
                                   "identificadorChecklist": 0,
                                   "versaoChecklist": 0
@@ -234,6 +248,7 @@ class AnaliseConformidadeApiContractTest {
                 given().contentType(ContentType.JSON).accept(ContentType.JSON)
                         .body("""
                                 {
+                                  "identificadorDocumento": "DOC-2026-000123",
                                   "texto": "Texto para análise",
                                   "identificadorChecklist": 1000012583,
                                   "versaoChecklist": 1
@@ -243,6 +258,32 @@ class AnaliseConformidadeApiContractTest {
                 503,
                 "ARVDOCP1005",
                 "Serviço de análise temporariamente indisponível");
+    }
+
+    @Test
+    void documentaIdentidadesNoOpenApi() {
+        JsonNode openApi = given()
+                .accept(ContentType.JSON)
+                .when()
+                .get("/simtr-hub/openapi")
+                .then()
+                .statusCode(200)
+                .extract()
+                .as(JsonNode.class);
+
+        JsonNode schemas = openApi.path("components").path("schemas");
+        JsonNode request = schemas.path("IniciarAnaliseConformidadeRequest");
+        JsonNode inicio = schemas.path("IniciarAnaliseConformidadeResponse");
+        JsonNode visao = schemas.path("VisaoAnaliseConformidadeResponse");
+        JsonNode revisao = schemas.path("RevisaoAnaliseConformidadeRequest");
+
+        assertTrue(request.path("required").toString().contains("identificadorDocumento"));
+        assertTrue(request.path("properties").has("identificadorDocumento"));
+        assertPossuiCincoIdentidades(inicio);
+        assertPossuiCincoIdentidades(visao);
+        assertFalse(revisao.path("properties").has("correlationId"));
+        assertFalse(revisao.path("properties").has("instanceId"));
+        assertFalse(revisao.path("properties").has("identificadorDocumento"));
     }
 
     private static void validarErro400(Response response, String... mensagens) {
@@ -286,5 +327,23 @@ class AnaliseConformidadeApiContractTest {
         } catch (IllegalArgumentException _) {
             return false;
         }
+    }
+
+    private static void assertPossuiCincoIdentidades(JsonNode schema) {
+        JsonNode propriedades = schema.path("properties");
+        assertTrue(propriedades.has("correlationId"));
+        assertTrue(propriedades.has("instanceId"));
+        assertTrue(propriedades.has("identificadorDocumento"));
+        assertTrue(propriedades.has("identificadorChecklist"));
+        assertTrue(propriedades.has("versaoChecklist"));
+    }
+
+    private static VisaoAnaliseConformidade visaoEmProcessamento() {
+        return VisaoAnaliseConformidade.emProcessamento(
+                CORRELATION_ID,
+                "instancia-contrato",
+                IDENTIFICADOR_DOCUMENTO,
+                1000012583L,
+                1);
     }
 }

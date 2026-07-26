@@ -48,6 +48,8 @@ public class ConsultarChecklistEtapa {
                     "O checklist da análise não possui apontamentos");
         }
         return new ContextoAnaliseConformidadeFlow(
+                solicitacao.correlationId(),
+                solicitacao.identificadorDocumento(),
                 solicitacao.texto(),
                 congelar(checklist),
                 null);

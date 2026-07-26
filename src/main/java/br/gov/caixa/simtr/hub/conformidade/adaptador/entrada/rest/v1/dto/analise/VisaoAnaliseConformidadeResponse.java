@@ -3,7 +3,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.ALWAYS)
 public record VisaoAnaliseConformidadeResponse(
+        String correlationId,
         String instanceId,
+        String identificadorDocumento,
+        Long identificadorChecklist,
+        Integer versaoChecklist,
         StatusAnaliseConformidadeDto status,
         ResultadoAnaliseConformidadeResponse resultadoPreliminar,
         ResultadoAnaliseConformidadeResponse resultadoFinal,
