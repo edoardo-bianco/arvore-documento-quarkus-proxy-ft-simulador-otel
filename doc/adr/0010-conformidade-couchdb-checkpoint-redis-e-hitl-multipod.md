@@ -93,6 +93,13 @@ A porta documental será não bloqueante: operações de escrita retornarão
 `Uni<Optional<VisaoAnaliseConformidade>>`. Adapters e consumidores não usarão
 `await`, `join` nem bloqueio do event loop.
 
+A cadeia de aplicação também será reativa onde houver suporte: as portas de início e
+consulta retornarão `Uni<VisaoAnaliseConformidade>`, os recursos REST propagarão
+`Uni`, a projeção interna retornará `Uni<Void>` e callbacks do Flow retornarão `Uni`
+diretamente. O conversor `Uni2CompletableFuture` incluído no Quarkus Flow `0.10.2`
+faz a adaptação interna; conversão manual será usada somente em API externa que
+comprovadamente não aceite `Uni`.
+
 ### Backend por ambiente
 
 - **DES:** Apache CouchDB, acessado por sua API HTTP/JSON e limitado à rede interna;
@@ -292,8 +299,10 @@ de aceitação. As condições vigentes são:
    plano de dados de menor privilégio, sem chave ou connection string;
 9. porta documental com `Uni<Void>` nas escritas e
    `Uni<Optional<VisaoAnaliseConformidade>>` na leitura;
-10. CouchDB automático no `quarkus:dev`, com volume persistente, e testes em
+10. portas de entrada, REST, projeção interna e callbacks Flow propagando `Uni`
+    sempre que a API suportar;
+11. CouchDB automático no `quarkus:dev`, com volume persistente, e testes em
     containers efêmeros isolados;
-11. Kubernetes Leases e teste cross-pod/failover antes de declarar suporte a múltiplos
+12. Kubernetes Leases e teste cross-pod/failover antes de declarar suporte a múltiplos
    pods;
-12. manutenção do ADR como `Proposto` se a entrega cross-pod não for comprovada.
+13. manutenção do ADR como `Proposto` se a entrega cross-pod não for comprovada.

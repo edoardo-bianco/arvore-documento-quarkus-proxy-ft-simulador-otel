@@ -633,6 +633,12 @@
 
 - o usuário confirmou em 2026-07-26 `Uni<Void>` para as escritas e
   `Uni<Optional<VisaoAnaliseConformidade>>` para as leituras da porta documental;
+- o usuário ampliou a decisão em 2026-07-26: usar Quarkus reativo sempre que
+  possível, com `Uni<VisaoAnaliseConformidade>` nas portas de início/consulta,
+  `Uni` nos recursos REST, `Uni<Void>` na projeção interna e callbacks Flow
+  retornando `Uni` diretamente;
+- a inspeção do artefato efetivo `quarkus-flow:0.10.2` comprovou o conversor
+  `Uni2CompletableFuture`; a aplicação não fará conversão manual nesses callbacks;
 - o adapter Cosmos em PRD usará Microsoft Entra ID por
   `DefaultAzureCredential`, com Managed Identity ou Workload Identity e RBAC de
   plano de dados de menor privilégio;
@@ -673,7 +679,7 @@
 | Tipo de `versaoSchema` | APROVADO | 2026-07-26 | Usuário definiu `small int`; representação `Short` no Java e número inteiro no JSON | Usuário |
 | Tipo de hash canônico | APROVADO | 2026-07-26 | Usuário definiu `String`; adotada representação SHA-256 hexadecimal minúscula com 64 caracteres | Usuário |
 | C5 | APROVADO | 2026-07-26 | Usuário aceitou a recomendação: CouchDB em DES, Azure Cosmos DB for NoSQL em PRD, porta neutra, contratos compartilhados e validação Cosmos obrigatória antes da promoção | Usuário |
-| C6 | APROVADO | 2026-07-26 | Usuário confirmou `Uni` na porta documental, Cosmos por Entra ID com identidade gerenciada/federada e RBAC mínimo, CouchDB automático no `quarkus:dev` e Kubernetes local posterior | Usuário |
+| C6 | APROVADO | 2026-07-26 | Usuário confirmou Quarkus reativo/`Uni` em toda borda suportada, Cosmos por Entra ID com identidade gerenciada/federada e RBAC mínimo, CouchDB automático no `quarkus:dev` e Kubernetes local posterior | Usuário |
 | Sonar Task 7.3 — primeira execução | CONTINUAR_AJUSTES | 2026-07-26 | 21 issues novas, 10 `CRITICAL`, cobertura 80,1%, duplicação 2,9%; decisão registrada pelo script | Usuário |
 | Sonar Task 7.3 — reexecução | COMPLIANT | 2026-07-26 | 0 issues novas, cobertura 85,1%, duplicação 2,9% e decisão `NOT_REQUIRED` | — |
 | CF | PENDENTE | — | Aguardará evidências finais | — |
