@@ -49,6 +49,8 @@
   NoSQL em PRD, porta neutra, contrato compartilhado e gate Cosmos pré-promoção;
 - [x] C6 Aprovar assincronia da porta documental, autenticação Cosmos por Entra ID,
   CouchDB automático no `quarkus:dev` e desenho do Kubernetes local;
+- [ ] C7 Aprovar `correlationid` como nome da extensão CloudEvent compatível com a
+  especificação, preservando `correlationId` na API, nos documentos e nos modelos;
 - [ ] 7.3 Persistir documentos de negócio e projeção pela porta neutra, com adapters
   CouchDB e Cosmos DB for NoSQL;
 - [ ] 7.4 Reduzir contexto e habilitar checkpoint Redis/Valkey;
@@ -654,6 +656,12 @@
   `UNVERIFIED`, sem aprovação ou reprovação técnica;
 - a integração opt-in contra Cosmos DB Emulator ou conta não produtiva e os SPIs
   `EventPublisher`/feeds nativos continuam pendentes nesta Task 7.3.
+- na preparação do `EventPublisher`, a árvore efetiva confirmou
+  `cloudevents-core:4.1.0`; sua implementação aceita somente `[a-z0-9]+` em nomes
+  de extensões e rejeita o `correlationId` aprovado por conter `I` maiúsculo;
+- recomendação pendente no checkpoint C7: usar `correlationid` somente no envelope
+  CloudEvent, preservando `correlationId` na API REST, nos documentos e nos modelos;
+  nenhuma mudança executável foi feita antes dessa decisão humana.
 
 ### Planejamento da evolução durável
 

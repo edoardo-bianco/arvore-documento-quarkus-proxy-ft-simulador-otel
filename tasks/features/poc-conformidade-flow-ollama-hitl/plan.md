@@ -1228,6 +1228,22 @@ C6 foi aprovado em 2026-07-26 antes da continuação da Task 7.3:
   aplicação, CouchDB em `StatefulSet` de um pod com PVC, além de Valkey/Redis e
   Ollama; Cosmos/Emulator não fará parte desses pods.
 
+### Checkpoint C7 — Nome da extensão de correlação no CloudEvent
+
+Durante a preparação do `EventPublisher` da Task 7.3, a inspeção da dependência
+efetivamente resolvida encontrou uma incompatibilidade no contrato aprovado:
+`io.cloudevents:cloudevents-core:4.1.0` valida nomes de extensões como
+`[a-z0-9]+`. Por isso, `correlationId`, com `I` maiúsculo, é rejeitado pelo
+`CloudEventBuilder` e não pode formar um CloudEvent v1 válido.
+
+A recomendação técnica sujeita a decisão humana é:
+
+- usar `correlationid` somente como nome da extensão no envelope CloudEvent;
+- manter `correlationId` nos modelos Java, documentos, API REST e interface;
+- manter `flowinstanceid` e `flowtaskid` como já definidos pelo Flow;
+- atualizar codec, testes, especificação, arquitetura e ADR de forma atômica;
+- não implementar a mudança executável antes do GO deste checkpoint de contrato.
+
 ### Incremento 7 — Persistência durável e contrato
 
 #### Task 7.1 — Provar compatibilidade e roteamento mínimo
