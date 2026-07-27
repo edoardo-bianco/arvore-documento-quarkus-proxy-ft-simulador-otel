@@ -1,0 +1,34 @@
+services:
+  couchdb:
+    image: docker.io/library/couchdb:3.5.2
+    ports:
+      - "5984"
+    environment:
+      COUCHDB_USER: "${COUCHDB_USERNAME:?Defina COUCHDB_USERNAME para o ambiente local}"
+      COUCHDB_PASSWORD: "${COUCHDB_PASSWORD:?Defina COUCHDB_PASSWORD para o ambiente local}"
+      COUCHDB_DATABASE: "${COUCHDB_DATABASE:-conformidade}"
+    labels:
+      "io.quarkus.devservices.compose.config_map.port.5984": conformidade.couchdb.port
+      "io.quarkus.devservices.compose.config_map.env.COUCHDB_USER": conformidade.couchdb.username
+      "io.quarkus.devservices.compose.config_map.env.COUCHDB_PASSWORD": conformidade.couchdb.password
+      "io.quarkus.devservices.compose.config_map.env.COUCHDB_DATABASE": conformidade.couchdb.database
+    volumes:
+      - couchdb-conformidade-data:/opt/couchdb/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl --fail --silent --show-error
+          --user "$${COUCHDB_USER}:$${COUCHDB_PASSWORD}"
+          http://127.0.0.1:5984/_up >/dev/null
+          && status=$$(curl --silent --output /dev/null --write-out '%{http_code}'
+          --user "$${COUCHDB_USER}:$${COUCHDB_PASSWORD}"
+          --request PUT "http://127.0.0.1:5984/$${COUCHDB_DATABASE}")
+          && { test "$${status}" = "201" || test "$${status}" = "412"; }
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 5s
+
+volumes:
+  couchdb-conformidade-data:

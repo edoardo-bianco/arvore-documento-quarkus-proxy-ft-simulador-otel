@@ -16,6 +16,8 @@ import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.ResultadoAnali
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.ResultadoApontamentoConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.StatusAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.VisaoAnaliseConformidade;
+import br.gov.caixa.simtr.hub.conformidade.suporte.CouchDbQuarkusTestResource;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
@@ -43,20 +45,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @QuarkusTest
+@QuarkusTestResource(
+        value = CouchDbQuarkusTestResource.class,
+        restrictToAnnotatedClass = true)
 @TestProfile(AnaliseConformidadeFlowQuarkusTest.Perfil.class)
 class AnaliseConformidadeFlowQuarkusTest {
 
     private static final String BASE_PATH = "/simtr-hub/v1/conformidade/analises";
     private static final String CORRELATION_ID = "7aa3ca4d-3c7e-4f61-a3a1-996571d3397a";
     private static final String IDENTIFICADOR_DOCUMENTO = "DOC-2026-000123";
-
-    private static final SolicitacaoAnaliseConformidade SOLICITACAO =
-            new SolicitacaoAnaliseConformidade(
-                    CORRELATION_ID,
-                    IDENTIFICADOR_DOCUMENTO,
-                    "Texto documental",
-                    1000012583L,
-                    1);
 
     @Inject
     IniciarAnaliseConformidade iniciar;
@@ -262,17 +259,16 @@ class AnaliseConformidadeFlowQuarkusTest {
         assertEquals(WorkflowStatus.WAITING, instancia.status());
 
         enviarRevisao(instanceId, 0.9d).statusCode(202);
-        enviarRevisao(instanceId, 0.9d).statusCode(409);
-
         aguardarStatus(instanceId, StatusAnaliseConformidade.CONCLUIDA);
         aguardarStatusFlow(instancia, WorkflowStatus.COMPLETED);
+        enviarRevisao(instanceId, 0.9d).statusCode(409);
     }
 
     @Test
     void checklistNuloFalhaAProjecaoSemNovaTentativa() {
         consultarChecklist.preparar(Uni.createFrom().nullItem());
 
-        VisaoAnaliseConformidade inicial = iniciar.executar(SOLICITACAO)
+        VisaoAnaliseConformidade inicial = iniciar.executar(solicitacaoDireta())
                 .await().indefinitely();
         VisaoAnaliseConformidade falhou = aguardarFalha(inicial.instanceId());
 
@@ -288,7 +284,7 @@ class AnaliseConformidadeFlowQuarkusTest {
         consultarChecklist.preparar(Uni.createFrom().failure(
                 new IllegalStateException("detalhe interno sensível")));
 
-        VisaoAnaliseConformidade inicial = iniciar.executar(SOLICITACAO)
+        VisaoAnaliseConformidade inicial = iniciar.executar(solicitacaoDireta())
                 .await().indefinitely();
         VisaoAnaliseConformidade falhou = aguardarFalha(inicial.instanceId());
 
@@ -407,6 +403,15 @@ class AnaliseConformidadeFlowQuarkusTest {
                         "Conferir conteúdo",
                         false,
                         1)));
+    }
+
+    private static SolicitacaoAnaliseConformidade solicitacaoDireta() {
+        return new SolicitacaoAnaliseConformidade(
+                java.util.UUID.randomUUID().toString(),
+                IDENTIFICADOR_DOCUMENTO,
+                "Texto documental",
+                1000012583L,
+                1);
     }
 
     public static final class Perfil implements QuarkusTestProfile {
