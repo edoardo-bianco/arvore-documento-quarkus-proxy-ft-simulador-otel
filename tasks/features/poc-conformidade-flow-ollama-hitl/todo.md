@@ -626,7 +626,34 @@
   situação `UNVERIFIED`, sem aprovação ou reprovação técnica;
 - a integração opt-in contra Cosmos DB Emulator ou conta não produtiva, a seleção
   do adapter por ambiente e a inicialização automática do CouchDB em DES continuam
-  pendentes nesta Task 7.3.
+  pendentes nesta Task 7.3;
+- RED/GREEN da seleção removeu o store em memória da descoberta CDI e passou a
+  exigir `couchdb` ou `cosmosdb`; a ausência ou um valor desconhecido falha no
+  startup fora de `dev/test`;
+- o cliente Cosmos é singleton assíncrono, usa exclusivamente
+  `DefaultAzureCredential`, é fechado no shutdown e rejeita propriedades ou
+  variáveis de chave/connection string;
+- `%dev` e `%test` selecionam CouchDB; os dois testes Quarkus que exercitam o store
+  usam containers efêmeros próprios, senha aleatória e Compose Dev Services
+  desabilitado;
+- `compose-devservices.yml` usa `couchdb:3.5.2`, credenciais locais obrigatórias por
+  variáveis, porta dinâmica mapeada, health check que cria `conformidade`
+  idempotentemente e volume nomeado;
+- a prova real com dois ciclos de `mvn quarkus:dev` criou um documento sintético,
+  encerrou graciosamente, leu o mesmo documento após o restart e o removeu; container
+  e rede foram removidos e o volume permaneceu nos dois shutdowns;
+- o RED operacional mostrou que Ryuk removia o volume mesmo com
+  `remove-volumes=false`; o GREEN desabilitou Ryuk somente em `%dev`, preservando
+  Testcontainers/Ryuk nos testes; o volume sintético final foi removido para não
+  deixar credenciais de prova na máquina;
+- `ArchUnitProgressivoTest` e a suíte completa terminaram com código 0; foram
+  registrados 124 relatórios Surefire, 502 testes, 0 falhas, 0 erros e 1 teste
+  opt-in ignorado;
+- o checkpoint Sonar desta fatia foi tentado em 2026-07-26 e encerrou antes de
+  Maven/SonarScanner porque o processo não herdou `SONAR_TOKEN`; situação
+  `UNVERIFIED`, sem aprovação ou reprovação técnica;
+- a integração opt-in contra Cosmos DB Emulator ou conta não produtiva e os SPIs
+  `EventPublisher`/feeds nativos continuam pendentes nesta Task 7.3.
 
 ### Planejamento da evolução durável
 
@@ -722,6 +749,7 @@
 | Sonar Task 7.3 — reexecução | COMPLIANT | 2026-07-26 | 0 issues novas, cobertura 85,1%, duplicação 2,9% e decisão `NOT_REQUIRED` | — |
 | Sonar Task 7.3 — propagação de `Uni` | UNVERIFIED | 2026-07-26 | Script encerrou antes da análise porque o processo atual não herdou `SONAR_TOKEN`; suíte local completa aprovada | — |
 | Sonar Task 7.3 — adapter Cosmos | UNVERIFIED | 2026-07-26 | Script encerrou antes da análise porque o processo atual não herdou `SONAR_TOKEN`; 496 testes locais e ArchUnit aprovados | — |
+| Sonar Task 7.3 — seleção e Dev Services | UNVERIFIED | 2026-07-26 | Script encerrou antes da análise porque o processo atual não herdou `SONAR_TOKEN`; 502 testes locais, ArchUnit e restart CouchDB aprovados | — |
 | CF | PENDENTE | — | Aguardará evidências finais | — |
 
 ## Regras de avanço

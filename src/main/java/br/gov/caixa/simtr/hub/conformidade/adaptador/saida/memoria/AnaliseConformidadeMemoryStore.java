@@ -10,12 +10,10 @@ import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.SolicitacaoAna
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.StatusAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.VisaoAnaliseConformidade;
 import io.smallrye.mutiny.Uni;
-import jakarta.enterprise.context.ApplicationScoped;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@ApplicationScoped
 public class AnaliseConformidadeMemoryStore implements ArmazenarEstadoAnaliseConformidade {
 
     private final ConcurrentMap<String, EstadoArmazenado> estados = new ConcurrentHashMap<>();

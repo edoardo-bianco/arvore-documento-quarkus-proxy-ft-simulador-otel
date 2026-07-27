@@ -18,8 +18,10 @@ import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.ResultadoApont
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.RevisaoHumanaConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.SolicitacaoAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.StatusAnaliseConformidade;
+import br.gov.caixa.simtr.hub.conformidade.suporte.CouchDbQuarkusTestResource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cloudevents.core.builder.CloudEventBuilder;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import java.net.URI;
@@ -30,6 +32,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
+@QuarkusTestResource(
+        value = CouchDbQuarkusTestResource.class,
+        restrictToAnnotatedClass = true)
 class CanaisInternosMessagingQuarkusTest {
 
     @Inject
