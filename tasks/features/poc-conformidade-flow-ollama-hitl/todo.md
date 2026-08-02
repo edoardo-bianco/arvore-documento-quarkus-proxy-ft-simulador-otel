@@ -6,9 +6,8 @@
 - **Escopo:** concluir baseline HITL volátil e evoluir para persistência documental
   neutra, com CouchDB em DES, Azure Cosmos DB for NoSQL em PRD, Redis/Valkey para
   checkpoints e entrega referencial sem broker
-- **Próximo item:** C7 — aprovar o nome `correlationid` no envelope CloudEvent;
-  depois, concluir na Task 7.3 a integração Cosmos opt-in e os SPIs
-  `EventPublisher`/feeds nativos
+- **Próximo item:** 7.3 — concluir o `EventPublisher` referencial e a integração
+  Cosmos opt-in; os feeds nativos permanecem na Task 7.5
 - **Especificação:** `doc/poc/especificacao-poc-conformidade-quarkus-flow-ollama-hitl-sem-broker.md`
 - **Plano:** `tasks/features/poc-conformidade-flow-ollama-hitl/plan.md`
 - **Baseline Sonar:** SonarQube Docker local, inicializado em 2026-07-24
@@ -50,7 +49,7 @@
   NoSQL em PRD, porta neutra, contrato compartilhado e gate Cosmos pré-promoção;
 - [x] C6 Aprovar assincronia da porta documental, autenticação Cosmos por Entra ID,
   CouchDB automático no `quarkus:dev` e desenho do Kubernetes local;
-- [ ] C7 Aprovar `correlationid` como nome da extensão CloudEvent compatível com a
+- [x] C7 Aprovar `correlationid` como nome da extensão CloudEvent compatível com a
   especificação, preservando `correlationId` na API, nos documentos e nos modelos;
 - [ ] 7.3 Persistir documentos de negócio e projeção pela porta neutra, com adapters
   CouchDB e Cosmos DB for NoSQL;
@@ -678,9 +677,11 @@
 - na preparação do `EventPublisher`, a árvore efetiva confirmou
   `cloudevents-core:4.1.0`; sua implementação aceita somente `[a-z0-9]+` em nomes
   de extensões e rejeita o `correlationId` aprovado por conter `I` maiúsculo;
-- recomendação pendente no checkpoint C7: usar `correlationid` somente no envelope
+- recomendação apresentada no checkpoint C7: usar `correlationid` somente no envelope
   CloudEvent, preservando `correlationId` na API REST, nos documentos e nos modelos;
-  nenhuma mudança executável foi feita antes dessa decisão humana.
+  nenhuma mudança executável foi feita antes dessa decisão humana;
+- `C7 GO` recebido do usuário em 2026-08-02 aprovou essa recomendação e liberou a
+  continuação da Task 7.3, sem autorizar alteração de casing nas demais bordas.
 
 ### Planejamento da evolução durável
 
@@ -779,6 +780,7 @@
 | Sonar Task 7.3 — seleção e Dev Services | UNVERIFIED | 2026-07-26 | Script encerrou antes da análise porque o processo atual não herdou `SONAR_TOKEN`; 502 testes locais, ArchUnit e restart CouchDB aprovados | — |
 | Sonar Task 7.3 — retorno | CONTINUAR_AJUSTES | 2026-08-02 | Baseline local atualizado com 0 issues novas, cobertura 83,2% e duplicação 2,8%; decisão registrada pelo script | Usuário |
 | Sonar Task 7.3 — ajuste de cobertura | COMPLIANT | 2026-08-02 | 0 issues novas; cobertura 85,3%; duplicação 2,8%; decisão `NOT_REQUIRED` | — |
+| C7 | APROVADO | 2026-08-02 | `C7 GO` explícito para usar `correlationid` somente na extensão CloudEvent e preservar `correlationId` nas demais bordas | Usuário |
 | CF | PENDENTE | — | Aguardará evidências finais | — |
 
 ## Regras de avanço
