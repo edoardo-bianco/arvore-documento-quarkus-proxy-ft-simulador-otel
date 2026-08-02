@@ -4,6 +4,7 @@ import br.gov.caixa.simtr.hub.conformidade.adaptador.saida.contrato.ArmazenarEst
 import br.gov.caixa.simtr.hub.conformidade.adaptador.saida.documento.RepositorioDocumental;
 import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.ArmazenarEstadoAnaliseConformidade;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Uni;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -11,6 +12,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+@QuarkusTest
 class CosmosDbAnaliseConformidadeStoreContractTest
         extends ArmazenarEstadoAnaliseConformidadeContractTest {
 
