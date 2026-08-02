@@ -6,8 +6,9 @@
 - **Escopo:** concluir baseline HITL volátil e evoluir para persistência documental
   neutra, com CouchDB em DES, Azure Cosmos DB for NoSQL em PRD, Redis/Valkey para
   checkpoints e entrega referencial sem broker
-- **Próximo item:** 7.3 — implementar a porta neutra, o contrato compartilhado e os
-  adapters CouchDB/DES e Cosmos DB for NoSQL/PRD
+- **Próximo item:** C7 — aprovar o nome `correlationid` no envelope CloudEvent;
+  depois, concluir na Task 7.3 a integração Cosmos opt-in e os SPIs
+  `EventPublisher`/feeds nativos
 - **Especificação:** `doc/poc/especificacao-poc-conformidade-quarkus-flow-ollama-hitl-sem-broker.md`
 - **Plano:** `tasks/features/poc-conformidade-flow-ollama-hitl/plan.md`
 - **Baseline Sonar:** SonarQube Docker local, inicializado em 2026-07-24
@@ -656,6 +657,24 @@
   `UNVERIFIED`, sem aprovação ou reprovação técnica;
 - a integração opt-in contra Cosmos DB Emulator ou conta não produtiva e os SPIs
   `EventPublisher`/feeds nativos continuam pendentes nesta Task 7.3.
+- na retomada de 2026-08-02, o baseline local atualizado terminou
+  `NON_COMPLIANT` somente por cobertura de 83,2%, com 237 issues atuais e no
+  baseline, nenhuma issue nova ou `HIGH`, `BLOCKER` ou `CRITICAL` e duplicação de
+  2,8%; a decisão humana `ContinuarAjustes` foi registrada pelo script;
+- a inspeção do JaCoCo mostrou que os testes existentes do producer e dos adapters
+  Cosmos passavam fora do classloader instrumentado do Quarkus; quatro testes
+  passaram a executar com `@QuarkusTest`, sem alteração no código de produção;
+- o RED que tentou construir um cliente Cosmos real comprovou dependência de
+  autenticação/rede e foi substituído por uma matriz hermética dos guardrails de
+  endpoint (scheme, host, userinfo, query, fragmento e sintaxe inválida);
+- `mvn -q clean test` e o `clean verify` do checkpoint passaram; a falha
+  intermitente anterior na captura do span de checklist não reapareceu e nenhuma
+  espera ou enfraquecimento de asserção foi introduzido sem causa reproduzível;
+- o checkpoint final de 2026-08-02 terminou `COMPLIANT`: 237 issues atuais contra
+  237 no baseline, nenhuma issue nova ou `HIGH`, `BLOCKER` ou `CRITICAL`, cobertura
+  de 85,3%, duplicação de 2,8% e decisão `NOT_REQUIRED`;
+- a Task 7.3 permanece pendente pelos itens funcionais já registrados: integração
+  Cosmos opt-in e `EventPublisher`/feeds nativos, estes bloqueados pelo C7.
 - na preparação do `EventPublisher`, a árvore efetiva confirmou
   `cloudevents-core:4.1.0`; sua implementação aceita somente `[a-z0-9]+` em nomes
   de extensões e rejeita o `correlationId` aprovado por conter `I` maiúsculo;
@@ -758,6 +777,8 @@
 | Sonar Task 7.3 — propagação de `Uni` | UNVERIFIED | 2026-07-26 | Script encerrou antes da análise porque o processo atual não herdou `SONAR_TOKEN`; suíte local completa aprovada | — |
 | Sonar Task 7.3 — adapter Cosmos | UNVERIFIED | 2026-07-26 | Script encerrou antes da análise porque o processo atual não herdou `SONAR_TOKEN`; 496 testes locais e ArchUnit aprovados | — |
 | Sonar Task 7.3 — seleção e Dev Services | UNVERIFIED | 2026-07-26 | Script encerrou antes da análise porque o processo atual não herdou `SONAR_TOKEN`; 502 testes locais, ArchUnit e restart CouchDB aprovados | — |
+| Sonar Task 7.3 — retorno | CONTINUAR_AJUSTES | 2026-08-02 | Baseline local atualizado com 0 issues novas, cobertura 83,2% e duplicação 2,8%; decisão registrada pelo script | Usuário |
+| Sonar Task 7.3 — ajuste de cobertura | COMPLIANT | 2026-08-02 | 0 issues novas; cobertura 85,3%; duplicação 2,8%; decisão `NOT_REQUIRED` | — |
 | CF | PENDENTE | — | Aguardará evidências finais | — |
 
 ## Regras de avanço

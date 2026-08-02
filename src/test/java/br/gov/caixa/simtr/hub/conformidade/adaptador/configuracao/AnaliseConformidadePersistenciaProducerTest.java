@@ -15,11 +15,13 @@ import com.azure.cosmos.CosmosAsyncClient;
 import com.azure.cosmos.CosmosAsyncContainer;
 import com.azure.cosmos.CosmosAsyncDatabase;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.quarkus.test.junit.QuarkusTest;
 import java.util.Map;
 import java.util.Optional;
 import org.eclipse.microprofile.config.Config;
 import org.junit.jupiter.api.Test;
 
+@QuarkusTest
 class AnaliseConformidadePersistenciaProducerTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
