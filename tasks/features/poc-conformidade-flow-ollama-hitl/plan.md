@@ -1236,13 +1236,16 @@ efetivamente resolvida encontrou uma incompatibilidade no contrato aprovado:
 `[a-z0-9]+`. Por isso, `correlationId`, com `I` maiúsculo, é rejeitado pelo
 `CloudEventBuilder` e não pode formar um CloudEvent v1 válido.
 
-A recomendação técnica sujeita a decisão humana é:
+A decisão técnica aprovada é:
 
 - usar `correlationid` somente como nome da extensão no envelope CloudEvent;
 - manter `correlationId` nos modelos Java, documentos, API REST e interface;
 - manter `flowinstanceid` e `flowtaskid` como já definidos pelo Flow;
 - atualizar codec, testes, especificação, arquitetura e ADR de forma atômica;
 - não implementar a mudança executável antes do GO deste checkpoint de contrato.
+
+C7 foi aprovado pelo usuário em 2026-08-02 com `C7 GO`, autorizando a mudança
+executável e documental acima sem alterar o casing das demais bordas.
 
 ### Incremento 7 — Persistência durável e contrato
 
@@ -1310,7 +1313,8 @@ referenciais do Flow por um `EventPublisher` que dependa somente da porta.
 - texto e `identificadorDocumento` são persistidos sem aparecer em logs;
 - snapshot do checklist é imutável, possui hash `String` SHA-256 em hexadecimal
   minúsculo e `versaoSchema` `Short`;
-- `emitJson` publica referência por `EventPublisher`, sem payload negocial completo;
+- `emitJson` publica referência por `EventPublisher`, sem payload negocial completo,
+  usando `correlationid` somente como extensão do envelope CloudEvent;
 - projeção é consultável por `instanceId` e correlacionada por `correlationId`;
 - porta de aplicação não expõe token, DTO ou exceção de fornecedor;
 - CouchDB traduz concorrência para `_rev`/MVCC;
@@ -1336,7 +1340,7 @@ container; Cosmos Emulator ou conta não produtiva em teste opt-in; concorrênci
 conflitos, restart da aplicação, REST, ArchUnit e busca negativa por tipos de
 fornecedor fora dos adapters.
 
-**Dependências:** Task 7.2, C5 e C6.
+**Dependências:** Task 7.2, C5, C6 e C7.
 
 **Arquivos prováveis:** portas de persistência, contratos de teste, documentos e
 mappers dos adapters CouchDB/Cosmos, casos de uso, seleção de backend e testes.
