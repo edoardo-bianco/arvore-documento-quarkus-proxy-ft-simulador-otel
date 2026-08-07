@@ -6,7 +6,7 @@
 - **Escopo:** concluir baseline HITL volátil e evoluir para persistência documental
   neutra, com CouchDB em DES, Azure Cosmos DB for NoSQL em PRD, Redis/Valkey para
   checkpoints e entrega referencial sem broker
-- **Próximo item:** 9.1 — criar página estática com polling e cinco valores de identidade
+- **Próximo item:** checkpoint humano dos valores observáveis antes da Task 9.2
 - **Especificação:** `doc/poc/especificacao-poc-conformidade-quarkus-flow-ollama-hitl-sem-broker.md`
 - **Plano:** `tasks/features/poc-conformidade-flow-ollama-hitl/plan.md`
 - **Baseline Sonar:** SonarQube Docker local, inicializado em 2026-07-24
@@ -62,7 +62,7 @@
 - [x] 8.2 Configurar Kubernetes Leases, readiness e duas réplicas;
 - [x] 8.3 Provar retomada cross-pod e failover;
 - [x] 8.4 Executar suíte e checkpoint Sonar do incremento 8;
-- [ ] 9.1 Criar página estática com polling e cinco valores de identidade;
+- [x] 9.1 Criar página estática com polling e cinco valores de identidade;
 - [ ] 9.2 Fechar observabilidade e guardrails arquiteturais;
 - [ ] 9.3 Atualizar README, consolidado arquitetural e ADRs conforme estado comprovado;
 - [ ] 9.4 Executar suíte, verify e checkpoint Sonar final;
@@ -1050,6 +1050,47 @@
   PVC CouchDB `Bound` e Leases atuais; nenhum commit foi realizado. O próximo item
   formal é a Task 9.1.
 
+### Task 9.1 — Página estática, polling e revisão humana
+
+- RED: `mvn -q "-Dtest=AnaliseConformidadePaginaEstaticaQuarkusTest" test`
+  executou 4 testes e falhou nos quatro porque os recursos estáticos não existiam e
+  `/poc-conformidade/` devolvia `404`;
+- GREEN: a página passou a ser servida em `/poc-conformidade/` com HTML semântico,
+  CSS responsivo e JavaScript puro, sem framework, CDN, `localStorage` ou
+  `sessionStorage`; o mesmo teste focado aprovou 4 testes sem falhas ou erros;
+- o formulário exige documento, checklist, versão e texto com limite de 20.000
+  caracteres; as cinco identidades permanecem visíveis em elementos somente leitura;
+- a revisão permite alterar somente parecer, justificativa e evidência por
+  apontamento, além da observação geral; identificador, nome e confiança são copiados
+  do resultado preliminar e não são renderizados como controles editáveis;
+- o cliente usa `POST`, `GET` e `PUT` no contrato existente, mantém um único timer,
+  consulta a cada 1.500 ms, para ao abrir a revisão ou atingir estado terminal e
+  reinicia o polling depois do `PUT`;
+- os status HTTP `400`, `404`, `409`, `422` e `503` são convertidos em mensagens
+  públicas fixas; o corpo de erro não é renderizado e detalhes internos não aparecem;
+- como o MCP Chrome DevTools não estava configurado, a validação da skill de browser
+  usou o Chrome do sistema em contexto Playwright isolado e um servidor HTTP efêmero
+  local, ambos encerrados na própria execução;
+- o roteiro real no navegador comprovou
+  `POST -> GET -> GET -> PUT -> GET -> CONCLUIDA`, intervalo de 1.503 ms, as cinco
+  identidades, campos imutáveis preservados no `PUT`, os cinco status de erro,
+  árvore acessível, labels, ordem inicial de foco, console limpo no fluxo feliz e
+  ausência de exceções JavaScript;
+- screenshots desktop inicial/final e mobile foram inspecionados; a viewport de
+  360 px não apresentou overflow horizontal e o carregamento local medido terminou
+  em 39 ms;
+- a sintaxe de `app.js` foi validada pelo parser JavaScript do Node; `git diff
+  --check` terminou sem erro;
+- `mvn -q test` terminou com código 0 em 128,9 s; o `clean verify` do checkpoint
+  registrou 136 relatórios Surefire, 577 testes, 0 falhas, 0 erros e 4 gates opt-in
+  ignorados;
+- `validar-checkpoint-sonarqube.ps1` terminou com código 0 e situação técnica
+  `COMPLIANT`: 240 issues atuais contra 240 no baseline, nenhuma nova ou bloqueante,
+  cobertura de 85,1%, duplicação de 2,5% e decisão `NOT_REQUIRED`;
+- todos os processos efêmeros de teste foram encerrados; o cluster kind permanece
+  ativo. A Task 9.2 não foi iniciada porque depende do checkpoint humano dos valores
+  observáveis.
+
 ### Planejamento da evolução durável
 
 - o usuário autorizou planejar a mudança para CouchDB nos dados de negócio e
@@ -1159,6 +1200,7 @@
 | Sonar Task 8.2 — baseline tardio | REGISTRADO | 2026-08-07 | Baseline local inicializado depois das alterações da retomada; suíte com 573 testes, 0 falhas, 0 erros e 4 ignorados; não usado isoladamente para afirmar ausência de regressão | — |
 | Sonar Task 8.2 — checkpoint | COMPLIANT | 2026-08-07 | 240 issues atuais contra 240 no baseline tardio, 0 novas ou bloqueantes, cobertura 85,1%, duplicação 2,5% e decisão `NOT_REQUIRED`; métricas idênticas às registradas na Task 8.1 | — |
 | Sonar Task 8.4 — checkpoint | COMPLIANT | 2026-08-07 | 240 issues atuais contra 240 no baseline, 0 novas ou bloqueantes, cobertura 85,1%, duplicação 2,5% e decisão `NOT_REQUIRED`; baseline anterior ao roteiro executável da Task 8.3 | — |
+| Sonar Task 9.1 — checkpoint | COMPLIANT | 2026-08-07 | 240 issues atuais contra 240 no baseline, 0 novas ou bloqueantes, cobertura 85,1%, duplicação 2,5% e decisão `NOT_REQUIRED`; 577 testes, 0 falhas, 0 erros e 4 ignorados | — |
 | Sonar Task 7.4 — primeira execução | CONTINUAR_AJUSTES | 2026-08-04 | 2 issues novas (`java:S5778` e `java:S1612`), cobertura 84,9% e duplicação 2,6%; decisão registrada pelo script | Usuário |
 | Sonar Task 7.4 — primeiro ajuste | CONTINUAR_AJUSTES | 2026-08-04 | 241 issues atuais contra 242 no baseline; 0 issues novas ou bloqueantes; cobertura 84,9%; duplicação 2,6%; decisão registrada pelo script | Usuário |
 | Sonar Task 7.4 — ajuste final | COMPLIANT | 2026-08-04 | 240 issues atuais contra 242 no baseline; 0 issues novas ou bloqueantes; cobertura 85,1%; duplicação 2,6%; decisão `NOT_REQUIRED` | — |

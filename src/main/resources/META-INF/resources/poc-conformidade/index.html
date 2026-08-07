@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>Análise de conformidade | SIMTR Hub</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <a class="atalho-conteudo" href="#conteudo-principal">Ir para o conteúdo</a>
+
+    <header class="cabecalho">
+      <div class="limite-largura cabecalho-conteudo">
+        <a class="marca" href="./" aria-label="SIMTR Hub — início da análise de conformidade">
+          <span class="marca-simbolo" aria-hidden="true">S</span>
+          <span>
+            <strong>SIMTR Hub</strong>
+            <small>Prova de conceito</small>
+          </span>
+        </a>
+        <p class="ambiente"><span aria-hidden="true"></span> Fluxo local</p>
+      </div>
+    </header>
+
+    <main id="conteudo-principal" class="limite-largura">
+      <section class="apresentacao" aria-labelledby="titulo-pagina">
+        <div>
+          <p class="sobretitulo">Conformidade assistida</p>
+          <h1 id="titulo-pagina">Análise de conformidade</h1>
+          <p class="introducao">
+            Envie um documento, acompanhe o processamento e revise cada apontamento
+            antes da conclusão.
+          </p>
+        </div>
+        <div class="etapas" aria-label="Etapas da análise">
+          <span class="etapa etapa-atual" data-etapa="inicio">1 <small>Entrada</small></span>
+          <span class="etapa" data-etapa="processamento">2 <small>Análise</small></span>
+          <span class="etapa" data-etapa="revisao">3 <small>Revisão</small></span>
+          <span class="etapa" data-etapa="conclusao">4 <small>Resultado</small></span>
+        </div>
+      </section>
+
+      <div
+        id="mensagem-erro"
+        class="mensagem mensagem-erro"
+        role="alert"
+        tabindex="-1"
+        hidden></div>
+      <div
+        id="mensagem-status"
+        class="mensagem mensagem-status"
+        aria-live="polite"
+        aria-atomic="true"
+        hidden></div>
+
+      <section id="painel-inicio" class="painel" aria-labelledby="titulo-inicio">
+        <div class="painel-cabecalho">
+          <div>
+            <p class="numero-secao" aria-hidden="true">01</p>
+            <h2 id="titulo-inicio">Dados para análise</h2>
+          </div>
+          <p>Todos os campos são obrigatórios.</p>
+        </div>
+
+        <form id="form-inicio" novalidate>
+          <div class="grade-formulario">
+            <div class="campo campo-documento">
+              <label for="identificador-documento">Identificador do documento</label>
+              <input
+                id="identificador-documento"
+                name="identificadorDocumento"
+                type="text"
+                autocomplete="off"
+                required
+                aria-describedby="ajuda-identificador-documento">
+              <small id="ajuda-identificador-documento">Identificação negocial do texto enviado.</small>
+            </div>
+
+            <div class="campo">
+              <label for="identificador-checklist">Checklist</label>
+              <input
+                id="identificador-checklist"
+                name="identificadorChecklist"
+                type="number"
+                min="1"
+                step="1"
+                inputmode="numeric"
+                value="1000012583"
+                required>
+            </div>
+
+            <div class="campo">
+              <label for="versao-checklist">Versão</label>
+              <input
+                id="versao-checklist"
+                name="versaoChecklist"
+                type="number"
+                min="1"
+                step="1"
+                inputmode="numeric"
+                value="1"
+                required>
+            </div>
+
+            <div class="campo campo-texto">
+              <div class="rotulo-com-contador">
+                <label for="texto-documento">Texto do documento</label>
+                <span id="contador-texto" aria-live="polite">0 / 20.000</span>
+              </div>
+              <textarea
+                id="texto-documento"
+                name="texto"
+                rows="9"
+                maxlength="20000"
+                required
+                aria-describedby="ajuda-texto-documento"></textarea>
+              <small id="ajuda-texto-documento">
+                O conteúdo é enviado ao modelo local configurado para esta PoC.
+              </small>
+            </div>
+          </div>
+
+          <div class="acoes-formulario">
+            <p>O texto não será armazenado pelo navegador.</p>
+            <button id="botao-iniciar" class="botao botao-primario" type="submit">
+              Iniciar análise
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section id="painel-acompanhamento" class="painel" aria-labelledby="titulo-acompanhamento" hidden>
+        <div class="painel-cabecalho">
+          <div>
+            <p class="numero-secao" aria-hidden="true">02</p>
+            <h2 id="titulo-acompanhamento">Acompanhamento</h2>
+          </div>
+          <span id="estado-analise" class="selo-estado">Preparando</span>
+        </div>
+
+        <div id="indicador-processamento" class="processamento" aria-live="polite" hidden>
+          <span class="indicador-atividade" aria-hidden="true"></span>
+          <div>
+            <strong>O documento está sendo analisado</strong>
+            <p>A tela verifica o estado a cada 1,5 segundo.</p>
+          </div>
+        </div>
+
+        <div class="identidades-wrapper">
+          <h3>Identidade da execução</h3>
+          <p>Valores somente leitura preservados durante todo o fluxo.</p>
+          <dl class="grade-identidades">
+            <div>
+              <dt>Correlation ID</dt>
+              <dd id="correlation-id">—</dd>
+            </div>
+            <div>
+              <dt>Instance ID</dt>
+              <dd id="instance-id">—</dd>
+            </div>
+            <div>
+              <dt>Documento</dt>
+              <dd id="identificador-documento-atual">—</dd>
+            </div>
+            <div>
+              <dt>Checklist</dt>
+              <dd id="identificador-checklist-atual">—</dd>
+            </div>
+            <div>
+              <dt>Versão</dt>
+              <dd id="versao-checklist-atual">—</dd>
+            </div>
+          </dl>
+        </div>
+
+        <section id="painel-revisao" class="subpainel" aria-labelledby="titulo-revisao" hidden>
+          <div class="subpainel-cabecalho">
+            <div>
+              <p class="sobretitulo">Ação humana necessária</p>
+              <h3 id="titulo-revisao">Revise os apontamentos</h3>
+            </div>
+            <p id="resumo-preliminar"></p>
+          </div>
+          <form id="form-revisao">
+            <div class="campo">
+              <label for="observacao-revisao">Observação geral <span>(opcional)</span></label>
+              <textarea id="observacao-revisao" name="observacao" rows="3"></textarea>
+            </div>
+            <div id="lista-apontamentos" class="lista-apontamentos"></div>
+            <div class="acoes-formulario">
+              <p>Identificador, nome e confiança não podem ser alterados.</p>
+              <button id="botao-revisar" class="botao botao-primario" type="submit">
+                Enviar revisão
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section id="painel-resultado" class="subpainel resultado" aria-labelledby="titulo-resultado" hidden>
+          <div class="subpainel-cabecalho">
+            <div>
+              <p class="sobretitulo">Fluxo concluído</p>
+              <h3 id="titulo-resultado">Resultado final</h3>
+            </div>
+            <p id="resumo-final"></p>
+          </div>
+          <div id="lista-resultado" class="lista-apontamentos"></div>
+          <button id="botao-nova-analise" class="botao botao-secundario" type="button">
+            Iniciar nova análise
+          </button>
+        </section>
+      </section>
+
+      <aside class="aviso-operacional" aria-labelledby="titulo-operacao">
+        <p class="numero-secao" aria-hidden="true">PoC</p>
+        <div>
+          <h2 id="titulo-operacao">Limites operacionais</h2>
+          <p>
+            Dados de negócio são persistidos pelo backend documental selecionado e
+            checkpoints técnicos no Redis/Valkey.
+          </p>
+          <p>
+            O suporte a múltiplos pods só é válido quando o teste Kubernetes desta
+            versão estiver aprovado.
+          </p>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="rodape">
+      <div class="limite-largura">
+        <p>SIMTR Hub · PoC de conformidade com revisão humana</p>
+        <p>Sem armazenamento adicional no navegador.</p>
+      </div>
+    </footer>
+  </body>
+</html>
