@@ -122,6 +122,36 @@ class ResultadoAnaliseAgenteMapperTest {
     }
 
     @Test
+    void aceitaEspacosPerifericosDoModeloEPreservaNomeDoChecklist() {
+        ResultadoAnaliseAgente saida = new ResultadoAnaliseAgente(
+                "Resumo",
+                List.of(apontamentoAgente(1L, "  Primeiro  ")));
+
+        var resultado = mapper.mapearResultado(checklistValido(), saida);
+
+        assertEquals(
+                "Primeiro",
+                resultado.apontamentos().getFirst().nomeApontamento());
+        assertEquals(OrigemResultado.AGENTE, resultado.origem());
+    }
+
+    @Test
+    void aceitaConfiancaComCedilhaProduzidaPeloModeloLocal() throws Exception {
+        ResultadoApontamentoAgente apontamento = objectMapper.readValue("""
+                {
+                  "identificadorApontamento": 1,
+                  "nomeApontamento": "Primeiro",
+                  "parecer": "CONFORME",
+                  "justificativa": "Confirmado no documento",
+                  "evidencia": null,
+                  "confiança": 0.75
+                }
+                """, ResultadoApontamentoAgente.class);
+
+        assertEquals(0.75d, apontamento.confianca());
+    }
+
+    @Test
     void produzFallbackCompletoDeterministicoESemEvidencia() {
         var fallback = mapper.criarFallback(checklistValido());
 

@@ -301,3 +301,50 @@ O bootstrap do profile exibiu duas limitações adicionais:
 
 Essas ocorrências foram registradas como risco de integração; não justificam mudar
 produção, adicionar fallback, antecipar a Task 7.2 ou aceitar o ADR-0010.
+
+## Spike de atualização da Task 7.6 — 2026-08-05
+
+O checkpoint C9 autorizou avaliar Flow `0.13.0` com Quarkus LangChain4j `1.12.0`,
+mantendo Quarkus `3.33.2.1` e Java 25. A combinação candidata resolveu e compilou:
+
+```text
+io.quarkiverse.flow:*                         0.13.0
+io.serverlessworkflow:*                       7.25.1.Final
+io.cloudevents:cloudevents-core               4.1.1
+io.quarkiverse.langchain4j:*                  1.12.0
+```
+
+O bootstrap Quarkus, porém, falhou antes dos testes por ambiguidade CDI na injeção de
+`AgenteAnaliseConformidade`: a combinação registrou simultaneamente o bean de classe
+`AgenteAnaliseConformidade$$QuarkusImpl` e um bean sintético com o mesmo tipo e
+qualificador `@Default`. Resolver essa divergência exigiria mudar o desenho agentic
+ou a integração Flow–LangChain4j, sem relação direta e comprovada com o warning de
+auto-restore.
+
+Conforme o rollback previsto na Task 7.6, o POM voltou a Flow `0.10.2` e Quarkus
+LangChain4j `1.11.2`; a compilação de retorno terminou com código 0. A versão
+candidata não foi retida.
+
+## Prova de restart entre JVMs da Task 7.6 — 2026-08-05
+
+A prova opt-in executou duas invocações Maven, portanto duas JVMs distintas, contra
+os mesmos containers efêmeros CouchDB e Valkey. A primeira JVM iniciou uma análise,
+persistiu a projeção documental e encerrou com a instância Flow em `WAITING`. A
+segunda JVM restaurou essa instância, correlacionou o CloudEvent da revisão pelo
+`flowinstanceid` e concluiu o fluxo em `COMPLETED`, com origem
+`REVISAO_HUMANA`.
+
+O warning de configuração desconhecida para
+`quarkus.flow.persistence.auto-restore` foi emitido nas duas inicializações. Mesmo
+assim, a restauração automática padrão funcionou sem configurar a propriedade nem
+desabilitar a validação global. O warning permanece como incompatibilidade de
+metadados/configuração conhecida em Flow `0.10.2`, não como falha funcional de
+restore no cenário comprovado.
+
+O `ValkeyQuarkusTestResource` permanece global na suíte normal, porque a persistência
+Flow precisa de Redis ativo em todos os contextos Quarkus. Quando
+`restart.proof.enabled=true`, o recurso não inicia um container próprio nem
+sobrescreve o endpoint Valkey externo compartilhado pelas duas JVMs. O script
+removeu seus containers ao terminar. A evidência cobre restart sequencial de uma
+réplica e não cobre Lease, duas réplicas simultâneas, roteamento cross-pod ou
+failover, que permanecem nas Tasks 8.2/8.3.

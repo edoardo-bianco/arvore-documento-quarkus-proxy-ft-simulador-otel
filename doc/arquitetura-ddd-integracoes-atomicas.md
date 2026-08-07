@@ -3,7 +3,7 @@
 ## Como usar este documento
 
 - **Status:** aceito
-- **Última consolidação:** 2026-07-26
+- **Última consolidação:** 2026-08-05
 - **Objetivo:** explicar rapidamente a arquitetura implementada e as restrições que novas features
   devem respeitar.
 
@@ -20,7 +20,7 @@ correção.
 O `simtr-hub` é um monólito modular Quarkus organizado por domínios de negócio. Ele expõe oito
 capacidades atômicas por REST e integra cada uma ao MTR ou ao simulador por adapters de saída
 intercambiáveis. Além delas, a PoC de análise de conformidade expõe três endpoints sobre estado
-volátil, exige um identificador negocial do documento, gera uma correlação estável e inicia um
+documental, exige um identificador negocial do documento, gera uma correlação estável e inicia um
 workflow que consulta e congela o checklist, executa um agente sequencial no Ollama local e produz
 um resultado preliminar validado.
 
@@ -47,7 +47,7 @@ e retoma até a conclusão.
 | Domínio | Responsabilidade | Capacidades atuais |
 |---|---|---|
 | `arvoredocumento` | Dados parametrizados usados por uma futura árvore documental | `ConsultarProcessoParametrizado` |
-| `conformidade` | Consulta de checklist e PoC de análise/revisão humana | `ConsultarChecklist`; modelos, validação determinística, projeção volátil, API e workflow HITL até o resultado final revisado |
+| `conformidade` | Consulta de checklist e PoC de análise/revisão humana | `ConsultarChecklist`; modelos, validação determinística, projeção documental, API e workflow HITL com checkpoint Redis/Valkey até o resultado final revisado |
 | `dossieproduto` | Operações atômicas do ciclo de vida do dossiê no MTR | `CriarDossieProduto`, `AtualizarFormularioDossieProduto`, `IncluirDocumentoDossieProduto`, `RegistrarValidacaoNegocialDossieProduto`, `IniciarOuAvancarWorkflowDossieProduto` |
 | `gestaodocumento` | Obtenção de credencial para o container documental | `ObterCredencialContainer` |
 
@@ -137,13 +137,18 @@ necessidade no plano e obter checkpoint humano de arquitetura.
 
 ### PoC de análise de conformidade em implementação
 
-O estado de produção implementado até a Task 7.2 inclui:
+O estado de produção implementado até a Task 8.3 inclui:
 
 - canais internos `flow-in` e `flow-out` com CloudEvent v1, sem connector ou broker;
 - shim de Messaging confinado ao adapter e à versão Flow `0.10.2`;
 - modelos imutáveis de solicitação, resultado, revisão e visão da análise;
 - validação determinística de cobertura, identidade, nomes e confiança;
-- porta de estado e store `ConcurrentHashMap` com transições atômicas;
+- porta documental neutra e seleção explícita de CouchDB em `dev/test` ou Cosmos DB for NoSQL
+  nos demais ambientes;
+- CouchDB como sistema de registro local da projeção e dos documentos de solicitação, checklist,
+  resultados, revisão, falha e emissões referenciais;
+- adapter Cosmos coberto por contrato determinístico com SDK mockado; a integração real permanece
+  gate externo obrigatório antes de promoção para PRD;
 - reserva interna compare-and-set para aceitar somente uma revisão por instância;
 - três portas e casos de uso de entrada para iniciar, consultar e revisar;
 - adapter REST v1 com DTOs próprios, JSON camelCase e `Location` relativo;
@@ -159,8 +164,11 @@ O estado de produção implementado até a Task 7.2 inclui:
   instância usado também pela projeção e pelo contrato REST;
 - início assíncrono sem espera bloqueante e etapa que acessa exclusivamente a porta
   `ConsultarChecklist`;
-- checklist copiado para o contexto do workflow com lista imutável; item nulo, checklist vazio e
-  falha técnica encerram o workflow e transitam a projeção para `FALHOU`;
+- contexto do workflow limitado às cinco identidades e à referência documental do checklist;
+  item nulo, checklist vazio e falha técnica encerram o workflow e transitam a projeção para
+  `FALHOU`;
+- etapas do workflow recarregam solicitação, checklist, resultado preliminar e revisão somente pela
+  porta documental e validam referência, SHA-256 e versão de schema antes de usar o conteúdo;
 - porta `AnalisarTextoComChecklist` e task `agent(...)` no workflow, com o identificador raiz da
   instância usado como `memoryId`;
 - capacidade Agentic sequencial `AplicadorChecklistAgent -> RevisorCoberturaAgent`, executada com
@@ -173,29 +181,58 @@ O estado de produção implementado até a Task 7.2 inclui:
   fonte única de repetição;
 - tracing textual integral do Flow desabilitado por padrão; spans próprios do workflow e do agente
   carregam somente identificadores, versão, quantidade, modelo, origem e estado;
-- evento `flow-out` complementado no adapter de Messaging com `source` estável e `time` UTC, sem
-  remover as extensões de correlação nativas do Flow;
+- eventos internos carregam somente `documentoRef`, `hashConteudo` e `versaoSchema`; o adapter de
+  Messaging complementa `source`, `time` e correlação sem inserir payload negocial;
+- `EventPublisher` documental persiste as emissões referenciais antes da confirmação do
+  `flow-out`;
+- feed nativo selecionado pelo backend: `_changes` com cursor persistido no CouchDB ou
+  `ChangeFeedProcessor` com container de leases no Cosmos, ambos entregando CloudEvents
+  referenciais validados ao `EventConsumer` do Flow;
+- na reserva da revisão, a projeção persiste primeiro `revisaoRef` e o fato imutável que dispara o
+  feed é criado depois; assim, o workflow só recebe uma referência já carregável, e uma repetição
+  pode completar o fato caso haja falha entre as duas escritas;
+- `quarkus-flow-redis` persiste checkpoints técnicos no Redis/Valkey; testes com Valkey comprovam
+  que texto, checklist, resultado e revisão completos não entram nos hashes e que uma instância
+  `WAITING` pode ser reconstruída após descarte do estado volátil;
+- uma prova automatizada com duas invocações Maven/JVM separadas e os mesmos CouchDB e Valkey
+  confirmou que a segunda JVM restaura uma instância `WAITING`, recebe a revisão e a conclui como
+  `COMPLETED`; essa evidência não representa execução simultânea nem failover entre pods;
+- um ambiente kind local executa duas réplicas da aplicação com CouchDB em `StatefulSet`/PVC e
+  Valkey compartilhado; cada réplica adquire uma Lease de membro do pool
+  `simtr-hub-conformidade`, readiness exige Lease, o controle sem RBAC permanece fora do Service e
+  o rolling restart preserva os nomes das Leases;
+- a prova cross-pod inicia a análise diretamente no owner identificado pelo `holderIdentity`,
+  envia a revisão por outra réplica e substitui o owner tanto antes quanto imediatamente depois do
+  aceite da revisão; a mesma Lease é assumida pelo pod substituto, o checkpoint e os dados
+  compartilhados sobrevivem, as duas réplicas consultam `CONCLUIDA` e cada correlação produz um
+  único fato de conclusão;
 - pausa real no `listen`, publicação assíncrona da revisão pelo `flow-in` e retomada somente da
   instância correlacionada;
 - dupla validação da revisão, antes da publicação e dentro do workflow retomado;
 - evento final e projeção `CONCLUIDA` com origem `REVISAO_HUMANA`.
 
 A projeção possui os estados `EM_PROCESSAMENTO`, `AGUARDANDO_REVISAO`, `CONCLUIDA` e `FALHOU`.
-Ela é exclusivamente volátil, não substitui o estado do Flow e não oferece recuperação após
-reinício. O POST cria a projeção `EM_PROCESSAMENTO` com as cinco identidades e inicia o Flow sem
+Ela pertence ao backend documental selecionado, não substitui o estado do Flow e preserva o
+conteúdo de negócio fora do Redis. O POST cria a projeção `EM_PROCESSAMENTO` com as cinco
+identidades e inicia o Flow sem
 aguardar a consulta; o resultado preliminar publicado em `flow-out` projeta
 `AGUARDANDO_REVISAO`; o PUT localiza por `instanceId`, valida as identidades persistidas, reserva
-atomicamente e publica a revisão em `flow-in`; e o workflow correlacionado retoma até projetar
-`CONCLUIDA` sem trocar as identidades. A entrega interna continua sem garantia durável ou
-recuperação após falha, e a página da PoC ainda não está implementada.
+atomicamente e publica somente sua referência em `flow-in`; e o workflow correlacionado recarrega
+o documento, retoma e projeta `CONCLUIDA` sem trocar as identidades. A espera do Flow possui
+checkpoint Redis/Valkey e a entrega usa o feed documental nativo, com cursor ou lease persistente
+conforme o backend. A página da PoC ainda não está implementada.
 
 ### Evolução durável aprovada e ainda não concluída
 
-O ADR-0010 permanece `Proposto`, embora os checkpoints C4, C5 e C6 já tenham autorizado sua
-implementação incremental. O estado parcial da Task 7.3 contém a porta documental neutra, o
-contrato executável compartilhado e adapters em memória e CouchDB testados. O adapter CouchDB
-ainda não está selecionado no runtime normal; Cosmos, seleção por ambiente, Compose Dev Services,
-`EventPublisher`, feed durável e checkpoints Redis/Valkey ainda não estão implementados.
+O ADR-0010 permanece `Proposto`, embora os checkpoints C4 a C9 já tenham autorizado sua
+implementação incremental. As Tasks 7.3 a 7.6 implementaram a porta documental neutra, a seleção
+por ambiente, CouchDB local com Compose Dev Services, adapter Cosmos contratualmente mockado,
+`EventPublisher` referencial, checkpoint Redis/Valkey mínimo, feed documental nativo e prova de
+restart sequencial entre JVMs. A advertência de configuração desconhecida para
+`quarkus.flow.persistence.auto-restore` ainda é emitida pela versão Flow `0.10.2`, embora a
+restauração padrão tenha sido comprovada funcional. O empacotamento local, as duas réplicas e a
+prova cross-pod/failover foram concluídos nas Tasks 8.1 a 8.3. Permanecem pendentes o gate Cosmos
+real pré-PRD e a decisão humana posterior; por isso o ADR ainda não é tratado como aceito.
 
 C6 estabelece Quarkus reativo sempre que a API suportar:
 
@@ -214,9 +251,10 @@ event loop permanecem proibidos.
 A mesma evolução prevê CouchDB `3.5.2` iniciado automaticamente por
 `compose-devservices.yml` no `quarkus:dev`, Azure Cosmos DB for NoSQL em PRD autenticado por
 Microsoft Entra ID com Managed Identity ou Workload Identity e RBAC de plano de dados de menor
-privilégio, sem chave ou connection string. O ambiente Kubernetes local posterior será validado
-com kind ou k3d e duas réplicas da aplicação; esses itens continuam sendo estado planejado, não
-capacidade atual.
+privilégio, sem chave ou connection string. O ambiente kind local com duas réplicas, Leases,
+readiness e rolling restart foi validado; a retomada cross-pod e o failover do pod owner também
+foram comprovados com CouchDB e Valkey compartilhados continuamente disponíveis. Essa prova local
+não amplia o escopo para perda, reinício ou alta disponibilidade dos próprios backends.
 
 Um futuro orquestrador do mesmo domínio pode compor portas de entrada atômicas. Ao atravessar um
 domínio, usa uma porta de saída do consumidor e uma camada anticorrupção. Dentro do mesmo processo,
@@ -315,11 +353,14 @@ contrato, arquitetura, segurança ou comportamento observável exigem checkpoint
 
 - o Hub não faz upload para Azure Blob Storage;
 - não mantém cache nem renova SAS;
-- possui runtime Flow, ponte interna, API, agente Ollama e pausa/retomada HITL completa no mesmo
-  processo, mas sem entrega durável ou recuperação após falha;
+- possui runtime Flow, feed documental nativo, API, agente Ollama e pausa/retomada HITL; a espera
+  possui checkpoint Redis/Valkey restaurável e a entrega possui cursor CouchDB ou leases Cosmos,
+  com restart sequencial entre duas JVMs, identidade por Lease e readiness de duas réplicas no
+  kind comprovados; no ambiente kind, revisão por outra réplica e substituição do owner antes ou
+  depois do aceite também foram comprovadas enquanto os backends permaneceram disponíveis;
 - não possui MCP Server ou tools;
-- o runtime normal ainda usa a projeção volátil; o adapter CouchDB parcial existe e está coberto
-  por contrato, mas seleção por ambiente e recuperação completa ainda não estão concluídas;
+- o runtime usa a projeção documental do backend selecionado; CouchDB é real no ambiente local e
+  Cosmos permanece mockado com gate real obrigatório antes de PRD;
 - não calcula árvore documental nem executa ainda a análise de conformidade ponta a ponta;
 - não implementa os cinco endpoints ausentes listados acima.
 

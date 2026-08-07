@@ -1,6 +1,9 @@
 package br.gov.caixa.simtr.hub.conformidade.aplicacao.workflow;
 
+import br.gov.caixa.simtr.hub.conformidade.adaptador.saida.memoria.AnaliseConformidadeMemoryStore;
+import br.gov.caixa.simtr.hub.conformidade.aplicacao.documento.ReferenciasDocumentoAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.entrada.ConsultarChecklist;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import br.gov.caixa.simtr.hub.conformidade.dominio.erro.FalhaAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.ApontamentoChecklist;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.Checklist;
@@ -33,9 +36,12 @@ class ConsultarChecklistEtapaTest {
         var controlado = new CompletableFuture<Checklist>();
         var consultar = new ConsultarChecklistFake(
                 Uni.createFrom().completionStage(controlado));
-        var etapa = new ConsultarChecklistEtapa(consultar);
+        var store = storeIniciado();
+        var etapa = etapa(consultar, store);
 
-        var resultado = etapa.executar(SOLICITACAO);
+        var resultado = etapa.executar(
+                "instancia-1",
+                ContextoAnaliseConformidadeFlow.inicial(SOLICITACAO));
         var futuro = resultado.subscribeAsCompletionStage().toCompletableFuture();
 
         assertFalse(futuro.isDone());
@@ -50,10 +56,11 @@ class ConsultarChecklistEtapaTest {
 
         assertEquals(SOLICITACAO.correlationId(), contexto.correlationId());
         assertEquals(SOLICITACAO.identificadorDocumento(), contexto.identificadorDocumento());
-        assertEquals("Texto documental", contexto.texto());
-        assertEquals(1, contexto.checklist().apontamentos().size());
+        Checklist persistido = store.carregarChecklist(
+                "instancia-1", contexto.checklistRef()).await().indefinitely();
+        assertEquals(1, persistido.apontamentos().size());
         List<ApontamentoChecklist> apontamentosCongelados =
-                contexto.checklist().apontamentos();
+                persistido.apontamentos();
         assertThrows(
                 UnsupportedOperationException.class,
                 apontamentosCongelados::clear);
@@ -61,13 +68,17 @@ class ConsultarChecklistEtapaTest {
 
     @Test
     void rejeitaItemNuloEChecklistSemApontamentos() {
-        var etapaNula = new ConsultarChecklistEtapa(
-                comando -> Uni.createFrom().nullItem());
-        var etapaVazia = new ConsultarChecklistEtapa(
-                comando -> Uni.createFrom().item(checklist(List.of())));
+        var storeNulo = storeIniciado();
+        var storeVazio = storeIniciado();
+        var etapaNula = etapa(
+                comando -> Uni.createFrom().nullItem(), storeNulo);
+        var etapaVazia = etapa(
+                comando -> Uni.createFrom().item(checklist(List.of())), storeVazio);
 
-        FalhaAnaliseConformidade nula = falhaDa(etapaNula.executar(SOLICITACAO));
-        FalhaAnaliseConformidade vazia = falhaDa(etapaVazia.executar(SOLICITACAO));
+        FalhaAnaliseConformidade nula = falhaDa(etapaNula.executar(
+                "instancia-1", ContextoAnaliseConformidadeFlow.inicial(SOLICITACAO)));
+        FalhaAnaliseConformidade vazia = falhaDa(etapaVazia.executar(
+                "instancia-1", ContextoAnaliseConformidadeFlow.inicial(SOLICITACAO)));
 
         assertEquals(FalhaAnaliseConformidade.Tipo.CHECKLIST_INVALIDO, nula.tipo());
         assertEquals(FalhaAnaliseConformidade.Tipo.CHECKLIST_INVALIDO, vazia.tipo());
@@ -76,9 +87,12 @@ class ConsultarChecklistEtapaTest {
     @Test
     void propagaFalhaDaConsultaSemRetryAdicional() {
         var falhaEsperada = new IllegalStateException("falha parametrização");
-        var etapa = new ConsultarChecklistEtapa(
-                comando -> Uni.createFrom().failure(falhaEsperada));
-        var resultado = etapa.executar(SOLICITACAO)
+        var etapa = etapa(
+                comando -> Uni.createFrom().failure(falhaEsperada),
+                storeIniciado());
+        var resultado = etapa.executar(
+                        "instancia-1",
+                        ContextoAnaliseConformidadeFlow.inicial(SOLICITACAO))
                 .subscribeAsCompletionStage()
                 .toCompletableFuture();
 
@@ -87,6 +101,21 @@ class ConsultarChecklistEtapaTest {
                 resultado::join);
 
         assertSame(falhaEsperada, falha.getCause());
+    }
+
+    private static ConsultarChecklistEtapa etapa(
+            ConsultarChecklist consultar,
+            AnaliseConformidadeMemoryStore store) {
+        return new ConsultarChecklistEtapa(
+                consultar,
+                store,
+                new ReferenciasDocumentoAnaliseConformidade(new ObjectMapper()));
+    }
+
+    private static AnaliseConformidadeMemoryStore storeIniciado() {
+        var store = new AnaliseConformidadeMemoryStore();
+        store.iniciar("instancia-1", SOLICITACAO).await().indefinitely();
+        return store;
     }
 
     private static FalhaAnaliseConformidade falhaDa(

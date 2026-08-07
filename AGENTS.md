@@ -58,6 +58,20 @@ Checkpoints humanos adicionais são obrigatórios antes de mudanças em:
 - Antes de encerrar um incremento, revise correção, simplicidade, arquitetura, segurança,
   desempenho, testes e escopo do diff.
 
+## Commits por task
+
+- Toda task que produza uma fatia coerente de código, teste ou tooling e alcance GREEN nas
+  verificações previstas deve terminar com um commit próprio na branch da feature antes do início
+  da próxima task.
+- Inclua no commit somente o escopo da task, seus testes e a documentação/evidência correspondente;
+  use mensagem descritiva no formato `<tipo>: <intenção>`.
+- Não crie o commit enquanto houver teste obrigatório falhando, checkpoint técnico pendente ou
+  decisão humana exigida por uma situação `NON_COMPLIANT`.
+- Se o worktree contiver alterações alheias que não possam ser separadas com segurança, preserve-as
+  e peça orientação ao usuário em vez de incluí-las silenciosamente.
+- Um commit consolidado de várias tasks só é permitido por solicitação humana explícita e deve
+  registrar claramente o intervalo consolidado.
+
 ## Checkpoints SonarQube
 
 Primeiro classifique o escopo do pedido:

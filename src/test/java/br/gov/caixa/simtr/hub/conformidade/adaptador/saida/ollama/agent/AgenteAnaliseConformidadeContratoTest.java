@@ -51,4 +51,16 @@ class AgenteAnaliseConformidadeContratoTest {
         assertTrue(RevisorCoberturaAgent.SYSTEM_PROMPT.contains("não invente identificadores"));
         assertTrue(RevisorCoberturaAgent.SYSTEM_PROMPT.contains("saída JSON estruturada"));
     }
+
+    @Test
+    void promptsExigemCamposObrigatoriosFundamentadosNoDocumento() {
+        assertTrue(AplicadorChecklistAgent.SYSTEM_PROMPT.contains("resumo não pode ser vazio"));
+        assertTrue(AplicadorChecklistAgent.SYSTEM_PROMPT.contains("justificativa não pode ser vazia"));
+        assertTrue(AplicadorChecklistAgent.SYSTEM_PROMPT.contains("trecho literal do documento"));
+        assertTrue(AplicadorChecklistAgent.SYSTEM_PROMPT.contains("chave JSON confianca"));
+        assertTrue(RevisorCoberturaAgent.SYSTEM_PROMPT.contains("resumo não pode ser vazio"));
+        assertTrue(RevisorCoberturaAgent.SYSTEM_PROMPT.contains("justificativa não pode ser vazia"));
+        assertTrue(RevisorCoberturaAgent.SYSTEM_PROMPT.contains("trecho literal do documento"));
+        assertTrue(RevisorCoberturaAgent.SYSTEM_PROMPT.contains("chave JSON confianca"));
+    }
 }

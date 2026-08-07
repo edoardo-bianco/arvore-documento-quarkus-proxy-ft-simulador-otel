@@ -12,19 +12,45 @@ public interface ArmazenarEstadoAnaliseConformidade {
 
     Uni<Void> iniciar(String instanceId, SolicitacaoAnaliseConformidade solicitacao);
 
+    Uni<SolicitacaoAnaliseConformidade> carregarSolicitacao(String instanceId);
+
     Uni<Void> registrarChecklist(String instanceId, Checklist checklist);
+
+    Uni<Checklist> carregarChecklist(
+            String instanceId,
+            ReferenciaDocumentoAnaliseConformidade referencia);
 
     Uni<Void> aguardarRevisao(
             String instanceId,
             ResultadoAnaliseConformidade resultado);
 
+    Uni<Void> prepararResultadoPreliminar(
+            String instanceId,
+            ResultadoAnaliseConformidade resultado,
+            ReferenciaDocumentoAnaliseConformidade referencia);
+
+    Uni<ResultadoAnaliseConformidade> carregarResultadoPreliminar(
+            String instanceId,
+            ReferenciaDocumentoAnaliseConformidade referencia);
+
     Uni<Void> reservarRevisao(
             String instanceId,
             RevisaoHumanaConformidade revisao);
 
+    Uni<RevisaoHumanaConformidade> carregarRevisao(
+            String instanceId,
+            ReferenciaDocumentoAnaliseConformidade referencia);
+
     Uni<Void> concluir(
             String instanceId,
             ResultadoAnaliseConformidade resultado);
+
+    Uni<Void> prepararResultadoFinal(
+            String instanceId,
+            ResultadoAnaliseConformidade resultado,
+            ReferenciaDocumentoAnaliseConformidade referencia);
+
+    Uni<Void> registrarEmissao(EmissaoReferencialAnaliseConformidade emissao);
 
     Uni<Void> falhar(
             String instanceId,

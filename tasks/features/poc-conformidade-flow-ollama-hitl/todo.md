@@ -6,8 +6,7 @@
 - **Escopo:** concluir baseline HITL volátil e evoluir para persistência documental
   neutra, com CouchDB em DES, Azure Cosmos DB for NoSQL em PRD, Redis/Valkey para
   checkpoints e entrega referencial sem broker
-- **Próximo item:** 7.3 — concluir o `EventPublisher` referencial e a integração
-  Cosmos opt-in; os feeds nativos permanecem na Task 7.5
+- **Próximo item:** 9.1 — criar página estática com polling e cinco valores de identidade
 - **Especificação:** `doc/poc/especificacao-poc-conformidade-quarkus-flow-ollama-hitl-sem-broker.md`
 - **Plano:** `tasks/features/poc-conformidade-flow-ollama-hitl/plan.md`
 - **Baseline Sonar:** SonarQube Docker local, inicializado em 2026-07-24
@@ -51,16 +50,18 @@
   CouchDB automático no `quarkus:dev` e desenho do Kubernetes local;
 - [x] C7 Aprovar `correlationid` como nome da extensão CloudEvent compatível com a
   especificação, preservando `correlationId` na API, nos documentos e nos modelos;
-- [ ] 7.3 Persistir documentos de negócio e projeção pela porta neutra, com adapters
+- [x] C8 Aprovar CouchDB como integração local e Cosmos validado por contrato
+  determinístico/SDK mockado, mantendo o gate real antes da promoção para PRD;
+- [x] 7.3 Persistir documentos de negócio e projeção pela porta neutra, com adapters
   CouchDB e Cosmos DB for NoSQL;
-- [ ] 7.4 Reduzir contexto e habilitar checkpoint Redis/Valkey;
-- [ ] 7.5 Completar `EventPublisher` + feed nativo do backend -> `EventConsumer` ->
+- [x] 7.4 Reduzir contexto e habilitar checkpoint Redis/Valkey;
+- [x] 7.5 Completar `EventPublisher` + feed nativo do backend -> `EventConsumer` ->
   CloudEvent com idempotência;
-- [ ] 7.6 Executar suíte e checkpoint Sonar do incremento 7;
-- [ ] 8.1 Empacotar app, CouchDB, Redis/Valkey e Ollama para uma réplica;
-- [ ] 8.2 Configurar Kubernetes Leases, readiness e duas réplicas;
-- [ ] 8.3 Provar retomada cross-pod e failover;
-- [ ] 8.4 Executar suíte e checkpoint Sonar do incremento 8;
+- [x] 7.6 Executar suíte e checkpoint Sonar do incremento 7;
+- [x] 8.1 Empacotar app, CouchDB, Redis/Valkey e Ollama para uma réplica;
+- [x] 8.2 Configurar Kubernetes Leases, readiness e duas réplicas;
+- [x] 8.3 Provar retomada cross-pod e failover;
+- [x] 8.4 Executar suíte e checkpoint Sonar do incremento 8;
 - [ ] 9.1 Criar página estática com polling e cinco valores de identidade;
 - [ ] 9.2 Fechar observabilidade e guardrails arquiteturais;
 - [ ] 9.3 Atualizar README, consolidado arquitetural e ADRs conforme estado comprovado;
@@ -682,6 +683,372 @@
   nenhuma mudança executável foi feita antes dessa decisão humana;
 - `C7 GO` recebido do usuário em 2026-08-02 aprovou essa recomendação e liberou a
   continuação da Task 7.3, sem autorizar alteração de casing nas demais bordas.
+- esclarecimento humano recebido em 2026-08-02 para o `data` referencial da Task
+  7.3: `documentoRef` é `String` opaca gerada internamente e validada contra o ID
+  determinístico; `hashConteudo` é `String` SHA-256 hexadecimal minúscula validada
+  contra o documento canônico; `versaoSchema` permanece `Short`, inicialmente `1`.
+- o `EventPublisher` referencial persiste somente emissões de conformidade pela
+  porta documental neutra, propaga a conclusão assíncrona sem bloquear e ignora
+  tipos de outros workflows;
+- o bytecode efetivo do `WorkflowApplicationCreator` do Flow `0.10.2` confirmou a
+  descoberta CDI de todos os beans `EventPublisher`; um teste de bootstrap Quarkus
+  comprovou exatamente uma instância do publisher documental no runtime;
+- os testes focados do mapper, decorator, publisher, canais internos e workflow
+  terminaram com código 0; a suíte completa registrou 127 relatórios, 526 testes,
+  0 falhas, 0 erros e 2 testes ignorados;
+- o gate Cosmos opt-in permanece `UNVERIFIED`: `COSMOS_INTEGRATION_ENABLED`,
+  `COSMOS_ENDPOINT`, `COSMOS_DATABASE` e `COSMOS_CONTAINER` não estavam presentes
+  no processo de 2026-08-03; nenhum valor de credencial foi solicitado ou exibido;
+- após a decisão `ContinuarAjustes`, o ambiente foi verificado novamente sem exibir
+  valores e as quatro variáveis continuavam ausentes; a execução isolada de
+  `CosmosDbAnaliseConformidadeStoreOptInTest` descobriu 1 teste e o ignorou pelo
+  opt-in desabilitado, mantendo o gate `UNVERIFIED`;
+- o checkpoint Sonar do publisher terminou `NON_COMPLIANT`: 242 issues atuais e no
+  baseline, nenhuma issue nova, cobertura de 85,0%, duplicação de 2,7% e duas issues
+  `CRITICAL`/impacto HIGH da regra `java:S1192` nas linhas 341 e 345 de
+  `DocumentoAnaliseConformidadeStore`;
+- a decisão humana `ContinuarAjustes` foi registrada pelo script em 2026-08-03; os
+  dois literais passaram a reutilizar as constantes já existentes, sem alterar as
+  chaves JSON ou o comportamento;
+- os contratos dos stores em memória, CouchDB real e Cosmos determinístico passaram
+  com código 0; a reexecução Sonar terminou `COMPLIANT`, com 240 issues atuais contra
+  242 no baseline, nenhuma issue nova ou bloqueante, cobertura de 85,0%, duplicação
+  de 2,7% e decisão `NOT_REQUIRED`;
+- decisão humana C8 recebida em 2026-08-03: CouchDB permanece como integração local;
+  Cosmos deve ser validado por contrato determinístico e SDK mockado nesta etapa;
+  o teste real continua opt-in e não bloqueia a Task 7.3, mas permanece obrigatório
+  antes de qualquer promoção para PRD;
+- a matriz focada aprovada no C8 executou CouchDB `3.5.2` em container real, contrato
+  Cosmos com repositório determinístico, APIs do Azure Cosmos DB Java SDK v4
+  mockadas, seleção do backend e `EventPublisher`: 40 testes, 0 falhas, 0 erros e
+  0 ignorados;
+- a Task 7.3 foi concluída; a integração Cosmos real continua pendente somente como
+  gate externo obrigatório antes de qualquer promoção para PRD e não foi declarada
+  verificada por esses mocks.
+
+### Task 7.4 — Contexto referencial e checkpoint Redis/Valkey
+
+- `quarkus-flow-redis` foi habilitado e a integração usa Valkey `7.2-alpine` nos
+  testes, mantendo os dados completos de negócio no backend documental;
+- o contexto do workflow passou a carregar somente as cinco identidades e a
+  referência documental do checklist; cada etapa recarrega e valida o conteúdo pela
+  porta documental antes de usá-lo;
+- o teste `checkpointRedisEhReferencialERestauraInstanciaEmEspera` comprovou que o
+  hash persistido não contém texto, checklist, resultado ou revisão completos e que
+  uma instância `WAITING` pode ser reconstruída pelos handlers após descarte do
+  estado volátil no mesmo processo;
+- a limitação já registrada em `compatibilidade.md` permanece: essa evidência não é
+  restart real da aplicação nem prova cross-pod/failover, itens posteriores do plano;
+- a primeira suíte completa registrou 542 testes aprovados; o checkpoint Sonar ficou
+  `NON_COMPLIANT`, com cobertura de 84,9%, duplicação de 2,6% e duas issues novas
+  (`java:S5778` e `java:S1612`); a decisão humana `ContinuarAjustes` foi registrada;
+- o primeiro ajuste removeu `java:S1612`, mas os novos testes de validação ainda não
+  contribuíam para o JaCoCo por executarem fora do classloader instrumentado; o novo
+  checkpoint registrou 552 testes aprovados, 241 issues contra 242 no baseline,
+  cobertura de 84,9% e duplicação de 2,6%; nova decisão humana
+  `ContinuarAjustes` foi registrada em 2026-08-04;
+- o ajuste final isolou o `Uni` fora da lambda indicada por `java:S5778` e executou
+  `ContextoAnaliseConformidadeFlowTest` com `@QuarkusTest`, cobrindo integralmente as
+  validações do envelope referencial;
+- o checkpoint final terminou `COMPLIANT`: 240 issues atuais contra 242 no baseline,
+  nenhuma issue nova ou bloqueante, cobertura de 85,1%, duplicação de 2,6% e decisão
+  `NOT_REQUIRED`; 128 relatórios Surefire registraram 552 testes, 0 falhas, 0 erros e
+  2 testes opt-in ignorados;
+- a Task 7.4 foi concluída sem iniciar qualquer alteração da Task 7.5.
+
+### Task 7.5 — Feed documental nativo e retomada correlacionada
+
+- o runtime passou a registrar somente o `EventPublisher` documental e o
+  `FeedNativoEventConsumer`; a ponte volátil padrão não permanece ativa;
+- o feed CouchDB usa `_changes` com cursor persistido no próprio banco e só confirma
+  a sequência após entrega aceita; o adapter reconstruído retomou do cursor salvo em
+  teste com CouchDB `3.5.2` real;
+- o feed Cosmos configura `ChangeFeedProcessor` com container de leases persistente;
+  seu contrato mockado comprovou ciclo de vida, descarte observável de documento
+  inválido e propagação de falha de entrega para retry;
+- documentos de revisão persistidos são convertidos em CloudEvents referenciais com
+  `id` determinístico, `flowinstanceid`, `flowtaskid`, `correlationid`,
+  `documentoRef`, `hashConteudo` e `versaoSchema`, rejeitando adulteração antes da
+  entrega;
+- RED: o E2E completo executou 7 cenários, com 4 aprovados e 3 falhas de retomada; a
+  causa foi `extensionByInstanceId`, cujo predicado tentava materializar a interface
+  `CloudEvent` por conversão Jackson;
+- GREEN: a espera passou a usar correlação declarativa entre `.flowinstanceid` e
+  `$workflow.id`; os 7 cenários E2E aprovaram PUT após persistência, retomada HITL,
+  isolamento entre instâncias, duplicação, restauração referencial e falhas
+  sanitizadas;
+- a matriz focada aprovou 35 testes do feed, runtime, mappers, publisher e E2E; o
+  teste adicional de cursor CouchDB aprovou 1/1 em execução Maven isolada. Quando
+  misturado aos dois contextos `@QuarkusTest` no mesmo fork, o ServiceLoader de
+  MicroProfile Context apresentou conflito de classloader; a suíte completa deverá
+  confirmar ou tratar essa interferência na Task 7.6;
+- o stack trace diagnóstico temporário do retry de `_changes` foi removido, mantendo
+  apenas mensagem operacional sanitizada; a busca negativa no `pom.xml` e no código
+  de conformidade não encontrou Kafka, AMQP ou Reactive Messaging;
+- a advertência já registrada para `quarkus.flow.persistence.auto-restore` permanece
+  fora deste ajuste. A Task 7.6 e seu checkpoint Sonar ainda não foram iniciados.
+
+### Task 7.6 — Suíte, compatibilidade e restart
+
+- decisão humana C9 recebida em 2026-08-05: proceder com a recomendação de alinhar o
+  teste de cursor ao harness `@QuarkusTest`, executar o spike pareado Flow
+  `0.13.0`/LangChain4j `1.12.0` e comprovar restart entre processos JVM;
+- a prova desta task continua limitada a uma réplica e aos mesmos backends; Lease,
+  roteamento cross-pod e failover permanecem na Task 8.3;
+- as versões candidatas só serão retidas se dependency tree, compilação, bootstrap,
+  matriz focada, E2E e configuração de auto-restore forem compatíveis; caso
+  contrário, o POM volta às versões aprovadas e a incompatibilidade fica registrada.
+- o teste de cursor foi convertido para `@QuarkusTest`, reutiliza o
+  `CouchDbQuarkusTestResource` e desabilita somente o feed de runtime no perfil
+  próprio; a matriz mínima com três contextos passou sem `ServiceConfigurationError`;
+- a matriz ampla confirmou o cursor sem erro de classloader, mas expôs novamente a
+  intermitência da segunda instância correlacionada no E2E 0.10.2; a classe-base do
+  Flow foi inspecionada e comprovou que ela já multiplexa os registros por tipo, de
+  modo que nenhuma alteração especulativa foi feita no adapter;
+- o spike Flow `0.13.0`/LangChain4j `1.12.0` compilou e resolveu
+  Serverless Workflow `7.25.1.Final` e CloudEvents `4.1.1`, mas o bootstrap falhou
+  por dois beans CDI `@Default` de `AgenteAnaliseConformidade`; o POM voltou a
+  `0.10.2`/`1.11.2` e recompilou com sucesso;
+- a prova opt-in `AnaliseConformidadeRestartEntreJvmTest`, orquestrada por
+  `validar-restart-conformidade.ps1`, executou duas invocações Maven/JVM separadas
+  contra o mesmo CouchDB e o mesmo Valkey efêmeros: a primeira persistiu uma
+  instância `WAITING` e a segunda restaurou, recebeu a revisão e concluiu a mesma
+  instância como `COMPLETED`;
+- o `ValkeyQuarkusTestResource` permanece global para manter Redis ativo nos
+  contextos Quarkus da suíte, mas não inicia container quando a prova opt-in informa
+  `restart.proof.enabled=true`; assim, as duas JVMs preservam o endpoint Valkey
+  externo compartilhado;
+- a advertência de `quarkus.flow.persistence.auto-restore` continua sendo emitida
+  por Flow `0.10.2`, mas a prova entre JVMs demonstrou que o auto-restore padrão
+  funciona. A validação global de configuração não foi desabilitada;
+- os containers da prova foram removidos ao final. Restart cross-pod, Lease e
+  failover continuam fora desta evidência e permanecem nas Tasks 8.2/8.3;
+- a primeira suíte completa revelou que restringir o recurso Valkey ao E2E
+  desativava Redis nos demais contextos Quarkus; o recurso voltará a ser global na
+  suíte normal e preservará o endpoint externo apenas na prova opt-in;
+- a mesma execução reproduziu uma janela de consistência: o `_changes` pode observar
+  o fato de revisão antes de a projeção persistir `revisaoRef`, fazendo o Flow
+  consumir o evento antes de conseguir carregar sua referência. O plano foi
+  atualizado antes do ajuste para ordenar a reserva de forma recuperável;
+- GREEN: a projeção agora reserva `revisaoRef` antes da criação do fato imutável que
+  dispara o `_changes`; repetição após falha intermediária completa o fato ausente e
+  concorrência contraditória não cria evento órfão. A matriz focal, os contratos dos
+  adapters CouchDB/Cosmos e a prova posterior entre duas JVMs passaram;
+- `mvn -q test` aprovou a suíte completa com 562 testes, 0 falhas, 0 erros e 4
+  ignorados; o teste de restart permanece opt-in na suíte padrão;
+- o baseline da sessão foi inicializado somente no fechamento da task, depois das
+  alterações, e por isso não foi usado isoladamente para afirmar ausência de
+  regressão. O checkpoint oficial terminou `NON_COMPLIANT`, com 256 issues atuais
+  e no baseline tardio, 0 issues novas nessa comparação, cobertura de 83,0%,
+  duplicação de 2,5% e 3 issues `CRITICAL`/impacto HIGH da regra `java:S1192`;
+- a comparação compensatória com a análise anterior de 2026-08-04 encontrou 240
+  issues anteriores contra 256 atuais e 16 issues abertas criadas depois daquela
+  análise. As três impeditivas pedem constantes para `"Cursor CouchDB inválido"`,
+  `"versaoSchema"` e `"hashConteudo"`; a decisão humana `ContinuarAjustes` foi
+  registrada pelo script;
+- as 16 issues novas foram corrigidas e seis classes de teste foram alinhadas ao
+  harness `@QuarkusTest`; antes do ajuste final de cobertura, a suíte aprovou 562
+  testes, sem falhas ou erros e com 4 testes opt-in ignorados;
+- oito cenários úteis foram acrescentados a `CloudEventMapperTest` e
+  `CosmosChangeFeedTest`: integridade do documento referencial, tipo/source
+  divergentes, envelope ausente/JSON inválido, recuperação após falha de início,
+  `close` idempotente, filtragem de lotes e limites do hostname;
+- a matriz focada final aprovou 23 testes, sem falhas, erros ou ignorados; a suíte
+  completa final aprovou 570 testes, 0 falhas, 0 erros e 4 ignorados;
+- `validar-restart-conformidade.ps1` repetiu com sucesso as duas fases em JVMs
+  distintas contra os mesmos CouchDB e Valkey efêmeros, removidos ao final;
+- a sessão de 2026-08-06 também precisou inicializar o baseline depois dos ajustes;
+  por isso a comparação baseline/checkpoint desta sessão não é usada isoladamente
+  para afirmar ausência de regressão. A comparação compensatória voltou de 256 para
+  as 240 issues da análise de 2026-08-04, consistente com a correção líquida das 16
+  issues sem acréscimo;
+- o checkpoint formal terminou `COMPLIANT`: 240 issues atuais contra 240 no baseline
+  tardio da sessão, 0 novas, nenhuma issue `HIGH`, `BLOCKER` ou `CRITICAL`, cobertura
+  de 85,2%, duplicação de 2,5% e decisão `NOT_REQUIRED`;
+- a Task 7.6 está tecnicamente concluída. O próximo item é a Task 8.1; cross-pod,
+  Lease e failover continuam fora desta evidência e permanecem nas Tasks 8.2/8.3.
+- a validação real posterior confirmou `llama3.2:3b` instalado no Ollama local. A
+  integração opt-in da aplicação executou o adapter real, concluiu a chamada em
+  aproximadamente 16,8 s, produziu `OrigemResultado.AGENTE` e passou sem fallback;
+  uma inferência direta pela CLI, fora de JUnit e Quarkus, também terminou com código
+  0. A resposta livre foi `OLLMAMOK` em vez do texto exato solicitado, registrando
+  aderência textual imperfeita sem invalidar a prova estruturada da aplicação.
+- decisão humana recebida em 2026-08-06: a PoC de containers e múltiplos pods assume
+  Redis/Valkey compartilhado e disponível; perda, restart, alta disponibilidade ou
+  recuperação do próprio Redis/Valkey ficam fora do escopo. As Tasks 8.1/8.3 devem
+  provar restart/failover somente da aplicação, mantendo os backends disponíveis.
+- decisão humana recebida em 2026-08-06 para a Task 8.1: reutilizar o Ollama e os
+  modelos já instalados no host, sem baixar ou manter uma segunda cópia em volume
+  Docker. A conectividade foi comprovada fora de testes: `ollama list` encontrou
+  `llama3.2:3b` e a imagem da aplicação consultou com sucesso `/api/tags` por
+  `host.docker.internal:11434`. A forma de acesso do Kubernetes fica para a Task 8.2.
+- checkpoint humano de segurança aprovado em 2026-08-06: desabilitar somente no
+  Compose local da PoC o tenant OIDC e o cliente OIDC padrão. A autorização não altera
+  os perfis `dev` ou produtivo e não autoriza remover as extensões da aplicação.
+
+### Task 8.1 — Empacotamento local de uma réplica
+
+- foi criado um empacotamento JVM `fast-jar` sobre UBI 9/OpenJDK 25, executado como
+  usuário não root, com `curl` disponível para healthcheck e preflight;
+- `compose-poc.yml` sobe uma réplica da aplicação, CouchDB `3.5.2` e Valkey
+  `7.2-alpine`; somente o CouchDB possui volume nomeado. O Valkey permanece sem
+  persistência própria porque perda, restart e HA desse backend estão fora da PoC;
+- o Compose reutiliza `llama3.2:3b` já instalado no Ollama do host por
+  `host.docker.internal:11434`. O serviço `ollama-check` consulta `/api/tags` e
+  impede o início da aplicação quando o modelo configurado não está disponível;
+- credenciais CouchDB e API key são obrigatórias e permanecem somente no ambiente;
+  o arquivo de exemplo não contém valores sensíveis. Tenant e cliente OIDC ficam
+  desabilitados exclusivamente no perfil local `poc` configurado pelo Compose. A
+  revisão final restringiu as portas da aplicação, CouchDB e Valkey a `127.0.0.1`,
+  evitando exposição à rede local durante a execução sem OIDC;
+- RED/GREEN do contrato `PocContainersConfigurationTest.ps1` cobriu Dockerfile,
+  serviços, healthchecks, credenciais externas, ausência de imagem/volume Ollama e
+  `docker compose config --no-interpolate`; a execução final terminou GREEN;
+- a validação fora dos testes confirmou `ollama list`, acesso a `/api/tags` a partir
+  da imagem da aplicação e duas respostas HTTP 200 do `llama3.2:3b` no fluxo real.
+  O contrato dos prompts passou a exigir resumo/justificativas preenchidos, evidência
+  literal ou nula e a chave canônica `confianca`; o DTO aceita também o alias
+  `confiança` observado na borda do modelo;
+- a saída real permaneceu segura: o revisor alterou nomes autoritativos de três
+  apontamentos, a validação determinística recusou a saída e o fluxo produziu
+  `FALLBACK_TECNICO` completo para revisão humana, sem corrigir semanticamente a
+  resposta do modelo de forma silenciosa;
+- o modelo também copiou descrições do checklist no campo de evidência, apesar da
+  proibição do prompt. Nesta execução a divergência de nomes já forçou fallback,
+  mas o mapper ainda não confronta evidência com o texto original; essa limitação
+  fica registrada para os guardrails da Task 9.2 e não é tratada como evidência
+  confiável desta PoC;
+- a análise sintética `DOC-POC-CONTAINER-004`, instância
+  `01KZC3JF8T9Q8SJ3SQ9MCFVH48` e correlação
+  `05325a8c-f5a1-42f0-9e25-a4e8f614bbea`, percorreu
+  `EM_PROCESSAMENTO -> AGUARDANDO_REVISAO -> CONCLUIDA`, com seis apontamentos
+  finais. Depois do restart somente de `simtr-hub`, readiness voltou `UP` e a mesma
+  análise concluída, correlação e revisão foram recuperadas, mantendo CouchDB e
+  Valkey ativos. No encerramento, `docker compose down` removeu somente containers
+  e rede; nenhum container da PoC permaneceu e o volume
+  `simtr-hub-poc_couchdb-conformidade-data` foi preservado;
+- `mvn -q test` aprovou 573 testes, 0 falhas, 0 erros e 4 ignorados. Os ignorados são
+  gates explícitos: um Cosmos real, duas fases da prova entre JVMs e um Ollama real;
+  a integração Ollama desta task foi comprovada externamente à suíte padrão;
+- a primeira tentativa do checkpoint foi interrompida por dois testes intermitentes
+  de captura do `InMemorySpanExporter`; ambos passaram juntos na repetição focada,
+  sem alteração de produção. A repetição completa do checkpoint terminou
+  `COMPLIANT`: 240 issues atuais contra 240 no baseline, 0 novas, nenhuma issue
+  `HIGH`, `BLOCKER` ou `CRITICAL`, cobertura de 85,1%, duplicação de 2,5% e decisão
+  `NOT_REQUIRED`. Depois da restrição das portas ao loopback, o checkpoint final
+  repetiu a suíte e preservou integralmente essas métricas;
+- a Task 8.1 está tecnicamente concluída. O próximo item é a Task 8.2; acesso do
+  Kubernetes ao Ollama do host, Leases, duas réplicas e failover não fazem parte
+  desta evidência.
+
+### Task 8.2 — Identidade durável em Kubernetes
+
+- o ambiente kind local executou duas réplicas da aplicação, CouchDB `3.5.2` em
+  `StatefulSet` com PVC `Bound`, Valkey compartilhado e acesso ao Ollama/modelo do
+  host pelo preflight de cada pod; Cosmos e seu emulador permaneceram ausentes;
+- o limite de filas Erlang do CouchDB foi fixado em `ERL_FLAGS=+Q 65536`, conforme
+  o troubleshooting oficial, evitando o OOM observado no nó kind sem alterar o
+  volume persistente;
+- build, contratos estáticos de Compose/Kubernetes e matriz Quarkus focada ficaram
+  GREEN antes da prova final;
+- o primeiro diagnóstico encontrou duas Leases de membro e uma de líder ainda no
+  pool default `flow-pool`: o perfil `poc,kubernetes` habilitava Lease/readiness em
+  runtime, mas o nome do pool da extensão Flow `0.10.2` já havia sido consumido na
+  augmentação;
+- RED/GREEN do `PocKubernetesConfigurationTest.ps1` passou a exigir
+  `-Dquarkus.flow.durable.kube.pool.name=simtr-hub-conformidade` no `mvn package`;
+  a imagem reconstruída recebeu o ID
+  `sha256:7521234bef9546299c586ff9ac7a6237755c03e13d8eb6fe1b4746ad54d0b1a8`;
+- a execução real revelou e protegeu três condições do roteiro: tag local fixa
+  exige rollout inicial depois de `kind load docker-image`; pods antigos com
+  `deletionTimestamp` podem coexistir brevemente depois de `rollout status`; e
+  `kubectl auth can-i` usa o recurso qualificado
+  `leases.coordination.k8s.io` e retorna exit code 1 para a resposta válida `no`;
+- o roteiro final terminou GREEN: duas Leases de membro estáveis do pool
+  `simtr-hub-conformidade` foram adquiridas, o pod com ServiceAccount `default` sem
+  RBAC não ficou Ready e expôs `Lease Acquisition=DOWN` com
+  `leaseAcquired=false`; o rolling restart substituiu os dois pods preservando os
+  nomes das Leases e vinculando-as aos holders novos;
+- o snapshot final confirmou duas réplicas `1/1 Ready`, CouchDB e Valkey `1/1`, PVC
+  CouchDB `Bound`, duas Leases de membro e uma de líder com holders atuais. As três
+  Leases antigas `flow-pool` ficaram sem holder e foram preservadas, sem exclusão
+  destrutiva desnecessária;
+- esta evidência comprova identidade, readiness e rolling restart, mas não roteia
+  revisão entre réplicas nem interrompe o owner de uma instância. Retomada
+  cross-pod e failover permanecem exclusivamente na Task 8.3; ADR-0010 continua
+  `Proposto`;
+- o baseline Sonar da sessão precisou ser inicializado depois das alterações desta
+  retomada; por isso sua comparação isolada não prova ausência de regressão desde o
+  início da Task 8.2. A suíte executada pelo baseline/checkpoint aprovou 573 testes,
+  0 falhas, 0 erros e 4 gates opt-in ignorados;
+- o checkpoint formal terminou `COMPLIANT`: 240 issues atuais contra 240 no
+  baseline tardio, 0 novas, nenhuma issue `HIGH`, `BLOCKER` ou `CRITICAL`, cobertura
+  de 85,1%, duplicação de 2,5% e decisão `NOT_REQUIRED`. Essas métricas coincidem
+  com o último checkpoint registrado da Task 8.1 e constituem evidência
+  compensatória consistente, sem eliminar a limitação temporal do baseline.
+
+### Task 8.3 — Retomada cross-pod e failover
+
+- RED: `PocKubernetesFailoverTest.ps1` falhou pela ausência de um roteiro
+  reproduzível que identificasse owner/revisor por Lease, dirigisse POST/PUT/GET a
+  pods distintos, substituísse o owner em dois pontos e comprovasse conclusão
+  única;
+- GREEN estático: `validar-failover-poc-kubernetes.ps1` passou a executar duas
+  análises sintéticas e o contrato PowerShell confirmou chamadas dirigidas,
+  `holderIdentity`, nome/UID/`resourceVersion` da Lease, checkpoint, correlações,
+  revisão repetida e resultado final;
+- a primeira invocação foi encerrada pelo timeout curto do executor antes de
+  qualquer failover. A segunda caracterizou um defeito do próprio harness depois
+  de alcançar `AGUARDANDO_REVISAO`: a inspeção usava `valkey-cli` no pod da
+  aplicação. O alvo foi corrigido para `deployment/valkey`; nenhuma dessas duas
+  tentativas interrompeu pods;
+- a execução real final terminou GREEN em 84 segundos. No cenário
+  `owner-interrompido-antes-da-revisao`, o POST entrou em
+  `simtr-hub-cc7775678-w6nl8`, a revisão foi enviada por
+  `simtr-hub-cc7775678-zdr9s` e `simtr-hub-cc7775678-l6lhn` reassumiu a mesma Lease;
+  o checkpoint permaneceu presente no Valkey antes do PUT;
+- no cenário `owner-interrompido-apos-a-revisao`, o POST entrou em
+  `simtr-hub-cc7775678-l6lhn`, o PUT `202` entrou por
+  `simtr-hub-cc7775678-zdr9s` e o owner foi removido imediatamente; o substituto
+  `simtr-hub-cc7775678-sk78m` reassumiu a mesma Lease e concluiu a instância;
+- as instâncias `01KZETFDYYT3RYM6K2Y0M3Y7J0`/
+  `cbc2809b-05e9-4e81-87ea-d3fd65a4c959` e
+  `01KZETRTA4GCVA95N73ZGAS04F`/
+  `7425ff9e-96b3-44b9-ae44-787271ff7964` terminaram `CONCLUIDA` e ficaram
+  consultáveis diretamente pelas duas réplicas. Em cada caso, repetir a revisão
+  retornou `409` e o CouchDB continha exatamente uma emissão
+  `br.gov.caixa.simtr.conformidade.analise.concluida.v1` para o `instanceId`;
+- o snapshot final manteve duas réplicas Ready, vinculadas às Leases estáveis
+  `flow-pool-member-simtr-hub-conformidade-00` e `-01`, com UIDs respectivamente
+  `6b427657-351a-44e7-8c3a-2c4f4fcbc27b` e
+  `a615f5e8-6136-47af-befb-45a8f9153ece`; CouchDB, PVC, Valkey e Ollama não foram
+  reiniciados durante os failovers;
+- as duas análises sintéticas deixadas em espera pelas invocações interrompidas
+  foram concluídas pela própria API, sem apagar documentos, checkpoints, Leases ou
+  PVC. O cluster kind permanece ativo e sem script ou teste em execução;
+- ADR-0010 continua `Proposto` até decisão humana posterior. No encerramento da
+  Task 8.3, a suíte completa e o checkpoint Sonar ainda não haviam sido executados;
+  seus resultados posteriores estão registrados na Task 8.4 abaixo.
+
+### Task 8.4 — Suíte e checkpoint Sonar do incremento 8
+
+- os contratos `PocContainersConfigurationTest.ps1`,
+  `PocKubernetesConfigurationTest.ps1` e `PocKubernetesFailoverTest.ps1` terminaram
+  GREEN; `git diff --check` não encontrou erro, apenas os avisos LF/CRLF já
+  conhecidos no worktree Windows;
+- `mvn -q test` aprovou 573 testes, com 0 falhas, 0 erros e 4 gates opt-in
+  ignorados; a execução independente durou 137,4 segundos;
+- `validar-checkpoint-sonarqube.ps1` executou `clean verify`, SonarScanner e
+  Compute Engine completos e terminou `COMPLIANT`: 240 issues atuais contra 240 no
+  baseline, 0 novas, nenhuma issue `HIGH`, `BLOCKER` ou `CRITICAL`, cobertura de
+  85,1%, duplicação de 2,5% e decisão `NOT_REQUIRED`;
+- o baseline local capturado às 15:48 de 2026-08-07 continua tardio em relação às
+  alterações históricas da Task 8.2, mas antecede o fingerprint executável criado
+  na Task 8.3; por isso a comparação deste checkpoint é válida para o novo roteiro
+  de failover e seu contrato;
+- o cluster kind permanece ativo com duas réplicas Ready, CouchDB e Valkey Ready,
+  PVC CouchDB `Bound` e Leases atuais; nenhum commit foi realizado. O próximo item
+  formal é a Task 9.1.
 
 ### Planejamento da evolução durável
 
@@ -781,6 +1148,22 @@
 | Sonar Task 7.3 — retorno | CONTINUAR_AJUSTES | 2026-08-02 | Baseline local atualizado com 0 issues novas, cobertura 83,2% e duplicação 2,8%; decisão registrada pelo script | Usuário |
 | Sonar Task 7.3 — ajuste de cobertura | COMPLIANT | 2026-08-02 | 0 issues novas; cobertura 85,3%; duplicação 2,8%; decisão `NOT_REQUIRED` | — |
 | C7 | APROVADO | 2026-08-02 | `C7 GO` explícito para usar `correlationid` somente na extensão CloudEvent e preservar `correlationId` nas demais bordas | Usuário |
+| Contrato do `data` referencial | APROVADO | 2026-08-02 | Usuário confirmou `documentoRef` `String` opaca e determinística, `hashConteudo` `String` SHA-256 e `versaoSchema` `Short` inicialmente `1` | Usuário |
+| Sonar Task 7.3 — `EventPublisher` referencial | CONTINUAR_AJUSTES | 2026-08-03 | 0 issues novas; cobertura 85,0%; duplicação 2,7%; 2 issues `CRITICAL`/HIGH `java:S1192` já presentes no baseline; decisão registrada pelo script | Usuário |
+| Sonar Task 7.3 — ajuste de constantes | COMPLIANT | 2026-08-03 | 240 issues atuais contra 242 no baseline; 0 issues novas ou bloqueantes; cobertura 85,0%; duplicação 2,7%; decisão `NOT_REQUIRED` | — |
+| C8 | APROVADO | 2026-08-03 | CouchDB real no ambiente local; Cosmos validado por contrato determinístico e SDK mockado; integração real preservada como gate externo pré-PRD | Usuário |
+| C9 | APROVADO | 2026-08-05 | Usuário autorizou a recomendação para a Task 7.6: alinhar o teste de cursor ao harness Quarkus, executar spike pareado Flow `0.13.0`/LangChain4j `1.12.0` e provar restart entre JVMs, sem antecipar cross-pod/failover | Usuário |
+| Escopo Redis/Valkey da PoC | APROVADO | 2026-08-06 | Redis/Valkey compartilhado permanece disponível; perda, restart, HA e recuperação do próprio serviço ficam fora das Tasks 8.1/8.3 | Usuário |
+| Ollama local na Task 8.1 | APROVADO | 2026-08-06 | Compose reutiliza Ollama/modelos instalados no host por `host.docker.internal`; não baixa outra cópia. A integração Kubernetes será decidida na Task 8.2 | Usuário |
+| Segurança OIDC da Task 8.1 | APROVADO | 2026-08-06 | Desabilitar tenant OIDC e cliente OIDC padrão somente no Compose local da PoC; `dev` e produção permanecem inalterados | Usuário |
+| Sonar Task 8.2 — baseline tardio | REGISTRADO | 2026-08-07 | Baseline local inicializado depois das alterações da retomada; suíte com 573 testes, 0 falhas, 0 erros e 4 ignorados; não usado isoladamente para afirmar ausência de regressão | — |
+| Sonar Task 8.2 — checkpoint | COMPLIANT | 2026-08-07 | 240 issues atuais contra 240 no baseline tardio, 0 novas ou bloqueantes, cobertura 85,1%, duplicação 2,5% e decisão `NOT_REQUIRED`; métricas idênticas às registradas na Task 8.1 | — |
+| Sonar Task 8.4 — checkpoint | COMPLIANT | 2026-08-07 | 240 issues atuais contra 240 no baseline, 0 novas ou bloqueantes, cobertura 85,1%, duplicação 2,5% e decisão `NOT_REQUIRED`; baseline anterior ao roteiro executável da Task 8.3 | — |
+| Sonar Task 7.4 — primeira execução | CONTINUAR_AJUSTES | 2026-08-04 | 2 issues novas (`java:S5778` e `java:S1612`), cobertura 84,9% e duplicação 2,6%; decisão registrada pelo script | Usuário |
+| Sonar Task 7.4 — primeiro ajuste | CONTINUAR_AJUSTES | 2026-08-04 | 241 issues atuais contra 242 no baseline; 0 issues novas ou bloqueantes; cobertura 84,9%; duplicação 2,6%; decisão registrada pelo script | Usuário |
+| Sonar Task 7.4 — ajuste final | COMPLIANT | 2026-08-04 | 240 issues atuais contra 242 no baseline; 0 issues novas ou bloqueantes; cobertura 85,1%; duplicação 2,6%; decisão `NOT_REQUIRED` | — |
+| Sonar Task 7.6 — primeira execução | CONTINUAR_AJUSTES | 2026-08-05 | Baseline da sessão inicializado tardiamente: 256 issues atuais, 3 `CRITICAL`/HIGH, cobertura 83,0% e duplicação 2,5%; comparação compensatória com a análise anterior de 240 issues identificou 16 issues abertas criadas desde 2026-08-04; decisão registrada pelo script | Usuário |
+| Sonar Task 7.6 — ajuste final | COMPLIANT | 2026-08-06 | Baseline da sessão novamente tardio; checkpoint com 240 issues atuais contra 240 no baseline, 0 novas ou bloqueantes, cobertura 85,2%, duplicação 2,5% e decisão `NOT_REQUIRED`; comparação compensatória com 256/240 confirma correção líquida das 16 issues | — |
 | CF | PENDENTE | — | Aguardará evidências finais | — |
 
 ## Regras de avanço

@@ -5,10 +5,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.ArmazenarEstadoAnaliseConformidade;
+import br.gov.caixa.simtr.hub.conformidade.aplicacao.documento.IdsDocumentoAnaliseConformidade;
+import br.gov.caixa.simtr.hub.conformidade.aplicacao.documento.ReferenciasDocumentoAnaliseConformidade;
+import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.EmissaoReferencialAnaliseConformidade;
+import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.TipoEmissaoAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.adaptador.saida.contrato.ArmazenarEstadoAnaliseConformidadeContractTest;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.SolicitacaoAnaliseConformidade;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
+import java.time.OffsetDateTime;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.nio.charset.StandardCharsets;
@@ -145,6 +150,39 @@ class CouchDbAnaliseConformidadeStoreIntegrationTest
         var projecao = documento(CouchDbIds.projecao(instanceId));
         assertEquals(CouchDbIds.checklist(correlationId), projecao.path("checklistRef").asText());
         assertEquals(hash, projecao.path("checklistHash").asText());
+    }
+
+    @Test
+    void persisteFatoDeEmissaoSemPayloadNegocial() throws Exception {
+        var cenario = novoCenario();
+        var adapter = novoAdapter();
+        var resultado = resultado(
+                br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise
+                        .OrigemResultado.AGENTE);
+        iniciar(adapter, cenario);
+        var referencia = new ReferenciasDocumentoAnaliseConformidade(OBJECT_MAPPER)
+                .resultadoPreliminar(cenario.correlationId(), resultado);
+        aguardar(adapter.prepararResultadoPreliminar(
+                cenario.instanceId(), resultado, referencia));
+        String eventoId = "conformidade:" + referencia.documentoRef();
+
+        aguardar(adapter.registrarEmissao(new EmissaoReferencialAnaliseConformidade(
+                eventoId,
+                URI.create("urn:simtr-hub:conformidade"),
+                TipoEmissaoAnaliseConformidade.REVISAO_SOLICITADA,
+                OffsetDateTime.parse("2026-08-02T12:00:00Z"),
+                cenario.instanceId(),
+                cenario.correlationId(),
+                "emitirSolicitacaoRevisao",
+                referencia)));
+
+        var fato = documento(IdsDocumentoAnaliseConformidade.emissao(eventoId));
+        assertEquals("emissao-cloud-event", fato.path("tipo").asText());
+        assertEquals(eventoId, fato.path("eventoId").asText());
+        assertEquals(referencia.documentoRef(), fato.path("documentoRef").asText());
+        assertEquals(referencia.hashConteudo(), fato.path("hashConteudo").asText());
+        assertTrue(fato.path("resultado").isMissingNode());
+        assertTrue(fato.path("parecer").isMissingNode());
     }
 
     @Override

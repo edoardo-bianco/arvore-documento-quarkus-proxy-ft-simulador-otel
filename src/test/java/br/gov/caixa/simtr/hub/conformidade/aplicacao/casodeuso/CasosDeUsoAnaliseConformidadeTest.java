@@ -1,8 +1,9 @@
 package br.gov.caixa.simtr.hub.conformidade.aplicacao.casodeuso;
 
 import br.gov.caixa.simtr.hub.conformidade.adaptador.saida.memoria.AnaliseConformidadeMemoryStore;
-import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.PublicarRevisaoNoWorkflow;
+import br.gov.caixa.simtr.hub.conformidade.aplicacao.documento.ReferenciasDocumentoAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.aplicacao.workflow.AnaliseConformidadeFlow;
+import br.gov.caixa.simtr.hub.conformidade.aplicacao.workflow.ContextoAnaliseConformidadeFlow;
 import br.gov.caixa.simtr.hub.conformidade.dominio.erro.FalhaAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.ApontamentoChecklist;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.Checklist;
@@ -16,6 +17,7 @@ import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.StatusAnaliseC
 import io.serverlessworkflow.impl.WorkflowInstance;
 import io.serverlessworkflow.impl.WorkflowModel;
 import io.smallrye.mutiny.Uni;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.concurrent.CompletableFuture;
 import java.util.List;
 import io.quarkus.test.junit.QuarkusTest;
@@ -25,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -47,7 +48,8 @@ class CasosDeUsoAnaliseConformidadeTest {
                 1);
         var flow = mock(AnaliseConformidadeFlow.class);
         var instancia = mock(WorkflowInstance.class);
-        when(flow.instance(solicitacao)).thenReturn(instancia);
+        when(flow.instance(ContextoAnaliseConformidadeFlow.inicial(solicitacao)))
+                .thenReturn(instancia);
         when(instancia.id()).thenReturn("01J3FLOWTESTE00000000000000");
         when(instancia.start()).thenReturn(new CompletableFuture<WorkflowModel>());
         var casoDeUso = new IniciarAnaliseConformidadeCasoDeUso(store, flow);
@@ -91,7 +93,8 @@ class CasosDeUsoAnaliseConformidadeTest {
                 1);
         var flow = mock(AnaliseConformidadeFlow.class);
         var instancia = mock(WorkflowInstance.class);
-        when(flow.instance(solicitacao)).thenReturn(instancia);
+        when(flow.instance(ContextoAnaliseConformidadeFlow.inicial(solicitacao)))
+                .thenReturn(instancia);
         when(instancia.id()).thenReturn("01J3FLOWFALHA0000000000000");
         when(instancia.start()).thenThrow(new IllegalStateException("detalhe interno"));
         var casoDeUso = new IniciarAnaliseConformidadeCasoDeUso(store, flow);
@@ -129,13 +132,12 @@ class CasosDeUsoAnaliseConformidadeTest {
     }
 
     @Test
-    void revisarAceitaRepeticaoIdenticaERepublicaParaEntregaIdempotente() {
+    void revisarAceitaRepeticaoIdenticaEPersisteParaEntregaPeloFeed() {
         var store = storeAguardandoRevisao();
-        var publicador = mock(PublicarRevisaoNoWorkflow.class);
         RevisaoHumanaConformidade revisao = revisaoValida();
-        when(publicador.publicar("instancia-1", revisao))
-                .thenReturn(Uni.createFrom().voidItem());
-        var casoDeUso = new RevisarAnaliseConformidadeCasoDeUso(store, publicador);
+        var referencias = referencias();
+        var referencia = referencias.revisao(CORRELATION_ID, revisao);
+        var casoDeUso = new RevisarAnaliseConformidadeCasoDeUso(store);
 
         assertDoesNotThrow(() -> casoDeUso.executar("instancia-1", revisao)
                 .await()
@@ -144,16 +146,17 @@ class CasosDeUsoAnaliseConformidadeTest {
         assertDoesNotThrow(() -> casoDeUso.executar("instancia-1", revisao)
                 .await()
                 .indefinitely());
-        verify(publicador, times(2)).publicar("instancia-1", revisao);
+        assertEquals(
+                revisao,
+                store.carregarRevisao("instancia-1", referencia)
+                        .await()
+                        .indefinitely());
     }
 
     @Test
     void revisarInconsistenteNaoReservaAInstancia() {
         var store = storeAguardandoRevisao();
-        var publicador = mock(PublicarRevisaoNoWorkflow.class);
-        when(publicador.publicar("instancia-1", revisaoValida()))
-                .thenReturn(Uni.createFrom().voidItem());
-        var casoDeUso = new RevisarAnaliseConformidadeCasoDeUso(store, publicador);
+        var casoDeUso = new RevisarAnaliseConformidadeCasoDeUso(store);
         var apontamentoAlterado = new ResultadoApontamentoConformidade(
                 10L,
                 "Documento identificado",
@@ -181,8 +184,7 @@ class CasosDeUsoAnaliseConformidadeTest {
     void revisarPriorizaEstadoDaInstanciaAntesDoConteudo() {
         var store = new AnaliseConformidadeMemoryStore();
         iniciar(store, "instancia-1");
-        var publicador = mock(PublicarRevisaoNoWorkflow.class);
-        var casoDeUso = new RevisarAnaliseConformidadeCasoDeUso(store, publicador);
+        var casoDeUso = new RevisarAnaliseConformidadeCasoDeUso(store);
         var revisao = revisaoValida();
 
         FalhaAnaliseConformidade falha = assertThrows(
@@ -190,7 +192,6 @@ class CasosDeUsoAnaliseConformidadeTest {
                 () -> aguardar(casoDeUso.executar("instancia-1", revisao)));
 
         assertEquals(FalhaAnaliseConformidade.Tipo.TRANSICAO_INVALIDA, falha.tipo());
-        verifyNoInteractions(publicador);
     }
 
     private static AnaliseConformidadeMemoryStore storeAguardandoRevisao() {
@@ -259,5 +260,9 @@ class CasosDeUsoAnaliseConformidadeTest {
                         "Confirmado pelo operador",
                         "Trecho revisado",
                         0.5d)));
+    }
+
+    private static ReferenciasDocumentoAnaliseConformidade referencias() {
+        return new ReferenciasDocumentoAnaliseConformidade(new ObjectMapper());
     }
 }

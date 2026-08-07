@@ -2,7 +2,6 @@ package br.gov.caixa.simtr.hub.conformidade.aplicacao.casodeuso;
 
 import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.entrada.RevisarAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.ArmazenarEstadoAnaliseConformidade;
-import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.PublicarRevisaoNoWorkflow;
 import br.gov.caixa.simtr.hub.conformidade.dominio.erro.FalhaAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.RevisaoHumanaConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.StatusAnaliseConformidade;
@@ -16,16 +15,13 @@ import jakarta.inject.Inject;
 public class RevisarAnaliseConformidadeCasoDeUso implements RevisarAnaliseConformidade {
 
     private final ArmazenarEstadoAnaliseConformidade estados;
-    private final PublicarRevisaoNoWorkflow publicarRevisao;
     private final ValidadorAnaliseConformidade validador =
             new ValidadorAnaliseConformidade();
 
     @Inject
     public RevisarAnaliseConformidadeCasoDeUso(
-            ArmazenarEstadoAnaliseConformidade estados,
-            PublicarRevisaoNoWorkflow publicarRevisao) {
+            ArmazenarEstadoAnaliseConformidade estados) {
         this.estados = estados;
-        this.publicarRevisao = publicarRevisao;
     }
 
     @Override
@@ -36,8 +32,7 @@ public class RevisarAnaliseConformidadeCasoDeUso implements RevisarAnaliseConfor
                 .map(atual -> atual.orElseThrow(
                         FalhaAnaliseConformidade::instanciaNaoEncontrada))
                 .invoke(atual -> validarRevisao(atual, revisao))
-                .chain(() -> estados.reservarRevisao(instanceId, revisao))
-                .chain(() -> publicarRevisao.publicar(instanceId, revisao));
+                .chain(() -> estados.reservarRevisao(instanceId, revisao));
     }
 
     private void validarRevisao(

@@ -1,5 +1,7 @@
 package br.gov.caixa.simtr.hub.conformidade.adaptador.saida.messaging.interno;
 
+import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.ReferenciaDocumentoAnaliseConformidade;
+import br.gov.caixa.simtr.hub.conformidade.aplicacao.workflow.ContextoAnaliseConformidadeFlow;
 import io.cloudevents.core.builder.CloudEventBuilder;
 import io.serverlessworkflow.impl.TaskContext;
 import io.serverlessworkflow.impl.WorkflowContext;
@@ -26,8 +28,27 @@ public final class MetadadosCloudEventAnaliseConformidadeDecorator
                 .getDocument()
                 .getName();
         if (WORKFLOW_ANALISE_CONFORMIDADE.equals(nomeWorkflow)) {
-            builder.withSource(CloudEventMapper.SOURCE)
+            ReferenciaDocumentoAnaliseConformidade referencia = taskContext.rawInput()
+                    .as(ReferenciaDocumentoAnaliseConformidade.class)
+                    .orElseThrow(() -> new CloudEventInvalidoException(
+                            "A emissão do workflow deve ser referencial"));
+            ContextoAnaliseConformidadeFlow contexto = workflowContext.instanceData()
+                    .input()
+                    .as(ContextoAnaliseConformidadeFlow.class)
+                    .orElseThrow(() -> new CloudEventInvalidoException(
+                            "A correlação original da análise está ausente"));
+            builder.withId("conformidade:" + referencia.documentoRef())
+                    .withSource(CloudEventMapper.SOURCE)
                     .withTime(OffsetDateTime.now(ZoneOffset.UTC));
+            builder.withExtension(
+                    CloudEventMapper.EXTENSAO_CORRELATION_ID,
+                    contexto.correlationId());
+            builder.withExtension(
+                    CloudEventMapper.EXTENSAO_FLOW_INSTANCE_ID,
+                    workflowContext.instance().id());
+            builder.withExtension(
+                    CloudEventMapper.EXTENSAO_FLOW_TASK_ID,
+                    taskContext.taskName());
         }
     }
 }
