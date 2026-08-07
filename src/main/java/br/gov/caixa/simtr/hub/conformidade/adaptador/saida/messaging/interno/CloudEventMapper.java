@@ -1,5 +1,10 @@
 package br.gov.caixa.simtr.hub.conformidade.adaptador.saida.messaging.interno;
 
+import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.EmissaoReferencialAnaliseConformidade;
+import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.ReferenciaDocumentoAnaliseConformidade;
+import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.TipoEmissaoAnaliseConformidade;
+import br.gov.caixa.simtr.hub.conformidade.aplicacao.documento.ReferenciasDocumentoAnaliseConformidade;
+import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.RevisaoHumanaConformidade;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,9 +32,12 @@ public class CloudEventMapper {
             "br.gov.caixa.simtr.conformidade.analise.concluida.v1";
     static final String EXTENSAO_FLOW_INSTANCE_ID = "flowinstanceid";
     static final String EXTENSAO_FLOW_TASK_ID = "flowtaskid";
+    static final String EXTENSAO_CORRELATION_ID = "correlationid";
     static final URI SOURCE = URI.create("urn:simtr-hub:conformidade");
 
     private static final String APPLICATION_JSON = "application/json";
+    private static final String CAMPO_HASH_CONTEUDO = "hashConteudo";
+    private static final String CAMPO_VERSAO_SCHEMA = "versaoSchema";
     private static final Set<String> TIPOS_CONHECIDOS = Set.of(
             EVENTO_REVISAO_SOLICITADA,
             EVENTO_REVISAO_CONCLUIDA,
@@ -40,20 +48,67 @@ public class CloudEventMapper {
     private static final JsonFormat FORMATO = new JsonFormat();
 
     private final ObjectMapper objectMapper;
+    private final ReferenciasDocumentoAnaliseConformidade referencias;
 
     @Inject
     public CloudEventMapper(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
+        this.referencias = new ReferenciasDocumentoAnaliseConformidade(objectMapper);
     }
 
-    byte[] serializarRevisaoConcluida(String instanceId, JsonNode revisao) {
-        String correlacao = textoObrigatorio(instanceId, "flowinstanceid ausente");
-        if (revisao == null || !revisao.isObject()) {
-            throw new CloudEventInvalidoException("Payload da revisão deve ser um objeto JSON");
+    public CloudEvent mapearRevisaoPersistida(JsonNode documento) {
+        try {
+            if (documento == null
+                    || !documento.isObject()
+                    || !"revisao-humana".equals(textoJsonObrigatorio(documento, "tipo"))) {
+                throw new CloudEventInvalidoException(
+                        "Documento não representa uma revisão humana");
+            }
+            String instanceId = textoJsonObrigatorio(documento, "instanceId");
+            String correlationId = textoJsonObrigatorio(documento, "correlationId");
+            JsonNode versao = documento.path(CAMPO_VERSAO_SCHEMA);
+            if (!versao.isIntegralNumber()
+                    || !versao.canConvertToInt()
+                    || versao.intValue()
+                            != ReferenciaDocumentoAnaliseConformidade.VERSAO_INICIAL.intValue()) {
+                throw new CloudEventInvalidoException("versaoSchema inválida");
+            }
+            RevisaoHumanaConformidade revisao = objectMapper.treeToValue(
+                    documento.path("revisao"),
+                    RevisaoHumanaConformidade.class);
+            var referencia = referencias.revisao(correlationId, revisao);
+            if (!referencia.documentoRef().equals(textoJsonObrigatorio(documento, "id"))
+                    || !referencia.hashConteudo().equals(
+                            textoJsonObrigatorio(documento, CAMPO_HASH_CONTEUDO))) {
+                throw new CloudEventInvalidoException(
+                        "Identidade ou integridade da revisão inválida");
+            }
+            byte[] dados = objectMapper.writeValueAsBytes(referencia);
+            return CloudEventBuilder.v1()
+                    .withId("conformidade:" + referencia.documentoRef())
+                    .withSource(SOURCE)
+                    .withType(EVENTO_REVISAO_CONCLUIDA)
+                    .withTime(OffsetDateTime.now(ZoneOffset.UTC))
+                    .withDataContentType(APPLICATION_JSON)
+                    .withData(dados)
+                    .withExtension(EXTENSAO_FLOW_INSTANCE_ID, instanceId)
+                    .withExtension(EXTENSAO_CORRELATION_ID, correlationId)
+                    .build();
+        } catch (CloudEventInvalidoException falha) {
+            throw falha;
+        } catch (JsonProcessingException | IllegalArgumentException | NullPointerException falha) {
+            throw new CloudEventInvalidoException(
+                    "Documento de revisão inválido",
+                    falha);
         }
+    }
+
+    byte[] serializarRevisaoConcluida(String instanceId, JsonNode referencia) {
+        String correlacao = textoObrigatorio(instanceId, "flowinstanceid ausente");
+        validarReferencia(referencia);
 
         try {
-            byte[] dados = objectMapper.writeValueAsBytes(revisao);
+            byte[] dados = objectMapper.writeValueAsBytes(referencia);
             CloudEvent evento = CloudEventBuilder.v1()
                     .withId(UUID.randomUUID().toString())
                     .withSource(SOURCE)
@@ -72,21 +127,71 @@ public class CloudEventMapper {
         }
     }
 
-    EventoFlowOutRecebido lerEventoSaida(byte[] envelope) {
+    EmissaoReferencialAnaliseConformidade lerEventoSaida(byte[] envelope) {
         CloudEvent evento = desserializar(envelope);
-        if (!TIPOS_FLOW_OUT.contains(evento.getType())) {
-            throw new CloudEventInvalidoException("Tipo de CloudEvent inválido para flow-out");
-        }
+        return lerEmissaoReferencial(evento);
+    }
 
-        JsonNode dados = lerDados(evento);
-        return new EventoFlowOutRecebido(
-                evento.getId(),
-                evento.getSource(),
-                evento.getType(),
-                evento.getTime(),
-                extensaoObrigatoria(evento, EXTENSAO_FLOW_INSTANCE_ID),
-                extensaoOpcional(evento, EXTENSAO_FLOW_TASK_ID),
-                dados);
+    boolean ehEmissaoAnaliseConformidade(CloudEvent evento) {
+        return evento != null && TIPOS_FLOW_OUT.contains(evento.getType());
+    }
+
+    EmissaoReferencialAnaliseConformidade lerEmissaoReferencial(CloudEvent evento) {
+        try {
+            validarEnvelope(evento);
+            if (!TIPOS_FLOW_OUT.contains(evento.getType())) {
+                throw new CloudEventInvalidoException(
+                        "Tipo de CloudEvent inválido para emissão de conformidade");
+            }
+            if (!SOURCE.equals(evento.getSource())) {
+                throw new CloudEventInvalidoException("Source do CloudEvent inválido");
+            }
+            var referencia = validarReferencia(lerDados(evento));
+            return new EmissaoReferencialAnaliseConformidade(
+                    evento.getId(),
+                    evento.getSource(),
+                    TipoEmissaoAnaliseConformidade.deCloudEventType(evento.getType()),
+                    evento.getTime(),
+                    extensaoObrigatoria(evento, EXTENSAO_FLOW_INSTANCE_ID),
+                    extensaoObrigatoria(evento, EXTENSAO_CORRELATION_ID),
+                    extensaoOpcional(evento, EXTENSAO_FLOW_TASK_ID),
+                    referencia);
+        } catch (CloudEventInvalidoException falha) {
+            throw falha;
+        } catch (IllegalArgumentException | NullPointerException falha) {
+            throw new CloudEventInvalidoException("Emissão referencial inválida", falha);
+        }
+    }
+
+    private static ReferenciaDocumentoAnaliseConformidade validarReferencia(
+            JsonNode dados) {
+        if (dados == null || !dados.isObject()) {
+            throw new CloudEventInvalidoException(
+                    "Data do CloudEvent deve ser um objeto JSON");
+        }
+        if (dados.size() != 3
+                || !dados.has("documentoRef")
+                || !dados.has(CAMPO_HASH_CONTEUDO)
+                || !dados.has(CAMPO_VERSAO_SCHEMA)) {
+            throw new CloudEventInvalidoException(
+                    "Data do CloudEvent deve conter somente a referência documental");
+        }
+        JsonNode versao = dados.path(CAMPO_VERSAO_SCHEMA);
+        if (!versao.isIntegralNumber()
+                || !versao.canConvertToInt()
+                || versao.intValue()
+                        != ReferenciaDocumentoAnaliseConformidade.VERSAO_INICIAL.intValue()) {
+            throw new CloudEventInvalidoException("versaoSchema inválida");
+        }
+        try {
+            return new ReferenciaDocumentoAnaliseConformidade(
+                    textoJsonObrigatorio(dados, "documentoRef"),
+                    textoJsonObrigatorio(dados, CAMPO_HASH_CONTEUDO),
+                    versao.shortValue());
+        } catch (IllegalArgumentException falha) {
+            throw new CloudEventInvalidoException(
+                    "Referência documental inválida", falha);
+        }
     }
 
     private CloudEvent desserializar(byte[] envelope) {
@@ -139,6 +244,14 @@ public class CloudEventMapper {
         } catch (IOException falha) {
             throw new CloudEventInvalidoException("Data do CloudEvent contém JSON inválido", falha);
         }
+    }
+
+    private static String textoJsonObrigatorio(JsonNode dados, String campo) {
+        JsonNode valor = dados.path(campo);
+        if (!valor.isTextual()) {
+            throw new CloudEventInvalidoException("Campo referencial inválido: " + campo);
+        }
+        return textoObrigatorio(valor.textValue(), "Campo referencial inválido: " + campo);
     }
 
     private static String extensaoObrigatoria(CloudEvent evento, String nome) {

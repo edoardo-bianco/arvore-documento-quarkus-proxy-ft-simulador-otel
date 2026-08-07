@@ -38,8 +38,10 @@ continua condicionado ao GO humano e aos checkpoints adicionais.
   `_changes` do CouchDB em DES e Change Feed Processor do Cosmos em PRD;
 - expor a persistência por portas neutras e usar CouchDB em DES e Azure Cosmos DB
   for NoSQL em PRD como sistemas de registro dos dados de negócio;
-- aplicar o mesmo contrato executável aos dois adapters e exigir integração Cosmos
-  opt-in antes da promoção para PRD;
+- aplicar o mesmo contrato executável aos dois adapters, usando CouchDB real em
+  DES e repositório determinístico + SDK mockado para Cosmos na validação local;
+- manter a integração contra Cosmos real ou Emulator como gate externo antes da
+  promoção para PRD, sem bloquear a conclusão das tasks locais;
 - usar Quarkus reativo sempre que a API permitir: porta documental com
   `Uni<Void>` nas escritas e
   `Uni<Optional<VisaoAnaliseConformidade>>` nas leituras, portas de entrada e REST
@@ -56,8 +58,8 @@ continua condicionado ao GO humano e aos checkpoints adicionais.
 - expor os endpoints POST, GET e PUT especificados;
 - fornecer página HTML/CSS/JavaScript estática com polling de 1.500 ms e todas as
   identidades visíveis como somente leitura;
-- fornecer containers de DES para aplicação, CouchDB, Redis/Valkey e Ollama, além de
-  validação Cosmos opt-in;
+- fornecer containers de DES para aplicação, CouchDB, Redis/Valkey e Ollama; a
+  validação Cosmos real permanece separada e opt-in antes da promoção para PRD;
 - validar duas réplicas em Kubernetes com identidade durável por Leases;
 - ampliar contratos de arquitetura, API, logs e spans;
 - documentar execução local, restart, replay, limitações e resultados da PoC.
@@ -70,9 +72,12 @@ continua condicionado ao GO humano e aos checkpoints adicionais.
   Redis/Valkey;
 - tratar MongoDB como emulador ou protocolo do Azure Cosmos DB for NoSQL;
 - alta disponibilidade produtiva, backup corporativo ou retenção regulatória;
+- perda, reinicialização, alta disponibilidade ou recuperação do Redis/Valkey;
 - autenticação ou autorização nova para a API ou a página;
 - chave ou connection string do Cosmos em PRD;
 - Cosmos Emulator no caminho normal de DES ou nos pods locais;
+- exigir Cosmos Emulator ou conta Cosmos real para concluir as tasks locais; essa
+  integração permanece um gate externo de pré-promoção para PRD;
 - alteração dos contratos existentes de consulta de checklist ou MTR;
 - DTO compartilhado entre REST, MTR, mensageria e IA;
 - retry adicional ao redor de `ConsultarChecklist`;
@@ -515,12 +520,13 @@ Contrato mínimo:
 - `time`;
 - `datacontenttype=application/json`;
 - `flowinstanceid` obrigatório;
-- `correlationId` obrigatório;
+- `correlationid` obrigatório somente como extensão do envelope CloudEvent;
 - `flowtaskid` preservado quando fornecido pelo Flow;
-- `data` limitado a referência, hash e `versaoSchema` do tipo `small int`
-  (`Short` no Java e número inteiro no JSON);
+- `data` limitado a `documentoRef` (`String` opaca com o ID determinístico do
+  documento), `hashConteudo` (`String` SHA-256 hexadecimal minúscula) e
+  `versaoSchema` do tipo `small int` (`Short` no Java e número inteiro no JSON);
 - correlação do `listen` por `flowinstanceid`, com validação adicional de
-  `correlationId`.
+  `correlationid` no envelope e de `correlationId` no documento persistido.
 
 O codec rejeitará tipo desconhecido, extensão ausente e referência inválida. O
 consumer registrará processamento antes de avançar o cursor. Não haverá DLQ; documento
@@ -1185,7 +1191,8 @@ C4 foi aprovado em 2026-07-25 para a arquitetura então centrada no CouchDB:
 
 O checkpoint C5 substitui somente a escolha universal do backend e do feed. Redis,
 contexto referencial, identidades, ausência de Kafka, Leases e condição de aceitação
-do ADR permanecem vigentes.
+do ADR permanecem vigentes. O checkpoint C8 altera somente a evidência exigida para
+concluir localmente a Task 7.3; o gate Cosmos real de pré-promoção continua vigente.
 
 ### Checkpoint C5 — Persistência documental por ambiente
 
@@ -1246,6 +1253,25 @@ A decisão técnica aprovada é:
 
 C7 foi aprovado pelo usuário em 2026-08-02 com `C7 GO`, autorizando a mudança
 executável e documental acima sem alterar o casing das demais bordas.
+
+Em 2026-08-02, o usuário confirmou também o contrato do `data` referencial da
+Task 7.3: `documentoRef` é `String` opaca gerada pelo servidor e validada contra o
+ID determinístico; `hashConteudo` é `String` SHA-256 hexadecimal minúscula validada
+contra o conteúdo canônico; `versaoSchema` permanece `Short`, inicialmente `1`.
+
+### Checkpoint C8 — Validação local do adapter Cosmos
+
+Em 2026-08-03, o usuário confirmou que o ambiente local usa CouchDB e não terá
+Cosmos DB disponível nesta etapa. A decisão aprovada é:
+
+- manter CouchDB real como backend e integração local;
+- validar o adapter Cosmos hermeticamente pelo contrato compartilhado com repositório
+  determinístico e por mocks das APIs do Azure Cosmos DB Java SDK v4;
+- manter o teste contra Cosmos Emulator ou conta não produtiva como opt-in opcional,
+  sem bloquear a Task 7.3 ou a suíte local;
+- não interpretar os mocks como prova de conectividade, autenticação, RBAC ou
+  compatibilidade do serviço real;
+- exigir a integração Cosmos real antes de qualquer promoção para PRD.
 
 ### Incremento 7 — Persistência durável e contrato
 
@@ -1313,7 +1339,8 @@ referenciais do Flow por um `EventPublisher` que dependa somente da porta.
 - texto e `identificadorDocumento` são persistidos sem aparecer em logs;
 - snapshot do checklist é imutável, possui hash `String` SHA-256 em hexadecimal
   minúsculo e `versaoSchema` `Short`;
-- `emitJson` publica referência por `EventPublisher`, sem payload negocial completo,
+- `emitJson` publica `documentoRef` `String`, `hashConteudo` `String` e
+  `versaoSchema` `Short` por `EventPublisher`, sem payload negocial completo,
   usando `correlationid` somente como extensão do envelope CloudEvent;
 - projeção é consultável por `instanceId` e correlacionada por `correlationId`;
 - porta de aplicação não expõe token, DTO ou exceção de fornecedor;
@@ -1321,7 +1348,10 @@ referenciais do Flow por um `EventPublisher` que dependa somente da porta.
 - Cosmos traduz concorrência para `_etag`/`If-Match` pela API assíncrona do Java SDK
   v4 e usa `correlationId` como chave lógica de partição;
 - revisão idêntica é idempotente e revisão contraditória recebe conflito;
-- a mesma suíte de contrato passa para os dois adapters;
+- a mesma suíte de contrato passa para CouchDB real e para o repositório Cosmos
+  determinístico;
+- mocks do Java SDK v4 comprovam partition key, `_etag`/`If-Match`, consulta,
+  conflitos e ausência sem acesso de rede;
 - nenhum DTO CouchDB ou Cosmos atravessa a borda do adapter;
 - configuração fora de dev/test falha se o backend não estiver selecionado;
 - porta documental usa `Uni<Void>` nas escritas e
@@ -1336,11 +1366,13 @@ referenciais do Flow por um `EventPublisher` que dependa somente da porta.
 - testes CouchDB permanecem isolados em containers efêmeros.
 
 **Verificação:** RED/GREEN por fatias; contrato compartilhado; CouchDB real em
-container; Cosmos Emulator ou conta não produtiva em teste opt-in; concorrência,
+container; repositório Cosmos determinístico e Java SDK v4 mockado; concorrência,
 conflitos, restart da aplicação, REST, ArchUnit e busca negativa por tipos de
-fornecedor fora dos adapters.
+fornecedor fora dos adapters. O teste contra Cosmos Emulator ou conta não produtiva
+permanece opt-in não bloqueante e será obrigatório somente antes da promoção para
+PRD.
 
-**Dependências:** Task 7.2, C5, C6 e C7.
+**Dependências:** Task 7.2, C5, C6, C7 e C8.
 
 **Arquivos prováveis:** portas de persistência, contratos de teste, documentos e
 mappers dos adapters CouchDB/Cosmos, casos de uso, seleção de backend e testes.
@@ -1409,14 +1441,47 @@ revisão sem reprocessamento automático.
 
 #### Task 7.6 — Fechar suíte e Sonar da persistência
 
-**Descrição:** consolidar testes do incremento 7 e executar checkpoint Sonar.
+**Descrição:** consolidar os testes do incremento 7, tratar os dois riscos encontrados
+no fechamento da Task 7.5 e executar o checkpoint Sonar. O teste de cursor CouchDB
+será executado sob o mesmo harness `@QuarkusTest` dos contextos Quarkus para impedir
+que providers do MicroProfile Context sejam carregados por classloaders
+incompatíveis. Também será feito um spike pareado de Flow `0.13.0` e Quarkus
+LangChain4j `1.12.0`, mantendo Quarkus `3.33.2.1` e Java 25: a atualização só será
+retida se dependency tree, compilação, bootstrap, matriz focada, E2E e configuração
+de auto-restore forem compatíveis; em caso contrário, as versões aprovadas
+`0.10.2`/`1.11.2` serão restauradas e a limitação será registrada. A restauração será
+comprovada ainda em uma única réplica, mas entre dois processos JVM distintos que
+reutilizem os mesmos backends; cross-pod, Lease e failover continuam exclusivamente
+na Task 8.3. A suíte completa também deverá eliminar a janela de consistência
+encontrada no E2E: o feed não pode publicar o documento da revisão antes de a
+projeção tornar sua referência carregável pelo workflow. O ajuste fica limitado à
+ordenação recuperável da reserva documental, sem novo contrato, backend ou
+abstração de mensageria.
+
+**Critérios de aceitação:**
+
+- o teste de cursor passa junto dos contextos `@QuarkusTest` no mesmo fork, sem
+  `ServiceConfigurationError`;
+- o spike registra por evidência se Flow `0.13.0`/LangChain4j `1.12.0` pode ser
+  adotado sem mudar Quarkus, Java ou contratos da aplicação;
+- nenhuma chave de configuração desconhecida de auto-restore permanece se o upgrade
+  for retido; se o defeito persistir ou houver regressão, as versões anteriores são
+  mantidas e o risco fica explícito;
+- uma instância `WAITING` criada em um processo é restaurada e retomada por outro
+  processo usando o mesmo CouchDB e Valkey, sem declarar suporte multipod;
+- duas revisões sequenciais de instâncias distintas são entregues somente depois de
+  suas referências estarem carregáveis, sem perda do segundo evento nem conclusão
+  cruzada;
+- a suíte completa e o checkpoint Sonar atendem aos gates vigentes, ou eventual
+  `NON_COMPLIANT` é submetido à decisão humana prevista no processo.
 
 **Verificação:** `mvn -q test`, testes de integração com containers,
+matriz de compatibilidade/versionamento, roteiro automatizado de restart entre JVMs,
 `git diff --check` e `./validar-checkpoint-sonarqube.ps1`.
 
 **Dependências:** Task 7.5.
 
-**Tamanho estimado:** S.
+**Tamanho estimado:** M.
 
 ### Incremento 8 — Containers e múltiplos pods
 
@@ -1424,11 +1489,18 @@ revisão sem reprocessamento automático.
 
 **Descrição:** estender o `compose-devservices.yml` já usado para iniciar
 automaticamente o CouchDB no `quarkus:dev` e fornecer imagem da aplicação e Compose
-completo de DES para aplicação, CouchDB, Redis/Valkey e Ollama, com volumes e health
-checks; manter Cosmos Emulator como integração opt-in separada.
+de DES para aplicação, CouchDB e Redis/Valkey, reutilizando o Ollama e os modelos já
+instalados no host por `host.docker.internal`; incluir health checks e preflight do
+modelo, manter volume durável para CouchDB e preservar o Cosmos Emulator como
+integração opt-in separada. O Redis/Valkey permanece disponível durante as provas da
+PoC e não recebe garantia de recuperação própria neste escopo.
 
-**Critérios de aceitação:** restart de containers preserva análise/revisão;
-credenciais vêm de configuração externa; nenhum segredo entra na imagem ou no Git.
+**Critérios de aceitação:** restart do container da aplicação, mantendo CouchDB,
+Redis/Valkey e o Ollama do host disponíveis, preserva análise/revisão; o preflight
+confirma que o modelo configurado já existe; credenciais vêm de configuração externa;
+nenhum segredo entra na imagem ou no Git. Perda ou restart do próprio Redis/Valkey
+não faz parte da prova. Exclusivamente neste Compose local, o tenant OIDC e o cliente
+OIDC padrão ficam desabilitados; os perfis `dev` e produtivo permanecem inalterados.
 
 **Verificação:** build de imagem, `docker compose up`, health, E2E e restart.
 
@@ -1458,8 +1530,10 @@ fica ready; rolling restart preserva Lease recuperável.
 o owner em diferentes pontos.
 
 **Critérios de aceitação:** exatamente a instância correlacionada retoma uma vez,
-dados e checkpoint sobrevivem e o resultado fica consultável por qualquer pod. Se a
-prova falhar, parar, manter ADR-0010 `Proposto` e solicitar nova decisão arquitetural.
+dados e checkpoint sobrevivem à substituição do pod da aplicação enquanto os
+backends compartilhados permanecem disponíveis, e o resultado fica consultável por
+qualquer pod. Se a prova falhar, parar, manter ADR-0010 `Proposto` e solicitar nova
+decisão arquitetural.
 
 **Verificação:** teste automatizado ou roteiro reproduzível com evidências de pod,
 Lease, IDs, restart e resultado.
@@ -1639,7 +1713,7 @@ testes locais e registrar que o estado Sonar atual permanece `UNVERIFIED`.
 | Correlação de revisão com instância errada | alto | `flowinstanceid` obrigatório e testes cruzados |
 | Revisões simultâneas ou repetidas | alto | ID determinístico, `_rev`/`_etag`, hash e validação idempotente no workflow |
 | Perda de dado de negócio em restart | alto | persistência durável e teste de restart por backend |
-| DES divergir semanticamente de PRD | alto | porta neutra, contrato compartilhado e gate Cosmos antes da promoção |
+| DES divergir semanticamente de PRD | alto | porta neutra, contrato compartilhado, testes Cosmos herméticos locais e gate Cosmos real antes da promoção |
 | Configuração iniciar com backend incorreto | alto | seleção explícita fora de dev/test e falha rápida por configuração ausente |
 | Credencial Cosmos configurada por chave/connection string ou com privilégio excessivo | alto | `DefaultAzureCredential`, Managed/Workload Identity, RBAC de plano de dados mínimo e testes negativos |
 | Checkpoint conter payload negocial | alto | contexto referencial e inspeção serializada |

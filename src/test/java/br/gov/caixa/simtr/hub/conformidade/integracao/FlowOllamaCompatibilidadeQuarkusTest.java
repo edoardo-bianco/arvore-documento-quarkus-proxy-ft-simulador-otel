@@ -15,10 +15,10 @@ import dev.langchain4j.agentic.Agent;
 import dev.langchain4j.agentic.declarative.SequenceAgent;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 import io.quarkiverse.flow.Flow;
-import io.quarkiverse.flow.messaging.FlowMessagingConsumer;
 import io.quarkiverse.langchain4j.RegisterAiService;
 import io.quarkus.test.junit.QuarkusTest;
 import io.serverlessworkflow.api.types.Workflow;
+import io.serverlessworkflow.impl.events.EventConsumer;
 import io.serverlessworkflow.fluent.func.FuncWorkflowBuilder;
 import io.smallrye.mutiny.Uni;
 import java.time.Duration;
@@ -38,7 +38,7 @@ class FlowOllamaCompatibilidadeQuarkusTest {
         assertAll(
                 () -> assertNotNull(flow.descriptor()),
                 () -> assertNotNull(Flow.class),
-                () -> assertNotNull(FlowMessagingConsumer.class),
+                () -> assertNotNull(EventConsumer.class),
                 () -> assertNotNull(OllamaChatModel.class),
                 () -> assertTrue(RegisterAiService.class.isAnnotation()),
                 () -> assertTrue(SequenceAgent.class.isAnnotation()),

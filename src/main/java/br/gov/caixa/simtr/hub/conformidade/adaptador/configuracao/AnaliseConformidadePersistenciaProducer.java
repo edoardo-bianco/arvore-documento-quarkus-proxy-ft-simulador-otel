@@ -69,7 +69,7 @@ public class AnaliseConformidadePersistenciaProducer {
         }
     }
 
-    private static void rejeitarSegredosCosmos(Config config) {
+    static void rejeitarSegredosCosmos(Config config) {
         boolean segredoConfigurado =
                 configurado(config, PREFIXO + "cosmos.key")
                         || configurado(config, PREFIXO + "cosmos.connection-string")
@@ -83,7 +83,7 @@ public class AnaliseConformidadePersistenciaProducer {
         }
     }
 
-    private static URI endpointCouchDb(String host, int port) {
+    static URI endpointCouchDb(String host, int port) {
         try {
             URI endpoint = new URI("http", null, host, port, null, null, null);
             if (endpoint.getHost() == null) {
@@ -95,7 +95,7 @@ public class AnaliseConformidadePersistenciaProducer {
         }
     }
 
-    private static int porta(Config config, String nome) {
+    static int porta(Config config, String nome) {
         try {
             int valor = Integer.parseInt(obrigatorio(config, nome));
             if (valor < 1 || valor > 65_535) {
@@ -107,7 +107,7 @@ public class AnaliseConformidadePersistenciaProducer {
         }
     }
 
-    private static String obrigatorio(Config config, String nome) {
+    static String obrigatorio(Config config, String nome) {
         return config.getOptionalValue(nome, String.class)
                 .map(String::trim)
                 .filter(valor -> !valor.isEmpty())
@@ -115,7 +115,7 @@ public class AnaliseConformidadePersistenciaProducer {
                         "Configuração obrigatória da persistência ausente"));
     }
 
-    private static String opcional(Config config, String nome) {
+    static String opcional(Config config, String nome) {
         return config.getOptionalValue(nome, String.class)
                 .map(String::trim)
                 .filter(valor -> !valor.isEmpty())

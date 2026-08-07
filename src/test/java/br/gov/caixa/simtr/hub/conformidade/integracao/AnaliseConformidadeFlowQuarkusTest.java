@@ -17,24 +17,30 @@ import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.ResultadoApont
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.StatusAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.VisaoAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.suporte.CouchDbQuarkusTestResource;
+import br.gov.caixa.simtr.hub.conformidade.suporte.ValkeyQuarkusTestResource;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
+import io.quarkus.redis.datasource.RedisDataSource;
+import io.quarkus.redis.datasource.keys.RedisValueType;
 import io.restassured.http.ContentType;
 import io.restassured.response.ValidatableResponse;
 import io.serverlessworkflow.impl.WorkflowInstance;
 import io.serverlessworkflow.impl.WorkflowStatus;
+import io.serverlessworkflow.impl.persistence.PersistenceInstanceHandlers;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Alternative;
 import jakarta.inject.Inject;
 import java.time.Duration;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,8 +49,11 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
+@QuarkusTestResource(ValkeyQuarkusTestResource.class)
 @QuarkusTestResource(
         value = CouchDbQuarkusTestResource.class,
         restrictToAnnotatedClass = true)
@@ -54,6 +63,9 @@ class AnaliseConformidadeFlowQuarkusTest {
     private static final String BASE_PATH = "/simtr-hub/v1/conformidade/analises";
     private static final String CORRELATION_ID = "7aa3ca4d-3c7e-4f61-a3a1-996571d3397a";
     private static final String IDENTIFICADOR_DOCUMENTO = "DOC-2026-000123";
+    private static final Duration LIMITE_CONVERGENCIA = Duration.ofSeconds(10);
+    private static final long INTERVALO_CONSULTA_NANOS =
+            Duration.ofMillis(10).toNanos();
 
     @Inject
     IniciarAnaliseConformidade iniciar;
@@ -69,6 +81,12 @@ class AnaliseConformidadeFlowQuarkusTest {
 
     @Inject
     AnalisarTextoControlado analisarTexto;
+
+    @Inject
+    RedisDataSource redis;
+
+    @Inject
+    PersistenceInstanceHandlers persistenceHandlers;
 
     @BeforeEach
     void prepararAgente() {
@@ -119,17 +137,69 @@ class AnaliseConformidadeFlowQuarkusTest {
         assertEquals(1, comando.versao());
 
         controlado.complete(checklist());
+        aguardarStatusFlow(instancia, WorkflowStatus.WAITING);
         VisaoAnaliseConformidade aguardando = aguardarStatus(
                 instanceId,
                 StatusAnaliseConformidade.AGUARDANDO_REVISAO);
-
-        aguardarStatusFlow(instancia, WorkflowStatus.WAITING);
         assertEquals(OrigemResultado.AGENTE, aguardando.resultadoPreliminar().origem());
         assertEquals(10L, aguardando.resultadoPreliminar()
                 .apontamentos().get(0).identificadorApontamento());
         assertEquals(instanceId, analisarTexto.identificadorMemoria());
         assertEquals("Texto documental", analisarTexto.entradaRecebida().texto());
         assertEquals(1, analisarTexto.invocacoes());
+    }
+
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    void checkpointRedisEhReferencialERestauraInstanciaEmEspera() throws Exception {
+        String textoProtegido = "CONTEUDO_DOCUMENTO_NAO_PODE_IR_REDIS";
+        consultarChecklist.preparar(Uni.createFrom().item(checklist()));
+        var solicitacao = new SolicitacaoAnaliseConformidade(
+                java.util.UUID.randomUUID().toString(),
+                IDENTIFICADOR_DOCUMENTO,
+                textoProtegido,
+                1000012583L,
+                1);
+
+        VisaoAnaliseConformidade inicial = iniciar.executar(solicitacao)
+                .await().indefinitely();
+        WorkflowInstance instanciaEmMemoria = instanciaAtiva(inicial.instanceId());
+        aguardarStatus(inicial.instanceId(), StatusAnaliseConformidade.AGUARDANDO_REVISAO);
+        aguardarStatusFlow(instanciaEmMemoria, WorkflowStatus.WAITING);
+
+        List<String> chaves = redis.key(String.class).keys("*");
+        assertTrue(
+                chaves.stream().anyMatch(chave -> chave.contains(inicial.instanceId())),
+                "O checkpoint da instância em espera deve existir no Valkey");
+        String checkpoint = conteudoHashesRedis(chaves);
+        for (String conteudoNegocial : List.of(
+                textoProtegido,
+                "Checklist documental",
+                "Verificar documento",
+                "Resumo preliminar controlado",
+                "Justificativa controlada")) {
+            assertFalse(
+                    checkpoint.contains(conteudoNegocial),
+                    "O checkpoint Redis não pode conter payload negocial");
+        }
+
+        simularDescarteDoEstadoVolatil(flow.definition(), instanciaEmMemoria);
+        assertTrue(flow.definition().activeInstance(inicial.instanceId()).isEmpty());
+        WorkflowInstance restaurada = persistenceHandlers.reader()
+                .find(flow.definition(), inicial.instanceId())
+                .orElseThrow();
+        assertNotSame(instanciaEmMemoria, restaurada);
+        assertEquals(inicial.instanceId(), restaurada.id());
+        restaurada.start();
+        aguardarStatusFlow(restaurada, WorkflowStatus.WAITING);
+        assertEquals(
+                textoProtegido,
+                estados.carregarSolicitacao(inicial.instanceId())
+                        .await().indefinitely().texto());
+        assertEquals(
+                "couchdb",
+                org.eclipse.microprofile.config.ConfigProvider.getConfig()
+                        .getValue("conformidade.persistencia.backend", String.class));
     }
 
     @Test
@@ -236,8 +306,8 @@ class AnaliseConformidadeFlowQuarkusTest {
 
         enviarRevisao(segunda, 0.9d).statusCode(202);
 
-        aguardarStatus(segunda, StatusAnaliseConformidade.CONCLUIDA);
         aguardarStatusFlow(flowSegunda, WorkflowStatus.COMPLETED);
+        aguardarStatus(segunda, StatusAnaliseConformidade.CONCLUIDA);
     }
 
     @Test
@@ -297,13 +367,13 @@ class AnaliseConformidadeFlowQuarkusTest {
     }
 
     private WorkflowInstance instanciaAtiva(String instanceId) {
-        long limite = System.nanoTime() + Duration.ofSeconds(2).toNanos();
+        long limite = System.nanoTime() + LIMITE_CONVERGENCIA.toNanos();
         while (System.nanoTime() < limite) {
             var encontrada = flow.definition().activeInstance(instanceId);
             if (encontrada.isPresent()) {
                 return encontrada.get();
             }
-            Thread.onSpinWait();
+            LockSupport.parkNanos(INTERVALO_CONSULTA_NANOS);
         }
         throw new AssertionError("Instância Flow não ficou ativa");
     }
@@ -360,31 +430,47 @@ class AnaliseConformidadeFlowQuarkusTest {
     private static void aguardarStatusFlow(
             WorkflowInstance instancia,
             WorkflowStatus statusEsperado) {
-        long limite = System.nanoTime() + Duration.ofSeconds(2).toNanos();
+        long limite = System.nanoTime() + LIMITE_CONVERGENCIA.toNanos();
         while (System.nanoTime() < limite) {
             if (instancia.status() == statusEsperado) {
                 return;
             }
-            Thread.onSpinWait();
+            LockSupport.parkNanos(INTERVALO_CONSULTA_NANOS);
         }
-        throw new AssertionError("A instância Flow não transitou para " + statusEsperado);
+        if (instancia.status() == WorkflowStatus.FAULTED) {
+            try {
+                instancia.start().join();
+            } catch (java.util.concurrent.CompletionException falha) {
+                Throwable causa = falha.getCause();
+                throw new AssertionError(
+                        "A instância Flow falhou em " + causa.getClass().getSimpleName()
+                                + ": " + causa.getMessage());
+            }
+        }
+        throw new AssertionError(
+                "A instância Flow não transitou para " + statusEsperado
+                        + "; status atual=" + instancia.status());
     }
 
     private VisaoAnaliseConformidade aguardarStatus(
             String instanceId,
             StatusAnaliseConformidade statusEsperado) {
-        long limite = System.nanoTime() + Duration.ofSeconds(2).toNanos();
+        long limite = System.nanoTime() + LIMITE_CONVERGENCIA.toNanos();
+        VisaoAnaliseConformidade ultima = null;
         while (System.nanoTime() < limite) {
-            VisaoAnaliseConformidade atual = estados.consultar(instanceId)
+            ultima = estados.consultar(instanceId)
                     .await()
                     .indefinitely()
                     .orElseThrow();
-            if (atual.status() == statusEsperado) {
-                return atual;
+            if (ultima.status() == statusEsperado) {
+                return ultima;
             }
-            Thread.onSpinWait();
+            LockSupport.parkNanos(INTERVALO_CONSULTA_NANOS);
         }
-        throw new AssertionError("A projeção não transitou para " + statusEsperado);
+        throw new AssertionError(
+                "A projeção não transitou para " + statusEsperado
+                        + "; status atual=" + (ultima == null ? "ausente" : ultima.status())
+                        + "; erro=" + (ultima == null ? null : ultima.mensagemErro()));
     }
 
     private static Checklist checklist() {
@@ -403,6 +489,29 @@ class AnaliseConformidadeFlowQuarkusTest {
                         "Conferir conteúdo",
                         false,
                         1)));
+    }
+
+    private String conteudoHashesRedis(List<String> chaves) {
+        var hashes = redis.hash(String.class, String.class, byte[].class);
+        var tipos = redis.key(String.class);
+        var conteudo = new StringBuilder();
+        for (String chave : chaves) {
+            if (tipos.type(chave) == RedisValueType.HASH) {
+                hashes.hgetall(chave).values().forEach(valor -> conteudo.append(
+                        new String(valor, StandardCharsets.ISO_8859_1)));
+            }
+        }
+        return conteudo.toString();
+    }
+
+    @SuppressWarnings("java:S3011")
+    private static void simularDescarteDoEstadoVolatil(
+            io.serverlessworkflow.impl.WorkflowDefinition definicao,
+            WorkflowInstance instancia) throws ReflectiveOperationException {
+        var remover = definicao.getClass().getDeclaredMethod(
+                "removeInstance", WorkflowInstance.class);
+        remover.setAccessible(true);
+        remover.invoke(definicao, instancia);
     }
 
     private static SolicitacaoAnaliseConformidade solicitacaoDireta() {

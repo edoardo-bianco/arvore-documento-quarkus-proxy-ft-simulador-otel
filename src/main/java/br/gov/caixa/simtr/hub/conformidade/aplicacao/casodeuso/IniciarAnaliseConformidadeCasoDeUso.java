@@ -3,6 +3,7 @@ package br.gov.caixa.simtr.hub.conformidade.aplicacao.casodeuso;
 import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.entrada.IniciarAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.ArmazenarEstadoAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.aplicacao.workflow.AnaliseConformidadeFlow;
+import br.gov.caixa.simtr.hub.conformidade.aplicacao.workflow.ContextoAnaliseConformidadeFlow;
 import br.gov.caixa.simtr.hub.conformidade.dominio.erro.FalhaAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.SolicitacaoAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.VisaoAnaliseConformidade;
@@ -39,7 +40,8 @@ public class IniciarAnaliseConformidadeCasoDeUso implements IniciarAnaliseConfor
                         "A solicitação da análise é obrigatória");
             }
 
-            WorkflowInstance instancia = flow.instance(solicitacao);
+            WorkflowInstance instancia = flow.instance(
+                    ContextoAnaliseConformidadeFlow.inicial(solicitacao));
             String instanceId = instancia.id();
             return estados.iniciar(instanceId, solicitacao)
                     .chain(() -> estados.consultar(instanceId))

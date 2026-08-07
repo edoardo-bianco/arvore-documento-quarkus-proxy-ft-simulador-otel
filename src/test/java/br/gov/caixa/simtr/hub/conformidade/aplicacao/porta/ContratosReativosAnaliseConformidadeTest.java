@@ -7,10 +7,10 @@ import br.gov.caixa.simtr.hub.conformidade.adaptador.entrada.rest.v1.dto.analise
 import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.entrada.ConsultarAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.entrada.IniciarAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.ArmazenarEstadoAnaliseConformidade;
+import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.ReferenciaDocumentoAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.aplicacao.workflow.AnaliseConformidadeFlow;
 import br.gov.caixa.simtr.hub.conformidade.aplicacao.workflow.ConsultarChecklistEtapa;
 import br.gov.caixa.simtr.hub.conformidade.aplicacao.workflow.ContextoAnaliseConformidadeFlow;
-import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.RevisaoHumanaConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.SolicitacaoAnaliseConformidade;
 import io.smallrye.mutiny.Uni;
 import java.lang.reflect.Method;
@@ -42,7 +42,7 @@ class ContratosReativosAnaliseConformidadeTest {
     void persistenciaDocumentalPropagaUniEmTodasAsOperacoes() {
         Method[] operacoes = ArmazenarEstadoAnaliseConformidade.class.getDeclaredMethods();
 
-        assertEquals(7, operacoes.length);
+        assertEquals(14, operacoes.length);
         for (Method operacao : operacoes) {
             assertRetornaUni(operacao);
         }
@@ -53,7 +53,8 @@ class ContratosReativosAnaliseConformidadeTest {
             throws NoSuchMethodException {
         assertRetornaUni(ConsultarChecklistEtapa.class.getMethod(
                 "executar",
-                SolicitacaoAnaliseConformidade.class));
+                String.class,
+                ContextoAnaliseConformidadeFlow.class));
         assertRetornaUni(AnaliseConformidadeFlow.class.getDeclaredMethod(
                 "analisar",
                 String.class,
@@ -61,7 +62,7 @@ class ContratosReativosAnaliseConformidadeTest {
         assertRetornaUni(AnaliseConformidadeFlow.class.getDeclaredMethod(
                 "consolidarRevisao",
                 String.class,
-                RevisaoHumanaConformidade[].class));
+                ReferenciaDocumentoAnaliseConformidade[].class));
     }
 
     private static void assertRetornaUni(Method metodo) {

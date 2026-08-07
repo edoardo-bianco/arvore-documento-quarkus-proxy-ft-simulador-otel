@@ -72,7 +72,11 @@
         </dependency>
         <dependency>
             <groupId>io.quarkiverse.flow</groupId>
-            <artifactId>quarkus-flow-messaging</artifactId>
+            <artifactId>quarkus-flow-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkiverse.flow</groupId>
+            <artifactId>quarkus-flow-durable-kubernetes</artifactId>
         </dependency>
         <dependency>
             <groupId>io.quarkiverse.langchain4j</groupId>
@@ -81,10 +85,6 @@
         <dependency>
             <groupId>io.quarkiverse.langchain4j</groupId>
             <artifactId>quarkus-langchain4j-ollama</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-messaging</artifactId>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
@@ -280,14 +280,6 @@
         <profile>
             <id>spike-persistencia-duravel</id>
             <dependencies>
-                <dependency>
-                    <groupId>io.quarkiverse.flow</groupId>
-                    <artifactId>quarkus-flow-redis</artifactId>
-                </dependency>
-                <dependency>
-                    <groupId>io.quarkiverse.flow</groupId>
-                    <artifactId>quarkus-flow-durable-kubernetes</artifactId>
-                </dependency>
                 <dependency>
                     <groupId>io.serverlessworkflow</groupId>
                     <artifactId>serverlessworkflow-persistence-tests</artifactId>

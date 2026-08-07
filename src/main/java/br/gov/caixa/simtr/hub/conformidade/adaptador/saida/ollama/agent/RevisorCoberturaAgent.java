@@ -21,6 +21,12 @@ public interface RevisorCoberturaAgent {
             Corrija apenas omissões, inconsistências e falta de fundamentação em relação
             ao checklist recebido.
             Preserve os identificadores e nomes do checklist.
+            O campo resumo não pode ser vazio e deve sintetizar a análise do documento.
+            Em cada apontamento, a justificativa não pode ser vazia e deve explicar o parecer
+            com base exclusivamente no documento.
+            A evidência deve ser um trecho literal do documento ou nula quando não existir;
+            nunca copie como evidência a descrição ou a orientação do checklist.
+            Use exatamente a chave JSON confianca, sem cedilha e sem renomear nenhuma chave.
             Retorne somente a saída JSON estruturada solicitada.
             """;
 

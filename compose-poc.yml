@@ -1,0 +1,105 @@
+name: simtr-hub-poc
+
+x-simtr-hub-image: &simtr-hub-image
+  image: "simtr-hub-poc:${SIMTR_HUB_IMAGE_TAG:-local}"
+  build:
+    context: .
+    dockerfile: src/main/docker/Dockerfile.jvm
+
+services:
+  simtr-hub:
+    <<: *simtr-hub-image
+    ports:
+      - "127.0.0.1:${SIMTR_HUB_HTTP_PORT:-8080}:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      QUARKUS_PROFILE: "poc"
+      CONFORMIDADE_PERSISTENCIA_BACKEND: "couchdb"
+      COUCHDB_HOST: "couchdb"
+      COUCHDB_PORT: "5984"
+      COUCHDB_DATABASE: "${COUCHDB_DATABASE:-conformidade}"
+      COUCHDB_USERNAME: "${COUCHDB_USERNAME:?Defina COUCHDB_USERNAME no arquivo de ambiente da PoC}"
+      COUCHDB_PASSWORD: "${COUCHDB_PASSWORD:?Defina COUCHDB_PASSWORD no arquivo de ambiente da PoC}"
+      QUARKUS_REDIS_HOSTS: "redis://valkey:6379"
+      OLLAMA_BASE_URL: "http://host.docker.internal:11434/"
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-llama3.2:3b}"
+      SIMTR_API_KEY: "${SIMTR_API_KEY:?Defina SIMTR_API_KEY no arquivo de ambiente da PoC}"
+      QUARKUS_OIDC_TENANT_ENABLED: "false"
+      QUARKUS_OIDC_CLIENT_CLIENT_ENABLED: "false"
+      QUARKUS_LOG_FILE_ENABLED: "false"
+    depends_on:
+      couchdb:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      ollama-check:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl --fail --silent --show-error
+          http://127.0.0.1:8080/q/health/ready >/dev/null
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 20s
+    restart: unless-stopped
+
+  couchdb:
+    image: docker.io/library/couchdb:3.5.2
+    ports:
+      - "127.0.0.1:${COUCHDB_HTTP_PORT:-15984}:5984"
+    environment:
+      COUCHDB_USER: "${COUCHDB_USERNAME:?Defina COUCHDB_USERNAME no arquivo de ambiente da PoC}"
+      COUCHDB_PASSWORD: "${COUCHDB_PASSWORD:?Defina COUCHDB_PASSWORD no arquivo de ambiente da PoC}"
+      COUCHDB_DATABASE: "${COUCHDB_DATABASE:-conformidade}"
+    volumes:
+      - couchdb-conformidade-data:/opt/couchdb/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl --fail --silent --show-error
+          --user "$${COUCHDB_USER}:$${COUCHDB_PASSWORD}"
+          http://127.0.0.1:5984/_up >/dev/null
+          && status=$$(curl --silent --output /dev/null --write-out '%{http_code}'
+          --user "$${COUCHDB_USER}:$${COUCHDB_PASSWORD}"
+          --request PUT "http://127.0.0.1:5984/$${COUCHDB_DATABASE}")
+          && { test "$${status}" = "201" || test "$${status}" = "412"; }
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 5s
+    restart: unless-stopped
+
+  valkey:
+    image: docker.io/valkey/valkey:7.2-alpine
+    command: ["valkey-server", "--save", ""]
+    ports:
+      - "127.0.0.1:${VALKEY_PORT:-16379}:6379"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 2s
+    restart: unless-stopped
+
+  ollama-check:
+    <<: *simtr-hub-image
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-llama3.2:3b}"
+    entrypoint: ["/bin/bash", "-ec"]
+    command:
+      - >-
+        curl --fail --silent --show-error
+        http://host.docker.internal:11434/api/tags
+        | grep --fixed-strings "\"name\":\"$${OLLAMA_MODEL}\"" >/dev/null
+    restart: "no"
+
+volumes:
+  couchdb-conformidade-data:

@@ -410,6 +410,21 @@ Redis/Valkey e Ollama. O ambiente Kubernetes local posterior usa kind ou k3d, du
 réplicas da aplicação, CouchDB em `StatefulSet` de um pod com PVC, Redis/Valkey e
 Ollama. Cosmos e seu emulador não fazem parte desses pods locais.
 
+No recorte Kubernetes da PoC, apenas o CouchDB possui PVC. O Valkey permanece sem
+persistência própria e deve ficar disponível durante as provas: perda, reinício,
+alta disponibilidade e recuperação do próprio Redis/Valkey estão explicitamente
+fora do escopo. O Ollama também não é duplicado no cluster; os pods reutilizam o
+processo e o modelo instalados no host por `host.docker.internal:11434`, e um
+`initContainer` impede o início da aplicação quando o modelo configurado não aparece
+em `/api/tags`.
+
+O containerd usado pelo kind pode expor ao CouchDB um `nofile` muito alto. O
+manifesto limita os ports pré-alocados pelo Erlang com `ERL_FLAGS=+Q 65536`; sem
+esse limite, a prova observou cerca de 2,2 GiB de RSS e `OOMKilled` durante o
+startup, enquanto o ajuste reduziu o consumo para cerca de 135 MiB. A medida segue
+a orientação oficial do
+[CouchDB para consumo elevado no startup](https://docs.couchdb.org/en/stable/install/troubleshooting.html#lots-of-memory-being-used-on-startup).
+
 ---
 
 ## 6. Entrega interna sem broker
@@ -1634,20 +1649,23 @@ Regras:
 
 ---
 
-## 21. Configuração proposta
+## 21. Configuração validada
 
-Configuração inicial sujeita à API exata da versão:
+Configuração efetiva compatível com Quarkus Flow `0.10.2`:
 
 ```properties
-# Quarkus Flow
-# Alvo depois da migração para EventPublisher/EventConsumer próprios
-quarkus.flow.messaging.defaults-enabled=false
-quarkus.flow.messaging.lifecycle-enabled=false
-quarkus.flow.tracing.enabled=true
+# Quarkus Flow com EventPublisher/EventConsumer próprios, sem connector
+quarkus.flow.tracing.enabled=false
 quarkus.flow.devui.backend.storage.enabled=true
 
-# Os nomes exatos das propriedades de persistência Redis e durable Kubernetes
-# devem ser copiados da documentação/API da versão 0.10.2 após o spike.
+# Durable Kubernetes existe no classpath, mas só acessa a API Kubernetes no perfil
+# explícito. Isso preserva testes, quarkus:dev e o Compose de uma réplica.
+quarkus.flow.durable.kube.lease.member.enabled=false
+quarkus.flow.durable.kube.lease.leader.enabled=false
+%kubernetes.quarkus.flow.durable.kube.pool.name=simtr-hub-conformidade
+%kubernetes.quarkus.flow.durable.kube.lease.member.enabled=true
+%kubernetes.quarkus.flow.durable.kube.lease.leader.enabled=true
+%kubernetes.quarkus.flow.durable.kube.health.readiness.require-lease=true
 
 # Seleção textual obrigatória fora de dev/test: couchdb ou cosmosdb
 conformidade.persistencia.backend=${CONFORMIDADE_PERSISTENCIA_BACKEND}
@@ -1672,12 +1690,13 @@ conformidade.cosmos.container=${COSMOS_CONTAINER:analises}
 conformidade.cosmos.lease-container=${COSMOS_LEASE_CONTAINER:analises-leases}
 
 # Ollama local
-quarkus.langchain4j.ollama.base-url=${OLLAMA_BASE_URL:http://localhost:11434}
-quarkus.langchain4j.ollama.chat-model.model=${OLLAMA_MODEL:llama3.2}
-quarkus.langchain4j.ollama.chat-model.temperature=0.1
+quarkus.langchain4j.ollama.devservices.enabled=false
+quarkus.langchain4j.ollama.base-url=${OLLAMA_BASE_URL:http://localhost:11434/}
+quarkus.langchain4j.ollama.chat-model.model-id=${OLLAMA_MODEL:llama3.2:3b}
+quarkus.langchain4j.ollama.chat-model.temperature=0.2
+quarkus.langchain4j.ollama.chat-model.model-options.num-ctx=2048
 quarkus.langchain4j.ollama.chat-model.format=json
-quarkus.langchain4j.ollama.chat-model.num-predict=4096
-quarkus.langchain4j.timeout=60s
+quarkus.langchain4j.ollama.timeout=60s
 
 # Logs de prompt/resposta somente em perfil local controlado
 %poc.quarkus.langchain4j.log-requests=true
@@ -1694,6 +1713,54 @@ configuração obrigatória ausente devem falhar no startup. O Cosmos em PRD dev
 RBAC de plano de dados de menor privilégio; chave e connection string são proibidas.
 Configuração de cursor/leases, reconexão, health/readiness e timeouts requer
 checkpoint observável antes da implementação.
+
+Na versão Flow `0.10.2`, o nome do pool usado pela identidade durável precisa estar
+disponível durante a augmentação do Quarkus. Por isso, o roteiro Kubernetes empacota
+a aplicação com
+`-Dquarkus.flow.durable.kube.pool.name=simtr-hub-conformidade`; ativar somente
+`QUARKUS_PROFILE=poc,kubernetes` no container deixa o valor de build no default
+`flow-pool`. Como a imagem local usa tag fixa e `imagePullPolicy: Never`, o roteiro
+força um rollout logo depois de carregá-la no kind e executa um segundo rollout
+somente para comprovar a estabilidade das Leases.
+
+O manifesto local ativa `QUARKUS_PROFILE=poc,kubernetes`, injeta `POD_NAME` e
+`POD_NAMESPACE` pela Downward API e usa `ServiceAccount`, `Role` e `RoleBinding`
+namespaced. A Role gerencia apenas `leases.coordination.k8s.io` e lê Pods,
+Deployments e ReplicaSets. O `Deployment` possui duas réplicas,
+`maxUnavailable: 1`, `maxSurge: 1` e probe em `/q/health/ready`; portanto, um pod
+sem Lease não recebe tráfego e um rollout libera uma identidade antes de criar seu
+substituto. Esse desenho segue o
+[guia Durable Kubernetes do Quarkus Flow](https://docs.quarkiverse.io/quarkus-flow/dev/concepts-durable-workflow-k8s.html),
+o contrato de [Leases do Kubernetes](https://kubernetes.io/docs/concepts/architecture/leases/)
+e as [probes do Kubernetes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/).
+
+Para executar a prova local, copie `poc-kubernetes.env.example` para
+`.env.poc-kubernetes`, preencha os quatro valores sem versionar o arquivo e instale
+kind `v0.32.0` conforme o
+[Quick Start oficial](https://kind.sigs.k8s.io/docs/user/quick-start/). O roteiro
+aceita `kind` no `PATH` ou o binário Windows oficial em `.tools/kind.exe`; essa pasta
+é ignorada pelo Git. Então execute:
+
+```powershell
+./validar-poc-kubernetes.ps1
+./validar-failover-poc-kubernetes.ps1
+```
+
+O primeiro roteiro cria ou reutiliza o cluster kind, carrega a imagem local, cria o Secret a
+partir do arquivo externo, aplica `k8s/poc`, comprova duas Leases de membro e health
+`Lease Acquisition`, executa um controle negativo sem RBAC e faz rolling restart.
+As Leases devem manter os mesmos nomes enquanto os dois nomes de Pod são
+substituídos. O cluster local não publica a aplicação fora do `ClusterIP`.
+
+O segundo roteiro usa chamadas HTTP dirigidas por `kubectl exec`, associa o pod que
+recebe o POST ao `holderIdentity` da Lease de membro, envia a revisão por outra
+réplica e substitui o owner em dois pontos: enquanto a instância está
+`AGUARDANDO_REVISAO` e imediatamente depois do aceite da revisão. A prova exige que
+o mesmo nome e UID de Lease sobrevivam, que o checkpoint continue no Valkey quando
+a espera antecede a revisão, que as duas réplicas consultem o resultado
+`CONCLUIDA`, que repetir a revisão retorne `409` e que exista exatamente uma emissão
+documental de conclusão. CouchDB, Valkey, Ollama e o cluster devem permanecer
+disponíveis durante a execução; perda ou recuperação desses backends não é coberta.
 
 Antes de registrar prompt e resposta integralmente, considerar que o texto pode conter dados sensíveis. Para a PoC, documentar o risco e permitir desabilitar logging.
 

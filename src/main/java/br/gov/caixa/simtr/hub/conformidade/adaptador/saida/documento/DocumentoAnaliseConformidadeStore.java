@@ -1,6 +1,9 @@
 package br.gov.caixa.simtr.hub.conformidade.adaptador.saida.documento;
 
 import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.ArmazenarEstadoAnaliseConformidade;
+import br.gov.caixa.simtr.hub.conformidade.aplicacao.documento.ReferenciasDocumentoAnaliseConformidade;
+import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.EmissaoReferencialAnaliseConformidade;
+import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.ReferenciaDocumentoAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.erro.FalhaAnaliseConformidade;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.Checklist;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.analise.OrigemResultado;
@@ -32,6 +35,7 @@ public class DocumentoAnaliseConformidadeStore
     private static final String TIPO_REVISAO = "revisao-humana";
     private static final String TIPO_RESULTADO_FINAL = "resultado-final";
     private static final String TIPO_FALHA = "falha-analise";
+    private static final String TIPO_EMISSAO = "emissao-cloud-event";
     private static final String CAMPO_CORRELATION_ID = "correlationId";
     private static final String CAMPO_INSTANCE_ID = "instanceId";
     private static final String CAMPO_IDENTIFICADOR_DOCUMENTO = "identificadorDocumento";
@@ -44,10 +48,14 @@ public class DocumentoAnaliseConformidadeStore
     private static final String CAMPO_HASH_CONTEUDO = "hashConteudo";
     private static final String CAMPO_CHECKLIST = "checklist";
     private static final String CAMPO_RESULTADO = "resultado";
+    private static final String CAMPO_REVISAO = "revisao";
     private static final String CAMPO_REVISAO_REF = "revisaoRef";
+    private static final String CAMPO_RESULTADO_PRELIMINAR_REF = "resultadoPreliminarRef";
+    private static final String CAMPO_RESULTADO_FINAL_REF = "resultadoFinalRef";
 
     private final RepositorioDocumental repositorio;
     private final ObjectMapper objectMapper;
+    private final ReferenciasDocumentoAnaliseConformidade referencias;
 
     protected DocumentoAnaliseConformidadeStore(
             RepositorioDocumental repositorio,
@@ -56,6 +64,7 @@ public class DocumentoAnaliseConformidadeStore
                 repositorio,
                 "repositorio");
         this.objectMapper = java.util.Objects.requireNonNull(objectMapper, "objectMapper");
+        this.referencias = new ReferenciasDocumentoAnaliseConformidade(objectMapper);
     }
 
     @Override
@@ -75,6 +84,35 @@ public class DocumentoAnaliseConformidadeStore
                     .chain(() -> gravarNovo(
                             IdsDocumentoAnaliseConformidade.projecao(instanceId),
                             documentoProjecao(instanceId, solicitacao)));
+        });
+    }
+
+    @Override
+    public Uni<SolicitacaoAnaliseConformidade> carregarSolicitacao(String instanceId) {
+        return projecaoObrigatoria(instanceId).chain(projecaoPersistida -> {
+            JsonNode projecao = projecaoPersistida.documento();
+            String correlationId = texto(projecao, CAMPO_CORRELATION_ID);
+            return consultarDocumento(
+                            IdsDocumentoAnaliseConformidade.entrada(correlationId),
+                            correlationId)
+                    .map(documentoOpcional -> {
+                        JsonNode documento = documentoOpcional.orElseThrow(
+                                FalhaAnaliseConformidade::indisponibilidadeTecnica);
+                        exigirTipoEVersao(documento, TIPO_ENTRADA);
+                        if (!instanceId.equals(texto(documento, CAMPO_INSTANCE_ID))) {
+                            throw FalhaAnaliseConformidade.indisponibilidadeTecnica();
+                        }
+                        try {
+                            return new SolicitacaoAnaliseConformidade(
+                                    texto(documento, CAMPO_CORRELATION_ID),
+                                    texto(documento, CAMPO_IDENTIFICADOR_DOCUMENTO),
+                                    texto(documento, "texto"),
+                                    inteiroLongo(documento, CAMPO_IDENTIFICADOR_CHECKLIST),
+                                    inteiro(documento, CAMPO_VERSAO_CHECKLIST));
+                        } catch (FalhaAnaliseConformidade _) {
+                            throw FalhaAnaliseConformidade.indisponibilidadeTecnica();
+                        }
+                    });
         });
     }
 
@@ -107,6 +145,27 @@ public class DocumentoAnaliseConformidadeStore
     }
 
     @Override
+    public Uni<Checklist> carregarChecklist(
+            String instanceId,
+            ReferenciaDocumentoAnaliseConformidade referencia) {
+        return carregarDocumentoReferenciado(
+                        instanceId,
+                        referencia,
+                        CAMPO_CHECKLIST_REF,
+                        TIPO_CHECKLIST)
+                .map(documento -> {
+                    Checklist checklist = converter(
+                            documento, CAMPO_CHECKLIST, Checklist.class);
+                    exigirReferencia(
+                            referencias.checklist(
+                                    texto(documento, CAMPO_CORRELATION_ID),
+                                    checklist),
+                            referencia);
+                    return checklist;
+                });
+    }
+
+    @Override
     public Uni<Void> aguardarRevisao(
             String instanceId,
             ResultadoAnaliseConformidade resultado) {
@@ -117,11 +176,15 @@ public class DocumentoAnaliseConformidadeStore
                 exigirStatus(projecao, StatusAnaliseConformidade.EM_PROCESSAMENTO);
                 exigirReferencia(projecao, CAMPO_CHECKLIST_REF);
                 validarIdentidadesResultado(projecao, resultado);
-                String referencia = IdsDocumentoAnaliseConformidade.resultadoPreliminar(
-                        texto(projecao, CAMPO_CORRELATION_ID));
+                var referencia = referencias.resultadoPreliminar(
+                        texto(projecao, CAMPO_CORRELATION_ID), resultado);
                 return gravarImutavel(
-                                referencia,
-                                documentoFato(referencia, TIPO_RESULTADO_PRELIMINAR, projecao)
+                                referencia.documentoRef(),
+                                documentoFato(
+                                                referencia.documentoRef(),
+                                                TIPO_RESULTADO_PRELIMINAR,
+                                                projecao)
+                                        .put(CAMPO_HASH_CONTEUDO, referencia.hashConteudo())
                                         .set(CAMPO_RESULTADO, objectMapper.valueToTree(resultado)))
                         .chain(() -> atualizarProjecao(
                                 projecaoPersistida,
@@ -129,9 +192,58 @@ public class DocumentoAnaliseConformidadeStore
                                 .put(
                                         CAMPO_STATUS,
                                         StatusAnaliseConformidade.AGUARDANDO_REVISAO.name())
-                                .put("resultadoPreliminarRef", referencia)));
+                                .put(
+                                        CAMPO_RESULTADO_PRELIMINAR_REF,
+                                        referencia.documentoRef())));
             });
         });
+    }
+
+    @Override
+    public Uni<Void> prepararResultadoPreliminar(
+            String instanceId,
+            ResultadoAnaliseConformidade resultado,
+            ReferenciaDocumentoAnaliseConformidade referencia) {
+        return Uni.createFrom().deferred(() -> {
+            validarResultadoPreliminar(resultado);
+            return projecaoObrigatoria(instanceId).chain(projecaoPersistida -> {
+                ObjectNode projecao = projecaoPersistida.documento();
+                exigirStatus(projecao, StatusAnaliseConformidade.EM_PROCESSAMENTO);
+                exigirReferencia(projecao, CAMPO_CHECKLIST_REF);
+                validarIdentidadesResultado(projecao, resultado);
+                var esperada = referencias.resultadoPreliminar(
+                        texto(projecao, CAMPO_CORRELATION_ID), resultado);
+                exigirReferencia(esperada, referencia);
+                return gravarResultadoReferenciado(
+                        projecao,
+                        TIPO_RESULTADO_PRELIMINAR,
+                        resultado,
+                        referencia);
+            });
+        });
+    }
+
+    @Override
+    public Uni<ResultadoAnaliseConformidade> carregarResultadoPreliminar(
+            String instanceId,
+            ReferenciaDocumentoAnaliseConformidade referencia) {
+        return carregarDocumentoReferenciado(
+                        instanceId,
+                        referencia,
+                        CAMPO_RESULTADO_PRELIMINAR_REF,
+                        TIPO_RESULTADO_PRELIMINAR)
+                .map(documento -> {
+                    ResultadoAnaliseConformidade resultado = converter(
+                            documento,
+                            CAMPO_RESULTADO,
+                            ResultadoAnaliseConformidade.class);
+                    exigirReferencia(
+                            referencias.resultadoPreliminar(
+                                    texto(documento, CAMPO_CORRELATION_ID),
+                                    resultado),
+                            referencia);
+                    return resultado;
+                });
     }
 
     @Override
@@ -146,31 +258,62 @@ public class DocumentoAnaliseConformidadeStore
             return projecaoObrigatoria(instanceId).chain(projecaoPersistida -> {
                 ObjectNode projecao = projecaoPersistida.documento();
                 exigirStatus(projecao, StatusAnaliseConformidade.AGUARDANDO_REVISAO);
-                String referencia = IdsDocumentoAnaliseConformidade.revisao(
-                        texto(projecao, CAMPO_CORRELATION_ID));
-                return gravarImutavel(
-                                referencia,
-                                documentoFato(referencia, TIPO_REVISAO, projecao)
-                                        .set("revisao", objectMapper.valueToTree(revisao)))
-                        .chain(() -> {
-                            if (referencia.equals(textoOpcional(
-                                    projecao,
-                                    CAMPO_REVISAO_REF))) {
-                                return Uni.createFrom().voidItem();
-                            }
-                            return atualizarProjecao(
-                                            projecaoPersistida,
-                                            atualizada -> atualizada.put(
-                                                    CAMPO_REVISAO_REF,
-                                                    referencia))
-                                    .onFailure(FalhaAnaliseConformidade.class)
-                                    .recoverWithUni(falha -> recuperarReservaConcorrente(
-                                            instanceId,
-                                            referencia,
-                                            falha));
-                        });
+                var referencia = referencias.revisao(
+                        texto(projecao, CAMPO_CORRELATION_ID), revisao);
+                Uni<Void> reservarReferencia;
+                if (referencia.documentoRef().equals(textoOpcional(
+                        projecao,
+                        CAMPO_REVISAO_REF))) {
+                    reservarReferencia = Uni.createFrom().voidItem();
+                } else {
+                    reservarReferencia = atualizarProjecao(
+                                    projecaoPersistida,
+                                    atualizada -> atualizada.put(
+                                            CAMPO_REVISAO_REF,
+                                            referencia.documentoRef()))
+                            .onFailure(FalhaAnaliseConformidade.class)
+                            .recoverWithUni(falha -> recuperarReservaConcorrente(
+                                    instanceId,
+                                    referencia.documentoRef(),
+                                    falha));
+                }
+                return reservarReferencia.chain(() -> gravarImutavel(
+                        referencia.documentoRef(),
+                        documentoFato(
+                                        referencia.documentoRef(),
+                                        TIPO_REVISAO,
+                                        projecao)
+                                .put(
+                                        CAMPO_HASH_CONTEUDO,
+                                        referencia.hashConteudo())
+                                .set(
+                                        CAMPO_REVISAO,
+                                        objectMapper.valueToTree(revisao))));
             });
         });
+    }
+
+    @Override
+    public Uni<RevisaoHumanaConformidade> carregarRevisao(
+            String instanceId,
+            ReferenciaDocumentoAnaliseConformidade referencia) {
+        return carregarDocumentoReferenciado(
+                        instanceId,
+                        referencia,
+                        CAMPO_REVISAO_REF,
+                        TIPO_REVISAO)
+                .map(documento -> {
+                    RevisaoHumanaConformidade revisao = converter(
+                            documento,
+                            CAMPO_REVISAO,
+                            RevisaoHumanaConformidade.class);
+                    exigirReferencia(
+                            referencias.revisao(
+                                    texto(documento, CAMPO_CORRELATION_ID),
+                                    revisao),
+                            referencia);
+                    return revisao;
+                });
     }
 
     @Override
@@ -184,11 +327,15 @@ public class DocumentoAnaliseConformidadeStore
                 exigirStatus(projecao, StatusAnaliseConformidade.AGUARDANDO_REVISAO);
                 exigirReferencia(projecao, CAMPO_REVISAO_REF);
                 validarIdentidadesResultado(projecao, resultado);
-                String referencia = IdsDocumentoAnaliseConformidade.resultadoFinal(
-                        texto(projecao, CAMPO_CORRELATION_ID));
+                var referencia = referencias.resultadoFinal(
+                        texto(projecao, CAMPO_CORRELATION_ID), resultado);
                 return gravarImutavel(
-                                referencia,
-                                documentoFato(referencia, TIPO_RESULTADO_FINAL, projecao)
+                                referencia.documentoRef(),
+                                documentoFato(
+                                                referencia.documentoRef(),
+                                                TIPO_RESULTADO_FINAL,
+                                                projecao)
+                                        .put(CAMPO_HASH_CONTEUDO, referencia.hashConteudo())
                                         .set(CAMPO_RESULTADO, objectMapper.valueToTree(resultado)))
                         .chain(() -> atualizarProjecao(
                                 projecaoPersistida,
@@ -196,7 +343,49 @@ public class DocumentoAnaliseConformidadeStore
                                 .put(
                                         CAMPO_STATUS,
                                         StatusAnaliseConformidade.CONCLUIDA.name())
-                                .put("resultadoFinalRef", referencia)));
+                                .put(CAMPO_RESULTADO_FINAL_REF, referencia.documentoRef())));
+            });
+        });
+    }
+
+    @Override
+    public Uni<Void> prepararResultadoFinal(
+            String instanceId,
+            ResultadoAnaliseConformidade resultado,
+            ReferenciaDocumentoAnaliseConformidade referencia) {
+        return Uni.createFrom().deferred(() -> {
+            validarResultadoFinal(resultado);
+            return projecaoObrigatoria(instanceId).chain(projecaoPersistida -> {
+                ObjectNode projecao = projecaoPersistida.documento();
+                exigirStatus(projecao, StatusAnaliseConformidade.AGUARDANDO_REVISAO);
+                exigirReferencia(projecao, CAMPO_REVISAO_REF);
+                validarIdentidadesResultado(projecao, resultado);
+                var esperada = referencias.resultadoFinal(
+                        texto(projecao, CAMPO_CORRELATION_ID), resultado);
+                exigirReferencia(esperada, referencia);
+                return gravarResultadoReferenciado(
+                        projecao,
+                        TIPO_RESULTADO_FINAL,
+                        resultado,
+                        referencia);
+            });
+        });
+    }
+
+    @Override
+    public Uni<Void> registrarEmissao(EmissaoReferencialAnaliseConformidade emissao) {
+        return Uni.createFrom().deferred(() -> {
+            if (emissao == null) {
+                throw FalhaAnaliseConformidade.transicaoInvalida();
+            }
+            return projecaoObrigatoria(emissao.instanceId()).chain(projecaoPersistida -> {
+                ObjectNode projecao = projecaoPersistida.documento();
+                if (!texto(projecao, CAMPO_CORRELATION_ID).equals(emissao.correlationId())) {
+                    throw FalhaAnaliseConformidade.transicaoInvalida();
+                }
+                return validarDocumentoReferenciado(projecao, emissao)
+                        .chain(() -> gravarFatoEmissao(projecao, emissao))
+                        .chain(() -> projetarEmissao(projecaoPersistida, emissao));
             });
         });
     }
@@ -254,11 +443,11 @@ public class DocumentoAnaliseConformidadeStore
         }
         return resultadoReferenciado(
                         documento,
-                        "resultadoPreliminarRef",
+                        CAMPO_RESULTADO_PRELIMINAR_REF,
                         TIPO_RESULTADO_PRELIMINAR)
                 .chain(resultadoPreliminar -> resultadoReferenciado(
                                 documento,
-                                "resultadoFinalRef",
+                                CAMPO_RESULTADO_FINAL_REF,
                                 TIPO_RESULTADO_FINAL)
                         .chain(resultadoFinal -> mensagemReferenciada(documento)
                                 .map(mensagem -> criarVisao(
@@ -352,6 +541,51 @@ public class DocumentoAnaliseConformidadeStore
         });
     }
 
+    private Uni<JsonNode> carregarDocumentoReferenciado(
+            String instanceId,
+            ReferenciaDocumentoAnaliseConformidade referencia,
+            String campoReferencia,
+            String tipo) {
+        if (referencia == null) {
+            return Uni.createFrom().failure(
+                    FalhaAnaliseConformidade.transicaoInvalida());
+        }
+        return projecaoObrigatoria(instanceId).chain(projecaoPersistida -> {
+            JsonNode projecao = projecaoPersistida.documento();
+            if (!referencia.documentoRef().equals(
+                    textoOpcional(projecao, campoReferencia))) {
+                throw FalhaAnaliseConformidade.transicaoInvalida();
+            }
+            String correlationId = texto(projecao, CAMPO_CORRELATION_ID);
+            return consultarDocumento(referencia.documentoRef(), correlationId)
+                    .map(documentoOpcional -> {
+                        JsonNode documento = documentoOpcional.orElseThrow(
+                                FalhaAnaliseConformidade::indisponibilidadeTecnica);
+                        exigirTipoEVersao(documento, tipo);
+                        if (!instanceId.equals(texto(documento, CAMPO_INSTANCE_ID))
+                                || !correlationId.equals(texto(
+                                        documento, CAMPO_CORRELATION_ID))
+                                || !referencia.hashConteudo().equals(texto(
+                                        documento, CAMPO_HASH_CONTEUDO))) {
+                            throw FalhaAnaliseConformidade.transicaoInvalida();
+                        }
+                        return documento;
+                    });
+        });
+    }
+
+    private <T> T converter(JsonNode documento, String campo, Class<T> tipo) {
+        JsonNode conteudo = documento.path(campo);
+        if (!conteudo.isObject()) {
+            throw FalhaAnaliseConformidade.indisponibilidadeTecnica();
+        }
+        try {
+            return objectMapper.treeToValue(conteudo, tipo);
+        } catch (JsonProcessingException | FalhaAnaliseConformidade _) {
+            throw FalhaAnaliseConformidade.indisponibilidadeTecnica();
+        }
+    }
+
     private Uni<Void> atualizarProjecao(
             RepositorioDocumental.DocumentoPersistido atual,
             Consumer<ObjectNode> alteracao) {
@@ -369,6 +603,159 @@ public class DocumentoAnaliseConformidadeStore
                     }
                     throw FalhaAnaliseConformidade.transicaoInvalida();
                 });
+    }
+
+    private Uni<Void> gravarResultadoReferenciado(
+            JsonNode projecao,
+            String tipo,
+            ResultadoAnaliseConformidade resultado,
+            ReferenciaDocumentoAnaliseConformidade referencia) {
+        return gravarImutavel(
+                referencia.documentoRef(),
+                documentoFato(referencia.documentoRef(), tipo, projecao)
+                        .put(CAMPO_HASH_CONTEUDO, referencia.hashConteudo())
+                        .set(CAMPO_RESULTADO, objectMapper.valueToTree(resultado)));
+    }
+
+    private Uni<Void> validarDocumentoReferenciado(
+            JsonNode projecao,
+            EmissaoReferencialAnaliseConformidade emissao) {
+        String correlationId = texto(projecao, CAMPO_CORRELATION_ID);
+        String tipoDocumento;
+        String referenciaEsperada;
+        switch (emissao.tipo()) {
+            case REVISAO_SOLICITADA -> {
+                tipoDocumento = TIPO_RESULTADO_PRELIMINAR;
+                referenciaEsperada = IdsDocumentoAnaliseConformidade
+                        .resultadoPreliminar(correlationId);
+            }
+            case ANALISE_CONCLUIDA -> {
+                tipoDocumento = TIPO_RESULTADO_FINAL;
+                referenciaEsperada = IdsDocumentoAnaliseConformidade
+                        .resultadoFinal(correlationId);
+            }
+            default -> throw FalhaAnaliseConformidade.transicaoInvalida();
+        }
+        var referencia = emissao.documento();
+        if (!referenciaEsperada.equals(referencia.documentoRef())) {
+            throw FalhaAnaliseConformidade.transicaoInvalida();
+        }
+        return consultarDocumento(referencia.documentoRef(), correlationId)
+                .map(documentoOpcional -> {
+                    JsonNode documento = documentoOpcional.orElseThrow(
+                            FalhaAnaliseConformidade::transicaoInvalida);
+                    exigirTipoEVersao(documento, tipoDocumento);
+                    String hashPersistido = texto(documento, CAMPO_HASH_CONTEUDO);
+                    String hashRecalculado = hashCanonico(documento.path(CAMPO_RESULTADO));
+                    if (!hashPersistido.equals(hashRecalculado)
+                            || !referencia.hashConteudo().equals(hashRecalculado)) {
+                        throw FalhaAnaliseConformidade.transicaoInvalida();
+                    }
+                    return null;
+                });
+    }
+
+    private Uni<Void> gravarFatoEmissao(
+            JsonNode projecao,
+            EmissaoReferencialAnaliseConformidade emissao) {
+        String documentoId = IdsDocumentoAnaliseConformidade.emissao(emissao.id());
+        return gravarImutavel(
+                documentoId,
+                documentoFato(documentoId, TIPO_EMISSAO, projecao)
+                        .put("eventoId", emissao.id())
+                        .put("eventoTipo", emissao.tipo().cloudEventType())
+                        .put("documentoRef", emissao.documento().documentoRef())
+                        .put(CAMPO_HASH_CONTEUDO, emissao.documento().hashConteudo()));
+    }
+
+    private Uni<Void> projetarEmissao(
+            RepositorioDocumental.DocumentoPersistido projecaoPersistida,
+            EmissaoReferencialAnaliseConformidade emissao) {
+        ObjectNode projecao = projecaoPersistida.documento();
+        return switch (emissao.tipo()) {
+            case REVISAO_SOLICITADA -> projetarSolicitacaoRevisao(
+                    emissao.instanceId(),
+                    projecaoPersistida,
+                    projecao,
+                    emissao.documento().documentoRef());
+            case ANALISE_CONCLUIDA -> projetarAnaliseConcluida(
+                    emissao.instanceId(),
+                    projecaoPersistida,
+                    projecao,
+                    emissao.documento().documentoRef());
+        };
+    }
+
+    private Uni<Void> projetarSolicitacaoRevisao(
+            String instanceId,
+            RepositorioDocumental.DocumentoPersistido projecaoPersistida,
+            JsonNode projecao,
+            String referencia) {
+        StatusAnaliseConformidade status = status(projecao);
+        if (status == StatusAnaliseConformidade.AGUARDANDO_REVISAO
+                && referencia.equals(textoOpcional(
+                        projecao,
+                        CAMPO_RESULTADO_PRELIMINAR_REF))) {
+            return Uni.createFrom().voidItem();
+        }
+        if (status != StatusAnaliseConformidade.EM_PROCESSAMENTO) {
+            throw FalhaAnaliseConformidade.transicaoInvalida();
+        }
+        return atualizarProjecao(projecaoPersistida, atualizada -> atualizada
+                .put(CAMPO_STATUS, StatusAnaliseConformidade.AGUARDANDO_REVISAO.name())
+                .put(CAMPO_RESULTADO_PRELIMINAR_REF, referencia))
+                .onFailure(FalhaAnaliseConformidade.class)
+                .recoverWithUni(falha -> recuperarEmissaoConcorrente(
+                        instanceId,
+                        StatusAnaliseConformidade.AGUARDANDO_REVISAO,
+                        CAMPO_RESULTADO_PRELIMINAR_REF,
+                        referencia,
+                        falha));
+    }
+
+    private Uni<Void> projetarAnaliseConcluida(
+            String instanceId,
+            RepositorioDocumental.DocumentoPersistido projecaoPersistida,
+            JsonNode projecao,
+            String referencia) {
+        StatusAnaliseConformidade status = status(projecao);
+        if (status == StatusAnaliseConformidade.CONCLUIDA
+                && referencia.equals(textoOpcional(projecao, CAMPO_RESULTADO_FINAL_REF))) {
+            return Uni.createFrom().voidItem();
+        }
+        if (status != StatusAnaliseConformidade.AGUARDANDO_REVISAO) {
+            throw FalhaAnaliseConformidade.transicaoInvalida();
+        }
+        exigirReferencia(projecao, CAMPO_REVISAO_REF);
+        return atualizarProjecao(projecaoPersistida, atualizada -> atualizada
+                .put(CAMPO_STATUS, StatusAnaliseConformidade.CONCLUIDA.name())
+                .put(CAMPO_RESULTADO_FINAL_REF, referencia))
+                .onFailure(FalhaAnaliseConformidade.class)
+                .recoverWithUni(falha -> recuperarEmissaoConcorrente(
+                        instanceId,
+                        StatusAnaliseConformidade.CONCLUIDA,
+                        CAMPO_RESULTADO_FINAL_REF,
+                        referencia,
+                        falha));
+    }
+
+    private Uni<Void> recuperarEmissaoConcorrente(
+            String instanceId,
+            StatusAnaliseConformidade statusEsperado,
+            String campoReferencia,
+            String referencia,
+            FalhaAnaliseConformidade falha) {
+        if (falha.tipo() != FalhaAnaliseConformidade.Tipo.TRANSICAO_INVALIDA) {
+            return Uni.createFrom().failure(falha);
+        }
+        return projecaoObrigatoria(instanceId).chain(atual -> {
+            JsonNode projecao = atual.documento();
+            if (status(projecao) == statusEsperado
+                    && referencia.equals(textoOpcional(projecao, campoReferencia))) {
+                return Uni.createFrom().voidItem();
+            }
+            return Uni.createFrom().failure(falha);
+        });
     }
 
     private Uni<Void> recuperarReservaConcorrente(
@@ -528,8 +915,10 @@ public class DocumentoAnaliseConformidadeStore
         if (documento == null
                 || !documento.isObject()
                 || !tipo.equals(texto(documento, "tipo"))
+                || !documento.path(CAMPO_VERSAO_SCHEMA).isIntegralNumber()
                 || !documento.path(CAMPO_VERSAO_SCHEMA).canConvertToInt()
-                || documento.path(CAMPO_VERSAO_SCHEMA).shortValue() != VERSAO_SCHEMA) {
+                || documento.path(CAMPO_VERSAO_SCHEMA).intValue()
+                        != VERSAO_SCHEMA.intValue()) {
             throw FalhaAnaliseConformidade.indisponibilidadeTecnica();
         }
     }
@@ -590,6 +979,14 @@ public class DocumentoAnaliseConformidadeStore
 
     private static void exigirReferencia(JsonNode documento, String campo) {
         texto(documento, campo);
+    }
+
+    private static void exigirReferencia(
+            ReferenciaDocumentoAnaliseConformidade esperada,
+            ReferenciaDocumentoAnaliseConformidade recebida) {
+        if (!esperada.equals(recebida)) {
+            throw FalhaAnaliseConformidade.transicaoInvalida();
+        }
     }
 
     private static String texto(JsonNode documento, String campo) {
