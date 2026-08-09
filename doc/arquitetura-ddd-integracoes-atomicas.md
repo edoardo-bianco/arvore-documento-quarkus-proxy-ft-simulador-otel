@@ -162,9 +162,9 @@ adapter, Resource e REST Client permanecem fora desse limite.
 - um adapter MTR pode implementar várias portas pequenas do mesmo domínio;
 - não existe `Service` genérico que exponha operações de todos os contextos.
 
-### PoC de análise de conformidade em implementação
+### PoC de análise de conformidade implementada
 
-O estado de produção implementado até a Task 8.3 inclui:
+O estado implementado e comprovado até a Task 9.2 inclui:
 
 - canais internos `flow-in` e `flow-out` com CloudEvent v1, sem connector ou broker;
 - shim de Messaging confinado ao adapter e à versão Flow `0.10.2`;
@@ -233,6 +233,16 @@ O estado de produção implementado até a Task 8.3 inclui:
   aceite da revisão; a mesma Lease é assumida pelo pod substituto, o checkpoint e os dados
   compartilhados sobrevivem, as duas réplicas consultam `CONCLUIDA` e cada correlação produz um
   único fato de conclusão;
+- página estática em `/poc-conformidade/`, sem dependência de framework ou CDN, com polling único
+  a cada 1.500 ms, cinco identidades somente leitura e revisão limitada a parecer, justificativa,
+  evidência e observação geral, sem `localStorage` ou `sessionStorage`;
+- spans e logs estruturados da persistência documental e dos feeds CouchDB/Cosmos limitados a IDs,
+  backend, operação, resultado, replay, cursor/lease e contexto de trace; texto, prompt, resposta,
+  revisão, evidência, credencial e documento não entram nesses sinais;
+- readiness que distingue backend documental, Redis/Valkey e Lease Kubernetes, preservando o
+  estado específico de cada dependência;
+- guardrails ArchUnit que impedem o núcleo de conformidade de depender de DTOs Ollama, SDK Cosmos
+  ou CloudEvent, além das regras gerais de direção das dependências;
 - pausa real no `listen`, publicação assíncrona da revisão pelo `flow-in` e retomada somente da
   instância correlacionada;
 - dupla validação da revisão, antes da publicação e dentro do workflow retomado;
@@ -247,9 +257,9 @@ aguardar a consulta; o resultado preliminar publicado em `flow-out` projeta
 atomicamente e publica somente sua referência em `flow-in`; e o workflow correlacionado recarrega
 o documento, retoma e projeta `CONCLUIDA` sem trocar as identidades. A espera do Flow possui
 checkpoint Redis/Valkey e a entrega usa o feed documental nativo, com cursor ou lease persistente
-conforme o backend. A página da PoC ainda não está implementada.
+conforme o backend. A página acompanha essa projeção sem criar estado adicional no navegador.
 
-### Evolução durável aprovada e ainda não concluída
+### Evolução durável implementada, com aceitação pendente
 
 O ADR-0010 permanece `Proposto`, embora os checkpoints C4 a C9 já tenham autorizado sua
 implementação incremental. As Tasks 7.3 a 7.6 implementaram a porta documental neutra, a seleção
@@ -258,8 +268,10 @@ por ambiente, CouchDB local com Compose Dev Services, adapter Cosmos contratualm
 restart sequencial entre JVMs. A advertência de configuração desconhecida para
 `quarkus.flow.persistence.auto-restore` ainda é emitida pela versão Flow `0.10.2`, embora a
 restauração padrão tenha sido comprovada funcional. O empacotamento local, as duas réplicas e a
-prova cross-pod/failover foram concluídos nas Tasks 8.1 a 8.3. Permanecem pendentes o gate Cosmos
-real pré-PRD e a decisão humana posterior; por isso o ADR ainda não é tratado como aceito.
+prova cross-pod/failover foram concluídos nas Tasks 8.1 a 8.3; a página e os guardrails operacionais
+foram concluídos nas Tasks 9.1 e 9.2. Permanecem pendentes o gate Cosmos real pré-PRD e a decisão
+humana posterior; por isso o ADR ainda não é tratado como aceito e o ADR-0009 não foi marcado como
+substituído.
 
 C6 estabelece Quarkus reativo sempre que a API suportar:
 
@@ -380,6 +392,12 @@ aprovada. Sem essa evidência, a composição mutável fica bloqueada.
 - os spans `simtr-hub.flow.conformidade.analise` e
   `simtr-hub.agent.conformidade.analisar` não registram texto, prompt, resposta, evidência,
   credencial, detalhe de erro ou stack;
+- os spans `simtr-hub.persistencia.conformidade.documento` e
+  `simtr-hub.feed.conformidade.documento`, bem como seus logs estruturados, usam apenas IDs,
+  backend, operação, resultado, replay, cursor/lease e trace; a operação reativa mantém o span até
+  terminar sem anexar payload ou exceção ao sinal;
+- readiness identifica separadamente backend documental, Redis/Valkey e Lease Kubernetes para que
+  a dependência impeditiva seja observável sem revelar configuração sensível;
 - exposição de `ObterCredencialContainer` a agentes exige decisão de segurança própria.
 
 `ConsultarDocumentosDossieProduto` publica os spans
@@ -421,7 +439,11 @@ prova negativa que rejeita dependência no caso de uso concreto.
 - não possui MCP Server ou tools;
 - o runtime usa a projeção documental do backend selecionado; CouchDB é real no ambiente local e
   Cosmos permanece mockado com gate real obrigatório antes de PRD;
-- não calcula árvore documental nem executa ainda a análise de conformidade ponta a ponta;
+- não calcula árvore documental; a análise de conformidade ponta a ponta está implementada apenas
+  como PoC, com página, revisão humana obrigatória e as limitações operacionais documentadas no
+  [README](../README.md#poc-de-conformidade-durável);
+- não há validação real do adapter Cosmos, recuperação ou HA dos próprios CouchDB/Valkey, nem
+  suporte produtivo inferido a partir das provas locais;
 - não implementa os dois endpoints ausentes listados acima.
 
 Essas restrições descrevem o estado atual, não uma proibição permanente. Uma feature pode mudá-las

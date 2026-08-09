@@ -13,6 +13,9 @@ as decisões vigentes estão em `doc/arquitetura-ddd-integracoes-atomicas.md` e 
 |---|---|---|
 | `arvoredocumento` | `ConsultarProcessoParametrizado` | `GET /simtr-hub/v1/processo/identificador-negocial/{identificador}` |
 | `conformidade` | `ConsultarChecklist` | `GET /simtr-hub/v1/checklist/identificador-negocial/{identificador}/versao/{versao}` |
+| `conformidade` | `IniciarAnaliseConformidade` | `POST /simtr-hub/v1/conformidade/analises` |
+| `conformidade` | `ConsultarAnaliseConformidade` | `GET /simtr-hub/v1/conformidade/analises/{instanceId}` |
+| `conformidade` | `RevisarAnaliseConformidade` | `PUT /simtr-hub/v1/conformidade/analises/{instanceId}/revisao` |
 | `dossieproduto` | `ConsultarDossieProduto` | `GET /simtr-hub/v1/dossie-produto/{id}` |
 | `dossieproduto` | `ConsultarDocumentosDossieProduto` | `GET /simtr-hub/v1/dossie-produto/{id}/documentos` |
 | `dossieproduto` | `CriarDossieProduto` | `POST /simtr-hub/v1/dossie-produto` |
@@ -24,9 +27,11 @@ as decisões vigentes estão em `doc/arquitetura-ddd-integracoes-atomicas.md` e 
 | `dossieproduto` | `IniciarOuAvancarWorkflowDossieProduto` | `POST /simtr-hub/v1/dossie-produto/{id}/workflow` |
 | `gestaodocumento` | `ObterCredencialContainer` | `POST /simtr-hub/v1/storage/container/credencial` |
 
-Nao existe endpoint unico de pre-validacao nem orquestrador local. Em especial,
-`gestaodocumento` apenas obtem e devolve a credencial opaca fornecida pelo MTR: o Hub nao envia
-arquivos ao Azure, nao interpreta a validade, nao reutiliza ou renova SAS e nao mantem cache.
+Nao existe endpoint unico de pre-validacao nem orquestrador local que componha as capacidades MTR.
+A análise de conformidade é uma PoC orquestrada por Quarkus Flow e não altera as doze capacidades
+atômicas de integração com o MTR. Em especial, `gestaodocumento` apenas obtém e devolve a
+credencial opaca fornecida pelo MTR: o Hub não envia arquivos ao Azure, não interpreta a validade,
+não reutiliza ou renova SAS e não mantém cache.
 
 ## Endpoints da especificacao que nao existem no Hub
 
@@ -43,9 +48,9 @@ especificacao, mas **NAO ESTAO IMPLEMENTADOS NESTA SOLUCAO**:
 "Nao implementado no Hub" nao significa que a API upstream nao exista no MTR. Esses dois
 endpoints aparecem na especificacao como operacoes do ciclo de vida do dossie a serem mantidas,
 mas nao sao chamados pelo diagrama de sequencia principal e nao ganharam rota proxy nesta
-solucao. Tambem nao existe endpoint unico de pre-validacao nem orquestrador local. Uma eventual
-implementacao exige nova decisao de escopo, contrato, testes, fase e branch; esta documentacao nao
-representa compromisso de entrega.
+solucao. Tambem nao existe endpoint único de pré-validação nem orquestrador local que componha
+essas operações MTR do dossiê. Uma eventual implementação exige nova decisão de escopo, contrato,
+testes, fase e branch; esta documentação não representa compromisso de entrega.
 
 A especificacao identifica os servicos pelos prefixos `/simtr-parametrizacao`,
 `/simtr-dossie-produto` e `/simtr-gestao-documento`. O ambiente atualmente configurado usa uma
@@ -55,14 +60,19 @@ base de gateway terminada em `/simtr`, somada aos paths `/parametrizacao`, `/dos
 ## Arquitetura
 
 ```text
-REST atual --------------------------+
-                                     |
-orquestrador futuro do dominio ------+--> porta de entrada
-                                           -> caso de uso atomico
-                                           -> porta de saida do consumidor
-                                           -> adapter selecionado
-                                              |-- MTR
-                                              `-- simulador
+REST atomico ---------------------------> porta de entrada
+                                            -> caso de uso atomico
+                                            -> porta de saida do consumidor
+                                            -> adapter selecionado
+                                               |-- MTR
+                                               `-- simulador
+
+REST da PoC -> casos de uso de conformidade -> Quarkus Flow
+                |                               |-- checkpoint Redis/Valkey
+                |                               `-- agente Ollama
+                `-- porta documental neutra
+                    |-- CouchDB em DES/local
+                    `-- Cosmos DB for NoSQL em PRD
 ```
 
 As dependencias fluem para dentro. Essa direcao e aplicada de forma pragmatica: **Quarkus pode ser
@@ -184,8 +194,9 @@ simtr-hub.simulador.dossie-produto.habilitado=false
 simtr-hub.simulador.gestao-documento.habilitado=false
 ```
 
-O profile `dev` habilita os quatro simuladores pelas properties correspondentes. O profile de
-teste nao depende de Docker nem de Dev Services.
+O profile `dev` habilita os quatro simuladores pelas properties correspondentes. A suíte padrão
+não usa Compose Dev Services nem Ollama/Cosmos reais, mas testes de persistência iniciam containers
+efêmeros e isolados de CouchDB/Valkey quando necessário.
 
 ## Erros, fault tolerance e observabilidade
 
@@ -217,14 +228,116 @@ mvn quarkus:dev -Ddebug=false
 O OpenAPI nao possui arquivo estatico nem filtro. Os testes protegem o comportamento HTTP e os
 contratos Java que alimentam a geracao, sem inspecionar o documento gerado pelo Quarkus.
 
+## PoC de conformidade durável
+
+A página da PoC fica em `http://localhost:8080/poc-conformidade/`. Ela usa os três endpoints de
+conformidade, consulta o estado a cada 1.500 ms e não grava `localStorage` nem `sessionStorage`.
+Durante todo o fluxo exibe como somente leitura `correlationId`, `instanceId`,
+`identificadorDocumento`, `identificadorChecklist` e `versaoChecklist`.
+
+Os dados de negócio ficam no backend documental selecionado: CouchDB no ambiente local e Azure
+Cosmos DB for NoSQL em PRD. Redis/Valkey guarda somente checkpoints técnicos do Flow. Solicitação
+de revisão e conclusão usam CloudEvents referenciais e feed nativo do backend, sem Kafka ou outro
+broker. A entrega é pelo menos uma vez; IDs determinísticos, documentos imutáveis e validação da
+correlação tornam o reprocessamento idempotente.
+
+### Desenvolvimento com Quarkus
+
+O `quarkus:dev` inicia o CouchDB `3.5.2` definido em `compose-devservices.yml` e preserva seu
+volume entre reinícios. Defina `COUCHDB_USERNAME`, `COUCHDB_PASSWORD` e `SIMTR_API_KEY` somente no
+ambiente, mantenha um Redis/Valkey acessível por `QUARKUS_REDIS_HOSTS` e inicie previamente o
+Ollama com o modelo configurado, por padrão `llama3.2:3b`.
+
+```powershell
+mvn quarkus:dev -Ddebug=false
+```
+
+### Uma réplica em containers
+
+Copie o exemplo para um arquivo ignorado pelo Git, preencha as três credenciais e confirme que o
+modelo configurado já existe no Ollama do host:
+
+```powershell
+Copy-Item poc-containers.env.example .env.poc
+docker compose --env-file .env.poc -f compose-poc.yml up --build -d
+docker compose --env-file .env.poc -f compose-poc.yml ps
+```
+
+O Compose publica aplicação, CouchDB e Valkey somente em `127.0.0.1`. O preflight
+`ollama-check` impede o início da aplicação quando o Ollama do host ou o modelo não está
+disponível. Para provar que uma instância sobrevive ao restart apenas da aplicação, mantenha
+CouchDB e Valkey ativos:
+
+```powershell
+docker compose --env-file .env.poc -f compose-poc.yml restart simtr-hub
+```
+
+O encerramento comum preserva o volume nomeado do CouchDB:
+
+```powershell
+docker compose --env-file .env.poc -f compose-poc.yml down
+```
+
+Não use `down -v` se precisar recuperar os documentos. O Valkey deste Compose não possui volume
+nem persistência própria; recriá-lo perde checkpoints e fica fora da prova de restart da PoC.
+
+A prova automatizada equivalente, com duas JVMs sequenciais e containers efêmeros, é:
+
+```powershell
+./validar-restart-conformidade.ps1
+```
+
+### Duas réplicas no kind
+
+São pré-requisitos Docker, Maven, `kubectl`, `kind` no `PATH` ou em `.tools/kind.exe`, além do
+Ollama/modelo no host. Prepare o Secret local e execute o roteiro de identidade durável:
+
+```powershell
+Copy-Item poc-kubernetes.env.example .env.poc-kubernetes
+./validar-poc-kubernetes.ps1
+./validar-failover-poc-kubernetes.ps1
+```
+
+O primeiro script cria ou reutiliza o cluster `simtr-hub-poc`, empacota e carrega a imagem, aplica
+`k8s/poc`, valida duas Leases de membro, readiness e rolling restart. O segundo direciona
+POST/PUT/GET a pods diferentes, substitui o owner antes e depois da revisão e exige conclusão
+única. Os roteiros deixam o cluster ativo para inspeção; removê-lo com
+`kind delete cluster --name simtr-hub-poc` também elimina o PVC e todos os dados locais do cluster.
+
+Os manifests reservam 100 mCPU/256 MiB para cada pod da aplicação, 50 mCPU/128 MiB para CouchDB e
+25 mCPU/32 MiB para Valkey; os limites de memória são, respectivamente, 768 MiB, 512 MiB e 128 MiB.
+O PVC do CouchDB possui 1 GiB.
+
+### Replay e limites operacionais
+
+- o feed CouchDB mantém o cursor no documento local `_local/simtr-flow-revisao-v1`; sem cursor,
+  inicia em `0`, e com cursor retoma da sequência persistida;
+- o Change Feed do Cosmos usa container de leases e prefixo próprio; sem lease, lê desde o início;
+- cursores e leases são estado técnico interno: não há comando público de reset e eles não devem
+  ser editados manualmente; duplicatas de replay são esperadas e tratadas por idempotência;
+- a página aceita texto de até 20.000 caracteres, enquanto o modelo local usa contexto
+  `num-ctx=2048`; não há truncamento ou particionamento silencioso;
+- timeout/retry/circuit breaker do adapter Ollama podem levar a chamada a aproximadamente 181 s
+  antes do fallback técnico completo para revisão humana;
+- CouchDB é uma única réplica e Valkey é compartilhado e não persistente nos ambientes da PoC;
+  perda, restart e alta disponibilidade desses backends não foram comprovados;
+- o acesso cross-pod e o failover do owner foram comprovados somente com CouchDB, Valkey e Ollama
+  continuamente disponíveis;
+- o adapter Cosmos passou em contrato determinístico com SDK mockado; integração real contra
+  Emulator ou conta não produtiva continua gate obrigatório antes de PRD;
+- o profile `%poc` desabilita OIDC somente nos ambientes locais empacotados e habilita logs
+  completos do LangChain4j; use exclusivamente dados sintéticos e nunca credenciais ou documentos
+  reais nesse profile.
+
 ## Testes e cobertura
 
 ```bash
 mvn -q clean test
 ```
 
-A suite usa stubs HTTP locais para exercitar o caminho MTR sem rede externa. A evidencia
-quantitativa de cobertura fica exclusivamente em:
+A suíte usa stubs HTTP locais para exercitar o caminho MTR sem rede externa e containers efêmeros
+para os contratos documentais necessários. Ollama real, Cosmos real e provas de restart entre
+processos permanecem gates opt-in. A evidência quantitativa de cobertura fica exclusivamente em:
 
 ```text
 target/jacoco-report/index.html
@@ -241,6 +354,6 @@ target/jacoco-report/index.html
 - observabilidade e operacao: `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`;
 - catalogo de sinais: `doc/catalogo-observabilidade.md`.
 
-Quarkus Flow, novos workflows, persistencia de orquestracao, os dois endpoints ausentes listados
-acima, quaisquer outros endpoints novos, upload e lifecycle de SAS nao estao implementados e
-exigem feature, plano e GO proprios.
+O workflow de conformidade descrito acima está implementado. Os dois endpoints ausentes listados,
+quaisquer outros endpoints ou workflows, upload e lifecycle de SAS continuam fora do escopo e
+exigem feature, plano e GO próprios.

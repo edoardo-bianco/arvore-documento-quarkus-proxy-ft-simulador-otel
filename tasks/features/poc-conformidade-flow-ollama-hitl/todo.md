@@ -6,7 +6,7 @@
 - **Escopo:** concluir baseline HITL volátil e evoluir para persistência documental
   neutra, com CouchDB em DES, Azure Cosmos DB for NoSQL em PRD, Redis/Valkey para
   checkpoints e entrega referencial sem broker
-- **Próximo item:** Task 9.3 — pendente, não iniciada
+- **Próximo item:** Task 9.4 — pendente, não iniciada
 - **Especificação:** `doc/poc/especificacao-poc-conformidade-quarkus-flow-ollama-hitl-sem-broker.md`
 - **Plano:** `tasks/features/poc-conformidade-flow-ollama-hitl/plan.md`
 - **Baseline Sonar:** SonarQube Docker local, inicializado em 2026-07-24
@@ -64,7 +64,7 @@
 - [x] 8.4 Executar suíte e checkpoint Sonar do incremento 8;
 - [x] 9.1 Criar página estática com polling e cinco valores de identidade;
 - [x] 9.2 Fechar observabilidade e guardrails arquiteturais;
-- [ ] 9.3 Atualizar README, consolidado arquitetural e ADRs conforme estado comprovado;
+- [x] 9.3 Atualizar README, consolidado arquitetural e ADRs conforme estado comprovado;
 - [ ] 9.4 Executar suíte, verify e checkpoint Sonar final;
 - [ ] CF Apresentar evidências e solicitar aceitação/encerramento humano.
 
@@ -1143,6 +1143,30 @@
   `NOT_REQUIRED`;
 - o `clean verify` final registrou 138 relatórios Surefire, 585 testes, 0 falhas,
   0 erros e 4 gates opt-in ignorados; a Task 9.3 não foi iniciada.
+
+### Task 9.3 — Consolidação documental e ADRs
+
+- a branch local foi alinhada com `origin/feature/poc-conformidade-flow-ollama-hitl` em
+  `fd3ddb9` antes do início da task, sem rebase ou conflito;
+- o README passou a documentar os três endpoints e a página da PoC, Compose de uma réplica,
+  restart somente da aplicação, prova entre JVMs, kind com duas réplicas, roteiro de failover,
+  replay por cursor/lease, recursos e limites operacionais;
+- o consolidado arquitetural e a documentação operacional agora descrevem o estado comprovado até
+  a Task 9.2, incluindo página, persistência/feed observáveis, readiness por dependência e
+  guardrails ArchUnit;
+- o catálogo registra os spans, eventos, atributos permitidos e testes contratuais da
+  conformidade, mantendo payload, texto, prompt, resposta, revisão, evidência, credencial e
+  documento fora da nova telemetria;
+- o ADR-0009 permanece `Aceito` como baseline histórico e não foi marcado como `Substituído`; o
+  ADR-0010 permanece `Proposto`, com prova local cross-pod registrada e gate Cosmos real/decisão
+  humana de aceitação ainda pendentes;
+- comandos e limites foram conferidos contra `compose-poc.yml`, os arquivos de ambiente, os
+  scripts de restart/Kubernetes/failover, manifests `k8s/poc`, código e testes da conformidade;
+- os links locais e o índice ADR foram comparados com os arquivos versionados; `git diff --check`
+  terminou sem erro, além dos avisos LF/CRLF conhecidos no Windows;
+- a task alterou somente Markdown fonte. Maven, Sonar e formatos derivados
+  `.ppt`/`.pptx`/`.pdf`/`.html` não foram executados ou atualizados;
+- a Task 9.4 permanece pendente e não foi iniciada.
 
 ### Planejamento da evolução durável
 

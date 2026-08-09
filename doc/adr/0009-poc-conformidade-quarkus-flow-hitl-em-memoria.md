@@ -66,6 +66,18 @@ sanitizada. O incremento HITL complementa no adapter o `source` e o `time` não
 fornecidos pelo `emitJson` da versão adotada, preserva a correlação nativa do Flow e
 mantém a limitação aprovada de não oferecer entrega durável ou recuperação.
 
+### Evolução posterior
+
+Este ADR registra a decisão histórica que criou a PoC volátil. A evolução descrita no
+[ADR-0010](0010-conformidade-couchdb-checkpoint-redis-e-hitl-multipod.md) implementou depois uma
+porta documental neutra, checkpoint Redis/Valkey, eventos referenciais, feed nativo, restart entre
+JVMs e failover cross-pod local. Isso torna as limitações de volatilidade abaixo inaplicáveis ao
+estado implementado atual, mas não reescreve a decisão original.
+
+O ADR-0010 continua `Proposto`: sua implementação local foi comprovada, enquanto o gate real do
+Cosmos antes de PRD e uma decisão humana explícita de aceitação permanecem pendentes. Até essa
+decisão, este ADR permanece `Aceito` e não é marcado como `Substituído`.
+
 ## Consequências
 
 - a PoC exercita a capacidade agentic e o HITL do Flow sem infraestrutura de broker;
