@@ -291,6 +291,99 @@ ou omita apontamentos deve produzir HTTP `422`.
 
 ## 7. Validar os dados persistidos no CouchDB
 
+### Onde os documentos são armazenados
+
+O CouchDB organiza dados como **databases contendo documentos JSON**; ele não possui schema
+relacional, tabelas ou linhas. A [documentação oficial do CouchDB](https://docs.couchdb.org/en/stable/intro/overview.html#document-storage)
+explica que cada database nomeado armazena documentos identificados de forma única e que os campos
+podem ter tipos JSON variados. Nesta PoC, a flexibilidade do servidor é limitada por um contrato
+da aplicação com `tipo` e `versaoSchema`.
+
+| Nível | Compose | Kubernetes kind |
+|---|---|---|
+| database lógico da aplicação | `${COUCHDB_DATABASE:-conformidade}` | `conformidade`, definido nos manifests |
+| processo CouchDB | container `couchdb` | container `couchdb` no StatefulSet `couchdb` |
+| diretório dentro do container | `/opt/couchdb/data` | `/opt/couchdb/data` |
+| persistência física | volume nomeado `simtr-hub-poc_couchdb-conformidade-data` | PVC `couchdb-conformidade-data` de 1 GiB |
+| porta dentro da rede | `couchdb:5984` | Service `couchdb:5984` |
+| acesso pelo host | `127.0.0.1:15984` por padrão | port-forward para `127.0.0.1:15984` |
+
+Todos os documentos negociais da análise ficam no database `conformidade`, salvo sobrescrita de
+`COUCHDB_DATABASE` no Compose. Bancos internos como `_users` ou `_replicator`, quando exibidos pelo
+CouchDB, não contêm o estado negocial da PoC. Os arquivos em `/opt/couchdb/data` pertencem ao
+CouchDB e não devem ser abertos ou editados diretamente; consulte-os pela API HTTP, Fauxton ou uma
+ferramenta compatível.
+
+O Valkey não armazena esses documentos: ele contém somente checkpoints técnicos do Quarkus Flow.
+Texto, checklist, resultado e revisão permanecem no CouchDB.
+
+### Schema lógico aplicado pela PoC
+
+O CouchDB não valida esse schema por conta própria. Quem cria e valida o contrato é
+`DocumentoAnaliseConformidadeStore`. A versão implementada é `versaoSchema=1`.
+
+Todo documento negocial possui esta base:
+
+```json
+{
+  "_id": "<prefixo>-<sha256>",
+  "_rev": "<revisão MVCC gerada pelo CouchDB>",
+  "id": "<mesmo valor determinístico de _id>",
+  "tipo": "<discriminador do documento>",
+  "versaoSchema": 1,
+  "correlationId": "<UUID da análise>",
+  "instanceId": "<ID nativo da instância Flow>",
+  "identificadorDocumento": "DOC-VALIDACAO-002",
+  "identificadorChecklist": 1000012583,
+  "versaoChecklist": 1
+}
+```
+
+`_id` é a chave única no database e `_rev` é o token de concorrência otimista mantido pelo
+CouchDB. O campo `id` é a identidade determinística preservada no contrato da aplicação. A
+[API oficial de documentos](https://docs.couchdb.org/en/stable/api/document/common.html#get--db-docid)
+define `_id` e `_rev`; `_rev` não representa histórico de negócio.
+
+Os IDs são construídos por prefixo mais SHA-256 da correlação, instância ou evento:
+
+| Tipo | Prefixo do `_id` | Campos específicos principais |
+|---|---|---|
+| `entrada-analise` | `entrada-` + SHA-256 de `correlationId` | `texto` |
+| `projecao-analise` | `projecao-` + SHA-256 de `instanceId` | `status` e referências para os fatos |
+| `checklist-analise` | `checklist-` + SHA-256 de `correlationId` | `hashConteudo`, `checklist` |
+| `resultado-preliminar` | `resultado-preliminar-` + SHA-256 de `correlationId` | `hashConteudo`, `resultado` |
+| `revisao-humana` | `revisao-` + SHA-256 de `correlationId` | `hashConteudo`, `revisao` |
+| `resultado-final` | `resultado-final-` + SHA-256 de `correlationId` | `hashConteudo`, `resultado` |
+| `falha-analise` | `falha-` + SHA-256 de `correlationId` | `mensagem` sanitizada |
+| `emissao-cloud-event` | `emissao-` + SHA-256 de `eventoId` | `eventoId`, `eventoTipo`, `documentoRef`, `hashConteudo` |
+
+A projeção é o único documento negocial mutável e usa `_rev` para compare-and-set. Os demais são
+fatos imutáveis: uma repetição com o mesmo ID e conteúdo é idempotente; conteúdo diferente para o
+mesmo ID é conflito. O cursor técnico do feed é uma exceção separada, armazenada como documento
+local `_local/simtr-flow-revisao-v1`, com `tipo=cursor-feed-revisao`, `versaoSchema=1` e `lastSeq`.
+
+Uma projeção concluída possui esta forma estrutural:
+
+```json
+{
+  "tipo": "projecao-analise",
+  "versaoSchema": 1,
+  "correlationId": "<correlationId>",
+  "instanceId": "<instanceId>",
+  "identificadorDocumento": "DOC-VALIDACAO-002",
+  "identificadorChecklist": 1000012583,
+  "versaoChecklist": 1,
+  "status": "CONCLUIDA",
+  "checklistRef": "checklist-<sha256>",
+  "resultadoPreliminarRef": "resultado-preliminar-<sha256>",
+  "revisaoRef": "revisao-<sha256>",
+  "resultadoFinalRef": "resultado-final-<sha256>"
+}
+```
+
+As referências apontam para documentos separados no mesmo database. Assim, a projeção permanece
+pequena enquanto os payloads completos ficam nos fatos correspondentes.
+
 Execute esta validação depois de iniciar uma análise pela página ou pela API. Use os valores reais
 de identidade devolvidos pelo POST ou exibidos na página:
 
@@ -507,7 +600,7 @@ if ($Cursor.tipo -ne "cursor-feed-revisao" -or
 Resultado esperado: `_id=_local/simtr-flow-revisao-v1`, `tipo=cursor-feed-revisao`,
 `versaoSchema=1` e `lastSeq` preenchido.
 
-### Inspeção opcional pelo navegador
+### Inspeção opcional pelo Fauxton
 
 No Compose, o Fauxton fica disponível por padrão em `http://127.0.0.1:15984/_utils/`. Se
 `COUCHDB_HTTP_PORT` foi alterada, use a porta configurada. Entre com o usuário e a senha mantidos
@@ -522,6 +615,52 @@ kubectl --context kind-simtr-hub-poc --namespace simtr-hub-poc `
 
 Enquanto o comando estiver ativo, acesse `http://127.0.0.1:15984/_utils/` e use as credenciais de
 `.env.poc-kubernetes`. Encerre o port-forward com `Ctrl+C` depois da inspeção.
+
+### Posso usar DBeaver?
+
+Sim, **desde que a edição ou distribuição instalada disponibilize o driver `CouchDB`**. O
+[catálogo oficial do DBeaver](https://dbeaver.com/databases/) lista CouchDB entre os bancos
+orientados a documentos, e a [comparação oficial de edições](https://dbeaver.com/edition/) inclui
+suporte NoSQL/BigData nos produtos PRO. A documentação genérica de drivers não garante que toda
+instalação Community contenha o conector; confirme se `CouchDB` aparece no assistente descrito em
+[Create connection](https://dbeaver.com/docs/dbeaver/Create-Connection/).
+
+Essa recomendação condicionada é uma inferência das fontes oficiais: o catálogo confirma CouchDB,
+mas não existe na documentação pública consultada uma página atual de configuração específica do
+driver. Por isso, os nomes dos campos na interface podem variar conforme produto e versão; os
+valores abaixo vêm das portas e configurações efetivas desta PoC.
+
+Não configure CouchDB como PostgreSQL, banco SQL genérico ou arquivo local. Ele é acessado pela API
+HTTP e seus objetos são documentos JSON, não tabelas. Se `CouchDB` não aparecer no assistente,
+essa instalação não fornece o driver necessário; use uma edição/distribuição compatível ou o
+Fauxton e os comandos HTTP deste guia.
+
+Para o Compose:
+
+| Campo da conexão | Valor |
+|---|---|
+| Driver/tipo | `CouchDB` |
+| Host | `127.0.0.1` |
+| Porta | `15984`, ou `COUCHDB_HTTP_PORT` configurada |
+| Database | `conformidade`, ou `COUCHDB_DATABASE` configurado |
+| Usuário/senha | valores locais de `.env.poc` |
+| TLS/SSL | desabilitado para esta PoC HTTP local |
+
+Para o kind, mantenha este comando ativo em outro terminal:
+
+```powershell
+kubectl --context kind-simtr-hub-poc --namespace simtr-hub-poc `
+  port-forward service/couchdb 15984:5984
+```
+
+No DBeaver, use `127.0.0.1`, porta `15984`, database `conformidade` e as credenciais de
+`.env.poc-kubernetes`. Use **Test Connection** antes de abrir o database. Não salve senha em
+arquivo versionado, não exporte a configuração com credenciais e não edite manualmente a projeção,
+os fatos ou o cursor durante uma prova.
+
+O DBeaver é uma opção de inspeção visual, não a evidência canônica desta PoC. Os comandos
+PowerShell anteriores e o Fauxton continuam sendo o roteiro reproduzível porque usam diretamente
+a API do CouchDB e independem de edição ou driver externo.
 
 ## 8. Provar recuperação depois do restart
 
