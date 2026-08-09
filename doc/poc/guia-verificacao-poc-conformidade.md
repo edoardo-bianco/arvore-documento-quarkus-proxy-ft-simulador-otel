@@ -455,16 +455,79 @@ Este gate ainda não consta como comprovado na evidência final atual da PoC.
 
 ## 12. Encerrar a execução local
 
-### Encerramento comum com dados preservados
+### Onde cada tipo de estado é mantido
 
-Para encerrar o Compose preservando o volume documental do CouchDB:
+| Backend | Conteúdo na PoC | Compose | Kubernetes local |
+|---|---|---|---|
+| CouchDB | documentos de entrada, checklist, resultados, revisão, projeção e cursor do feed | volume nomeado `simtr-hub-poc_couchdb-conformidade-data` | PVC `couchdb-conformidade-data` |
+| Redis/Valkey | checkpoints técnicos do Quarkus Flow | somente memória, com persistência desabilitada por `--save ""` | somente memória, sem volume ou PVC |
+
+O CouchDB sobrevive ao restart da aplicação e à recriação de seu container enquanto o volume/PVC
+e as credenciais que inicializaram esse estado forem preservados. Alterar apenas o Secret ou o
+arquivo `.env` não rotaciona a credencial já persistida no CouchDB. O Valkey só mantém checkpoints
+enquanto o mesmo serviço continua em execução: reiniciar ou recriar seu container/pod perde todo o
+conteúdo. Portanto, não existe nesta PoC um
+encerramento completo que preserve checkpoints do Valkey para uma sessão futura.
+
+### Preservar CouchDB e Valkey durante o teste de restart
+
+Reinicie somente a aplicação e mantenha os dois backends continuamente disponíveis.
+
+No Compose:
+
+```powershell
+docker compose --env-file .env.poc -f compose-poc.yml restart simtr-hub
+```
+
+No Kubernetes:
+
+```powershell
+kubectl --context kind-simtr-hub-poc --namespace simtr-hub-poc `
+  rollout restart deployment/simtr-hub
+kubectl --context kind-simtr-hub-poc --namespace simtr-hub-poc `
+  rollout status deployment/simtr-hub --timeout=300s
+```
+
+Esses comandos preservam documentos e checkpoints e são o caminho correto para provar retomada de
+uma instância `AGUARDANDO_REVISAO`. Não reinicie CouchDB nem Valkey durante essa prova.
+
+### Encerrar o Compose preservando apenas os documentos do CouchDB
+
+Para remover containers e rede, mas preservar o volume documental:
 
 ```powershell
 docker compose --env-file .env.poc -f compose-poc.yml down
 ```
 
-O cluster kind permanece ativo até ser removido explicitamente. Esse encerramento é adequado para
-continuar uma prova de restart ou consultar posteriormente os documentos já produzidos.
+Ao executar `down`, o container Valkey é removido e seus checkpoints são perdidos. Na próxima
+subida, os documentos e projeções concluídas continuam no CouchDB, mas uma instância em andamento
+não deve ser considerada retomável sem o checkpoint correspondente. O cluster kind permanece
+ativo até ser removido explicitamente; enquanto estiver ativo e seus backends não reiniciarem,
+CouchDB e Valkey continuam disponíveis.
+
+### Limpar somente os checkpoints do Valkey
+
+Faça essa limpeza apenas quando nenhuma instância em andamento precisar ser retomada. No Compose,
+pare a aplicação, reinicie o Valkey sem persistência e inicie novamente a aplicação:
+
+```powershell
+docker compose --env-file .env.poc -f compose-poc.yml stop simtr-hub
+docker compose --env-file .env.poc -f compose-poc.yml restart valkey
+docker compose --env-file .env.poc -f compose-poc.yml start simtr-hub
+```
+
+No Kubernetes:
+
+```powershell
+kubectl --context kind-simtr-hub-poc --namespace simtr-hub-poc `
+  rollout restart deployment/valkey
+kubectl --context kind-simtr-hub-poc --namespace simtr-hub-poc `
+  rollout status deployment/valkey --timeout=180s
+```
+
+Nos dois casos, o CouchDB e seus documentos permanecem. Limpar somente CouchDB e manter Valkey não
+é um procedimento operacional recomendado: os checkpoints podem referenciar documentos que já
+não existem. Para começar uma prova coerente do zero, limpe os dois backends.
 
 ### Limpeza completa dos ambientes da PoC
 

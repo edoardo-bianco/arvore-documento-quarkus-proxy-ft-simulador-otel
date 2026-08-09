@@ -291,9 +291,43 @@ Os manifests reservam 100 mCPU/256 MiB para cada pod da aplicação, 50 mCPU/128
 25 mCPU/32 MiB para Valkey; os limites de memória são, respectivamente, 768 MiB, 512 MiB e 128 MiB.
 O PVC do CouchDB possui 1 GiB.
 
-### Limpeza completa dos ambientes da PoC
+### Retenção e limpeza dos dados da PoC
 
-Quando os dados de teste não precisarem ser preservados, remova somente os recursos da PoC:
+O CouchDB usa volume no Compose e PVC no kind; ao reaproveitá-los, mantenha também as credenciais
+que inicializaram esse estado. O Valkey guarda checkpoints técnicos somente em memória e não possui
+volume nem persistência própria. O efeito das operações é:
+
+| Operação | Documentos CouchDB | Checkpoints Valkey |
+|---|---:|---:|
+| reiniciar somente `simtr-hub` | preservados | preservados |
+| `docker compose down` sem `--volumes` | preservados | descartados |
+| reiniciar somente Valkey | preservados | descartados |
+| `docker compose down --volumes` ou excluir o cluster kind | descartados | descartados |
+
+Para preservar os dois backends durante a prova de restart, reinicie somente a aplicação:
+
+```powershell
+docker compose --env-file .env.poc -f compose-poc.yml restart simtr-hub
+kubectl --context kind-simtr-hub-poc --namespace simtr-hub-poc `
+  rollout restart deployment/simtr-hub
+```
+
+Para limpar apenas os checkpoints no Compose, pare a aplicação, reinicie o Valkey e inicie a
+aplicação novamente. No kind, reinicie apenas o Deployment do Valkey:
+
+```powershell
+docker compose --env-file .env.poc -f compose-poc.yml stop simtr-hub
+docker compose --env-file .env.poc -f compose-poc.yml restart valkey
+docker compose --env-file .env.poc -f compose-poc.yml start simtr-hub
+kubectl --context kind-simtr-hub-poc --namespace simtr-hub-poc `
+  rollout restart deployment/valkey
+```
+
+Faça a limpeza isolada do Valkey somente quando nenhuma instância em andamento precisar ser
+retomada. Limpar apenas CouchDB não é recomendado, pois pode deixar checkpoints referenciando
+documentos inexistentes.
+
+Para remover todo o estado quando os dados de teste não precisarem ser preservados:
 
 ```powershell
 docker compose --env-file .env.poc -f compose-poc.yml `
