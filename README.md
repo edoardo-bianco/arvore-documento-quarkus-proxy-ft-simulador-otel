@@ -312,6 +312,29 @@ Os manifests reservam 100 mCPU/256 MiB para cada pod da aplicação, 50 mCPU/128
 25 mCPU/32 MiB para Valkey; os limites de memória são, respectivamente, 768 MiB, 512 MiB e 128 MiB.
 O PVC do CouchDB possui 1 GiB.
 
+### Limpeza completa dos ambientes da PoC
+
+Quando os dados de teste não precisarem ser preservados, remova somente os recursos da PoC:
+
+```powershell
+docker compose --env-file .env.poc -f compose-poc.yml `
+  down --volumes --remove-orphans
+kind delete cluster --name simtr-hub-poc
+# Se kind não estiver no PATH, use: .\.tools\kind.exe delete cluster --name simtr-hub-poc
+docker image rm simtr-hub-poc:local
+mvn clean # opcional: remove target/
+```
+
+Esse procedimento elimina containers, rede e volume do Compose, além de pods, Leases, PVC e dados
+do cluster kind. Ele preserva `.env.poc`, `.env.poc-kubernetes`, Ollama, SonarQube, Jaeger e outros
+recursos Docker não pertencentes à PoC. Não use `docker system prune --all --volumes` como limpeza
+normal, pois o comando atua globalmente.
+
+Para construir novamente, execute o `package` seguido do `docker compose ... up --build --detach`
+na prova de uma réplica ou `./validar-poc-kubernetes.ps1` na prova com duas réplicas. Os comandos de
+inspeção, reconstrução e as ressalvas completas estão na seção
+[Encerrar a execução local](doc/poc/guia-verificacao-poc-conformidade.md#12-encerrar-a-execução-local).
+
 ### Replay e limites operacionais
 
 - o feed CouchDB mantém o cursor no documento local `_local/simtr-flow-revisao-v1`; sem cursor,

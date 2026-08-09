@@ -67,6 +67,7 @@
 - [x] 9.3 Atualizar README, consolidado arquitetural e ADRs conforme estado comprovado;
 - [x] 9.4 Executar suíte, verify e checkpoint Sonar final;
 - [x] 9.5 Criar guia passo a passo para verificação reproduzível da PoC;
+- [x] 9.6 Documentar limpeza completa e reconstrução dos ambientes locais da PoC;
 - [ ] CF Apresentar evidências e solicitar aceitação/encerramento humano.
 
 ## Evidências de execução
@@ -1211,6 +1212,26 @@
 - a task alterou apenas Markdown fonte. Maven, Sonar e formatos derivados
   `.ppt`/`.pptx`/`.pdf`/`.html` não foram executados ou atualizados;
 - a Task 9.5 está concluída. O checkpoint CF permanece pendente para execução do roteiro e decisão
+  humana de aceitação/encerramento.
+
+### Task 9.6 — Limpeza completa dos ambientes locais
+
+- o usuário solicitou complementar o guia e a seção da PoC no README com um procedimento para
+  encerrar os testes sem preservar o ambiente criado;
+- o guia agora distingue o `docker compose down` que preserva o volume documental da limpeza
+  destrutiva e limitada ao projeto `simtr-hub-poc`;
+- a limpeza documentada remove containers, rede, órfãos e volume do Compose, cluster kind, PVC,
+  dados Kubernetes e a imagem local da aplicação, com `mvn clean` explicitamente opcional;
+- comandos de inspeção permitem confirmar a ausência de containers, volumes, imagem e cluster, e
+  os caminhos de reconstrução cobrem Compose e Kubernetes;
+- arquivos `.env`, Ollama, SonarQube, Jaeger e recursos alheios permanecem fora do alvo; o uso de
+  `docker system prune --all --volumes` foi desaconselhado por seu alcance global;
+- comandos e nomes foram conferidos contra `compose-poc.yml`, `validar-poc-kubernetes.ps1` e os
+  manifests `k8s/poc`; `git diff --check` terminou sem erro, além dos avisos LF/CRLF conhecidos no
+  Windows;
+- a task alterou somente Markdown fonte. Maven, Sonar e formatos derivados
+  `.ppt`/`.pptx`/`.pdf`/`.html` não foram executados ou atualizados;
+- a Task 9.6 está concluída. O checkpoint CF permanece pendente para execução do guia e decisão
   humana de aceitação/encerramento.
 
 ### Planejamento da evolução durável
