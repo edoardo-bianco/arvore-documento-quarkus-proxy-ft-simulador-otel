@@ -6,7 +6,7 @@
 - **Escopo:** concluir baseline HITL volátil e evoluir para persistência documental
   neutra, com CouchDB em DES, Azure Cosmos DB for NoSQL em PRD, Redis/Valkey para
   checkpoints e entrega referencial sem broker
-- **Próximo item:** Checkpoint CF — pendente, aguarda apresentação e decisão humana
+- **Próximo item:** Checkpoint CF — pendente, aguarda execução do guia e decisão humana
 - **Especificação:** `doc/poc/especificacao-poc-conformidade-quarkus-flow-ollama-hitl-sem-broker.md`
 - **Plano:** `tasks/features/poc-conformidade-flow-ollama-hitl/plan.md`
 - **Baseline Sonar:** SonarQube Docker local, inicializado em 2026-07-24
@@ -66,6 +66,7 @@
 - [x] 9.2 Fechar observabilidade e guardrails arquiteturais;
 - [x] 9.3 Atualizar README, consolidado arquitetural e ADRs conforme estado comprovado;
 - [x] 9.4 Executar suíte, verify e checkpoint Sonar final;
+- [x] 9.5 Criar guia passo a passo para verificação reproduzível da PoC;
 - [ ] CF Apresentar evidências e solicitar aceitação/encerramento humano.
 
 ## Evidências de execução
@@ -1191,6 +1192,26 @@
   backends disponíveis nas provas locais e o uso de dados somente sintéticos no profile `%poc`;
 - a Task 9.4 está tecnicamente concluída. O checkpoint CF não foi inferido: permanece pendente para
   apresentação das evidências e decisão humana de aceitação/encerramento.
+
+### Task 9.5 — Guia reproduzível de verificação
+
+- a pedido do usuário, o plano e o checklist passaram a incluir uma etapa documental própria antes
+  do checkpoint CF;
+- `doc/poc/guia-verificacao-poc-conformidade.md` organiza a comprovação em suíte padrão,
+  demonstração HITL local, restart, duas réplicas/failover, observabilidade, Sonar e gate Cosmos;
+- o roteiro informa pré-requisitos, comandos PowerShell, resultados esperados, coleta de evidência,
+  checklist de aceite e diagnóstico rápido;
+- página, API, DTOs, properties, Compose, scripts de restart/Kubernetes/failover, testes e catálogo
+  de observabilidade foram comparados diretamente para evitar comandos ou contratos presumidos;
+- Cosmos real permanece explicitamente `PENDENTE` e obrigatório antes de PRD; restart/HA dos
+  próprios CouchDB e Valkey não foram apresentados como capacidades comprovadas;
+- o README passou a apontar para o guia e todos os links locais do guia correspondem a arquivos
+  versionados existentes;
+- `git diff --check` terminou sem erro, além dos avisos LF/CRLF conhecidos no Windows;
+- a task alterou apenas Markdown fonte. Maven, Sonar e formatos derivados
+  `.ppt`/`.pptx`/`.pdf`/`.html` não foram executados ou atualizados;
+- a Task 9.5 está concluída. O checkpoint CF permanece pendente para execução do roteiro e decisão
+  humana de aceitação/encerramento.
 
 ### Planejamento da evolução durável
 

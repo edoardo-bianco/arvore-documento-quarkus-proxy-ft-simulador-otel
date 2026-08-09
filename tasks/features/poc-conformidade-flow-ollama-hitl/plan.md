@@ -1630,6 +1630,29 @@ arquitetura para refletir o estado efetivamente implementado.
 
 **Tamanho estimado:** M.
 
+#### Task 9.5 — Documentar a verificação reproduzível da PoC
+
+**Descrição:** criar um guia operacional em Markdown que permita a outra pessoa verificar, passo a
+passo, as capacidades implementadas e distinguir a suíte padrão, a demonstração HITL local e as
+provas opt-in de restart e múltiplos pods.
+
+**Critérios de aceitação:**
+
+- pré-requisitos, preparação segura e comandos exatos documentados;
+- cada etapa informa o resultado esperado e a evidência que comprova;
+- fluxo manual pela página e verificações automatizadas são explicados separadamente;
+- restart entre JVMs, Compose, kind/failover, observabilidade e Sonar possuem rotas de validação;
+- limites não comprovados, especialmente Cosmos real e HA dos backends, permanecem explícitos;
+- nenhum formato derivado é criado ou atualizado.
+
+**Verificação:** comparação com código, DTOs, testes, properties, Compose e scripts versionados;
+links Markdown e `git diff --check`. Por ser documentação exclusiva, não executar Maven ou
+checkpoint Sonar nesta task.
+
+**Dependências:** Task 9.4.
+
+**Tamanho estimado:** S.
+
 ### Checkpoint CF — Aceitação técnica e encerramento
 
 - apresentar diff, comandos, testes, dependency tree, demonstração HITL e resultado
