@@ -455,11 +455,73 @@ Este gate ainda não consta como comprovado na evidência final atual da PoC.
 
 ## 12. Encerrar a execução local
 
-Para encerrar o Compose preservando o volume documental:
+### Encerramento comum com dados preservados
+
+Para encerrar o Compose preservando o volume documental do CouchDB:
 
 ```powershell
 docker compose --env-file .env.poc -f compose-poc.yml down
 ```
+
+O cluster kind permanece ativo até ser removido explicitamente. Esse encerramento é adequado para
+continuar uma prova de restart ou consultar posteriormente os documentos já produzidos.
+
+### Limpeza completa dos ambientes da PoC
+
+Depois de concluir os testes, use os comandos abaixo quando não precisar preservar nenhum dado da
+PoC. A limpeza é limitada ao projeto Compose e ao cluster kind `simtr-hub-poc`; ela não remove
+containers, volumes ou imagens de outros projetos:
+
+```powershell
+# Remove containers, rede, órfãos e o volume CouchDB do Compose da PoC.
+docker compose --env-file .env.poc -f compose-poc.yml `
+  down --volumes --remove-orphans
+
+# Remove o cluster kind, incluindo pods, Leases, PVC e dados Kubernetes da PoC.
+kind delete cluster --name simtr-hub-poc
+# Se kind não estiver no PATH, use: .\.tools\kind.exe delete cluster --name simtr-hub-poc
+
+# Remove a imagem construída localmente com a tag padrão da PoC.
+docker image rm simtr-hub-poc:local
+
+# Opcional: remove os artefatos Maven do diretório target/.
+mvn clean
+```
+
+Se `SIMTR_HUB_IMAGE_TAG` tiver sido sobrescrita, substitua `local` pela tag utilizada. Os comandos
+acima preservam `.env.poc`, `.env.poc-kubernetes`, o Ollama instalado no host e recursos alheios,
+como SonarQube ou Jaeger. Não use `docker system prune --all --volumes` como limpeza normal da PoC:
+ele atua globalmente e pode remover dados, imagens e caches de outros projetos.
+
+Confirme que não restaram recursos próprios da PoC:
+
+```powershell
+docker ps -a --filter "label=com.docker.compose.project=simtr-hub-poc"
+docker volume ls --filter "label=com.docker.compose.project=simtr-hub-poc"
+docker images simtr-hub-poc
+kind get clusters
+# Se kind não estiver no PATH, use: .\.tools\kind.exe get clusters
+```
+
+As duas primeiras consultas e `docker images` devem exibir somente seus cabeçalhos, sem recursos da
+PoC. A listagem do kind não deve conter `simtr-hub-poc`.
+
+Para reconstruir uma réplica no Compose a partir do ambiente limpo:
+
+```powershell
+mvn -q -DskipTests package
+docker compose --env-file .env.poc -f compose-poc.yml up --build --detach
+```
+
+Para reconstruir e validar o ambiente Kubernetes completo:
+
+```powershell
+./validar-poc-kubernetes.ps1
+./validar-failover-poc-kubernetes.ps1
+```
+
+O primeiro script recria o cluster quando ausente. O segundo completa a prova de revisão cross-pod
+e failover; execute-o quando esse nível de evidência fizer parte do objetivo da validação.
 
 Confirme o estado final do repositório:
 

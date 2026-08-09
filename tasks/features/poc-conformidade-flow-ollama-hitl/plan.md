@@ -1653,6 +1653,30 @@ checkpoint Sonar nesta task.
 
 **Tamanho estimado:** S.
 
+#### Task 9.6 — Documentar limpeza completa dos ambientes locais da PoC
+
+**Descrição:** complementar o guia operacional e a seção da PoC no README com um encerramento
+destrutivo, explícito e limitado aos recursos da PoC, permitindo reconstruir Compose e kind sem
+estado persistido anterior.
+
+**Critérios de aceitação:**
+
+- distinguir o encerramento comum, que preserva o volume documental, da limpeza completa;
+- remover containers, rede e volume do projeto Compose `simtr-hub-poc`, o cluster kind
+  `simtr-hub-poc`, sua imagem local e, opcionalmente, os artefatos Maven;
+- documentar comandos de inspeção que confirmem a ausência desses recursos e os comandos para
+  reconstruir Compose ou Kubernetes;
+- preservar arquivos `.env` e recursos Docker alheios à PoC, com advertência explícita contra
+  `docker system prune --all --volumes` como procedimento normal.
+
+**Verificação:** comparação com `compose-poc.yml`, `validar-poc-kubernetes.ps1`, manifests
+`k8s/poc`, links Markdown e `git diff --check`. Por ser documentação exclusiva, não executar Maven
+ou checkpoint Sonar nesta task.
+
+**Dependências:** Task 9.5.
+
+**Tamanho estimado:** S.
+
 ### Checkpoint CF — Aceitação técnica e encerramento
 
 - apresentar diff, comandos, testes, dependency tree, demonstração HITL e resultado
