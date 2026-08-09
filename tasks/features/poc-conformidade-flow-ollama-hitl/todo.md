@@ -6,7 +6,7 @@
 - **Escopo:** concluir baseline HITL volátil e evoluir para persistência documental
   neutra, com CouchDB em DES, Azure Cosmos DB for NoSQL em PRD, Redis/Valkey para
   checkpoints e entrega referencial sem broker
-- **Próximo item:** Task 9.4 — pendente, não iniciada
+- **Próximo item:** Checkpoint CF — pendente, aguarda apresentação e decisão humana
 - **Especificação:** `doc/poc/especificacao-poc-conformidade-quarkus-flow-ollama-hitl-sem-broker.md`
 - **Plano:** `tasks/features/poc-conformidade-flow-ollama-hitl/plan.md`
 - **Baseline Sonar:** SonarQube Docker local, inicializado em 2026-07-24
@@ -65,7 +65,7 @@
 - [x] 9.1 Criar página estática com polling e cinco valores de identidade;
 - [x] 9.2 Fechar observabilidade e guardrails arquiteturais;
 - [x] 9.3 Atualizar README, consolidado arquitetural e ADRs conforme estado comprovado;
-- [ ] 9.4 Executar suíte, verify e checkpoint Sonar final;
+- [x] 9.4 Executar suíte, verify e checkpoint Sonar final;
 - [ ] CF Apresentar evidências e solicitar aceitação/encerramento humano.
 
 ## Evidências de execução
@@ -1168,6 +1168,30 @@
   `.ppt`/`.pptx`/`.pdf`/`.html` não foram executados ou atualizados;
 - a Task 9.4 permanece pendente e não foi iniciada.
 
+### Task 9.4 — Suíte, verify e checkpoint Sonar final
+
+- o commit documental da Task 9.3, `4f86036`, foi publicado em
+  `origin/feature/poc-conformidade-flow-ollama-hitl` antes das verificações finais;
+- `mvn -q test` terminou com código 0 em 170,4 s;
+- `mvn -q verify` terminou com código 0 em 348,5 s;
+- o `clean verify` executado pelo checkpoint preservou 138 relatórios Surefire, 585 testes,
+  0 falhas, 0 erros e 4 gates opt-in ignorados;
+- restart entre JVMs, Ollama real, Cosmos real e multipod/failover permanecem opt-ins separados;
+  as provas locais de restart, Ollama e cross-pod/failover já estão registradas nas Tasks 7.6,
+  8.1 e 8.3, enquanto o Cosmos real continua gate obrigatório antes de PRD;
+- `git diff --check` terminou sem erro antes do registro desta evidência, e o worktree permaneceu
+  limpo durante suíte, verify e análise;
+- `validar-checkpoint-sonarqube.ps1` reutilizou o baseline `READY` existente, executou
+  `clean verify`, SonarScanner e Compute Engine completos e terminou com código 0;
+- situação técnica final `COMPLIANT`: 240 issues atuais contra 240 no baseline, nenhuma issue nova
+  ou `HIGH`/`BLOCKER`/`CRITICAL`, cobertura de 85,3%, duplicação de 2,6% e decisão
+  `NOT_REQUIRED`;
+- a revisão final de correção, simplicidade, arquitetura, segurança, desempenho, testes e escopo
+  não encontrou bloqueador novo; permanecem explícitos o gate Cosmos real, a dependência dos
+  backends disponíveis nas provas locais e o uso de dados somente sintéticos no profile `%poc`;
+- a Task 9.4 está tecnicamente concluída. O checkpoint CF não foi inferido: permanece pendente para
+  apresentação das evidências e decisão humana de aceitação/encerramento.
+
 ### Planejamento da evolução durável
 
 - o usuário autorizou planejar a mudança para CouchDB nos dados de negócio e
@@ -1282,6 +1306,7 @@
 | Sonar Task 9.2 — primeira execução | CONTINUAR_AJUSTES | 2026-08-09 | 257 issues atuais contra 240 no baseline, 17 novas, 4 severas, cobertura 82,5% e duplicação 2,6%; decisão registrada pelo script | Usuário |
 | Sonar Task 9.2 — segundo checkpoint | CONTINUAR_AJUSTES | 2026-08-09 | 242 issues atuais contra 240 no baseline, 2 novas `MINOR`, cobertura 85,3% e duplicação 2,6%; decisão registrada pelo script | Usuário |
 | Sonar Task 9.2 — ajuste final | COMPLIANT | 2026-08-09 | 240 issues atuais contra 240 no baseline, 0 novas ou severas, cobertura 85,3%, duplicação 2,6% e decisão `NOT_REQUIRED`; 585 testes, 0 falhas, 0 erros e 4 ignorados | — |
+| Sonar Task 9.4 — checkpoint final | COMPLIANT | 2026-08-09 | 240 issues atuais contra 240 no baseline, 0 novas ou severas, cobertura 85,3%, duplicação 2,6% e decisão `NOT_REQUIRED`; baseline `READY` preservado | — |
 | Sonar Task 7.4 — primeira execução | CONTINUAR_AJUSTES | 2026-08-04 | 2 issues novas (`java:S5778` e `java:S1612`), cobertura 84,9% e duplicação 2,6%; decisão registrada pelo script | Usuário |
 | Sonar Task 7.4 — primeiro ajuste | CONTINUAR_AJUSTES | 2026-08-04 | 241 issues atuais contra 242 no baseline; 0 issues novas ou bloqueantes; cobertura 84,9%; duplicação 2,6%; decisão registrada pelo script | Usuário |
 | Sonar Task 7.4 — ajuste final | COMPLIANT | 2026-08-04 | 240 issues atuais contra 242 no baseline; 0 issues novas ou bloqueantes; cobertura 85,1%; duplicação 2,6%; decisão `NOT_REQUIRED` | — |
