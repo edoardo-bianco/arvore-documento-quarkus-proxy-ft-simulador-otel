@@ -71,6 +71,7 @@
 - [x] 9.7 Separar retenção e descarte de CouchDB e Valkey na documentação operacional;
 - [x] 9.8 Explicitar que a remoção total exige limpar Compose e cluster kind separadamente;
 - [x] 9.9 Documentar consultas para validar os dados persistidos no CouchDB;
+- [x] 9.10 Explicitar schema, armazenamento e uso condicionado do DBeaver;
 - [ ] CF Apresentar evidências e solicitar aceitação/encerramento humano.
 
 ## Evidências de execução
@@ -1303,6 +1304,33 @@
 - a task alterou somente Markdown fonte. Maven, Sonar e formatos derivados
   `.ppt`/`.pptx`/`.pdf`/`.html` não foram executados ou atualizados;
 - a Task 9.9 está concluída. O checkpoint CF permanece pendente para execução do guia e decisão
+  humana de aceitação/encerramento.
+
+### Task 9.10 — Schema CouchDB, armazenamento e DBeaver
+
+- o usuário solicitou explicitar o schema do CouchDB, a localização dos documentos e verificar o
+  uso do DBeaver;
+- README e guia agora distinguem o modelo lógico — database `conformidade`, documentos JSON e
+  contrato `versaoSchema=1` — do armazenamento físico em volume Compose ou PVC kind;
+- o guia documenta campos comuns, `_id`, `_rev`, `id`, discriminador `tipo`, prefixos SHA-256,
+  campos específicos, projeção mutável, fatos imutáveis e cursor local do feed;
+- a tabela física foi conferida contra mount `/opt/couchdb/data`, volume
+  `simtr-hub-poc_couchdb-conformidade-data`, PVC `couchdb-conformidade-data`, Service e portas;
+- o catálogo oficial do DBeaver lista CouchDB como banco orientado a documentos e a comparação de
+  edições registra suporte NoSQL/BigData nos produtos PRO;
+- como a documentação pública consultada não oferece uma página atual específica do driver
+  CouchDB, a recomendação foi registrada como inferência condicionada à presença do driver no
+  assistente; não foi prometido suporte em toda instalação Community;
+- o guia fornece parâmetros para Compose e kind, port-forward, Test Connection e fallback para
+  Fauxton/HTTP, sem sugerir SQL, tabela ou edição manual dos documentos;
+- foram consultadas somente fontes oficiais: documentação e repositório Apache CouchDB, catálogo,
+  comparação de edições, assistente de conexão e repositório público do DBeaver;
+- o link do README para o encerramento foi corrigido da antiga seção 12 para a seção 13 atual;
+- 49 blocos PowerShell e 2 blocos JSON do guia passaram na validação sintática; `git diff --check`
+  terminou sem erro, além dos avisos LF/CRLF conhecidos no Windows;
+- a task alterou somente Markdown fonte. Maven, Sonar e formatos derivados
+  `.ppt`/`.pptx`/`.pdf`/`.html` não foram executados ou atualizados;
+- a Task 9.10 está concluída. O checkpoint CF permanece pendente para execução do guia e decisão
   humana de aceitação/encerramento.
 
 ### Planejamento da evolução durável

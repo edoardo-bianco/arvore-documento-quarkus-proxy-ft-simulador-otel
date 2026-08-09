@@ -1750,6 +1750,37 @@ exclusiva, não executar Maven ou checkpoint Sonar nesta task.
 
 **Tamanho estimado:** S.
 
+#### Task 9.10 — Explicitar o schema CouchDB e o uso do DBeaver
+
+**Descrição:** consolidar no README e no guia o modelo documental efetivamente persistido, sua
+localização lógica e física e as condições verificadas para inspeção por DBeaver.
+
+**Critérios de aceitação:**
+
+- explicar que CouchDB não possui schema relacional imposto pelo servidor e que a aplicação usa
+  contrato JSON versionado por `versaoSchema` e discriminado por `tipo`;
+- documentar database, campos comuns, IDs determinísticos, projeção mutável, fatos imutáveis e
+  cursor local;
+- mapear onde os dados ficam no Compose e no kind, distinguindo database, volume/PVC, mount e
+  porta de acesso;
+- resumir os campos específicos de cada tipo documental sem tratar Redis/Valkey como repositório
+  de conteúdo negocial;
+- registrar, com fontes oficiais, que CouchDB aparece no catálogo do DBeaver, que a disponibilidade
+  do driver depende da edição/distribuição e que Fauxton/HTTP permanecem a referência reproduzível;
+- orientar conexão do DBeaver ao Compose e ao kind sem expor credenciais e sem sugerir SQL ou
+  tabelas inexistentes;
+- corrigir links internos afetados pela numeração atual do guia.
+
+**Verificação:** comparação com `compose-poc.yml`, manifests `k8s/poc`,
+`DocumentoAnaliseConformidadeStore`, `IdsDocumentoAnaliseConformidade`,
+`CouchDbChangesHttpClient`, documentação oficial Apache CouchDB e DBeaver, links Markdown,
+blocos PowerShell e `git diff --check`. Por ser documentação exclusiva, não executar Maven ou
+checkpoint Sonar nesta task.
+
+**Dependências:** Task 9.9.
+
+**Tamanho estimado:** M.
+
 ### Checkpoint CF — Aceitação técnica e encerramento
 
 - apresentar diff, comandos, testes, dependency tree, demonstração HITL e resultado

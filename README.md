@@ -291,6 +291,36 @@ Os manifests reservam 100 mCPU/256 MiB para cada pod da aplicação, 50 mCPU/128
 25 mCPU/32 MiB para Valkey; os limites de memória são, respectivamente, 768 MiB, 512 MiB e 128 MiB.
 O PVC do CouchDB possui 1 GiB.
 
+### Schema e localização dos documentos no CouchDB
+
+O CouchDB não usa schema relacional, tabelas ou migrações DDL. A PoC grava documentos JSON no
+database configurado por `COUCHDB_DATABASE`, cujo padrão é `conformidade`. O servidor aceita
+documentos flexíveis, mas a aplicação impõe um contrato próprio: todos os documentos negociais
+possuem `tipo`, `versaoSchema=1`, `correlationId`, `instanceId`, `identificadorDocumento`,
+`identificadorChecklist` e `versaoChecklist`. Consulte o
+[modelo documental oficial do CouchDB](https://docs.couchdb.org/en/stable/intro/overview.html#document-storage).
+
+Todos os tipos ficam no mesmo database e são distinguidos pelo campo `tipo`: entrada, projeção,
+snapshot do checklist, resultado preliminar, revisão humana, resultado final, falha e emissões
+referenciais. A projeção é atualizada por controle otimista com `_rev`; os demais fatos são
+imutáveis e usam `_id` determinístico com prefixo do tipo e SHA-256. O cursor do feed fica no
+documento local `_local/simtr-flow-revisao-v1`. Conteúdo negocial não é armazenado no Valkey.
+
+| Ambiente | Database lógico | Armazenamento físico | Acesso do host |
+|---|---|---|---|
+| Compose | `${COUCHDB_DATABASE:-conformidade}` | volume `simtr-hub-poc_couchdb-conformidade-data`, montado em `/opt/couchdb/data` | `127.0.0.1:${COUCHDB_HTTP_PORT:-15984}` |
+| kind | `conformidade`, definido nos manifests | PVC `couchdb-conformidade-data` de 1 GiB, montado em `/opt/couchdb/data` | port-forward do Service `couchdb` para `15984:5984` |
+
+O catálogo oficial do DBeaver lista CouchDB entre os bancos orientados a documentos. É possível
+usá-lo quando a edição/distribuição instalada disponibilizar `CouchDB` no assistente de nova
+conexão; não assuma que qualquer instalação Community contém esse driver. Para o Compose, use host
+`127.0.0.1`, porta `15984` por padrão, database `conformidade` e as credenciais de `.env.poc`. No
+kind, faça primeiro o port-forward e use as credenciais de `.env.poc-kubernetes`. Se o driver não
+aparecer, use Fauxton ou as consultas HTTP do guia, que permanecem a verificação reproduzível da
+PoC. Consulte o [catálogo oficial do DBeaver](https://dbeaver.com/databases/), a
+[comparação de edições](https://dbeaver.com/edition/) e o
+[roteiro detalhado de inspeção](doc/poc/guia-verificacao-poc-conformidade.md#7-validar-os-dados-persistidos-no-couchdb).
+
 ### Retenção e limpeza dos dados da PoC
 
 O CouchDB usa volume no Compose e PVC no kind; ao reaproveitá-los, mantenha também as credenciais
@@ -346,7 +376,7 @@ normal, pois o comando atua globalmente.
 Para construir novamente, execute o `package` seguido do `docker compose ... up --build --detach`
 na prova de uma réplica ou `./validar-poc-kubernetes.ps1` na prova com duas réplicas. Os comandos de
 inspeção, reconstrução e as ressalvas completas estão na seção
-[Encerrar a execução local](doc/poc/guia-verificacao-poc-conformidade.md#12-encerrar-a-execução-local).
+[Encerrar a execução local](doc/poc/guia-verificacao-poc-conformidade.md#13-encerrar-a-execução-local).
 
 ### Replay e limites operacionais
 
