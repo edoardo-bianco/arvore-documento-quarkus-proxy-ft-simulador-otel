@@ -531,32 +531,66 @@ não existem. Para começar uma prova coerente do zero, limpe os dois backends.
 
 ### Limpeza completa dos ambientes da PoC
 
-Depois de concluir os testes, use os comandos abaixo quando não precisar preservar nenhum dado da
-PoC. A limpeza é limitada ao projeto Compose e ao cluster kind `simtr-hub-poc`; ela não remove
-containers, volumes ou imagens de outros projetos:
+Depois de concluir os testes, siga **todos os passos desta seção** quando não precisar preservar
+nenhum dado da PoC.
+
+> **Atenção:** Docker Compose e Kubernetes kind são ambientes independentes. O comando
+> `docker compose ... down` remove somente o ambiente Compose. Ele **não remove** o cluster kind
+> nem o container Docker `simtr-hub-poc-control-plane`. Da mesma forma, excluir o cluster kind não
+> remove o volume CouchDB criado pelo Compose. A remoção total exige limpar os dois ambientes.
+
+| Comando | Remove | Não remove |
+|---|---|---|
+| `docker compose ... down` | containers e rede do Compose | volume CouchDB, cluster kind e `simtr-hub-poc-control-plane` |
+| `docker compose ... down --volumes` | containers, rede e volume CouchDB do Compose | cluster kind e `simtr-hub-poc-control-plane` |
+| `kind delete cluster --name simtr-hub-poc` | cluster, `control-plane`, pods, Leases, PVC e dados Kubernetes | recursos e volume do Compose |
+
+#### Passo 1 — remover o ambiente Docker Compose e seu volume CouchDB
+
+Mesmo que um `docker compose ... down` sem `--volumes` já tenha sido executado, execute o comando
+abaixo para remover também o volume documental preservado:
 
 ```powershell
-# Remove containers, rede, órfãos e o volume CouchDB do Compose da PoC.
 docker compose --env-file .env.poc -f compose-poc.yml `
   down --volumes --remove-orphans
+```
 
-# Remove o cluster kind, incluindo pods, Leases, PVC e dados Kubernetes da PoC.
+Esse comando não remove o cluster kind. Se `simtr-hub-poc-control-plane` ainda aparecer no Docker
+Desktop, prossiga para o passo 2; isso é esperado.
+
+#### Passo 2 — remover o cluster Kubernetes kind e o `control-plane`
+
+Use uma das duas formas abaixo, conforme a instalação disponível:
+
+```powershell
+# Quando kind estiver no PATH:
 kind delete cluster --name simtr-hub-poc
-# Se kind não estiver no PATH, use: .\.tools\kind.exe delete cluster --name simtr-hub-poc
 
-# Remove a imagem construída localmente com a tag padrão da PoC.
+# Quando o projeto estiver usando a cópia em .tools:
+.\.tools\kind.exe delete cluster --name simtr-hub-poc
+```
+
+Execute somente uma das formas. Esse passo remove o container
+`simtr-hub-poc-control-plane`, todos os pods, Leases, PVC e dados do CouchDB Kubernetes.
+
+#### Passo 3 — remover a imagem local e, opcionalmente, os artefatos Maven
+
+```powershell
 docker image rm simtr-hub-poc:local
 
-# Opcional: remove os artefatos Maven do diretório target/.
+# Opcional:
 mvn clean
 ```
 
 Se `SIMTR_HUB_IMAGE_TAG` tiver sido sobrescrita, substitua `local` pela tag utilizada. Os comandos
-acima preservam `.env.poc`, `.env.poc-kubernetes`, o Ollama instalado no host e recursos alheios,
-como SonarQube ou Jaeger. Não use `docker system prune --all --volumes` como limpeza normal da PoC:
-ele atua globalmente e pode remover dados, imagens e caches de outros projetos.
+dos passos 1 a 3 são limitados à PoC e preservam `.env.poc`, `.env.poc-kubernetes`, o Ollama
+instalado no host e recursos alheios, como SonarQube ou Jaeger. Não use
+`docker system prune --all --volumes` como limpeza normal da PoC: ele atua globalmente e pode
+remover dados, imagens e caches de outros projetos.
 
-Confirme que não restaram recursos próprios da PoC:
+#### Passo 4 — confirmar a remoção total
+
+Execute todas as consultas:
 
 ```powershell
 docker ps -a --filter "label=com.docker.compose.project=simtr-hub-poc"
@@ -567,7 +601,8 @@ kind get clusters
 ```
 
 As duas primeiras consultas e `docker images` devem exibir somente seus cabeçalhos, sem recursos da
-PoC. A listagem do kind não deve conter `simtr-hub-poc`.
+PoC. A listagem do kind não deve conter `simtr-hub-poc`, e o Docker Desktop não deve mais mostrar
+`simtr-hub-poc-control-plane`.
 
 Para reconstruir uma réplica no Compose a partir do ambiente limpo:
 
