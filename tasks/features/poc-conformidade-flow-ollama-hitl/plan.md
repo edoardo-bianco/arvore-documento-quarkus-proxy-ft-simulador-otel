@@ -1702,6 +1702,28 @@ documentação exclusiva, não executar Maven ou checkpoint Sonar nesta task.
 
 **Tamanho estimado:** S.
 
+#### Task 9.8 — Explicitar a remoção total de Compose e kind
+
+**Descrição:** tornar inequívoco no guia que Docker Compose e o cluster Kubernetes kind são
+ambientes independentes e que a remoção total exige executar os comandos de limpeza dos dois.
+
+**Critérios de aceitação:**
+
+- explicar que `docker compose down` não remove o container `simtr-hub-poc-control-plane`;
+- explicar que `down` sem `--volumes` preserva o volume do CouchDB do Compose;
+- organizar a remoção total em passos separados para Compose, kind, imagem local e artefatos
+  opcionais;
+- registrar o efeito e o limite de cada comando e disponibilizar verificações após a limpeza;
+- manter a limpeza restrita aos recursos da PoC, sem recomendar comandos Docker globais.
+
+**Verificação:** comparação com `compose-poc.yml`, `validar-poc-kubernetes.ps1`, nomes observados
+no Docker e `git diff --check`. Por ser documentação exclusiva, não executar Maven ou checkpoint
+Sonar nesta task.
+
+**Dependências:** Task 9.7.
+
+**Tamanho estimado:** S.
+
 ### Checkpoint CF — Aceitação técnica e encerramento
 
 - apresentar diff, comandos, testes, dependency tree, demonstração HITL e resultado

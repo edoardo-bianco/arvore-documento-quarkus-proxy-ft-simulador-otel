@@ -69,6 +69,7 @@
 - [x] 9.5 Criar guia passo a passo para verificação reproduzível da PoC;
 - [x] 9.6 Documentar limpeza completa e reconstrução dos ambientes locais da PoC;
 - [x] 9.7 Separar retenção e descarte de CouchDB e Valkey na documentação operacional;
+- [x] 9.8 Explicitar que a remoção total exige limpar Compose e cluster kind separadamente;
 - [ ] CF Apresentar evidências e solicitar aceitação/encerramento humano.
 
 ## Evidências de execução
@@ -1256,6 +1257,26 @@
 - a task alterou somente Markdown fonte. Maven, Sonar e formatos derivados
   `.ppt`/`.pptx`/`.pdf`/`.html` não foram executados ou atualizados;
 - a Task 9.7 está concluída. O checkpoint CF permanece pendente para execução do guia e decisão
+  humana de aceitação/encerramento.
+
+### Task 9.8 — Remoção total de Compose e kind
+
+- após o usuário observar `simtr-hub-poc-control-plane` no Docker Desktop mesmo depois de
+  `docker compose down`, foi confirmado que não restavam containers do projeto Compose e que o
+  cluster kind `simtr-hub-poc` continuava existente;
+- a seção de remoção total agora destaca que Compose e kind são ambientes independentes e que os
+  comandos dos dois ambientes devem ser executados, não escolhidos como alternativas;
+- uma tabela explica o que `down`, `down --volumes` e `kind delete cluster` removem e preservam;
+- o procedimento foi dividido em quatro passos: remover Compose e volume CouchDB, excluir kind e
+  `control-plane`, remover imagem/artefatos opcionais e confirmar a ausência dos recursos;
+- o guia registra expressamente que `docker compose down` não remove
+  `simtr-hub-poc-control-plane` e que `down` sem `--volumes` preserva o volume CouchDB;
+- os nomes e comandos foram conferidos contra `compose-poc.yml`,
+  `validar-poc-kubernetes.ps1` e a observação direta do cluster local;
+- `git diff --check` terminou sem erro, além dos avisos LF/CRLF conhecidos no Windows;
+- a task alterou somente Markdown fonte. Maven, Sonar e formatos derivados
+  `.ppt`/`.pptx`/`.pdf`/`.html` não foram executados ou atualizados;
+- a Task 9.8 está concluída. O checkpoint CF permanece pendente para execução do guia e decisão
   humana de aceitação/encerramento.
 
 ### Planejamento da evolução durável
