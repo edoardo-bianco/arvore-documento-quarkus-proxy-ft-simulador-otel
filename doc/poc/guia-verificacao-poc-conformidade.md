@@ -289,7 +289,241 @@ $final | Select-Object correlationId, instanceId, identificadorDocumento, `
 Uma revisão repetida deve produzir HTTP `409`, e uma revisão que altere nome, identidade, confiança
 ou omita apontamentos deve produzir HTTP `422`.
 
-## 7. Provar recuperação depois do restart
+## 7. Validar os dados persistidos no CouchDB
+
+Execute esta validação depois de iniciar uma análise pela página ou pela API. Use os valores reais
+de identidade devolvidos pelo POST ou exibidos na página:
+
+```powershell
+$CorrelationId = "<correlationId da análise>"
+$InstanceId = "<instanceId da análise>"
+$IdentificadorDocumento = "DOC-VALIDACAO-002" # substitua pelo valor da análise
+[long]$IdentificadorChecklist = 1000012583     # substitua pelo valor da análise
+[int]$VersaoChecklist = 1                      # substitua pelo valor da análise
+```
+
+Os comandos abaixo usam as credenciais já presentes dentro do container ou pod do CouchDB. Eles
+não imprimem usuário ou senha e não exigem copiá-los do arquivo `.env` para o terminal.
+
+> **Segurança:** os documentos podem conter o texto analisado, checklist, resultado e revisão.
+> Faça esta inspeção somente com dados sintéticos. Não anexe a saída completa a logs, issues,
+> mensagens ou commits.
+
+### Consultar pelo ambiente Docker Compose
+
+Confirme primeiro que o CouchDB está ativo:
+
+```powershell
+docker compose --env-file .env.poc -f compose-poc.yml ps couchdb
+```
+
+Carregue todos os documentos comuns do database configurado e filtre localmente pela correlação:
+
+```powershell
+$CouchDocsJson = docker compose --env-file .env.poc -f compose-poc.yml `
+  exec -T couchdb sh -c `
+  'curl --fail --silent --show-error --user "$COUCHDB_USER:$COUCHDB_PASSWORD" "http://127.0.0.1:5984/$COUCHDB_DATABASE/_all_docs?include_docs=true"'
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Falha ao consultar os documentos do CouchDB"
+}
+
+$TodosDocumentos = @(($CouchDocsJson | ConvertFrom-Json).rows.doc)
+$DocumentosAnalise = @($TodosDocumentos | Where-Object {
+    $_.correlationId -eq $CorrelationId
+})
+
+if ($DocumentosAnalise.Count -eq 0) {
+    throw "Nenhum documento encontrado para a correlationId informada"
+}
+
+$DocumentosAnalise |
+  Select-Object _id, tipo, versaoSchema, correlationId, instanceId, status |
+  Sort-Object tipo |
+  Format-Table -AutoSize
+```
+
+### Consultar pelo cluster Kubernetes kind
+
+No cluster criado pelos scripts da PoC, execute a mesma consulta dentro do pod do CouchDB:
+
+```powershell
+$CouchDocsJson = kubectl --context kind-simtr-hub-poc --namespace simtr-hub-poc `
+  exec statefulset/couchdb -- sh -c `
+  'curl --fail --silent --show-error --user "$COUCHDB_USER:$COUCHDB_PASSWORD" "http://127.0.0.1:5984/$COUCHDB_DATABASE/_all_docs?include_docs=true"'
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Falha ao consultar os documentos do CouchDB no Kubernetes"
+}
+
+$TodosDocumentos = @(($CouchDocsJson | ConvertFrom-Json).rows.doc)
+$DocumentosAnalise = @($TodosDocumentos | Where-Object {
+    $_.correlationId -eq $CorrelationId
+})
+
+if ($DocumentosAnalise.Count -eq 0) {
+    throw "Nenhum documento encontrado para a correlationId informada"
+}
+```
+
+As validações das subseções seguintes funcionam com `$DocumentosAnalise` obtido em qualquer um dos
+dois ambientes.
+
+### Validar a projeção e as identidades
+
+A projeção é o documento que representa o estado consultado pela API. Valide que existe exatamente
+uma projeção para a instância e que suas identidades não mudaram:
+
+```powershell
+$Projecoes = @($DocumentosAnalise | Where-Object {
+    $_.tipo -eq "projecao-analise" -and $_.instanceId -eq $InstanceId
+})
+
+if ($Projecoes.Count -ne 1) {
+    throw "Era esperada exatamente uma projeção para a instanceId informada"
+}
+
+$Projecao = $Projecoes[0]
+$Projecao | Select-Object _id, _rev, tipo, versaoSchema, correlationId, instanceId, `
+    identificadorDocumento, identificadorChecklist, versaoChecklist, status, `
+    checklistRef, resultadoPreliminarRef, revisaoRef, resultadoFinalRef
+
+if ($Projecao.correlationId -ne $CorrelationId) {
+    throw "A projeção não preservou a correlationId"
+}
+if ($Projecao.identificadorDocumento -ne $IdentificadorDocumento -or
+    [long]$Projecao.identificadorChecklist -ne $IdentificadorChecklist -or
+    [int]$Projecao.versaoChecklist -ne $VersaoChecklist) {
+    throw "A projeção não preservou as identidades do documento ou checklist"
+}
+
+$VersoesInvalidas = @($DocumentosAnalise | Where-Object {
+    [int]$_.versaoSchema -ne 1
+})
+if ($VersoesInvalidas.Count -gt 0) {
+    throw "Há documentos com versaoSchema diferente de 1"
+}
+```
+
+Durante a análise, `status` pode ser `EM_PROCESSAMENTO`. Antes da revisão, deve ser
+`AGUARDANDO_REVISAO`; nesse ponto são esperados `checklistRef` e `resultadoPreliminarRef`. Depois da
+revisão, deve ser `CONCLUIDA`, com `revisaoRef` e `resultadoFinalRef` também preenchidos. Em falha
+terminal, o estado esperado é `FALHOU`.
+
+### Conferir quais documentos foram persistidos
+
+Agrupe os documentos por tipo:
+
+```powershell
+$DocumentosAnalise |
+  Group-Object tipo |
+  Sort-Object Name |
+  Select-Object Name, Count |
+  Format-Table -AutoSize
+```
+
+| Tipo | Conteúdo esperado |
+|---|---|
+| `entrada-analise` | identidades e texto sintético recebido no POST |
+| `projecao-analise` | estado atual e referências para os demais documentos |
+| `checklist-analise` | snapshot do checklist e `hashConteudo` |
+| `resultado-preliminar` | resultado do agente ou fallback antes da revisão |
+| `revisao-humana` | parecer, justificativas, evidências e observação da revisão |
+| `resultado-final` | resultado consolidado com origem `REVISAO_HUMANA` |
+| `falha-analise` | falha sanitizada, somente quando a análise termina em `FALHOU` |
+| `emissao-cloud-event` | referência, hash e metadados do evento, sem payload negocial completo |
+
+A combinação exata depende do estágio da análise. Por exemplo, `revisao-humana` e
+`resultado-final` ainda não existem enquanto a instância está `AGUARDANDO_REVISAO`.
+
+Confirme também que cada referência preenchida na projeção resolve exatamente um documento:
+
+```powershell
+$Referencias = @(
+    $Projecao.checklistRef
+    $Projecao.resultadoPreliminarRef
+    $Projecao.revisaoRef
+    $Projecao.resultadoFinalRef
+) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }
+
+foreach ($Referencia in $Referencias) {
+    $Encontrados = @($DocumentosAnalise | Where-Object { $_.id -eq $Referencia })
+    if ($Encontrados.Count -ne 1) {
+        throw "A referência $Referencia não resolveu exatamente um documento"
+    }
+}
+```
+
+Para inspecionar um tipo específico, ainda usando somente dados sintéticos:
+
+```powershell
+$DocumentosAnalise |
+  Where-Object tipo -eq "checklist-analise" |
+  Select-Object -First 1 |
+  ConvertTo-Json -Depth 20
+```
+
+Troque `checklist-analise` pelo tipo desejado. O campo `_rev` é a versão MVCC gerenciada pelo
+CouchDB; `id` é a identidade determinística gravada pela aplicação e `_id` é a identidade exposta
+pelo CouchDB.
+
+### Validar o cursor do feed `_changes`
+
+O cursor é um documento local e, por regra do CouchDB, não aparece em `_all_docs`. Consulte-o
+separadamente depois que o feed tiver processado mudanças.
+
+No Compose:
+
+```powershell
+$CursorJson = docker compose --env-file .env.poc -f compose-poc.yml `
+  exec -T couchdb sh -c `
+  'curl --silent --show-error --user "$COUCHDB_USER:$COUCHDB_PASSWORD" "http://127.0.0.1:5984/$COUCHDB_DATABASE/_local/simtr-flow-revisao-v1"'
+$Cursor = $CursorJson | ConvertFrom-Json
+```
+
+No Kubernetes, substitua somente a coleta:
+
+```powershell
+$CursorJson = kubectl --context kind-simtr-hub-poc --namespace simtr-hub-poc `
+  exec statefulset/couchdb -- sh -c `
+  'curl --silent --show-error --user "$COUCHDB_USER:$COUCHDB_PASSWORD" "http://127.0.0.1:5984/$COUCHDB_DATABASE/_local/simtr-flow-revisao-v1"'
+$Cursor = $CursorJson | ConvertFrom-Json
+```
+
+Valide o conteúdo:
+
+```powershell
+$Cursor | Select-Object _id, _rev, tipo, versaoSchema, lastSeq
+
+if ($Cursor.error -eq "not_found") {
+    throw "O cursor ainda não foi criado; aguarde o feed processar uma mudança"
+}
+if ($Cursor.tipo -ne "cursor-feed-revisao" -or
+    [string]::IsNullOrWhiteSpace([string]$Cursor.lastSeq)) {
+    throw "Cursor do feed CouchDB inválido"
+}
+```
+
+Resultado esperado: `_id=_local/simtr-flow-revisao-v1`, `tipo=cursor-feed-revisao`,
+`versaoSchema=1` e `lastSeq` preenchido.
+
+### Inspeção opcional pelo navegador
+
+No Compose, o Fauxton fica disponível por padrão em `http://127.0.0.1:15984/_utils/`. Se
+`COUCHDB_HTTP_PORT` foi alterada, use a porta configurada. Entre com o usuário e a senha mantidos
+localmente em `.env.poc`; não registre a credencial em capturas.
+
+No Kubernetes, abra o encaminhamento em outro terminal:
+
+```powershell
+kubectl --context kind-simtr-hub-poc --namespace simtr-hub-poc `
+  port-forward service/couchdb 15984:5984
+```
+
+Enquanto o comando estiver ativo, acesse `http://127.0.0.1:15984/_utils/` e use as credenciais de
+`.env.poc-kubernetes`. Encerre o port-forward com `Ctrl+C` depois da inspeção.
+
+## 8. Provar recuperação depois do restart
 
 ### Prova manual no Compose
 
@@ -323,7 +557,7 @@ Prova de restart entre JVMs concluída com sucesso
 O script inicia CouchDB e Valkey efêmeros, cria uma instância `WAITING` na primeira JVM, restaura e
 conclui a mesma instância na segunda JVM e remove seus containers ao terminar.
 
-## 8. Provar duas réplicas e failover
+## 9. Provar duas réplicas e failover
 
 Prepare o Secret local:
 
@@ -368,7 +602,7 @@ kind delete cluster --name simtr-hub-poc
 
 Esse comando elimina o cluster, o PVC e todos os dados locais nele contidos.
 
-## 9. Verificar Ollama e observabilidade
+## 10. Verificar Ollama e observabilidade
 
 A demonstração pelo Compose já usa o Ollama do host. Para provar isoladamente a saída estruturada
 do adapter real, use somente dados sintéticos:
@@ -407,7 +641,7 @@ O exporter OpenTelemetry padrão é `none`. Para inspeção externa, use somente
 `dev,jaeger` ou `dev,grafana` e um collector local já preparado, conforme o
 [catálogo de observabilidade](../catalogo-observabilidade.md).
 
-## 10. Executar o checkpoint de qualidade
+## 11. Executar o checkpoint de qualidade
 
 Esta etapa exige uma sessão que já possua o token Sonar somente em memória e um baseline válido no
 estado `READY`. Não recrie o baseline apenas para repetir a verificação e nunca informe o token em
@@ -431,7 +665,7 @@ ser avaliada pelo resultado que ela produzir; o registro histórico não substit
 Se a sessão não possuir baseline ou acesso ao Sonar local, registre a indisponibilidade. Não trate
 a ausência de execução como aprovação nem inicialize outro baseline por suposição.
 
-## 11. Gate Cosmos antes de PRD
+## 12. Gate Cosmos antes de PRD
 
 A suíte padrão prova o contrato do adapter Cosmos com SDK mockado. A integração real é separada e
 usa `DefaultAzureCredential`. Ela só deve ser executada contra Emulator ou conta não produtiva
@@ -453,7 +687,7 @@ ou containers deve reprovar o gate, não ser interpretada como sucesso.
 
 Este gate ainda não consta como comprovado na evidência final atual da PoC.
 
-## 12. Encerrar a execução local
+## 13. Encerrar a execução local
 
 ### Onde cada tipo de estado é mantido
 
@@ -640,6 +874,7 @@ commit de evidência.
 | Readiness local `UP` | Sim | |
 | Fluxo pela página até `CONCLUIDA` | Sim | |
 | Cinco identidades preservadas | Sim | |
+| Documentos CouchDB correlacionados e projeção válida | Sim | |
 | Ollama real ou fallback explicitamente identificado | Sim | |
 | Restart da aplicação com retomada | Para validar durabilidade | |
 | Duas réplicas, Leases e failover | Para validar multipod | |
@@ -661,6 +896,7 @@ do ADR-0010: ambas dependem dos respectivos gates e de decisão humana explícit
 | PUT retorna 409 | A instância não aguarda mais revisão ou a revisão já foi aceita. |
 | PUT retorna 422 | Reenvie todos os apontamentos sem alterar identificador, nome ou confiança. |
 | Estado some após restart | Confirme que apenas a aplicação reiniciou e CouchDB/Valkey permaneceram ativos. |
+| Consulta CouchDB não retorna documentos | Confirme o ambiente consultado, a `correlationId`, o database configurado e se o CouchDB está ativo. |
 | Pod não fica Ready | Inspecione `Lease Acquisition`, RBAC, Leases e health do backend documental/Valkey. |
 | Sonar não executa | Confirme a sessão segura e o baseline `READY`; não crie baseline novo por suposição. |
 
