@@ -11,7 +11,11 @@ Os sinais permitem responder:
 1. em qual camada uma operação está: API, aplicação, simulador ou MTR;
 2. qual capacidade falhou e qual tipo de erro ocorreu;
 3. se a resposta veio do simulador ou do MTR;
-4. qual REST Client/método foi chamado, status e duração.
+4. qual REST Client/método foi chamado, status e duração;
+5. qual backend/operação documental falhou para uma análise;
+6. se o feed está no cursor inicial, retomando cursor persistido ou sem lease Cosmos;
+7. qual entre backend documental, Redis/Valkey e Lease impede readiness;
+8. como seguir uma análise por trace sem expor seu conteúdo.
 
 ## Proteção executável
 
@@ -21,6 +25,10 @@ Os sinais permitem responder:
 | `ObservabilidadeSpansContratoTest#preservaDeclaracoesDosSpansDeIntegracaoMtr` | oito spans CLIENT dos gateways e atributos de processo/checklist |
 | `RestClientObservabilityFilterTest#preservaEventosEAtributosDerivadosDaInvocacaoRestClient` | eventos request/response, método, path, status, payload e nomes derivados por reflexão |
 | `ObservabilidadeLogsContratoTest#preservaEventosEstruturadosDasOitoCapacidadesNoCaminhoSimulador` | 40 eventos de sucesso e MDC comum de evento/camada/componente/operação/trace |
+| `OllamaAnaliseConformidadeFtQuarkusTest` | spans de workflow/agente, eventos de fallback e ausência de texto/checklist nos sinais próprios |
+| `RepositorioDocumentalObservavelTest` | span/log documental, IDs permitidos, backend/operação/resultado, trace e proibição de payload/exceção |
+| `ObservabilidadeFeedDocumentalTest` | span/log do feed, replay, cursor/lease, IDs permitidos, propagação reativa e proibição do CloudEvent/payload |
+| `AnaliseConformidadeFlowQuarkusTest#readinessDistingueBackendDocumentalRedisELeaseSemDadosSensiveis` | checks separados de backend documental, Redis/Valkey e Lease sem dados sensíveis |
 
 ## Convenções comuns
 
@@ -58,6 +66,28 @@ que carregam semântica da capacidade.
 | Registrar validação | `simtr-hub.api.dossie-produto.validacao-negocial.registrar` | `simtr-hub.service.dossie-produto.validacao-negocial.registrar` | `simtr-hub.dossie-produto.validacao-negocial` | rota, API v1, flag e origem |
 | Avançar workflow | `simtr-hub.api.dossie-produto.workflow.avancar` | `simtr-hub.service.dossie-produto.workflow.avancar` | `simtr-hub.dossie-produto.workflow` | rota, API v1, flag e origem |
 | Obter credencial | `simtr-hub.api.gestao-documento.credencial-container.gerar` | `simtr-hub.service.gestao-documento.credencial-container.gerar` | `simtr-hub.gestao-documento.credencial-container` | rota, `simtr_hub.api=gestao-documento-v1`, flag e origem |
+
+## PoC de conformidade
+
+| Fronteira | Span | Eventos de log | Atributos permitidos |
+|---|---|---|---|
+| Workflow | `simtr-hub.flow.conformidade.analise` | checklist obtido e fallback aplicado | `instance_id`, identificador/versão/quantidade do checklist, modelo, origem do resultado e status |
+| Agente Ollama | `simtr-hub.agent.conformidade.analisar` | `conformidade.agente.chamada.iniciada`, `concluida` | os mesmos identificadores/contagens e modelo, sem prompt ou resposta |
+| Persistência documental | `simtr-hub.persistencia.conformidade.documento` | `conformidade.persistencia.operacao.concluida`, `falhou` | backend, operação, resultado, `correlation_id`, `instance_id`, `documento_id` e trace |
+| Feed documental | `simtr-hub.feed.conformidade.documento` | `conformidade.feed.operacao.concluida`, `falhou` | backend, operação, resultado, replay, `cursor_lease_id`, `evento_id`, `correlation_id`, `instance_id` e trace |
+
+As operações documentais são `criar`, `substituir` e `consultar`. O resultado informa apenas
+gravação/conflito ou presença/ausência. No feed, CouchDB usa `CURSOR_INICIAL` ou
+`CURSOR_PERSISTIDO`; Cosmos usa `DESDE_INICIO_SEM_LEASE`. Os valores de cursor/lease são IDs
+técnicos, nunca o documento ou corpo do CloudEvent.
+
+Spans de persistência e feed permanecem abertos até a terminação do `Uni`. Em falha, recebem status
+`ERROR` e resultado `FALHA`, mas não gravam evento de exceção, stack ou mensagem; o mesmo objeto de
+falha continua propagado para a aplicação.
+
+Texto, prompt, resposta, revisão, evidência, credencial, documento e corpo CloudEvent são proibidos
+nesses spans e logs. O profile `%poc` é uma exceção operacional separada: habilita logs completos
+do LangChain4j e, por isso, admite somente dados sintéticos.
 
 ## Borda MTR
 
@@ -100,6 +130,17 @@ deve virar atributo novo nem label de métrica.
 | Perfis `jaeger` e `grafana` | endpoint OTLP local `4317`, exporters CDI e handler de logs habilitado |
 | Console | JSON compacto, MDC em campos planos e `service.name` adicional |
 | Arquivo | `target/logs/simtr-hub.json`, JSON compacto, MDC plano e `service.name` |
+
+## Health e readiness da conformidade
+
+| Dependência | Check | Informação exposta |
+|---|---|---|
+| Backend documental | `simtr-hub-conformidade-documental` | `UP/DOWN` e `backend=couchdb|cosmosdb` |
+| Redis/Valkey | health fornecido pela extensão Redis | disponibilidade do checkpoint técnico |
+| Lease Kubernetes | `Lease Acquisition` | `UP/DOWN` e `leaseAcquired`; exigido para readiness no profile Kubernetes |
+
+Os três checks permanecem distintos. Agregar todos em um único estado impediria identificar qual
+dependência retirou o pod do Service.
 
 Não existe instrumentação explícita de métrica de aplicação. Métricas, alertas e dashboards novos
 exigem feature e critérios operacionais próprios.

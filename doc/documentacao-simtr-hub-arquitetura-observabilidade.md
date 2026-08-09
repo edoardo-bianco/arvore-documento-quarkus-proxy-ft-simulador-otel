@@ -23,6 +23,12 @@ Resource REST
   -> porta de saida
       |-> adapter MTR -> REST Client
       `-> adapter simulador -> fixture Markdown
+
+Resource REST de conformidade
+  -> casos de uso reativos
+      |-> porta documental -> CouchDB local | Cosmos DB for NoSQL em PRD
+      `-> Quarkus Flow -> checkpoint Redis/Valkey -> agente Ollama
+                         -> EventPublisher -> feed nativo -> EventConsumer
 ```
 
 Cada dominio possui modelos, falhas, portas e adapters proprios. DTO REST, DTO MTR e DTO do
@@ -47,7 +53,10 @@ Dono de `ConsultarProcessoParametrizado`. Nao calcula arvore e nao executa IA.
 
 ### `conformidade`
 
-Dono de `ConsultarChecklist`. Nao analisa documentos nem orquestra conformidade.
+Dono de `ConsultarChecklist` e da PoC de análise de conformidade. A PoC inicia e consulta uma
+análise documental, executa um workflow com agente Ollama/fallback, pausa para revisão humana e
+retoma por evento referencial sem broker. Dados de negócio ficam no backend documental e somente
+checkpoints técnicos ficam no Redis/Valkey.
 
 ### `dossieproduto`
 
@@ -71,6 +80,9 @@ POST /simtr-hub/v1/dossie-produto/{id}/documento
 PATCH /simtr-hub/v1/dossie-produto/{id}/validacao-negocial
 POST /simtr-hub/v1/dossie-produto/{id}/workflow
 POST /simtr-hub/v1/storage/container/credencial
+POST /simtr-hub/v1/conformidade/analises
+GET /simtr-hub/v1/conformidade/analises/{instanceId}
+PUT /simtr-hub/v1/conformidade/analises/{instanceId}/revisao
 ```
 
 - Swagger UI: `/simtr-hub/doc`;
@@ -97,7 +109,7 @@ Para essas operacoes nao ha Resource, rota `/simtr-hub`, porta ou caso de uso, R
 adapter MTR, simulador, configuracao, fault tolerance ou sinais de observabilidade no Hub. A
 ausencia e somente desta solucao; o documento funcional pode descrever uma API existente no MTR.
 Elas nao sao usadas nos diagramas de sequencia principais da pre-validacao e nao existe endpoint
-unico de pre-validacao ou orquestrador local.
+único de pré-validação nem orquestrador local que componha essas operações MTR do dossiê.
 
 Os prefixos `/simtr-parametrizacao`, `/simtr-dossie-produto` e `/simtr-gestao-documento` usados
 pela especificacao representam os servicos MTR. Nesta implantacao, o gateway e configurado com
@@ -127,14 +139,19 @@ simtr-hub.simulador.dossie-produto.habilitado=false
 simtr-hub.simulador.gestao-documento.habilitado=false
 ```
 
-O profile `dev` habilita os simuladores. O profile padrao de testes usa fixtures e stubs localhost,
-sem Docker, Dev Services ou rede externa.
+O profile `dev` habilita os simuladores. O profile padrão de testes usa fixtures e stubs localhost,
+não usa Compose Dev Services, Ollama ou Cosmos reais, mas inicia containers efêmeros isolados de
+CouchDB/Valkey para os contratos que exigem esses backends.
 
 ## Fault tolerance e erros
 
 As annotations de timeout, retry e circuit breaker ficam somente nos REST Clients MTR. Erros
 negociais nao sao tratados como falhas transitorias; erros de servidor, comunicacao e timeout
 seguem a matriz congelada de cada capacidade.
+
+O adapter Ollama da PoC possui política própria: timeout de 65 s, até duas novas tentativas,
+circuit breaker e fallback técnico completo para revisão humana. O provider não executa retry
+interno. Essa política não pertence ao domínio nem ao workflow.
 
 A ordem e contratual:
 
@@ -159,11 +176,23 @@ target/logs/simtr-hub.json
 O filtro de REST Client registra metodo, URL, status, duracao, classe e operacao. Payloads sao
 truncados e mascarados para campos sensiveis. SAS e validade de credencial nao sao registradas.
 
+Persistência e feed da conformidade emitem, respectivamente,
+`conformidade.persistencia.operacao.concluida|falhou` e
+`conformidade.feed.operacao.concluida|falhou`. Os MDCs carregam somente IDs, backend, operação,
+resultado, replay, cursor/lease e contexto de trace; a falha original é propagada sem ser anexada
+ao log.
+
 ### Traces
 
 Cada capacidade preserva spans nas fronteiras REST, caso de uso e adapter MTR. Os nomes e
 atributos completos ficam em `catalogo-observabilidade.md` e sao protegidos por
 `ObservabilidadeSpansContratoTest` e pelos contratos ponta a ponta.
+
+A PoC acrescenta os spans `simtr-hub.flow.conformidade.analise`,
+`simtr-hub.agent.conformidade.analisar`, `simtr-hub.persistencia.conformidade.documento` e
+`simtr-hub.feed.conformidade.documento`. Os dois últimos permanecem abertos até o término da
+operação reativa e não carregam texto, prompt, resposta, revisão, evidência, credencial, documento,
+stack ou mensagem de exceção.
 
 Por padrao:
 
@@ -175,6 +204,13 @@ quarkus.otel.logs.exporter=none
 
 Os profiles opcionais `jaeger` e `grafana` apontam para OTLP em `localhost:4317` e so devem ser
 usados quando o coletor correspondente estiver disponivel.
+
+### Readiness
+
+`/q/health/ready` distingue o backend documental, Redis/Valkey e, no profile Kubernetes, aquisição
+da Lease. O check `simtr-hub-conformidade-documental` informa somente o nome do backend; o health
+Redis é fornecido pela extensão e `Lease Acquisition` mantém o pod fora do Service enquanto não
+houver Lease. Nenhum check expõe credencial ou documento.
 
 ## Execucao e diagnostico
 
@@ -196,6 +232,9 @@ Cobertura:
 target/jacoco-report/index.html
 ```
 
+Os comandos completos da PoC para Compose, restart da aplicação, replay, kind, duas réplicas e
+failover ficam no [README](../README.md#poc-de-conformidade-durável).
+
 Se uma chamada MTR falhar, verificar nesta ordem:
 
 1. property do simulador e profile ativo;
@@ -204,13 +243,26 @@ Se uma chamada MTR falhar, verificar nesta ordem:
 4. trace e atributos do REST Client;
 5. classificacao do erro e tentativas previstas pela matriz FT.
 
+Se a análise de conformidade parar, verificar nesta ordem:
+
+1. os três checks de readiness: documental, Redis/Valkey e Lease;
+2. `correlationId`/`instanceId` no trace, sem procurar o payload nos sinais;
+3. backend, operação e resultado no span/log de persistência;
+4. replay e `cursor_lease_id` no span/log do feed;
+5. disponibilidade externa do Ollama e o eventual fallback técnico.
+
 ## Limites e dividas conhecidas
 
 - retry em operacoes mutaveis exige prova de idempotencia antes de orquestracao futura;
 - o package tecnico compartilhado de erro `arquitetura.excecao.dto` permanece como desvio interno
   documentado e confinado as bordas REST permitidas;
-- Quarkus Flow, persistencia de workflow, os cinco endpoints ausentes listados acima, quaisquer
-  outros endpoints novos, upload e lifecycle de SAS permanecem fora do escopo.
+- a PoC usa CouchDB de uma réplica e Valkey compartilhado sem persistência no empacotamento local;
+  perda, restart e HA desses backends não foram comprovados;
+- o adapter Cosmos foi validado por contrato/SDK mockado; o gate real pré-PRD permanece pendente;
+- o profile `%poc` habilita request/response completos do LangChain4j e aceita somente dados
+  sintéticos;
+- os cinco endpoints ausentes listados acima, quaisquer outros endpoints/workflows, upload e
+  lifecycle de SAS permanecem fora do escopo.
 
 As listas REST de formulario e documento usam `List<@Valid T>`; contratos executaveis preservam
 mensagens e nulabilidade. Resource, mappers, DTOs e testes de dossie residem na borda REST canônica

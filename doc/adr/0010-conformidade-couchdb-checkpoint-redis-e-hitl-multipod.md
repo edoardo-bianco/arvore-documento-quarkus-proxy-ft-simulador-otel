@@ -203,6 +203,32 @@ correlacionada. A documentação oficial não define completamente o roteamento
 cross-pod sem broker; se o spike falhar, este ADR permanece `Proposto` e a alternativa
 de distribuição exige novo checkpoint humano, sem adoção automática de Kafka.
 
+## Estado da implementação em 2026-08-09
+
+Os checkpoints C4 a C9 autorizaram a implementação incremental desta proposta. O estado
+comprovado inclui:
+
+- porta documental reativa e contrato compartilhado, com CouchDB real no ambiente local e adapter
+  Cosmos validado deterministicamente com SDK mockado;
+- documentos imutáveis, projeção, reserva idempotente da revisão e conteúdo de negócio fora do
+  checkpoint Redis/Valkey;
+- `EventPublisher` referencial e feed `_changes`/Change Feed -> `EventConsumer`, com entrega pelo
+  menos uma vez, cursor ou lease persistente e retomada idempotente;
+- restauração de uma instância `WAITING` por outra JVM usando os mesmos CouchDB e Valkey;
+- Compose local de uma réplica e ambiente kind com duas réplicas, CouchDB em `StatefulSet`/PVC,
+  Valkey compartilhado, Leases estáveis e readiness condicionada à Lease;
+- revisão recebida por réplica diferente e substituição do owner antes e depois do aceite, com
+  conclusão única e a mesma Lease assumida pelo pod sucessor;
+- página estática com as cinco identidades, polling e revisão humana sem armazenamento no
+  navegador;
+- telemetria documental/feed sanitizada, readiness separada por dependência e guardrails ArchUnit
+  contra vazamento de DTO Ollama, SDK Cosmos ou CloudEvent para o núcleo.
+
+A integração real contra Cosmos DB Emulator ou conta não produtiva ainda é gate obrigatório antes
+de PRD. Perda, restart e alta disponibilidade dos próprios CouchDB/Valkey também não fazem parte
+das provas: restart e failover da aplicação mantiveram esses backends continuamente disponíveis.
+Essas limitações impedem inferir prontidão produtiva a partir do ambiente local.
+
 ## Consequências
 
 - reinícios deixam de apagar dados de negócio e checkpoints pausados;
@@ -280,9 +306,10 @@ de distribuição exige novo checkpoint humano, sem adoção automática de Kafk
 
 ## Critério de aceitação
 
-Os checkpoints C4, C5 e C6 já autorizaram a implementação desta proposta. O ADR
-permanece `Proposto` até a prova cross-pod/failover e uma decisão humana posterior
-de aceitação. As condições vigentes são:
+Os checkpoints C4 a C9 autorizaram a implementação desta proposta e a prova local
+cross-pod/failover foi concluída. O ADR permanece `Proposto` até uma decisão humana explícita de
+aceitação; o gate Cosmos real continua obrigatório antes de promoção para PRD. As condições
+vigentes são:
 
 1. porta documental neutra e contrato executável compartilhado;
 2. CouchDB em DES e Azure Cosmos DB for NoSQL em PRD;
@@ -303,6 +330,6 @@ de aceitação. As condições vigentes são:
     sempre que a API suportar;
 11. CouchDB automático no `quarkus:dev`, com volume persistente, e testes em
     containers efêmeros isolados;
-12. Kubernetes Leases e teste cross-pod/failover antes de declarar suporte a múltiplos
-   pods;
-13. manutenção do ADR como `Proposto` se a entrega cross-pod não for comprovada.
+12. Kubernetes Leases e teste cross-pod/failover comprovados localmente com os backends
+   compartilhados disponíveis;
+13. manutenção do ADR como `Proposto` até decisão humana explícita de aceitação.
