@@ -5,7 +5,9 @@ import br.gov.caixa.simtr.hub.gestaodocumento.adaptador.saida.mtr.dto.v1.credenc
 import br.gov.caixa.simtr.hub.gestaodocumento.adaptador.saida.mtr.erro.GestaoDocumentoMtrException;
 import br.gov.caixa.simtr.hub.gestaodocumento.adaptador.saida.mtr.mapper.CredencialContainerMtrMapper;
 import br.gov.caixa.simtr.hub.gestaodocumento.dominio.erro.FalhaObtencaoCredencialContainer;
+import br.gov.caixa.simtr.hub.arquitetura.teste.PerfisIsolamentoMtr;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 import io.smallrye.mutiny.Uni;
 import org.eclipse.microprofile.faulttolerance.exceptions.TimeoutException;
 import org.junit.jupiter.api.Test;
@@ -22,6 +24,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
+@TestProfile(PerfisIsolamentoMtr.GestaoDocumento.class)
 class GestaoDocumentoMtrAdapterTest {
 
     private static final String SERVICO_MTR = "simtr-gestao-documento";

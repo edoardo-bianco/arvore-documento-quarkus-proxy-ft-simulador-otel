@@ -5,6 +5,7 @@ import br.gov.caixa.simtr.dossie.falso.DependenciaCasoDeUsoNoPackageIrmaoViolaca
 import br.gov.caixa.simtr.hub.arvoredocumento.adaptador.saida.acl.falso.AcessoInternoDossieProdutoViolacao;
 import br.gov.caixa.simtr.hub.arvoredocumento.dominio.modelo.ProcessoParametrizado;
 import br.gov.caixa.simtr.hub.arvoredocumento.falso.DependenciaDossieProdutoViolacao;
+import br.gov.caixa.simtr.hub.conformidade.aplicacao.falso.ContratosExternosConformidadeViolacao;
 import br.gov.caixa.simtr.hub.conformidade.falso.DependenciaArvoreDocumentoViolacao;
 import br.gov.caixa.simtr.hub.dominio.falso.DependenciaAdapterNoDominioViolacao;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.IdentificadorDossieProduto;
@@ -171,6 +172,20 @@ class ArchUnitProgressivoTest {
             .that().resideOutsideOfPackage("..adaptador.saida.simulador..")
             .should().dependOnClassesThat()
             .resideInAPackage("..adaptador.saida.simulador..dto..");
+
+    static final ArchRule dto_ia_nao_deve_vazar_da_borda_ollama = noClasses()
+            .that().resideOutsideOfPackage("..adaptador.saida.ollama..")
+            .should().dependOnClassesThat()
+            .resideInAPackage("..adaptador.saida.ollama.dto..");
+
+    static final ArchRule nucleo_conformidade_nao_deve_depender_de_contratos_externos = noClasses()
+            .that().resideInAnyPackage(
+                    "..conformidade.dominio..",
+                    "..conformidade.aplicacao..")
+            .should().dependOnClassesThat()
+            .resideInAnyPackage(
+                    "com.azure.cosmos..",
+                    "io.cloudevents..");
 
     static final ArchRule rest_clients_devem_residir_na_borda_mtr = classes()
             .that().areAnnotatedWith(RegisterRestClient.class)
@@ -353,6 +368,8 @@ class ArchUnitProgressivoTest {
         dto_rest_nao_deve_vazar_da_borda_de_entrada.check(CODIGO_PRODUCAO);
         dto_mtr_nao_deve_vazar_da_borda_mtr.check(CODIGO_PRODUCAO);
         dto_simulador_nao_deve_vazar_da_borda_simulador.check(CODIGO_PRODUCAO);
+        dto_ia_nao_deve_vazar_da_borda_ollama.check(CODIGO_PRODUCAO);
+        nucleo_conformidade_nao_deve_depender_de_contratos_externos.check(CODIGO_PRODUCAO);
     }
 
     @Test
@@ -495,6 +512,14 @@ class ArchUnitProgressivoTest {
         assertThrows(AssertionError.class, () ->
                 dto_simulador_nao_deve_vazar_da_borda_simulador.check(
                         new ClassFileImporter().importClasses(AdapterMtrComDtoSimuladorViolacao.class)));
+        JavaClasses contratosExternosConformidade = new ClassFileImporter()
+                .importClasses(ContratosExternosConformidadeViolacao.class);
+        assertThrows(AssertionError.class, () ->
+                dto_ia_nao_deve_vazar_da_borda_ollama.check(
+                        contratosExternosConformidade));
+        assertThrows(AssertionError.class, () ->
+                nucleo_conformidade_nao_deve_depender_de_contratos_externos.check(
+                        contratosExternosConformidade));
     }
 
     @Test

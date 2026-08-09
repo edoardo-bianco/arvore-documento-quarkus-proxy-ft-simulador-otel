@@ -6,6 +6,7 @@ import br.gov.caixa.simtr.hub.conformidade.adaptador.saida.couchdb.CouchDbAnalis
 import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.saida.ArmazenarEstadoAnaliseConformidade;
 import com.azure.cosmos.CosmosAsyncClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.opentelemetry.api.trace.Tracer;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
@@ -25,12 +26,13 @@ public class AnaliseConformidadePersistenciaProducer {
     ArmazenarEstadoAnaliseConformidade portaSaida(
             Config config,
             ObjectMapper objectMapper,
-            CosmosDbClienteFactory cosmosFactory) {
+            CosmosDbClienteFactory cosmosFactory,
+            Tracer tracer) {
         String backend = obrigatorio(config, PREFIXO + "persistencia.backend")
                 .toLowerCase(Locale.ROOT);
         return switch (backend) {
-            case "couchdb" -> couchDb(config, objectMapper);
-            case "cosmosdb" -> cosmosDb(config, objectMapper, cosmosFactory);
+            case "couchdb" -> couchDb(config, objectMapper, tracer);
+            case "cosmosdb" -> cosmosDb(config, objectMapper, cosmosFactory, tracer);
             default -> throw new IllegalStateException(
                     "Backend de persistência da conformidade inválido");
         };
@@ -38,7 +40,8 @@ public class AnaliseConformidadePersistenciaProducer {
 
     private static ArmazenarEstadoAnaliseConformidade couchDb(
             Config config,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            Tracer tracer) {
         URI endpoint = endpointCouchDb(
                 obrigatorio(config, PREFIXO + "couchdb.host"),
                 porta(config, PREFIXO + "couchdb.port"));
@@ -47,13 +50,15 @@ public class AnaliseConformidadePersistenciaProducer {
                 objectMapper,
                 opcional(config, PREFIXO + "couchdb.username"),
                 opcional(config, PREFIXO + "couchdb.password"),
-                obrigatorio(config, PREFIXO + "couchdb.database"));
+                obrigatorio(config, PREFIXO + "couchdb.database"),
+                tracer);
     }
 
     private ArmazenarEstadoAnaliseConformidade cosmosDb(
             Config config,
             ObjectMapper objectMapper,
-            CosmosDbClienteFactory cosmosFactory) {
+            CosmosDbClienteFactory cosmosFactory,
+            Tracer tracer) {
         rejeitarSegredosCosmos(config);
         CosmosAsyncClient client = cosmosFactory.criar(
                 obrigatorio(config, PREFIXO + "cosmos.endpoint"));
@@ -62,7 +67,10 @@ public class AnaliseConformidadePersistenciaProducer {
                     .getDatabase(obrigatorio(config, PREFIXO + "cosmos.database"))
                     .getContainer(obrigatorio(config, PREFIXO + "cosmos.container"));
             cosmosClient = client;
-            return new CosmosDbAnaliseConformidadeStore(container, objectMapper);
+            return new CosmosDbAnaliseConformidadeStore(
+                    container,
+                    objectMapper,
+                    tracer);
         } catch (RuntimeException falha) {
             client.close();
             throw falha;

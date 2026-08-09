@@ -12,8 +12,10 @@ import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ComandoInclusaoDocume
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.GarantiaDocumentoDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.PropriedadeDocumentoDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.VinculoDocumentoDossieProduto;
+import br.gov.caixa.simtr.hub.arquitetura.teste.PerfisIsolamentoMtr;
 import io.smallrye.mutiny.Uni;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 import org.eclipse.microprofile.faulttolerance.exceptions.TimeoutException;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -33,6 +35,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
+@TestProfile(PerfisIsolamentoMtr.DocumentoDossie.class)
 class DocumentoDossieProdutoMtrAdapterTest {
 
     private static final String SERVICO_MTR = "simtr-dossie-produto";

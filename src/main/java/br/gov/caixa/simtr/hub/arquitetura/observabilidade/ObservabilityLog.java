@@ -21,6 +21,10 @@ public final class ObservabilityLog {
         withMdc(evento, campos, () -> logger.error(evento, throwable));
     }
 
+    public static void error(Logger logger, String evento, Map<String, ?> campos) {
+        withMdc(evento, campos, () -> logger.error(evento));
+    }
+
     public static Map<String, Object> fields(Object... chaveValor) {
         Map<String, Object> campos = new LinkedHashMap<>();
         if (chaveValor == null) {

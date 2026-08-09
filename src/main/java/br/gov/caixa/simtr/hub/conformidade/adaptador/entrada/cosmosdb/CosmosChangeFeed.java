@@ -1,6 +1,7 @@
 package br.gov.caixa.simtr.hub.conformidade.adaptador.entrada.cosmosdb;
 
 import br.gov.caixa.simtr.hub.conformidade.adaptador.entrada.documento.FeedEventosAnaliseConformidade;
+import br.gov.caixa.simtr.hub.conformidade.adaptador.entrada.documento.ObservabilidadeFeedDocumental;
 import br.gov.caixa.simtr.hub.conformidade.adaptador.saida.messaging.interno.CloudEventInvalidoException;
 import br.gov.caixa.simtr.hub.conformidade.adaptador.saida.messaging.interno.CloudEventMapper;
 import com.azure.cosmos.ChangeFeedProcessor;
@@ -9,19 +10,23 @@ import com.azure.cosmos.CosmosAsyncContainer;
 import com.azure.cosmos.models.ChangeFeedProcessorOptions;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.cloudevents.CloudEvent;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.trace.Tracer;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import org.jboss.logging.Logger;
 
 public final class CosmosChangeFeed implements FeedEventosAnaliseConformidade {
 
+    private static final String INSTRUMENTACAO = "simtr-hub-conformidade";
     static final String PREFIXO_LEASE = "simtr-conformidade-revisao-v1";
-    private static final Logger LOG = Logger.getLogger(CosmosChangeFeed.class);
+    private static final String REPLAY_DESDE_INICIO_SEM_LEASE =
+            "DESDE_INICIO_SEM_LEASE";
 
     private final ChangeFeedProcessor processor;
     private final CloudEventMapper mapper;
+    private final ObservabilidadeFeedDocumental observabilidade;
     private final AtomicBoolean ativo = new AtomicBoolean();
     private final AtomicReference<Consumer<CloudEvent>> consumidor = new AtomicReference<>();
 
@@ -35,7 +40,22 @@ public final class CosmosChangeFeed implements FeedEventosAnaliseConformidade {
                 leaseContainer,
                 mapper,
                 hostName,
-                new ChangeFeedProcessorBuilder());
+                OpenTelemetry.noop().getTracer(INSTRUMENTACAO));
+    }
+
+    public CosmosChangeFeed(
+            CosmosAsyncContainer feedContainer,
+            CosmosAsyncContainer leaseContainer,
+            CloudEventMapper mapper,
+            String hostName,
+            Tracer tracer) {
+        this(
+                feedContainer,
+                leaseContainer,
+                mapper,
+                hostName,
+                new ChangeFeedProcessorBuilder(),
+                tracer);
     }
 
     CosmosChangeFeed(
@@ -44,7 +64,26 @@ public final class CosmosChangeFeed implements FeedEventosAnaliseConformidade {
             CloudEventMapper mapper,
             String hostName,
             ChangeFeedProcessorBuilder builder) {
+        this(
+                feedContainer,
+                leaseContainer,
+                mapper,
+                hostName,
+                builder,
+                OpenTelemetry.noop().getTracer(INSTRUMENTACAO));
+    }
+
+    CosmosChangeFeed(
+            CosmosAsyncContainer feedContainer,
+            CosmosAsyncContainer leaseContainer,
+            CloudEventMapper mapper,
+            String hostName,
+            ChangeFeedProcessorBuilder builder,
+            Tracer tracer) {
         this.mapper = java.util.Objects.requireNonNull(mapper, "mapper");
+        this.observabilidade = new ObservabilidadeFeedDocumental(
+                tracer,
+                "cosmosdb");
         String host = validarHostName(hostName);
         var opcoes = new ChangeFeedProcessorOptions()
                 .setLeasePrefix(PREFIXO_LEASE)
@@ -66,8 +105,21 @@ public final class CosmosChangeFeed implements FeedEventosAnaliseConformidade {
     CosmosChangeFeed(
             ChangeFeedProcessor processor,
             CloudEventMapper mapper) {
+        this(
+                processor,
+                mapper,
+                OpenTelemetry.noop().getTracer(INSTRUMENTACAO));
+    }
+
+    CosmosChangeFeed(
+            ChangeFeedProcessor processor,
+            CloudEventMapper mapper,
+            Tracer tracer) {
         this.processor = java.util.Objects.requireNonNull(processor, "processor");
         this.mapper = java.util.Objects.requireNonNull(mapper, "mapper");
+        this.observabilidade = new ObservabilidadeFeedDocumental(
+                tracer,
+                "cosmosdb");
     }
 
     @Override
@@ -76,12 +128,23 @@ public final class CosmosChangeFeed implements FeedEventosAnaliseConformidade {
         if (ativo.compareAndSet(false, true)) {
             processor.start().subscribe(
                     ignorado -> {
-                        // Mono<Void>: conclusão indica processor iniciado.
+                        // Mono<Void> não emite item.
                     },
                     falha -> {
                         ativo.set(false);
-                        LOG.warn("Change Feed Cosmos não pôde ser iniciado");
-                    });
+                        observabilidade.registrar(
+                                "iniciar",
+                                PREFIXO_LEASE,
+                                REPLAY_DESDE_INICIO_SEM_LEASE,
+                                null,
+                                "FALHA");
+                    },
+                    () -> observabilidade.registrar(
+                            "iniciar",
+                            PREFIXO_LEASE,
+                            REPLAY_DESDE_INICIO_SEM_LEASE,
+                            null,
+                            "INICIADO"));
         }
     }
 
@@ -91,9 +154,20 @@ public final class CosmosChangeFeed implements FeedEventosAnaliseConformidade {
             consumidor.set(null);
             processor.stop().subscribe(
                     ignorado -> {
-                        // Mono<Void>: conclusão indica processor parado.
+                        // Mono<Void> não emite item.
                     },
-                    falha -> LOG.warn("Change Feed Cosmos não pôde ser parado"));
+                    falha -> observabilidade.registrar(
+                            "parar",
+                            PREFIXO_LEASE,
+                            REPLAY_DESDE_INICIO_SEM_LEASE,
+                            null,
+                            "FALHA"),
+                    () -> observabilidade.registrar(
+                            "parar",
+                            PREFIXO_LEASE,
+                            REPLAY_DESDE_INICIO_SEM_LEASE,
+                            null,
+                            "PARADO"));
         }
     }
 
@@ -107,14 +181,36 @@ public final class CosmosChangeFeed implements FeedEventosAnaliseConformidade {
         if (destino == null || documentos == null) {
             return;
         }
+        observabilidade.executar(
+                "processar-lote",
+                PREFIXO_LEASE,
+                REPLAY_DESDE_INICIO_SEM_LEASE,
+                null,
+                () -> processarMudancas(documentos, destino));
+    }
+
+    private void processarMudancas(
+            List<JsonNode> documentos,
+            Consumer<CloudEvent> destino) {
         for (JsonNode documento : documentos) {
             if (!ehRevisao(documento)) {
                 continue;
             }
             try {
-                destino.accept(mapper.mapearRevisaoPersistida(documento));
+                CloudEvent evento = mapper.mapearRevisaoPersistida(documento);
+                observabilidade.executar(
+                        "entregar-revisao",
+                        PREFIXO_LEASE,
+                        REPLAY_DESDE_INICIO_SEM_LEASE,
+                        evento,
+                        () -> destino.accept(evento));
             } catch (CloudEventInvalidoException _) {
-                LOG.warn("Change Feed Cosmos ignorou documento de revisão inválido");
+                observabilidade.registrar(
+                        "validar-revisao",
+                        PREFIXO_LEASE,
+                        REPLAY_DESDE_INICIO_SEM_LEASE,
+                        null,
+                        "IGNORADO");
             }
         }
     }
