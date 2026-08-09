@@ -3,6 +3,7 @@ package br.gov.caixa.simtr.hub.conformidade.adaptador.configuracao;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -17,9 +18,11 @@ import com.azure.cosmos.CosmosAsyncClient;
 import com.azure.cosmos.CosmosAsyncContainer;
 import com.azure.cosmos.CosmosAsyncDatabase;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.trace.Tracer;
+import io.quarkus.test.junit.QuarkusTest;
 import java.util.Map;
 import java.util.Optional;
-import io.quarkus.test.junit.QuarkusTest;
 import org.eclipse.microprofile.config.Config;
 import org.junit.jupiter.api.Test;
 
@@ -30,6 +33,8 @@ class AnaliseConformidadeFeedProducerTest {
     private final CloudEventMapper mapper = new CloudEventMapper(objectMapper);
     private final CosmosDbClienteFactory cosmosFactory = mock(CosmosDbClienteFactory.class);
     private final CosmosChangeFeedFactory feedFactory = mock(CosmosChangeFeedFactory.class);
+    private final Tracer tracer = OpenTelemetry.noop()
+            .getTracer("simtr-hub-conformidade");
     private final AnaliseConformidadeFeedProducer producer =
             new AnaliseConformidadeFeedProducer();
 
@@ -44,7 +49,8 @@ class AnaliseConformidadeFeedProducerTest {
                 objectMapper,
                 mapper,
                 cosmosFactory,
-                feedFactory);
+                feedFactory,
+                tracer);
 
         assertInstanceOf(CouchDbChangesFeed.class, feed);
         feed.close();
@@ -62,7 +68,12 @@ class AnaliseConformidadeFeedProducerTest {
         when(database.getContainer("analises")).thenReturn(items);
         when(database.getContainer("analises-leases")).thenReturn(leases);
         CosmosChangeFeed cosmosFeed = mock(CosmosChangeFeed.class);
-        when(feedFactory.criar(eq(items), eq(leases), eq(mapper), anyString()))
+        when(feedFactory.criar(
+                eq(items),
+                eq(leases),
+                eq(mapper),
+                anyString(),
+                any(Tracer.class)))
                 .thenReturn(cosmosFeed);
 
         var feed = producer.feed(
@@ -76,7 +87,8 @@ class AnaliseConformidadeFeedProducerTest {
                 objectMapper,
                 mapper,
                 cosmosFactory,
-                feedFactory);
+                feedFactory,
+                tracer);
         producer.encerrar();
 
         assertInstanceOf(CosmosChangeFeed.class, feed);
@@ -98,7 +110,8 @@ class AnaliseConformidadeFeedProducerTest {
                         objectMapper,
                         mapper,
                         cosmosFactory,
-                        feedFactory));
+                        feedFactory,
+                        tracer));
     }
 
     private static Config config(Map<String, String> valores) {

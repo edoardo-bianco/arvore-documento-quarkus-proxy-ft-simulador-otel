@@ -2,6 +2,7 @@ package br.gov.caixa.simtr.hub.conformidade.adaptador.entrada.cosmosdb;
 
 import br.gov.caixa.simtr.hub.conformidade.adaptador.saida.messaging.interno.CloudEventMapper;
 import com.azure.cosmos.CosmosAsyncContainer;
+import io.opentelemetry.api.trace.Tracer;
 import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
@@ -11,11 +12,13 @@ public class CosmosChangeFeedFactory {
             CosmosAsyncContainer feedContainer,
             CosmosAsyncContainer leaseContainer,
             CloudEventMapper mapper,
-            String hostName) {
+            String hostName,
+            Tracer tracer) {
         return new CosmosChangeFeed(
                 feedContainer,
                 leaseContainer,
                 mapper,
-                hostName);
+                hostName,
+                tracer);
     }
 }

@@ -21,9 +21,17 @@ import com.azure.cosmos.CosmosAsyncContainer;
 import com.azure.cosmos.models.ChangeFeedProcessorOptions;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.testing.exporter.InMemorySpanExporter;
+import io.opentelemetry.sdk.trace.data.SpanData;
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
-import io.quarkus.test.junit.QuarkusTest;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.Mono;
@@ -37,6 +45,15 @@ class CosmosChangeFeedTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final CloudEventMapper mapper = new CloudEventMapper(objectMapper);
+
+    @Inject
+    Tracer tracer;
+
+    @Inject
+    InMemorySpanExporter exporter;
+
+    @Inject
+    OpenTelemetry openTelemetry;
 
     @Test
     void configuraContainersELeasesPersistentesNoProcessor() {
@@ -89,6 +106,31 @@ class CosmosChangeFeedTest {
                 recebidos);
         verify(processor, times(1)).start();
         verify(processor, times(1)).stop();
+    }
+
+    @Test
+    void registraConclusaoAssincronaDoInicioDoProcessor() {
+        exporter.reset();
+        var processor = mock(ChangeFeedProcessor.class);
+        when(processor.start()).thenReturn(Mono.empty());
+        var feed = new CosmosChangeFeed(processor, mapper, tracer);
+
+        feed.iniciar(evento -> {
+            // Consumidor sintético para ativar o feed.
+        });
+
+        ((OpenTelemetrySdk) openTelemetry)
+                .getSdkTracerProvider()
+                .forceFlush()
+                .join(10, TimeUnit.SECONDS);
+
+        SpanData span = exporter.getFinishedSpanItems().stream()
+                .filter(item -> "simtr-hub.feed.conformidade.documento"
+                        .equals(item.getName()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("iniciar", atributo(span, "conformidade.feed.operacao"));
+        assertEquals("INICIADO", atributo(span, "conformidade.feed.resultado"));
     }
 
     @Test
@@ -209,5 +251,13 @@ class CosmosChangeFeedTest {
                 .put("versaoSchema", referencia.versaoSchema())
                 .put("hashConteudo", referencia.hashConteudo())
                 .set("revisao", objectMapper.valueToTree(revisao));
+    }
+
+    private static Object atributo(SpanData span, String chave) {
+        return span.getAttributes().asMap().entrySet().stream()
+                .filter(entry -> entry.getKey().getKey().equals(chave))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElse(null);
     }
 }

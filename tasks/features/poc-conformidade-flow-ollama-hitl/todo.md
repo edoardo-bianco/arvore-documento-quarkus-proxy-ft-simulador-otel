@@ -6,7 +6,7 @@
 - **Escopo:** concluir baseline HITL volátil e evoluir para persistência documental
   neutra, com CouchDB em DES, Azure Cosmos DB for NoSQL em PRD, Redis/Valkey para
   checkpoints e entrega referencial sem broker
-- **Próximo item:** checkpoint humano dos valores observáveis antes da Task 9.2
+- **Próximo item:** Task 9.3 — pendente, não iniciada
 - **Especificação:** `doc/poc/especificacao-poc-conformidade-quarkus-flow-ollama-hitl-sem-broker.md`
 - **Plano:** `tasks/features/poc-conformidade-flow-ollama-hitl/plan.md`
 - **Baseline Sonar:** SonarQube Docker local, inicializado em 2026-07-24
@@ -63,7 +63,7 @@
 - [x] 8.3 Provar retomada cross-pod e failover;
 - [x] 8.4 Executar suíte e checkpoint Sonar do incremento 8;
 - [x] 9.1 Criar página estática com polling e cinco valores de identidade;
-- [ ] 9.2 Fechar observabilidade e guardrails arquiteturais;
+- [x] 9.2 Fechar observabilidade e guardrails arquiteturais;
 - [ ] 9.3 Atualizar README, consolidado arquitetural e ADRs conforme estado comprovado;
 - [ ] 9.4 Executar suíte, verify e checkpoint Sonar final;
 - [ ] CF Apresentar evidências e solicitar aceitação/encerramento humano.
@@ -1091,6 +1091,59 @@
   ativo. A Task 9.2 não foi iniciada porque depende do checkpoint humano dos valores
   observáveis.
 
+### Checkpoint humano da Task 9.2 — valores observáveis
+
+- GO humano explícito recebido em 2026-08-07 para iniciar a Task 9.2;
+- a telemetria pode conter somente IDs, backend, operação, resultado, indicador de
+  replay e contexto de trace;
+- health/readiness devem distinguir backend documental, Redis/Valkey e Lease
+  Kubernetes;
+- texto, prompt, resposta, revisão, evidência, credenciais e documentos são
+  absolutamente proibidos na nova telemetria;
+- perguntas operacionais que os sinais devem responder: qual backend/operação
+  falhou para uma análise; se o feed está em replay ou o cursor/checkpoint está
+  paralisado; qual das três dependências está impedindo readiness; e como seguir a
+  análise pelo trace sem expor payload.
+
+### Task 9.2 — Observabilidade e guardrails arquiteturais
+
+- a persistência documental e os feeds nativos CouchDB/Cosmos passaram a emitir
+  spans e logs estruturados com somente IDs, backend, operação, resultado, replay,
+  cursor/lease e contexto de trace; payload, texto, prompt, resposta, revisão,
+  evidência, credencial e documento permanecem ausentes da telemetria;
+- as operações reativas mantêm o span atual até a terminação do `Uni`, propagam a
+  falha original e registram somente resultado sanitizado, sem anexar exceção ou
+  conteúdo sensível ao log/span;
+- readiness passou a identificar separadamente backend documental, Redis/Valkey e
+  Lease Kubernetes, preservando o estado dos checks delegados;
+- ArchUnit ganhou provas negativas para impedir que o núcleo de conformidade dependa
+  de DTO do Ollama, SDK Cosmos ou CloudEvent; as violações sintéticas permanecem
+  confinadas ao código de teste;
+- um RED reproduzido em `RepositorioDocumentalObservavelTest` mostrou que `parentId`
+  é MDC permitido, mas não obrigatório em span raiz; a asserção passou a separar
+  campos permitidos de obrigatórios sem relaxar a proibição de dados sensíveis;
+- o baseline limpo do `HEAD` foi produzido fora de `target/` e permaneceu `READY`:
+  240 issues, cobertura 85,1% e duplicação 2,5%; o pacote inválido sob `target/`, que
+  havia retornado métricas zero, não foi reutilizado;
+- o primeiro checkpoint do incremento ficou `NON_COMPLIANT`: 257 issues, 17 novas,
+  4 severas, cobertura 82,5% e duplicação 2,6%; a decisão humana
+  `ContinuarAjustes` foi registrada pelo script;
+- as 17 ocorrências foram corrigidas com constantes, nomes internos sem colisão,
+  captura de exceções operacionais, lambdas simples e provas ArchUnit equivalentes;
+  o déficit de cobertura foi rastreado à retirada de `@QuarkusTest` de cinco testes
+  MTR, que passavam sem contribuir para o `quarkus-jacoco`;
+- o RED conjunto desses cinco testes reproduziu cinco falhas de isolamento, enquanto
+  cada classe passou sozinha; perfis Quarkus distintos preservaram os contratos,
+  tornaram o conjunto determinístico e restauraram a instrumentação de cobertura;
+- o segundo checkpoint reduziu o resultado a 242 issues, 2 novas `MINOR`
+  `java:S1481`, cobertura 85,3% e duplicação 2,6%; uma nova decisão humana
+  `ContinuarAjustes` foi registrada antes da correção;
+- o checkpoint final terminou `COMPLIANT`: 240 issues contra 240 no baseline,
+  nenhuma issue nova ou severa, cobertura 85,3%, duplicação 2,6% e decisão
+  `NOT_REQUIRED`;
+- o `clean verify` final registrou 138 relatórios Surefire, 585 testes, 0 falhas,
+  0 erros e 4 gates opt-in ignorados; a Task 9.3 não foi iniciada.
+
 ### Planejamento da evolução durável
 
 - o usuário autorizou planejar a mudança para CouchDB nos dados de negócio e
@@ -1201,6 +1254,10 @@
 | Sonar Task 8.2 — checkpoint | COMPLIANT | 2026-08-07 | 240 issues atuais contra 240 no baseline tardio, 0 novas ou bloqueantes, cobertura 85,1%, duplicação 2,5% e decisão `NOT_REQUIRED`; métricas idênticas às registradas na Task 8.1 | — |
 | Sonar Task 8.4 — checkpoint | COMPLIANT | 2026-08-07 | 240 issues atuais contra 240 no baseline, 0 novas ou bloqueantes, cobertura 85,1%, duplicação 2,5% e decisão `NOT_REQUIRED`; baseline anterior ao roteiro executável da Task 8.3 | — |
 | Sonar Task 9.1 — checkpoint | COMPLIANT | 2026-08-07 | 240 issues atuais contra 240 no baseline, 0 novas ou bloqueantes, cobertura 85,1%, duplicação 2,5% e decisão `NOT_REQUIRED`; 577 testes, 0 falhas, 0 erros e 4 ignorados | — |
+| Checkpoint Task 9.2 — valores observáveis | APROVADO | 2026-08-07 | GO explícito para telemetria limitada a IDs, backend, operação, resultado, replay e trace; dados sensíveis absolutamente proibidos | Usuário |
+| Sonar Task 9.2 — primeira execução | CONTINUAR_AJUSTES | 2026-08-09 | 257 issues atuais contra 240 no baseline, 17 novas, 4 severas, cobertura 82,5% e duplicação 2,6%; decisão registrada pelo script | Usuário |
+| Sonar Task 9.2 — segundo checkpoint | CONTINUAR_AJUSTES | 2026-08-09 | 242 issues atuais contra 240 no baseline, 2 novas `MINOR`, cobertura 85,3% e duplicação 2,6%; decisão registrada pelo script | Usuário |
+| Sonar Task 9.2 — ajuste final | COMPLIANT | 2026-08-09 | 240 issues atuais contra 240 no baseline, 0 novas ou severas, cobertura 85,3%, duplicação 2,6% e decisão `NOT_REQUIRED`; 585 testes, 0 falhas, 0 erros e 4 ignorados | — |
 | Sonar Task 7.4 — primeira execução | CONTINUAR_AJUSTES | 2026-08-04 | 2 issues novas (`java:S5778` e `java:S1612`), cobertura 84,9% e duplicação 2,6%; decisão registrada pelo script | Usuário |
 | Sonar Task 7.4 — primeiro ajuste | CONTINUAR_AJUSTES | 2026-08-04 | 241 issues atuais contra 242 no baseline; 0 issues novas ou bloqueantes; cobertura 84,9%; duplicação 2,6%; decisão registrada pelo script | Usuário |
 | Sonar Task 7.4 — ajuste final | COMPLIANT | 2026-08-04 | 240 issues atuais contra 242 no baseline; 0 issues novas ou bloqueantes; cobertura 85,1%; duplicação 2,6%; decisão `NOT_REQUIRED` | — |

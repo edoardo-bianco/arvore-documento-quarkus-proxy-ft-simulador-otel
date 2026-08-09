@@ -13,6 +13,7 @@ import br.gov.caixa.simtr.hub.conformidade.adaptador.saida.cosmosdb.CosmosDbClie
 import br.gov.caixa.simtr.hub.conformidade.adaptador.saida.messaging.interno.CloudEventMapper;
 import com.azure.cosmos.CosmosAsyncClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.opentelemetry.api.trace.Tracer;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
@@ -32,12 +33,18 @@ public class AnaliseConformidadeFeedProducer {
             ObjectMapper objectMapper,
             CloudEventMapper mapper,
             CosmosDbClienteFactory cosmosFactory,
-            CosmosChangeFeedFactory feedFactory) {
+            CosmosChangeFeedFactory feedFactory,
+            Tracer tracer) {
         String backend = obrigatorio(config, PREFIXO + "persistencia.backend")
                 .toLowerCase(Locale.ROOT);
         return switch (backend) {
-            case "couchdb" -> couchDb(config, objectMapper, mapper);
-            case "cosmosdb" -> cosmosDb(config, mapper, cosmosFactory, feedFactory);
+            case "couchdb" -> couchDb(config, objectMapper, mapper, tracer);
+            case "cosmosdb" -> cosmosDb(
+                    config,
+                    mapper,
+                    cosmosFactory,
+                    feedFactory,
+                    tracer);
             default -> throw new IllegalStateException(
                     "Backend do feed da conformidade inválido");
         };
@@ -46,7 +53,8 @@ public class AnaliseConformidadeFeedProducer {
     private static FeedEventosAnaliseConformidade couchDb(
             Config config,
             ObjectMapper objectMapper,
-            CloudEventMapper mapper) {
+            CloudEventMapper mapper,
+            Tracer tracer) {
         return new CouchDbChangesFeed(
                 endpointCouchDb(
                         obrigatorio(config, PREFIXO + "couchdb.host"),
@@ -55,14 +63,16 @@ public class AnaliseConformidadeFeedProducer {
                 opcional(config, PREFIXO + "couchdb.username"),
                 opcional(config, PREFIXO + "couchdb.password"),
                 obrigatorio(config, PREFIXO + "couchdb.database"),
-                mapper);
+                mapper,
+                tracer);
     }
 
     private FeedEventosAnaliseConformidade cosmosDb(
             Config config,
             CloudEventMapper mapper,
             CosmosDbClienteFactory cosmosFactory,
-            CosmosChangeFeedFactory feedFactory) {
+            CosmosChangeFeedFactory feedFactory,
+            Tracer tracer) {
         rejeitarSegredosCosmos(config);
         CosmosAsyncClient client = cosmosFactory.criar(
                 obrigatorio(config, PREFIXO + "cosmos.endpoint"));
@@ -77,7 +87,8 @@ public class AnaliseConformidadeFeedProducer {
                     feedContainer,
                     leaseContainer,
                     mapper,
-                    hostName(config));
+                    hostName(config),
+                    tracer);
             cosmosClient = client;
             return feed;
         } catch (RuntimeException falha) {

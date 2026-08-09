@@ -16,7 +16,9 @@ import br.gov.caixa.simtr.hub.conformidade.adaptador.saida.mtr.erro.ChecklistMtr
 import br.gov.caixa.simtr.hub.conformidade.adaptador.saida.mtr.mapper.ChecklistMtrMapper;
 import br.gov.caixa.simtr.hub.conformidade.dominio.erro.FalhaConsultaChecklist;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.ComandoConsultaChecklist;
+import br.gov.caixa.simtr.hub.arquitetura.teste.PerfisIsolamentoMtr;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 import io.smallrye.mutiny.Uni;
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,6 +28,7 @@ import org.eclipse.microprofile.faulttolerance.exceptions.TimeoutException;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
+@TestProfile(PerfisIsolamentoMtr.Checklist.class)
 class ChecklistMtrAdapterTest {
 
     private static final String SERVICO_MTR = "simtr-parametrizacao";

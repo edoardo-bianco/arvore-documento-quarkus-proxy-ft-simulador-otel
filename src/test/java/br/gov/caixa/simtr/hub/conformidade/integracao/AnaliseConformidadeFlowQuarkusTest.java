@@ -36,6 +36,8 @@ import jakarta.inject.Inject;
 import java.time.Duration;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -61,6 +63,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AnaliseConformidadeFlowQuarkusTest {
 
     private static final String BASE_PATH = "/simtr-hub/v1/conformidade/analises";
+    private static final String CHECK_DOCUMENTAL =
+            "simtr-hub-conformidade-documental";
     private static final String CORRELATION_ID = "7aa3ca4d-3c7e-4f61-a3a1-996571d3397a";
     private static final String IDENTIFICADOR_DOCUMENTO = "DOC-2026-000123";
     private static final Duration LIMITE_CONVERGENCIA = Duration.ofSeconds(10);
@@ -91,6 +95,45 @@ class AnaliseConformidadeFlowQuarkusTest {
     @BeforeEach
     void prepararAgente() {
         analisarTexto.preparar();
+    }
+
+    @Test
+    void readinessDistingueBackendDocumentalRedisELeaseSemDadosSensiveis() {
+        var resposta = given()
+                .get("/q/health/ready")
+                .then()
+                .extract()
+                .response();
+
+        assertEquals(200, resposta.statusCode(), resposta.asPrettyString());
+        List<Map<String, Object>> checks = resposta.jsonPath()
+                .getList("checks");
+        Map<String, Object> documental = checks.stream()
+                .filter(check -> CHECK_DOCUMENTAL.equals(check.get("name")))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError(resposta.asPrettyString()));
+        assertEquals("UP", documental.get("status"));
+        assertEquals(
+                "couchdb",
+                ((Map<?, ?>) documental.get("data")).get("backend"));
+        assertTrue(checks.stream().anyMatch(check -> String.valueOf(check.get("name"))
+                .toLowerCase(Locale.ROOT)
+                .contains("redis")), resposta.asPrettyString());
+        Map<String, Object> lease = checks.stream()
+                .filter(check -> "Lease Acquisition".equals(check.get("name")))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError(resposta.asPrettyString()));
+        assertEquals("UP", lease.get("status"));
+        assertTrue(((Map<?, ?>) lease.get("data")).containsKey("leaseEnabled"));
+        assertTrue(((Map<?, ?>) lease.get("data")).containsKey("leaseAcquired"));
+
+        String corpo = resposta.asString().toLowerCase(Locale.ROOT);
+        assertFalse(corpo.contains("password"));
+        assertFalse(corpo.contains("credential"));
+        assertFalse(corpo.contains("endpoint"));
+        assertFalse(corpo.contains("texto"));
+        assertFalse(corpo.contains("revisao"));
+        assertFalse(corpo.contains("evidencia"));
     }
 
     @Test

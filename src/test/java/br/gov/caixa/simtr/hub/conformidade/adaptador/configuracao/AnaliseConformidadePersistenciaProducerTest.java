@@ -15,6 +15,8 @@ import com.azure.cosmos.CosmosAsyncClient;
 import com.azure.cosmos.CosmosAsyncContainer;
 import com.azure.cosmos.CosmosAsyncDatabase;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.trace.Tracer;
 import io.quarkus.test.junit.QuarkusTest;
 import java.util.Map;
 import java.util.Optional;
@@ -26,6 +28,8 @@ class AnaliseConformidadePersistenciaProducerTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final CosmosDbClienteFactory cosmosFactory = mock(CosmosDbClienteFactory.class);
+    private final Tracer tracer = OpenTelemetry.noop()
+            .getTracer("simtr-hub-conformidade");
     private final AnaliseConformidadePersistenciaProducer producer =
             new AnaliseConformidadePersistenciaProducer();
 
@@ -38,7 +42,8 @@ class AnaliseConformidadePersistenciaProducerTest {
                         "conformidade.couchdb.port", "5984",
                         "conformidade.couchdb.database", "conformidade")),
                 objectMapper,
-                cosmosFactory);
+                cosmosFactory,
+                tracer);
 
         assertInstanceOf(CouchDbAnaliseConformidadeStore.class, porta);
     }
@@ -60,7 +65,8 @@ class AnaliseConformidadePersistenciaProducerTest {
                         "conformidade.cosmos.database", "conformidade",
                         "conformidade.cosmos.container", "analises")),
                 objectMapper,
-                cosmosFactory);
+                cosmosFactory,
+                tracer);
         producer.encerrar();
 
         assertInstanceOf(CosmosDbAnaliseConformidadeStore.class, porta);
@@ -71,13 +77,18 @@ class AnaliseConformidadePersistenciaProducerTest {
     void falhaSemBackendOuComBackendDesconhecido() {
         assertThrows(
                 IllegalStateException.class,
-                () -> producer.portaSaida(config(Map.of()), objectMapper, cosmosFactory));
+                () -> producer.portaSaida(
+                        config(Map.of()),
+                        objectMapper,
+                        cosmosFactory,
+                        tracer));
         assertThrows(
                 IllegalStateException.class,
                 () -> producer.portaSaida(
                         config(Map.of("conformidade.persistencia.backend", "mongodb")),
                         objectMapper,
-                        cosmosFactory));
+                        cosmosFactory,
+                        tracer));
     }
 
     @Test
@@ -93,7 +104,8 @@ class AnaliseConformidadePersistenciaProducerTest {
                 () -> producer.portaSaida(
                         config(comChave(base, "conformidade.cosmos.key", "segredo")),
                         objectMapper,
-                        cosmosFactory));
+                        cosmosFactory,
+                        tracer));
         assertThrows(
                 IllegalStateException.class,
                 () -> producer.portaSaida(
@@ -102,7 +114,8 @@ class AnaliseConformidadePersistenciaProducerTest {
                                 "conformidade.cosmos.connection-string",
                                 "segredo")),
                         objectMapper,
-                        cosmosFactory));
+                        cosmosFactory,
+                        tracer));
     }
 
     private static Config config(Map<String, String> valores) {
