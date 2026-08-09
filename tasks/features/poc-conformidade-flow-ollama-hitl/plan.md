@@ -1677,6 +1677,31 @@ ou checkpoint Sonar nesta task.
 
 **Tamanho estimado:** S.
 
+#### Task 9.7 — Separar retenção e descarte de CouchDB e Valkey
+
+**Descrição:** refinar o encerramento operacional no guia e no README para distinguir a retenção
+dos documentos no CouchDB da retenção dos checkpoints técnicos no Redis/Valkey, considerando os
+limites reais de persistência dos ambientes Compose e kind.
+
+**Critérios de aceitação:**
+
+- explicar que CouchDB usa volume/PVC persistente e Valkey não possui volume nem persistência
+  própria na PoC;
+- documentar como preservar os dois backends durante restart somente da aplicação;
+- documentar como encerrar preservando documentos do CouchDB, mas descartando checkpoints do
+  Valkey, e como limpar todo o estado;
+- disponibilizar comandos separados para limpar somente Valkey em Compose e Kubernetes;
+- advertir que limpar apenas um backend pode deixar documentos ou checkpoints órfãos e não é uma
+  prova válida de retomada de instâncias em andamento.
+
+**Verificação:** comparação com `compose-poc.yml`, `k8s/poc/couchdb.yaml`,
+`k8s/poc/valkey.yaml`, comandos documentados, links Markdown e `git diff --check`. Por ser
+documentação exclusiva, não executar Maven ou checkpoint Sonar nesta task.
+
+**Dependências:** Task 9.6.
+
+**Tamanho estimado:** S.
+
 ### Checkpoint CF — Aceitação técnica e encerramento
 
 - apresentar diff, comandos, testes, dependency tree, demonstração HITL e resultado

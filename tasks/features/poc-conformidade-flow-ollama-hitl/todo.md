@@ -6,7 +6,7 @@
 - **Escopo:** concluir baseline HITL volátil e evoluir para persistência documental
   neutra, com CouchDB em DES, Azure Cosmos DB for NoSQL em PRD, Redis/Valkey para
   checkpoints e entrega referencial sem broker
-- **Próximo item:** Checkpoint CF — pendente, aguarda execução do guia e decisão humana
+- **Próximo item:** Checkpoint CF — apresentar evidências e solicitar decisão humana
 - **Especificação:** `doc/poc/especificacao-poc-conformidade-quarkus-flow-ollama-hitl-sem-broker.md`
 - **Plano:** `tasks/features/poc-conformidade-flow-ollama-hitl/plan.md`
 - **Baseline Sonar:** SonarQube Docker local, inicializado em 2026-07-24
@@ -68,6 +68,7 @@
 - [x] 9.4 Executar suíte, verify e checkpoint Sonar final;
 - [x] 9.5 Criar guia passo a passo para verificação reproduzível da PoC;
 - [x] 9.6 Documentar limpeza completa e reconstrução dos ambientes locais da PoC;
+- [x] 9.7 Separar retenção e descarte de CouchDB e Valkey na documentação operacional;
 - [ ] CF Apresentar evidências e solicitar aceitação/encerramento humano.
 
 ## Evidências de execução
@@ -1232,6 +1233,29 @@
 - a task alterou somente Markdown fonte. Maven, Sonar e formatos derivados
   `.ppt`/`.pptx`/`.pdf`/`.html` não foram executados ou atualizados;
 - a Task 9.6 está concluída. O checkpoint CF permanece pendente para execução do guia e decisão
+  humana de aceitação/encerramento.
+
+### Task 9.7 — Retenção e descarte de CouchDB e Valkey
+
+- o usuário solicitou separar os procedimentos que mantêm ou descartam os dados do CouchDB e os
+  checkpoints do Redis/Valkey;
+- o guia e o README agora registram que o CouchDB usa volume nomeado no Compose e PVC no
+  Kubernetes, enquanto o Valkey executa com `--save ""` e sem volume persistente nos dois
+  ambientes;
+- uma matriz operacional distingue restart somente da aplicação, encerramento do Compose sem
+  remover volumes, restart exclusivo do Valkey e limpeza completa do ambiente;
+- os comandos de restart somente do `simtr-hub` preservam documentos e checkpoints durante as
+  provas; reiniciar ou recriar o Valkey descarta checkpoints e exige ausência de instâncias em
+  andamento;
+- a documentação desaconselha limpar apenas o CouchDB, pois checkpoints remanescentes podem
+  referenciar documentos ausentes, e alerta que reutilizar volume ou PVC do CouchDB também exige
+  preservar as credenciais usadas em sua inicialização;
+- comandos, volumes e ausência de persistência do Valkey foram conferidos diretamente em
+  `compose-poc.yml`, `k8s/poc/couchdb.yaml` e `k8s/poc/valkey.yaml`;
+- `git diff --check` terminou sem erro, além dos avisos LF/CRLF conhecidos no Windows;
+- a task alterou somente Markdown fonte. Maven, Sonar e formatos derivados
+  `.ppt`/`.pptx`/`.pdf`/`.html` não foram executados ou atualizados;
+- a Task 9.7 está concluída. O checkpoint CF permanece pendente para execução do guia e decisão
   humana de aceitação/encerramento.
 
 ### Planejamento da evolução durável
