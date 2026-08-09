@@ -235,6 +235,10 @@ conformidade, consulta o estado a cada 1.500 ms e não grava `localStorage` nem 
 Durante todo o fluxo exibe como somente leitura `correlationId`, `instanceId`,
 `identificadorDocumento`, `identificadorChecklist` e `versaoChecklist`.
 
+O roteiro reproduzível para conferir suíte, página, API, restart, duas réplicas, failover,
+observabilidade, Sonar e o gate Cosmos está no
+[guia de verificação da PoC](doc/poc/guia-verificacao-poc-conformidade.md).
+
 Os dados de negócio ficam no backend documental selecionado: CouchDB no ambiente local e Azure
 Cosmos DB for NoSQL em PRD. Redis/Valkey guarda somente checkpoints técnicos do Flow. Solicitação
 de revisão e conclusão usam CloudEvents referenciais e feed nativo do backend, sem Kafka ou outro
@@ -352,7 +356,8 @@ target/jacoco-report/index.html
 - especificacao funcional de referencia: `doc/api-integracao-mtr-pre-validacao-v1.md`;
 - planejamento de novas features: `tasks/README.md`;
 - observabilidade e operacao: `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`;
-- catalogo de sinais: `doc/catalogo-observabilidade.md`.
+- catalogo de sinais: `doc/catalogo-observabilidade.md`;
+- verificacao reproduzivel da PoC: `doc/poc/guia-verificacao-poc-conformidade.md`.
 
 O workflow de conformidade descrito acima está implementado. Os dois endpoints ausentes listados,
 quaisquer outros endpoints ou workflows, upload e lifecycle de SAS continuam fora do escopo e
