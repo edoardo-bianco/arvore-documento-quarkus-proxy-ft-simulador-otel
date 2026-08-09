@@ -70,6 +70,7 @@
 - [x] 9.6 Documentar limpeza completa e reconstrução dos ambientes locais da PoC;
 - [x] 9.7 Separar retenção e descarte de CouchDB e Valkey na documentação operacional;
 - [x] 9.8 Explicitar que a remoção total exige limpar Compose e cluster kind separadamente;
+- [x] 9.9 Documentar consultas para validar os dados persistidos no CouchDB;
 - [ ] CF Apresentar evidências e solicitar aceitação/encerramento humano.
 
 ## Evidências de execução
@@ -1277,6 +1278,31 @@
 - a task alterou somente Markdown fonte. Maven, Sonar e formatos derivados
   `.ppt`/`.pptx`/`.pdf`/`.html` não foram executados ou atualizados;
 - a Task 9.8 está concluída. O checkpoint CF permanece pendente para execução do guia e decisão
+  humana de aceitação/encerramento.
+
+### Task 9.9 — Inspeção dos dados persistidos no CouchDB
+
+- o usuário solicitou uma seção operacional para consultar o CouchDB e verificar o que a PoC
+  persistiu durante uma análise;
+- o guia passou a oferecer consultas PowerShell equivalentes para Compose e kind, executadas
+  dentro do container/pod e usando apenas as credenciais já injetadas no ambiente;
+- os documentos retornados por `_all_docs?include_docs=true` são filtrados localmente por
+  `correlationId`, sem registrar usuário ou senha no comando ou na saída;
+- a validação confere as cinco identidades, `versaoSchema`, unicidade da projeção, estado e
+  resolução das referências para checklist, resultado preliminar, revisão e resultado final;
+- a tabela de tipos foi conferida diretamente contra `DocumentoAnaliseConformidadeStore` e cobre
+  entrada, projeção, checklist, resultados, revisão, falha e emissões referenciais;
+- o cursor `_local/simtr-flow-revisao-v1` é consultado separadamente porque documentos locais não
+  aparecem em `_all_docs`; `tipo`, `versaoSchema` e `lastSeq` possuem validação explícita;
+- a inspeção opcional pelo Fauxton cobre a porta padrão do Compose e port-forward no kind, sempre
+  com alerta para dados e credenciais somente sintéticos;
+- comandos, variáveis, porta, database, cursor e tipos foram comparados com `compose-poc.yml`,
+  manifests `k8s/poc`, `CouchDbChangesHttpClient`, `DocumentoAnaliseConformidadeStore` e o suporte
+  de `kubectl exec` a recursos `TYPE/NAME`;
+- `git diff --check` terminou sem erro, além dos avisos LF/CRLF conhecidos no Windows;
+- a task alterou somente Markdown fonte. Maven, Sonar e formatos derivados
+  `.ppt`/`.pptx`/`.pdf`/`.html` não foram executados ou atualizados;
+- a Task 9.9 está concluída. O checkpoint CF permanece pendente para execução do guia e decisão
   humana de aceitação/encerramento.
 
 ### Planejamento da evolução durável

@@ -1724,6 +1724,32 @@ Sonar nesta task.
 
 **Tamanho estimado:** S.
 
+#### Task 9.9 — Documentar a inspeção dos dados persistidos no CouchDB
+
+**Descrição:** acrescentar ao guia um roteiro PowerShell para consultar o banco CouchDB da PoC,
+correlacionar os documentos com a análise executada e validar projeção, fatos e cursor do feed.
+
+**Critérios de aceitação:**
+
+- usar as credenciais já injetadas no container/pod, sem copiá-las para argumentos, saída ou
+  documentação;
+- oferecer comandos equivalentes para o ambiente Compose e o cluster kind;
+- listar os documentos do database configurado e filtrá-los por `correlationId`;
+- validar identidades, status e referências da projeção usando a `instanceId` observada na API;
+- explicar os tipos documentais esperados em cada estágio do fluxo e consultar o cursor local
+  `_local/simtr-flow-revisao-v1` separadamente;
+- alertar que a inspeção de payload completo deve usar somente dados sintéticos e não deve ser
+  anexada a logs ou commits.
+
+**Verificação:** comparação com `compose-poc.yml`, manifests `k8s/poc`,
+`DocumentoAnaliseConformidadeStore`, `IdsDocumentoAnaliseConformidade`,
+`CouchDbChangesHttpClient`, comandos PowerShell e `git diff --check`. Por ser documentação
+exclusiva, não executar Maven ou checkpoint Sonar nesta task.
+
+**Dependências:** Task 9.8.
+
+**Tamanho estimado:** S.
+
 ### Checkpoint CF — Aceitação técnica e encerramento
 
 - apresentar diff, comandos, testes, dependency tree, demonstração HITL e resultado
