@@ -202,6 +202,13 @@
             <version>2.0.4</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.serverlessworkflow</groupId>
+            <artifactId>serverlessworkflow-persistence-tests</artifactId>
+            <!-- Versão transitiva usada pelo quarkus-flow 0.10.2. -->
+            <version>7.22.2.Final</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -279,15 +286,6 @@
     <profiles>
         <profile>
             <id>spike-persistencia-duravel</id>
-            <dependencies>
-                <dependency>
-                    <groupId>io.serverlessworkflow</groupId>
-                    <artifactId>serverlessworkflow-persistence-tests</artifactId>
-                    <!-- Versão transitiva usada pelo quarkus-flow 0.10.2. -->
-                    <version>7.22.2.Final</version>
-                    <scope>test</scope>
-                </dependency>
-            </dependencies>
             <properties>
                 <test.sources.directory>${project.basedir}/src/spike-test/java</test.sources.directory>
             </properties>
