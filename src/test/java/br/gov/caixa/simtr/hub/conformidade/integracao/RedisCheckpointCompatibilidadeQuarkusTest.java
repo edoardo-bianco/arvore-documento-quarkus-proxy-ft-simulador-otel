@@ -1,5 +1,6 @@
-package br.gov.caixa.simtr.hub.conformidade.spike.persistencia;
+package br.gov.caixa.simtr.hub.conformidade.integracao;
 
+import br.gov.caixa.simtr.hub.conformidade.suporte.ValkeyQuarkusTestResource;
 import jakarta.inject.Inject;
 
 import io.quarkus.test.common.QuarkusTestResource;
@@ -8,7 +9,7 @@ import io.serverlessworkflow.impl.persistence.PersistenceInstanceHandlers;
 import io.serverlessworkflow.impl.persistence.test.AbstractHandlerPersistenceTest;
 
 @QuarkusTest
-@QuarkusTestResource(ValkeySpikeResource.class)
+@QuarkusTestResource(ValkeyQuarkusTestResource.class)
 class RedisCheckpointCompatibilidadeQuarkusTest extends AbstractHandlerPersistenceTest {
 
     @Inject

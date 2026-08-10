@@ -1,4 +1,4 @@
-package br.gov.caixa.simtr.hub.conformidade.spike.persistencia;
+package br.gov.caixa.simtr.hub.conformidade.integracao;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
