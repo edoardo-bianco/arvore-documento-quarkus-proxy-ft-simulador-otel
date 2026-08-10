@@ -4,7 +4,7 @@
 
 - **Branch:** `refactor/remover-spike-test`
 - **Escopo:** testes e tooling Maven
-- **Próximo item:** decisão humana de encerramento da feature
+- **Próximo item:** nenhum — feature encerrada pelo usuário
 
 ## Checklist
 
@@ -26,7 +26,7 @@
 | Checkpoint | Status | Data | Evidência | Aprovador |
 |---|---|---|---|---|
 | C0 | APROVADO | 2026-08-10 | GO explícito para baseline local, migração, remoção e verificações | Usuário |
-| CF | PENDENTE | 2026-08-10 | Execução técnica concluída; aguarda decisão humana de encerramento | — |
+| CF | ENCERRADO | 2026-08-10 | Usuário respondeu explicitamente `ENCERRAR` após revisar o resultado técnico | Usuário |
 
 ## Evidências técnicas
 
@@ -56,3 +56,4 @@
   violação e decisão humana técnica não requerida.
 - 2026-08-10 — revisão final sem achados bloqueantes em correção, simplicidade, arquitetura,
   segurança, desempenho, testes ou escopo; a remoção não alterou produção, runtime ou contratos.
+- 2026-08-10 — usuário aprovou o resultado e registrou explicitamente o encerramento da feature.
