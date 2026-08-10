@@ -4,7 +4,7 @@
 
 - **Branch:** `docs/revisar-especificacao-poc`
 - **Escopo:** documental
-- **Próximo item:** CF Revisão humana e encerramento da feature documental
+- **Próximo item:** nenhum; feature documental encerrada
 
 ## Checklist
 
@@ -15,13 +15,14 @@
 - [x] C0 Registrar autorização documental explícita do usuário;
 - [x] 1.1 Reescrever e revisar integralmente a especificação;
 - [x] C1 Confrontar C4, schema e localização dos dados com o estado implementado;
-- [ ] CF Validar e encerrar a revisão documental.
+- [x] CF Validar e encerrar a revisão documental.
 
 ## Decisões humanas
 
 | Checkpoint | Status | Data | Evidência | Aprovador |
 |---|---|---|---|---|
 | C0 | APROVADO | 2026-08-10 | Solicitação explícita de revisão total do documento, incluindo decisões, C4 e schema/localização dos documentos | Usuário |
+| CF | ENCERRADO | 2026-08-10 | Usuário autorizou prosseguir, consolidar a atividade e parar | Usuário |
 
 ## Evidências
 
