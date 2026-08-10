@@ -283,12 +283,4 @@
         </plugins>
     </build>
 
-    <profiles>
-        <profile>
-            <id>spike-persistencia-duravel</id>
-            <properties>
-                <test.sources.directory>${project.basedir}/src/spike-test/java</test.sources.directory>
-            </properties>
-        </profile>
-    </profiles>
 </project>

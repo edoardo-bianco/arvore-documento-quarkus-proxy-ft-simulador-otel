@@ -4,7 +4,7 @@
 
 - **Branch:** `refactor/remover-spike-test`
 - **Escopo:** testes e tooling Maven
-- **Próximo item:** 2.1 — remover o source set experimental e o profile Maven
+- **Próximo item:** decisão humana de encerramento da feature
 
 ## Checklist
 
@@ -17,15 +17,16 @@
 - [x] 1.1 Inicializar baseline SonarQube local;
 - [x] 1.2 Migrar as três provas úteis para `src/test/java`;
 - [x] C1 Executar testes focados, suíte padrão, revisar e criar commit próprio;
-- [ ] 2.1 Remover `src/spike-test` e o profile Maven opt-in;
-- [ ] C2 Executar suíte padrão, checkpoint Sonar, revisar e criar commit próprio;
-- [ ] CF Validar ausência de referências e solicitar encerramento humano.
+- [x] 2.1 Remover `src/spike-test` e o profile Maven opt-in;
+- [x] C2 Executar suíte padrão, checkpoint Sonar, revisar e criar commit próprio;
+- [x] CF Validar ausência de referências e solicitar encerramento humano.
 
 ## Decisões humanas
 
 | Checkpoint | Status | Data | Evidência | Aprovador |
 |---|---|---|---|---|
 | C0 | APROVADO | 2026-08-10 | GO explícito para baseline local, migração, remoção e verificações | Usuário |
+| CF | PENDENTE | 2026-08-10 | Execução técnica concluída; aguarda decisão humana de encerramento | — |
 
 ## Evidências técnicas
 
@@ -43,3 +44,15 @@
 - 2026-08-10 — revisão C1 sem achados bloqueantes: contratos preservados, dependência restrita a
   testes, suporte Valkey definitivo reutilizado, nenhum segredo ou mudança de produção/runtime e
   diff restrito ao plano, testes e configuração necessária para compilá-los.
+- 2026-08-10 — Task 1 concluída no commit `f4cff00` (`test: incorporar provas de persistencia a
+  suite padrao`).
+- 2026-08-10 — removidos os sete arquivos de `src/spike-test` e o profile Maven
+  `spike-persistencia-duravel`; busca em configuração e fontes executáveis não encontrou
+  referências residuais ao source set, profile, recurso Valkey duplicado ou mapper experimental.
+- 2026-08-10 — após a remoção, `mvn -q test` concluiu a suíte padrão em 214 s com código 0;
+  permaneceu somente o erro de formatação do JBoss LogManager já observado no baseline.
+- 2026-08-10 — checkpoint SonarQube final `COMPLIANT`: 240 issues totais iguais ao baseline,
+  zero issues novas, nenhuma `HIGH`/`BLOCKER`, cobertura 85,3%, duplicação 2,6%, nenhuma
+  violação e decisão humana técnica não requerida.
+- 2026-08-10 — revisão final sem achados bloqueantes em correção, simplicidade, arquitetura,
+  segurança, desempenho, testes ou escopo; a remoção não alterou produção, runtime ou contratos.
