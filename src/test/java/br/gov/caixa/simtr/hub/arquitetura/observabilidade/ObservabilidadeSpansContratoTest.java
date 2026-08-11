@@ -92,7 +92,7 @@ class ObservabilidadeSpansContratoTest {
                 .body("[{\"codigo_operacao\":100,\"codigo_modalidade\":200}]")
                 .patch("/simtr-hub/v1/dossie-produto/{id}/produto", 123L)
                 .then()
-                .statusCode(200);
+                .statusCode(204);
         given()
                 .post("/simtr-hub/v1/dossie-produto/{id}/workflow", 123L)
                 .then()

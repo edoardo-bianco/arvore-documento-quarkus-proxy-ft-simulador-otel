@@ -183,7 +183,7 @@ class DossieProdutoApiContractTest {
                 .when()
                 .patch(ROTA_PRODUTO_DOSSIE_PRODUTO, 123L)
                 .then()
-                .statusCode(200)
+                .statusCode(204)
                 .extract().asString();
 
         assertEquals("", resposta);
@@ -198,7 +198,7 @@ class DossieProdutoApiContractTest {
                 .when()
                 .patch(ROTA_PRODUTO_DOSSIE_PRODUTO, 123L)
                 .then()
-                .statusCode(200)
+                .statusCode(204)
                 .extract().asString();
 
         assertEquals("", resposta);
@@ -213,7 +213,7 @@ class DossieProdutoApiContractTest {
                 .when()
                 .patch(ROTA_PRODUTO_DOSSIE_PRODUTO, 123L)
                 .then()
-                .statusCode(200)
+                .statusCode(204)
                 .extract().asString();
 
         assertEquals("", resposta);

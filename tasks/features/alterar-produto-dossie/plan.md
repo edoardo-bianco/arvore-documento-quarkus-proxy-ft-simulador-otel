@@ -50,6 +50,9 @@ saída por um simulador próprio.
 - o Swagger define `id` como `int64`, corpo como lista de
   `v1.dossieproduto.ProdutoContratadoDTO1`, `codigo_operacao` e `codigo_modalidade` obrigatórios,
   `excluir` opcional e sucesso `200` sem schema de resposta;
+- o comportamento real confirmado posteriormente diverge do Swagger: o MTR responde `204 No
+  Content`; por decisão humana de 2026-08-11, o Hub deve propagar `204` e documentar `204` em seu
+  OpenAPI público;
 - divergência documental esperada após a implementação: a arquitetura, o README, o ADR-0002 e a
   documentação de observabilidade ainda registram cinco operações ausentes e somente cinco
   capacidades em `dossieproduto`;
@@ -70,7 +73,7 @@ saída por um simulador próprio.
 | Corpo | lista JSON obrigatória de produtos contratados |
 | Item | objeto não nulo com `codigo_operacao` e `codigo_modalidade` obrigatórios; `excluir` opcional |
 | Lista vazia | aceita, pois o contrato fonte não declara `minItems` |
-| Sucesso | `200` sem corpo |
+| Sucesso | `204 No Content` |
 | Erros | contrato público existente `ErroPadraoDto`; `400`, `401`, `403`, `404`, `409` e `500` documentados |
 | OpenAPI | gerado pelo Quarkus a partir do Resource e dos DTOs, sem arquivo estático novo |
 
@@ -105,7 +108,7 @@ PATCH /simtr-hub/v1/dossie-produto/{id}/produto
 
 - `ComandoAlteracaoProdutosContratadosDossieProduto` transporta o identificador e a lista de
   `ProdutoContratadoDossieProduto` no núcleo;
-- porta de entrada e porta de saída retornam `Uni<Void>`, pois o `200` MTR não possui corpo;
+- porta de entrada e porta de saída retornam `Uni<Void>`, pois o `204` MTR não possui corpo;
 - `FalhaAlteracaoProdutosContratadosDossieProduto` conserva os dados externos necessários para o
   erro público sem levar DTO MTR ao núcleo;
 - REST, MTR e simulador possuem tipos próprios, mesmo quando os campos são estruturalmente iguais;
@@ -196,7 +199,7 @@ de produção, comprovando inicialmente a ausência da rota.
 
 **Critérios de aceitação:**
 
-- teste exige `PATCH`, path público, `200` sem corpo e JSON snake_case exato;
+- teste exige `PATCH`, path público, `204` sem corpo e JSON snake_case exato;
 - testes exigem corpo, item e campos obrigatórios, `id > 0`, aceitação de lista vazia e
   opcionalidade de `excluir`;
 - RED falha pela capacidade ausente, não por erro de infraestrutura.
@@ -388,7 +391,7 @@ implementar o método no `DossieProdutoResource` até tornar verdes os testes p�
 
 - DTO REST expõe os três campos aprovados e valida item/campos conforme o contrato;
 - mapper executa `REST -> interno` e `falha interna -> erro REST`, sem conversão REST -> MTR;
-- Resource valida `id` e corpo, chama somente a porta de entrada e retorna `200` sem entidade;
+- Resource valida `id` e corpo, chama somente a porta de entrada e retorna `204` sem entidade;
 - logs e spans usam os nomes aprovados, registram somente id/contagem/origem e preservam erro;
 - testes RED da Task 2 ficam GREEN sem alterar os critérios aprovados.
 
@@ -423,7 +426,7 @@ comportamento da integração real.
 
 **Critérios de aceitação:**
 
-- wire usa `PATCH`, path v1 exato, lista JSON exata e resposta `200` sem corpo;
+- wire usa `PATCH`, path v1 exato, lista JSON exata e resposta `204` sem corpo;
 - `Content-Type`, `Accept`, API key, bearer token e `traceparent` chegam ao stub;
 - erros de negócio preservam o corpo e não sofrem retry;
 - falhas recuperáveis seguem a decisão C1 e, se retry estiver autorizado, repetem o mesmo wire;
@@ -582,6 +585,45 @@ pelas demais capacidades, conforme decisão explícita do usuário após o prime
 - `tasks/features/alterar-produto-dossie/plan.md`;
 - `tasks/features/alterar-produto-dossie/todo.md`.
 
+### Task 16 — Alterar o sucesso da operação para 204 No Content
+
+**Descrição:** alinhar o status real da integração e o contrato público do Hub a `204 No Content`,
+apesar de o Swagger MTR 2.20.0.8 registrar `200`, preservando a ausência de corpo e todos os demais
+comportamentos aprovados.
+
+**Critérios de aceitação:**
+
+- stub e contrato de integração MTR respondem `204` e o fluxo continua produzindo `Uni<Void>`;
+- `PATCH /simtr-hub/v1/dossie-produto/{id}/produto` responde `204` sem corpo no simulador e no MTR;
+- annotation OpenAPI do Hub documenta sucesso `204` sem conteúdo e não documenta sucesso `200`;
+- contratos de validação e erro permanecem inalterados;
+- README, documentação operacional, catálogo e coleção Postman não afirmam sucesso `200` para a
+  operação;
+- nenhum teste do documento OpenAPI gerado é reintroduzido.
+
+**Verificação:**
+
+- RED dos contratos HTTP e MTR exigindo `204` antes da alteração de produção;
+- `DossieProdutoApiContractTest`, `ProdutoDossieProdutoMtrContractTest`,
+  `ProdutoDossieProdutoMtrClientTest`, `ObservabilidadeLogsContratoTest`,
+  `ObservabilidadeSpansContratoTest`, contratos de erro/validação e ArchUnit;
+- `mvn -q clean test`;
+- checkpoint `./validar-checkpoint-sonarqube.ps1`;
+- buscas de consistência, `git diff --check` e revisão do diff.
+
+**Dependências:** Task 15 concluída e checkpoint C3 aprovado explicitamente em 2026-08-11.
+
+**Arquivos prováveis:**
+
+- `src/main/java/br/gov/caixa/simtr/hub/dossieproduto/adaptador/entrada/rest/v1/DossieProdutoResource.java`;
+- `src/test/java/br/gov/caixa/simtr/hub/contrato/DossieProdutoApiContractTest.java`;
+- `src/test/java/br/gov/caixa/simtr/hub/dossieproduto/integracao/ProdutoDossieProdutoMtrContractTest.java`;
+- `src/test/java/br/gov/caixa/simtr/hub/arquitetura/observabilidade/ObservabilidadeLogsContratoTest.java`;
+- `src/test/java/br/gov/caixa/simtr/hub/arquitetura/observabilidade/ObservabilidadeSpansContratoTest.java`;
+- documentação fonte e coleção Postman que descrevam o status de sucesso;
+- `tasks/features/alterar-produto-dossie/plan.md`;
+- `tasks/features/alterar-produto-dossie/todo.md`.
+
 ### Checkpoint CF — Revisão e encerramento humano
 
 - critérios de aceitação e verificações apresentados com evidências;
@@ -598,7 +640,8 @@ pelas demais capacidades, conforme decisão explícita do usuário após o prime
 - estado inicial: `READY` e `COMPLIANT`, 219 issues no baseline, cobertura 87,8%, duplicação 3,7%
   e nenhuma violação;
 - checkpoints esperados: C2 após a primeira fatia executável coerente, Task 14 após integração,
-  observabilidade e documentação finais e Task 15 após o ajuste de testes solicitado;
+  observabilidade e documentação finais, Task 15 após o ajuste de testes e Task 16 após a mudança
+  pública para `204`;
 - com baseline exclusivamente offline, executar testes locais e registrar que o estado Sonar
   atual permanece `UNVERIFIED`.
 
@@ -616,11 +659,13 @@ pelas demais capacidades, conforme decisão explícita do usuário após o prime
 | Vazar payload ou credenciais em logs/traces | alto | observar apenas id/contagens/origem e testar ausência de dados sensíveis |
 | Renomear sinais existentes ao editar Resource compartilhado | alto | testes de caracterização preservam os oito fluxos anteriores |
 | Documentação e artefatos derivados divergirem | baixo | atualizar somente Markdown/JSON fonte; `.html`, `.pdf`, `.ppt` e `.pptx` permanecem intocados |
+| Consumidor depender do sucesso `200` anterior | alto | checkpoint C3 explícito, contrato HTTP em RED/GREEN e documentação pública atualizada para `204` |
 
 ## Decisões registradas no GO
 
-- contrato público aprovado com corpo obrigatório, item não nulo, lista vazia aceita, `excluir`
-  opcional e `200` sem corpo;
+- contrato público inicialmente aprovado com corpo obrigatório, item não nulo, lista vazia aceita,
+  `excluir` opcional e `200` sem corpo; o checkpoint C3 de 2026-08-11 substitui somente o status de
+  sucesso por `204 No Content` no MTR real, no Hub e no OpenAPI público do Hub;
 - capacidade `AlterarProdutosContratadosDossieProduto` aprovada no domínio `dossieproduto`;
 - nova entrada e reutilização dos providers de API key, OIDC e correlação aprovadas, sem payload
   nos sinais;

@@ -30,6 +30,8 @@
 - [x] 13.1 Atualizar catálogo de observabilidade e coleção Postman;
 - [x] 14.1 Executar testes focados, suíte Maven e checkpoint SonarQube final;
 - [x] 15.1 Remover o teste do OpenAPI gerado e alinhar a verificação ao padrão existente;
+- [x] C3 Aprovar `204 No Content` no MTR real, no Hub e no OpenAPI público do Hub;
+- [x] 16.1 Alterar o sucesso MTR/Hub/OpenAPI para `204 No Content` e revalidar;
 - [x] CF Revisar evidências e solicitar nova aceitação/encerramento humano.
 
 ## Decisões humanas
@@ -43,7 +45,9 @@
 | C1 — observabilidade | APROVADO | 2026-08-10 | Spans/eventos de `dossie-produto.produto.alterar` | usuário |
 | C1 — retry | APROVADO | 2026-08-10 | Usuário confirmou idempotência e autorizou até 3 retries em falhas recuperáveis; remoção futura exige retirar `@Retry` e ajustar testes | usuário |
 | CF — aceite inicial | ACEITO / ENCERRADO | 2026-08-11 | Usuário respondeu explicitamente `ok validado` e autorizou commit, push e PR para `main` | usuário |
-| CF — revalidação | ACEITO / ENCERRADO | 2026-08-11 | Usuário respondeu `proceder` ao pedido de novo aceite após revisar as evidências da Task 15 | usuário |
+| CF — pós-Task 15 | ACEITO / ENCERRADO | 2026-08-11 | Usuário respondeu `proceder` ao pedido de novo aceite após revisar as evidências da Task 15 | usuário |
+| C3 — status de sucesso | APROVADO | 2026-08-11 | Usuário confirmou MTR real `204`, Hub `204` e OpenAPI público do Hub `204`, apesar do Swagger MTR declarar `200` | usuário |
+| CF — pós-Task 16 | ACEITO / ENCERRADO | 2026-08-11 | Usuário autorizou preparar o PR com a correção após esclarecer que o RED foi resolvido e não testava o OpenAPI gerado | usuário |
 
 ## Evidências técnicas
 
@@ -300,3 +304,35 @@
   escopo. Task 15.1 concluída; checkpoint CF pendente para nova decisão explícita do usuário.
 - 2026-08-11 — usuário respondeu `proceder` ao pedido direto de validação da Task 15, aceitando e
   encerrando novamente a feature no checkpoint CF e autorizando a atualização do PR existente.
+- 2026-08-11 — usuário confirmou explicitamente no checkpoint C3 que o MTR real responde
+  `204 No Content`, que o Hub deve responder `204 No Content` e que o OpenAPI público do Hub deve
+  documentar `204`, apesar de o Swagger MTR 2.20.0.8 declarar `200`. A feature foi reaberta com a
+  Task 16 antes de qualquer alteração executável.
+- 2026-08-11 — RED da Task 16 executado com
+  `mvn -q "-Dtest=DossieProdutoApiContractTest,ProdutoDossieProdutoMtrContractTest" test`: 16
+  testes, seis falhas esperadas, todas por o Hub ainda responder `200` quando o contrato passou a
+  exigir `204`. O stub MTR já respondeu `204` e o cliente `Uni<Void>` aceitou a resposta.
+- 2026-08-11 — `DossieProdutoResource` passou a construir `Response.noContent()` e sua
+  `@APIResponse` pública passou de `200` para `204`; contratos HTTP, MTR, logs e spans foram
+  alinhados. Erros, validações, payload, headers, retry e sinais observáveis permaneceram
+  inalterados. Nenhum teste do OpenAPI gerado foi reintroduzido e o Swagger MTR permaneceu intacto.
+- 2026-08-11 — busca de consistência confirmou que README, arquitetura consolidada, documentação
+  operacional, catálogo de observabilidade e coleção Postman não afirmavam sucesso `200` para a
+  rota. O GREEN focado passou para API, integração MTR, cliente/adapter, erros, validação,
+  observabilidade e ArchUnit.
+- 2026-08-11 — a primeira tentativa de `mvn -q clean test` encontrou o JAR bloqueado por um
+  `quarkus:dev` deste workspace; somente os dois processos confirmados dessa execução foram
+  encerrados. A suíte revelou e permitiu alinhar os dois contratos transversais de logs/spans;
+  a repetição limpa final passou com 440 testes em 109 relatórios, sem falhas, erros ou ignorados.
+- 2026-08-11 — checkpoint SonarQube da Task 16 executado com
+  `./validar-checkpoint-sonarqube.ps1`: situação técnica `COMPLIANT`, 219 issues contra 219 no
+  baseline, nenhuma issue nova, nenhuma issue `HIGH`, `BLOCKER` ou `CRITICAL`, cobertura 87,8%,
+  duplicação 3,7% e nenhuma violação; decisão técnica humana não requerida.
+- 2026-08-11 — revisão final nos eixos de correção, simplicidade, arquitetura, segurança e
+  desempenho não encontrou achados bloqueantes; `git diff --check` passou, nenhum formato
+  derivado foi alterado e `.tools/` permaneceu fora do escopo e intocado. Task 16.1 concluída;
+  checkpoint CF pendente para nova decisão explícita do usuário.
+- 2026-08-11 — após esclarecer que as seis falhas RED foram resolvidas pelo GREEN e pertenciam a
+  contratos HTTP/MTR, sem inspecionar o OpenAPI gerado, o usuário autorizou explicitamente
+  preparar o PR com a correção. Checkpoint CF aceito e feature encerrada novamente; commit, push e
+  atualização do PR #11 autorizados.
