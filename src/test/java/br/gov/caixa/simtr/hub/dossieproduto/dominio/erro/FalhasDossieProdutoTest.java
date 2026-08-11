@@ -63,6 +63,27 @@ class FalhasDossieProdutoTest {
     }
 
     @Test
+    void caracterizaFalhaDeAlteracaoDeProdutosContratados() {
+        var causa = new IllegalStateException(MENSAGEM_CAUSA);
+        var mensagens = List.of(MENSAGEM);
+        var falha = falhaAlteracaoProdutosContratados(mensagens, causa);
+
+        assertEquals(FalhaAlteracaoProdutosContratadosDossieProduto.Tipo.NEGOCIO, falha.tipo());
+        assertEquals(STATUS, falha.status());
+        assertEquals(RECURSO, falha.recurso());
+        assertEquals(ID_ERRO, falha.idErro());
+        assertEquals(CODIGO_ERRO, falha.codigoErro());
+        assertSame(mensagens, falha.mensagens());
+        assertEquals(DETALHE, falha.detalhe());
+        assertEquals(STACKTRACE_EXTERNO, falha.stacktraceExterno());
+        assertSame(causa, falha.getCause());
+        assertEquals(MENSAGEM, falha.getMessage());
+        assertMensagensDefensivas(
+                FalhasDossieProdutoTest::falhaAlteracaoProdutosContratados,
+                "Falha ao alterar produtos contratados do dossie produto");
+    }
+
+    @Test
     void caracterizaFalhaDeInclusaoDeDocumento() {
         var causa = new IllegalStateException(MENSAGEM_CAUSA);
         var mensagens = List.of(MENSAGEM);
@@ -177,6 +198,23 @@ class FalhasDossieProdutoTest {
     ) {
         return new FalhaInclusaoDocumentoDossieProduto(
                 FalhaInclusaoDocumentoDossieProduto.Tipo.NEGOCIO,
+                STATUS,
+                RECURSO,
+                ID_ERRO,
+                CODIGO_ERRO,
+                mensagens,
+                DETALHE,
+                STACKTRACE_EXTERNO,
+                causa);
+    }
+
+    private static FalhaAlteracaoProdutosContratadosDossieProduto
+            falhaAlteracaoProdutosContratados(
+                    List<String> mensagens,
+                    Throwable causa
+            ) {
+        return new FalhaAlteracaoProdutosContratadosDossieProduto(
+                FalhaAlteracaoProdutosContratadosDossieProduto.Tipo.NEGOCIO,
                 STATUS,
                 RECURSO,
                 ID_ERRO,

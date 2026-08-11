@@ -1,5 +1,10 @@
 package br.gov.caixa.simtr.hub.arquitetura.observabilidade;
 
+import br.gov.caixa.simtr.hub.dossieproduto.adaptador.configuracao.ProdutoDossieProdutoObservabilidade;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.saida.SolicitarAlteracaoProdutosContratadosDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ComandoAlteracaoProdutosContratadosDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ProdutoContratadoDossieProduto;
+import io.smallrye.mutiny.Uni;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import org.jboss.logmanager.ExtLogRecord;
@@ -20,7 +25,10 @@ import java.util.stream.Collectors;
 
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @QuarkusTest
 class ObservabilidadeLogsContratoTest {
@@ -42,8 +50,8 @@ class ObservabilidadeLogsContratoTest {
     }
 
     @Test
-    void preservaEventosEstruturadosDasOitoCapacidadesNoCaminhoSimulador() {
-        chamarOitoEndpoints();
+    void preservaEventosEstruturadosDasNoveCapacidadesNoCaminhoSimulador() {
+        chamarNoveEndpoints();
 
         Map<String, LogObservado> observados = handler.logs().stream()
                 .filter(log -> eventosEsperados().contains(log.evento()))
@@ -63,9 +71,53 @@ class ObservabilidadeLogsContratoTest {
             assertEquals(16, spanId.length(), evento + " spanId");
             assertEquals("true", log.mdc().get("traceSampled"), evento + " traceSampled");
         });
+
+        Map<String, LogObservado> produto = observados.entrySet().stream()
+                .filter(entry -> entry.getKey().startsWith("simtr-hub.dossie-produto.produto."))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        assertEquals(eventosProdutoEsperados(), produto.keySet());
+        produto.forEach((evento, log) -> assertCamposProduto(log, evento, "123", "2"));
+        assertEquals("sucesso", produto.get(
+                "simtr-hub.dossie-produto.produto.service.concluido").mdc().get("resultado"));
+        assertEquals("sucesso", produto.get(
+                "simtr-hub.dossie-produto.produto.resposta.enviada").mdc().get("resultado"));
+        assertSemDadosSensiveis(produto.values());
     }
 
-    private static void chamarOitoEndpoints() {
+    @Test
+    void registraFalhaDeProdutoComCamposEstaveisSemDadosSensiveis() {
+        var falhaEsperada = new IllegalStateException("falha observavel controlada");
+        SolicitarAlteracaoProdutosContratadosDossieProduto porta =
+                comando -> Uni.createFrom().failure(falhaEsperada);
+        var observabilidade = new ProdutoDossieProdutoObservabilidade(porta, false);
+        var comando = new ComandoAlteracaoProdutosContratadosDossieProduto(
+                456L,
+                List.of(
+                        new ProdutoContratadoDossieProduto(987654321, 876543210, false),
+                        new ProdutoContratadoDossieProduto(765432109, 654321098, true)));
+
+        var espera = observabilidade.executar(comando).await();
+        IllegalStateException falha = assertThrows(
+                IllegalStateException.class,
+                espera::indefinitely);
+
+        assertSame(falhaEsperada, falha);
+        Map<String, LogObservado> produto = handler.logs().stream()
+                .filter(log -> log.evento().startsWith(
+                        "simtr-hub.dossie-produto.produto.service."))
+                .collect(Collectors.toMap(LogObservado::evento, log -> log));
+        assertEquals(Set.of(
+                "simtr-hub.dossie-produto.produto.service.iniciado",
+                "simtr-hub.dossie-produto.produto.service.falhou"), produto.keySet());
+        produto.forEach((evento, log) -> assertCamposProduto(log, evento, "456", "2"));
+        LogObservado falhou = produto.get(
+                "simtr-hub.dossie-produto.produto.service.falhou");
+        assertEquals("erro", falhou.mdc().get("resultado"));
+        assertEquals("IllegalStateException", falhou.mdc().get("erro_tipo"));
+        assertSemDadosSensiveis(produto.values());
+    }
+
+    private static void chamarNoveEndpoints() {
         given()
                 .get("/simtr-hub/v1/processo/identificador-negocial/{identificador}", 1000016487L)
                 .then().statusCode(200);
@@ -92,6 +144,16 @@ class ObservabilidadeLogsContratoTest {
                 .contentType(ContentType.JSON)
                 .body("{}")
                 .patch("/simtr-hub/v1/dossie-produto/{id}/validacao-negocial", 123L)
+                .then().statusCode(200);
+        given()
+                .contentType(ContentType.JSON)
+                .body("""
+                        [
+                          {"codigo_operacao":987654321,"codigo_modalidade":876543210},
+                          {"codigo_operacao":765432109,"codigo_modalidade":654321098,"excluir":true}
+                        ]
+                        """)
+                .patch("/simtr-hub/v1/dossie-produto/{id}/produto", 123L)
                 .then().statusCode(200);
         given()
                 .post("/simtr-hub/v1/dossie-produto/{id}/workflow", 123L)
@@ -133,6 +195,11 @@ class ObservabilidadeLogsContratoTest {
                 "simtr-hub.dossie-produto.validacao-negocial.simulador.usado",
                 "simtr-hub.dossie-produto.validacao-negocial.service.concluido",
                 "simtr-hub.dossie-produto.validacao-negocial.resposta.enviada",
+                "simtr-hub.dossie-produto.produto.requisicao.recebida",
+                "simtr-hub.dossie-produto.produto.service.iniciado",
+                "simtr-hub.dossie-produto.produto.simulador.usado",
+                "simtr-hub.dossie-produto.produto.service.concluido",
+                "simtr-hub.dossie-produto.produto.resposta.enviada",
                 "simtr-hub.dossie-produto.workflow.requisicao.recebida",
                 "simtr-hub.dossie-produto.workflow.service.iniciado",
                 "simtr-hub.dossie-produto.workflow.simulador.usado",
@@ -144,6 +211,39 @@ class ObservabilidadeLogsContratoTest {
                 "simtr-hub.gestao-documento.credencial-container.service.concluido",
                 "simtr-hub.gestao-documento.credencial-container.resposta.enviada"
         );
+    }
+
+    private static Set<String> eventosProdutoEsperados() {
+        return Set.of(
+                "simtr-hub.dossie-produto.produto.requisicao.recebida",
+                "simtr-hub.dossie-produto.produto.service.iniciado",
+                "simtr-hub.dossie-produto.produto.simulador.usado",
+                "simtr-hub.dossie-produto.produto.service.concluido",
+                "simtr-hub.dossie-produto.produto.resposta.enviada");
+    }
+
+    private static void assertCamposProduto(
+            LogObservado log,
+            String evento,
+            String id,
+            String quantidade
+    ) {
+        assertEquals("alterar-produtos-contratados-dossie-produto",
+                log.mdc().get("operacao"), evento + " operacao");
+        assertEquals(id, log.mdc().get("dossie_produto_id"), evento + " id");
+        assertEquals(quantidade, log.mdc().get("produtos_quantidade"), evento + " quantidade");
+    }
+
+    private static void assertSemDadosSensiveis(Iterable<LogObservado> logs) {
+        StringBuilder sinais = new StringBuilder();
+        logs.forEach(log -> sinais.append(log.evento()).append(log.mdc()));
+        String observado = sinais.toString();
+        assertFalse(observado.contains("codigo_operacao"));
+        assertFalse(observado.contains("987654321"));
+        assertFalse(observado.contains("test-apikey"));
+        assertFalse(observado.contains("stub-access-token"));
+        assertFalse(observado.contains("localhost"));
+        assertFalse(observado.contains("127.0.0.1"));
     }
 
     private static final class CapturingHandler extends Handler {

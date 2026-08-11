@@ -12,6 +12,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @QuarkusTest
 class DossieProdutoApiContractTest {
 
+    private static final String ROTA_PRODUTO_DOSSIE_PRODUTO =
+            "/simtr-hub/v1/dossie-produto/{id}/produto";
     private static final String ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO =
             "/simtr-hub/v1/dossie-produto/{id}/validacao-negocial";
 
@@ -125,6 +127,21 @@ class DossieProdutoApiContractTest {
             }
             """;
 
+    private static final String REQUEST_PRODUTOS = """
+            [
+              {
+                "codigo_operacao": 100,
+                "codigo_modalidade": 200,
+                "excluir": false
+              },
+              {
+                "codigo_operacao": 300,
+                "codigo_modalidade": 400,
+                "excluir": true
+              }
+            ]
+            """;
+
     @Test
     void preservaContratoDeCriacao() {
         JsonNode resposta = given()
@@ -155,6 +172,51 @@ class DossieProdutoApiContractTest {
                 .extract().as(JsonNode.class);
 
         assertJsonExato("{\"id\":123}", resposta);
+    }
+
+    @Test
+    void preservaContratoDeAlteracaoDeProdutosSemCorpo() {
+        String resposta = given()
+                .contentType(ContentType.JSON)
+                .accept(ContentType.JSON)
+                .body(REQUEST_PRODUTOS)
+                .when()
+                .patch(ROTA_PRODUTO_DOSSIE_PRODUTO, 123L)
+                .then()
+                .statusCode(200)
+                .extract().asString();
+
+        assertEquals("", resposta);
+    }
+
+    @Test
+    void preservaExclusaoOpcionalNaAlteracaoDeProdutos() {
+        String resposta = given()
+                .contentType(ContentType.JSON)
+                .accept(ContentType.JSON)
+                .body("[{\"codigo_operacao\":100,\"codigo_modalidade\":200}]")
+                .when()
+                .patch(ROTA_PRODUTO_DOSSIE_PRODUTO, 123L)
+                .then()
+                .statusCode(200)
+                .extract().asString();
+
+        assertEquals("", resposta);
+    }
+
+    @Test
+    void preservaListaVaziaAceitaNaAlteracaoDeProdutos() {
+        String resposta = given()
+                .contentType(ContentType.JSON)
+                .accept(ContentType.JSON)
+                .body("[]")
+                .when()
+                .patch(ROTA_PRODUTO_DOSSIE_PRODUTO, 123L)
+                .then()
+                .statusCode(200)
+                .extract().asString();
+
+        assertEquals("", resposta);
     }
 
     @Test

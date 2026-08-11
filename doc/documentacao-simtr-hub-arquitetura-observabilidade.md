@@ -51,9 +51,9 @@ Dono de `ConsultarChecklist`. Nao analisa documentos nem orquestra conformidade.
 
 ### `dossieproduto`
 
-Dono das capacidades atomicas de criacao, formulario, documento, validacao negocial e avanco de
-workflow. A borda REST segue o package canonico `adaptador.entrada.rest.v1`; os demais componentes
-seguem `dominio`, `aplicacao` e `adaptador`.
+Dono das capacidades atomicas de criacao, formulario, documento, validacao negocial, alteracao de
+produtos contratados e avanco de workflow. A borda REST segue o package canonico
+`adaptador.entrada.rest.v1`; os demais componentes seguem `dominio`, `aplicacao` e `adaptador`.
 
 ### `gestaodocumento`
 
@@ -69,6 +69,7 @@ POST /simtr-hub/v1/dossie-produto
 PATCH /simtr-hub/v1/dossie-produto/{id}/formulario
 POST /simtr-hub/v1/dossie-produto/{id}/documento
 PATCH /simtr-hub/v1/dossie-produto/{id}/validacao-negocial
+PATCH /simtr-hub/v1/dossie-produto/{id}/produto
 POST /simtr-hub/v1/dossie-produto/{id}/workflow
 POST /simtr-hub/v1/storage/container/credencial
 ```
@@ -76,19 +77,18 @@ POST /simtr-hub/v1/storage/container/credencial
 - Swagger UI: `/simtr-hub/doc`;
 - OpenAPI Quarkus: `/simtr-hub/openapi`.
 
-O documento OpenAPI e gerado exclusivamente pelo Quarkus. Nao existe arquivo estatico, filtro,
-complemento ou teste do artefato gerado.
+O documento OpenAPI e gerado exclusivamente pelo Quarkus. Nao existe arquivo estatico, filtro ou
+complemento; testes de contrato inspecionam o artefato gerado e protegem as operacoes publicas.
 
 ## Limite frente aos endpoints da especificacao de pre-validacao
 
-Os endpoints locais acima correspondem as oito capacidades implementadas. A especificacao
-`api-integracao-mtr-pre-validacao-v1.md` tambem cataloga cinco operacoes do ciclo de vida do
+Os endpoints locais acima correspondem as nove capacidades implementadas. A especificacao
+`api-integracao-mtr-pre-validacao-v1.md` tambem cataloga quatro operacoes do ciclo de vida do
 dossie que **NAO EXISTEM NESTE HUB**:
 
 | Endpoint MTR descrito na especificacao | Estado operacional no Hub |
 |---|---|
 | `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/garantia` | Nao implementado |
-| `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/produto` | Nao implementado |
 | `POST /simtr-dossie-produto/v1/dossie-produto/{id}/capturar` | Nao implementado |
 | `POST /simtr-dossie-produto/v1/dossie-produto/{id}/cancelar` | Nao implementado |
 | `GET /simtr-dossie-produto/v2/dossie-produto/{id}` | Nao implementado |
@@ -102,7 +102,7 @@ unico de pre-validacao ou orquestrador local.
 Os prefixos `/simtr-parametrizacao`, `/simtr-dossie-produto` e `/simtr-gestao-documento` usados
 pela especificacao representam os servicos MTR. Nesta implantacao, o gateway e configurado com
 base `/simtr`, e cada REST Client acrescenta seu segmento de servico. A matriz completa, incluindo
-as oito operacoes implementadas, esta em `arquitetura-ddd-integracoes-atomicas.md`.
+as nove operacoes implementadas, esta em `arquitetura-ddd-integracoes-atomicas.md`.
 
 ## Configuracao de integracoes
 
@@ -209,7 +209,7 @@ Se uma chamada MTR falhar, verificar nesta ordem:
 - retry em operacoes mutaveis exige prova de idempotencia antes de orquestracao futura;
 - o package tecnico compartilhado de erro `arquitetura.excecao.dto` permanece como desvio interno
   documentado e confinado as bordas REST permitidas;
-- Quarkus Flow, persistencia de workflow, os cinco endpoints ausentes listados acima, quaisquer
+- Quarkus Flow, persistencia de workflow, os quatro endpoints ausentes listados acima, quaisquer
   outros endpoints novos, upload e lifecycle de SAS permanecem fora do escopo.
 
 As listas REST de formulario e documento usam `List<@Valid T>`; contratos executaveis preservam

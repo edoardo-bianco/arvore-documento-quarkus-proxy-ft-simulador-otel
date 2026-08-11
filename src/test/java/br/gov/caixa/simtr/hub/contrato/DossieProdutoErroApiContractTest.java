@@ -16,6 +16,8 @@ class DossieProdutoErroApiContractTest {
     private static final String ROTA_DOSSIE_PRODUTO = "/simtr-hub/v1/dossie-produto";
     private static final String ROTA_DOCUMENTO_DOSSIE_PRODUTO =
             "/simtr-hub/v1/dossie-produto/{id}/documento";
+    private static final String ROTA_PRODUTO_DOSSIE_PRODUTO =
+            "/simtr-hub/v1/dossie-produto/{id}/produto";
     private static final String ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO =
             "/simtr-hub/v1/dossie-produto/{id}/validacao-negocial";
     private static final String MENSAGEM_CORPO_OBRIGATORIO =
@@ -68,6 +70,27 @@ class DossieProdutoErroApiContractTest {
                         .accept(ContentType.JSON)
                         .patch(ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO, 123L),
                 MENSAGEM_CORPO_OBRIGATORIO);
+    }
+
+    @Test
+    void preservaErroParaCorpoDeAlteracaoDeProdutosAusente() {
+        validarErro(given()
+                        .contentType(ContentType.JSON)
+                        .accept(ContentType.JSON)
+                        .patch(ROTA_PRODUTO_DOSSIE_PRODUTO, 123L),
+                MENSAGEM_CORPO_OBRIGATORIO);
+    }
+
+    @Test
+    void preservaErrosParaItemECodigosObrigatoriosDaAlteracaoDeProdutos() {
+        validarErro(given()
+                        .contentType(ContentType.JSON)
+                        .accept(ContentType.JSON)
+                        .body("[null,{}]")
+                        .patch(ROTA_PRODUTO_DOSSIE_PRODUTO, 123L),
+                "O produto contratado deve ser informado.",
+                "O codigo da operacao do produto deve ser informado.",
+                "O codigo da modalidade do produto deve ser informado.");
     }
 
     @Test
@@ -169,6 +192,13 @@ class DossieProdutoErroApiContractTest {
         validarErro(given().contentType(ContentType.JSON).accept(ContentType.JSON)
                 .body("{}")
                 .patch(ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO, 0), MENSAGEM_ID);
+    }
+
+    @Test
+    void preservaErroParaIdInvalidoNaAlteracaoDeProdutos() {
+        validarErro(given().contentType(ContentType.JSON).accept(ContentType.JSON)
+                .body("[]")
+                .patch(ROTA_PRODUTO_DOSSIE_PRODUTO, 0), MENSAGEM_ID);
     }
 
     @Test

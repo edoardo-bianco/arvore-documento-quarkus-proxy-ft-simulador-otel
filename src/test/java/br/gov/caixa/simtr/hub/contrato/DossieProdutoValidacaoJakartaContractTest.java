@@ -6,6 +6,7 @@ import br.gov.caixa.simtr.hub.dossieproduto.adaptador.entrada.rest.v1.dto.Dossie
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.entrada.rest.v1.dto.DossieProdutoVinculoGarantiaDto;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.entrada.rest.v1.dto.InclusaoDocumentoDossieProdutoRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.AnnotatedParameterizedType;
@@ -25,8 +26,13 @@ class DossieProdutoValidacaoJakartaContractTest {
         AnnotatedType formulario = DossieProdutoResource.class
                 .getDeclaredMethod("atualizarFormularioDossieProduto", Long.class, List.class)
                 .getAnnotatedParameterTypes()[1];
+        AnnotatedType produtos = DossieProdutoResource.class
+                .getDeclaredMethod("alterarProdutosContratadosDossieProduto", Long.class, List.class)
+                .getAnnotatedParameterTypes()[1];
 
         assertCascataNoElemento("formulario.requisicao", formulario);
+        assertCascataNoElemento("produto.requisicao", produtos);
+        assertElementoObrigatorio("produto.requisicao", produtos);
         assertCascataNoElemento("formulario.respostasFormulario",
                 tipoDoComponente(DossieProdutoVinculoDossieDto.class, "respostasFormulario"));
         assertCascataNoElemento("formulario.clientesAvalistas",
@@ -58,5 +64,16 @@ class DossieProdutoValidacaoJakartaContractTest {
                 contrato + " nao deve aplicar @Valid ao container List");
         assertTrue(listaParametrizada.getAnnotatedActualTypeArguments()[0].isAnnotationPresent(Valid.class),
                 contrato + " deve aplicar @Valid ao tipo do elemento");
+    }
+
+    private static void assertElementoObrigatorio(String contrato, AnnotatedType lista) {
+        AnnotatedParameterizedType listaParametrizada = assertInstanceOf(
+                AnnotatedParameterizedType.class,
+                lista,
+                contrato + " deve continuar sendo uma lista parametrizada");
+
+        assertTrue(listaParametrizada.getAnnotatedActualTypeArguments()[0]
+                        .isAnnotationPresent(NotNull.class),
+                contrato + " deve aplicar @NotNull ao tipo do elemento");
     }
 }
