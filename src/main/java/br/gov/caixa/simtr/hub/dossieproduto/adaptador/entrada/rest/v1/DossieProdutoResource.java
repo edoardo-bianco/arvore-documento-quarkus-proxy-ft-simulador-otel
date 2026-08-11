@@ -602,7 +602,7 @@ public class DossieProdutoResource {
             description = "Recebe a chamada no contrato do simtr-hub, aciona o servico de aplicacao e inclui ou exclui produtos contratados no simtr-dossie-produto v1."
     )
     @APIResponse(
-                    responseCode = "200",
+                    responseCode = "204",
                     description = "Produtos contratados alterados com sucesso.",
                     content = {}
             )
@@ -687,7 +687,7 @@ public class DossieProdutoResource {
                                 RESULTADO_KEY, SUCESSO
                         )
                 ))
-                .replaceWith(Response.ok().build())
+                .replaceWith(Response.noContent().build())
                 .onFailure().invoke(erro -> {
                     span.recordException(erro);
                     span.setStatus(StatusCode.ERROR, String.valueOf(erro.getMessage()));

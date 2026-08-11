@@ -92,7 +92,7 @@ class ProdutoDossieProdutoMtrContractTest {
 
     @Test
     void selecionaMtrQuandoSimuladorEstaDesligadoEMantemSimuladorQualificado() {
-        DossieProdutoMtrStubTestResource.responder(200, "");
+        DossieProdutoMtrStubTestResource.responder(204, "");
 
         assertNull(portaSimulador.alterar(comando()).await().indefinitely());
         assertEquals(0, DossieProdutoMtrStubTestResource.requisicoes().size());
@@ -104,10 +104,10 @@ class ProdutoDossieProdutoMtrContractTest {
     @Test
     void preservaWireHeadersOidcTraceERespostaSemCorpoComSimuladorDesabilitado()
             throws JsonProcessingException {
-        DossieProdutoMtrStubTestResource.responder(200, "");
+        DossieProdutoMtrStubTestResource.responder(204, "");
 
         String response = patchProdutos().then()
-                .statusCode(200)
+                .statusCode(204)
                 .extract().asString();
 
         assertEquals("", response);
@@ -157,9 +157,9 @@ class ProdutoDossieProdutoMtrContractTest {
         DossieProdutoMtrStubTestResource.responder(500, """
                 {"codigo_http":500,"recurso":"simtr-dossie-produto","codigo_erro":"MTR-PRODUTO-500"}
                 """);
-        DossieProdutoMtrStubTestResource.responder(200, "");
+        DossieProdutoMtrStubTestResource.responder(204, "");
 
-        patchProdutos().then().statusCode(200);
+        patchProdutos().then().statusCode(204);
 
         List<DossieProdutoMtrStubTestResource.CapturedRequest> requests =
                 DossieProdutoMtrStubTestResource.requisicoes();
@@ -207,9 +207,9 @@ class ProdutoDossieProdutoMtrContractTest {
 
     @Test
     void propagaContextoEntreSpansApiAplicacaoEClientSemDadosSensiveis() {
-        DossieProdutoMtrStubTestResource.responder(200, "");
+        DossieProdutoMtrStubTestResource.responder(204, "");
 
-        patchProdutos().then().statusCode(200);
+        patchProdutos().then().statusCode(204);
         ((OpenTelemetrySdk) openTelemetry).getSdkTracerProvider()
                 .forceFlush().join(10, TimeUnit.SECONDS);
 

@@ -154,7 +154,7 @@ class ObservabilidadeLogsContratoTest {
                         ]
                         """)
                 .patch("/simtr-hub/v1/dossie-produto/{id}/produto", 123L)
-                .then().statusCode(200);
+                .then().statusCode(204);
         given()
                 .post("/simtr-hub/v1/dossie-produto/{id}/workflow", 123L)
                 .then().statusCode(200);
