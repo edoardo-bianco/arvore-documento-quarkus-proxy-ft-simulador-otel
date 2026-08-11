@@ -196,8 +196,8 @@ mvn quarkus:dev -Ddebug=false
 - Swagger UI: `http://localhost:8080/simtr-hub/doc`
 - OpenAPI gerado pelo Quarkus: `http://localhost:8080/simtr-hub/openapi`
 
-O OpenAPI nao possui arquivo estatico nem filtro. Testes de contrato inspecionam o documento
-gerado pelo Quarkus e protegem as operacoes publicas.
+O OpenAPI nao possui arquivo estatico nem filtro. Os testes protegem o comportamento HTTP e os
+contratos Java que alimentam a geracao, sem inspecionar o documento gerado pelo Quarkus.
 
 ## Testes e cobertura
 

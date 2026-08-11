@@ -4,7 +4,7 @@
 
 - **Branch:** `feature/alterar-produto-dossie`
 - **Escopo:** produção, testes e documentação
-- **Próximo item:** nenhum — feature aceita e encerrada pelo usuário
+- **Próximo item:** nenhum — feature revalidada e encerrada pelo usuário
 
 ## Checklist
 
@@ -15,7 +15,7 @@
 - [x] C0 Registrar GO humano antes da primeira alteração executável;
 - [x] C1 Aprovar contrato público, desenho da capacidade, segurança, observabilidade e decisão de retry;
 - [x] 1.1 Verificar pacotes `sonar/`, obter escolha quando aplicável e inicializar baseline;
-- [x] 2.1 Escrever testes RED do contrato HTTP, erros, validação e OpenAPI;
+- [x] 2.1 Escrever testes RED do contrato HTTP, erros e validação;
 - [x] 3.1 Criar comando, produto contratado e falha internos;
 - [x] 4.1 Criar portas e caso de uso atômico;
 - [x] 5.1 Criar DTO e mapper MTR v1;
@@ -28,8 +28,9 @@
 - [x] 11.1 Congelar spans, eventos e atributos novos sem alterar sinais existentes;
 - [x] 12.1 Atualizar README, arquitetura consolidada, ADR-0002, índice e documentação operacional;
 - [x] 13.1 Atualizar catálogo de observabilidade e coleção Postman;
-- [x] 14.1 Executar testes focados, suíte Maven, OpenAPI e checkpoint SonarQube final;
-- [x] CF Revisar evidências e solicitar aceitação/encerramento humano.
+- [x] 14.1 Executar testes focados, suíte Maven e checkpoint SonarQube final;
+- [x] 15.1 Remover o teste do OpenAPI gerado e alinhar a verificação ao padrão existente;
+- [x] CF Revisar evidências e solicitar nova aceitação/encerramento humano.
 
 ## Decisões humanas
 
@@ -41,7 +42,8 @@
 | C1 — segurança | APROVADO | 2026-08-10 | Nova entrada reutiliza API key, OIDC e correlação existentes, sem payload em sinais | usuário |
 | C1 — observabilidade | APROVADO | 2026-08-10 | Spans/eventos de `dossie-produto.produto.alterar` | usuário |
 | C1 — retry | APROVADO | 2026-08-10 | Usuário confirmou idempotência e autorizou até 3 retries em falhas recuperáveis; remoção futura exige retirar `@Retry` e ajustar testes | usuário |
-| CF | ACEITO / ENCERRADO | 2026-08-11 | Usuário respondeu explicitamente `ok validado` e autorizou commit, push e PR para `main` | usuário |
+| CF — aceite inicial | ACEITO / ENCERRADO | 2026-08-11 | Usuário respondeu explicitamente `ok validado` e autorizou commit, push e PR para `main` | usuário |
+| CF — revalidação | ACEITO / ENCERRADO | 2026-08-11 | Usuário respondeu `proceder` ao pedido de novo aceite após revisar as evidências da Task 15 | usuário |
 
 ## Evidências técnicas
 
@@ -277,3 +279,24 @@
   14.1 concluída; checkpoint CF permanece pendente para decisão explícita do usuário.
 - 2026-08-11 — usuário validou explicitamente a entrega com `ok validado`, aceitou e encerrou a
   feature no checkpoint CF e autorizou commit, push da branch e abertura de PR para `main`.
+- 2026-08-11 — após revisar a cobertura existente, o usuário solicitou explicitamente remover o
+  teste sobre o OpenAPI gerado e manter o padrão anterior dos testes. O escopo foi atualizado com
+  a Task 15, a feature foi reaberta e o checkpoint CF voltou a depender de nova validação humana.
+- 2026-08-11 — Task 15 removeu `DossieProdutoOpenApiContractTest` sem substituição por snapshot ou
+  outra inspeção de `/simtr-hub/openapi`. README e documentação operacional passaram a declarar o
+  padrão do ADR-0006: contratos HTTP e Java alimentam a geração, sem testar o artefato gerado. O
+  endpoint, DTO, annotations OpenAPI e todo o código de produção permaneceram inalterados.
+- 2026-08-11 — testes focados do padrão restante passaram com
+  `mvn -q "-Dtest=DossieProdutoApiContractTest,DossieProdutoErroApiContractTest,DossieProdutoValidacaoJakartaContractTest,ProdutoDossieProdutoRestMapperTest,ArchUnitProgressivoTest" test`.
+  Em seguida, `mvn -q clean test` passou com 440 testes em 109 relatórios, sem falhas, erros ou
+  ignorados; a redução exata de 441/110 para 440/109 confirma somente a retirada da classe pedida.
+- 2026-08-11 — checkpoint SonarQube da Task 15 executado com
+  `./validar-checkpoint-sonarqube.ps1`: situação técnica `COMPLIANT`, 219 issues contra 219 no
+  baseline, nenhuma issue nova, nenhuma issue `HIGH`, `BLOCKER` ou `CRITICAL`, cobertura 87,8%,
+  duplicação 3,7% e nenhuma violação; decisão técnica humana não requerida. A execução limpa do
+  checkpoint repetiu os 440 testes aprovados.
+- 2026-08-11 — busca em `src/test` não encontrou mais acesso a `/simtr-hub/openapi`;
+  `git diff --check` passou, nenhum formato derivado foi alterado e `.tools/` permaneceu fora do
+  escopo. Task 15.1 concluída; checkpoint CF pendente para nova decisão explícita do usuário.
+- 2026-08-11 — usuário respondeu `proceder` ao pedido direto de validação da Task 15, aceitando e
+  encerrando novamente a feature no checkpoint CF e autorizando a atualização do PR existente.

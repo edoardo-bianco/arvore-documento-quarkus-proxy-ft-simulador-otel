@@ -18,7 +18,7 @@ saída por um simulador próprio.
 - preservar headers API key/OIDC/correlação, classificação de falhas e política de fault
   tolerance aprovada para a operação;
 - adicionar sinais de observabilidade sem registrar o payload;
-- cobrir contrato HTTP/OpenAPI, validação, mapeamentos, wire MTR, erros, fault tolerance,
+- cobrir contrato HTTP, validação, mapeamentos, wire MTR, erros, fault tolerance,
   simulador, seleção CDI, observabilidade e guardrails arquiteturais;
 - atualizar a documentação fonte e a coleção Postman para refletir a nova capacidade.
 
@@ -199,12 +199,11 @@ de produção, comprovando inicialmente a ausência da rota.
 - teste exige `PATCH`, path público, `200` sem corpo e JSON snake_case exato;
 - testes exigem corpo, item e campos obrigatórios, `id > 0`, aceitação de lista vazia e
   opcionalidade de `excluir`;
-- teste do OpenAPI gerado exige a operação, array de itens e campos requeridos;
 - RED falha pela capacidade ausente, não por erro de infraestrutura.
 
 **Verificação:**
 
-- testes focados de contrato HTTP, erro, Jakarta Validation e OpenAPI;
+- testes focados de contrato HTTP, erro e Jakarta Validation;
 - inspeção da mensagem RED e registro da evidência no checklist.
 
 **Dependências:** Task 1 concluída.
@@ -214,7 +213,6 @@ de produção, comprovando inicialmente a ausência da rota.
 - `src/test/java/br/gov/caixa/simtr/hub/contrato/DossieProdutoApiContractTest.java`;
 - `src/test/java/br/gov/caixa/simtr/hub/contrato/DossieProdutoErroApiContractTest.java`;
 - `src/test/java/br/gov/caixa/simtr/hub/contrato/DossieProdutoValidacaoJakartaContractTest.java`;
-- `src/test/java/br/gov/caixa/simtr/hub/contrato/DossieProdutoOpenApiContractTest.java`;
 - `src/test/java/br/gov/caixa/simtr/hub/recurso/ResourceEndpointTest.java`.
 
 ### Task 3 — Modelar comando, produto e falha internos
@@ -397,7 +395,7 @@ implementar o método no `DossieProdutoResource` até tornar verdes os testes p�
 **Verificação:**
 
 - `ProdutoDossieProdutoRestMapperTest`;
-- testes focados de contrato HTTP, erro, Jakarta Validation, OpenAPI e Resource;
+- testes focados de contrato HTTP, erro, Jakarta Validation e Resource;
 - `ProdutoDossieProdutoObservabilidadeTest`.
 
 **Dependências:** Tasks 4 e 8 concluídas.
@@ -533,7 +531,7 @@ encerramento humano.
 **Critérios de aceitação:**
 
 - todos os testes focados e `mvn -q test` passam;
-- OpenAPI gerado contém somente o contrato aprovado;
+- contratos HTTP e Java aprovados permanecem cobertos pelo padrão existente do projeto;
 - cobertura permanece pelo menos 85%, duplicação no máximo 5% e não há issue nova no checkpoint,
   ou a situação `NON_COMPLIANT` recebe decisão humana;
 - nenhum arquivo fora do escopo nem formato derivado foi alterado;
@@ -552,6 +550,38 @@ encerramento humano.
 
 - `tasks/features/alterar-produto-dossie/todo.md`.
 
+### Task 15 — Alinhar os testes ao padrão existente do projeto
+
+**Descrição:** remover o teste específico que consulta o documento OpenAPI gerado, mantendo a
+proteção do comportamento público nos contratos HTTP, validação, wire MTR e tipos Java já usados
+pelas demais capacidades, conforme decisão explícita do usuário após o primeiro encerramento.
+
+**Critérios de aceitação:**
+
+- `DossieProdutoOpenApiContractTest` removido sem substituição por snapshot ou teste do documento
+  OpenAPI gerado;
+- contratos HTTP de sucesso, corpo vazio, campos obrigatórios, lista vazia e erros permanecem;
+- código de produção, annotations OpenAPI e contrato público não são alterados;
+- referências permanentes não afirmam cobertura executável do OpenAPI gerado, enquanto o
+  histórico da feature preserva a criação e a remoção posterior do teste;
+- suíte Maven e checkpoint SonarQube permanecem aprovados.
+
+**Verificação:**
+
+- testes focados de contrato HTTP, erro e Jakarta Validation;
+- `mvn -q test`;
+- checkpoint `./validar-checkpoint-sonarqube.ps1`;
+- busca por acessos a `/simtr-hub/openapi` em `src/test`, `git diff --check` e revisão do diff.
+
+**Dependências:** Task 14 concluída e solicitação explícita do usuário em 2026-08-11.
+
+**Arquivos prováveis:**
+
+- `src/test/java/br/gov/caixa/simtr/hub/contrato/DossieProdutoOpenApiContractTest.java`;
+- documentação fonte que tenha registrado o teste específico;
+- `tasks/features/alterar-produto-dossie/plan.md`;
+- `tasks/features/alterar-produto-dossie/todo.md`.
+
 ### Checkpoint CF — Revisão e encerramento humano
 
 - critérios de aceitação e verificações apresentados com evidências;
@@ -567,8 +597,8 @@ encerramento humano.
 - pacote autorizado: nenhum — o diretório `sonar/` não existe;
 - estado inicial: `READY` e `COMPLIANT`, 219 issues no baseline, cobertura 87,8%, duplicação 3,7%
   e nenhuma violação;
-- checkpoints esperados: C2 após a primeira fatia executável coerente e Task 14 após integração,
-  observabilidade e documentação finais;
+- checkpoints esperados: C2 após a primeira fatia executável coerente, Task 14 após integração,
+  observabilidade e documentação finais e Task 15 após o ajuste de testes solicitado;
 - com baseline exclusivamente offline, executar testes locais e registrar que o estado Sonar
   atual permanece `UNVERIFIED`.
 

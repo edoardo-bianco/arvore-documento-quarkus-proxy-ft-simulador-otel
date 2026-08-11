@@ -78,7 +78,8 @@ POST /simtr-hub/v1/storage/container/credencial
 - OpenAPI Quarkus: `/simtr-hub/openapi`.
 
 O documento OpenAPI e gerado exclusivamente pelo Quarkus. Nao existe arquivo estatico, filtro ou
-complemento; testes de contrato inspecionam o artefato gerado e protegem as operacoes publicas.
+complemento; os testes protegem o comportamento HTTP e os contratos Java que alimentam a geracao,
+sem inspecionar o artefato gerado.
 
 ## Limite frente aos endpoints da especificacao de pre-validacao
 
