@@ -132,6 +132,39 @@
           "response": []
         },
         {
+          "name": "/simtr-hub/v1/dossie-produto/{{idDossie}}/produto",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "[\r\n    {\r\n        \"codigo_operacao\": 100,\r\n        \"codigo_modalidade\": 200,\r\n        \"excluir\": false\r\n    },\r\n    {\r\n        \"codigo_operacao\": 300,\r\n        \"codigo_modalidade\": 400,\r\n        \"excluir\": true\r\n    }\r\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8080/simtr-hub/v1/dossie-produto/{{idDossie}}/produto",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "simtr-hub",
+                "v1",
+                "dossie-produto",
+                "{{idDossie}}",
+                "produto"
+              ]
+            },
+            "description": "Inclui o primeiro produto contratado e exclui o segundo no mesmo dossie."
+          },
+          "response": []
+        },
+        {
           "name": "/simtr-hub/v1/dossie-produto/{id}/workflow",
           "request": {
             "method": "POST",

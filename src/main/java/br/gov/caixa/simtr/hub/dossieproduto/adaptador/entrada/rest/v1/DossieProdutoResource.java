@@ -1,11 +1,14 @@
 package br.gov.caixa.simtr.hub.dossieproduto.adaptador.entrada.rest.v1;
 
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.entrada.rest.v1.dto.CriacaoDossieProdutoRequest;
+import br.gov.caixa.simtr.hub.dossieproduto.adaptador.entrada.rest.v1.dto.AlteracaoProdutoDossieProdutoRequest;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.AlterarProdutosContratadosDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.AtualizarFormularioDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.CriarDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.IncluirDocumentoDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.RegistrarValidacaoNegocialDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaCriacaoDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaAlteracaoProdutosContratadosDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaAtualizacaoFormularioDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaInclusaoDocumentoDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaRegistroValidacaoNegocialDossieProduto;
@@ -67,6 +70,7 @@ public class DossieProdutoResource {
     private static final String CHAVE_CORRELACAO_CANAL_KEY = "chave_correlacao_canal";
     private static final String DOSSIE_PRODUTO_ID_ATTRIBUTE = "dossie_produto.id";
     private static final String DOSSIE_PRODUTO_ID_KEY = "dossie_produto_id";
+    private static final String PRODUTOS_QUANTIDADE_KEY = "produtos_quantidade";
     private static final String RESULTADO_KEY = "resultado";
     private static final String SUCESSO = "sucesso";
     private static final String ERRO_TIPO_KEY = "erro_tipo";
@@ -76,6 +80,8 @@ public class DossieProdutoResource {
             "incluir-documento-dossie-produto";
     private static final String REGISTRAR_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO =
             "registrar-validacao-negocial-dossie-produto";
+    private static final String ALTERAR_PRODUTOS_CONTRATADOS_DOSSIE_PRODUTO =
+            "alterar-produtos-contratados-dossie-produto";
     private static final String INICIAR_OU_AVANCAR_WORKFLOW_DOSSIE_PRODUTO =
             "iniciar-ou-avancar-workflow-dossie-produto";
 
@@ -84,18 +90,21 @@ public class DossieProdutoResource {
     private final IncluirDocumentoDossieProduto incluirDocumentoDossieProduto;
     private final IniciarOuAvancarWorkflowDossieProduto iniciarOuAvancarWorkflow;
     private final RegistrarValidacaoNegocialDossieProduto registrarValidacaoNegocial;
+    private final AlterarProdutosContratadosDossieProduto alterarProdutosContratados;
 
     @Inject
     public DossieProdutoResource(CriarDossieProduto criarDossieProduto,
                                  AtualizarFormularioDossieProduto atualizarFormularioDossieProduto,
                                  IncluirDocumentoDossieProduto incluirDocumentoDossieProduto,
                                  IniciarOuAvancarWorkflowDossieProduto iniciarOuAvancarWorkflow,
-                                 RegistrarValidacaoNegocialDossieProduto registrarValidacaoNegocial) {
+                                 RegistrarValidacaoNegocialDossieProduto registrarValidacaoNegocial,
+                                 AlterarProdutosContratadosDossieProduto alterarProdutosContratados) {
         this.criarDossieProduto = criarDossieProduto;
         this.atualizarFormularioDossieProduto = atualizarFormularioDossieProduto;
         this.incluirDocumentoDossieProduto = incluirDocumentoDossieProduto;
         this.iniciarOuAvancarWorkflow = iniciarOuAvancarWorkflow;
         this.registrarValidacaoNegocial = registrarValidacaoNegocial;
+        this.alterarProdutosContratados = alterarProdutosContratados;
     }
 
     @POST
@@ -585,6 +594,122 @@ public class DossieProdutoResource {
                 });
     }
 
+    @PATCH
+    @Path("/{id}/produto")
+    @WithSpan(value = "simtr-hub.api.dossie-produto.produto.alterar", kind = SpanKind.SERVER)
+    @Operation(
+            summary = "Altera produtos contratados do dossie de produto",
+            description = "Recebe a chamada no contrato do simtr-hub, aciona o servico de aplicacao e inclui ou exclui produtos contratados no simtr-dossie-produto v1."
+    )
+    @APIResponse(
+                    responseCode = "200",
+                    description = "Produtos contratados alterados com sucesso.",
+                    content = {}
+            )
+    @APIResponse(
+                    responseCode = "400",
+                    description = "Requisicao invalida.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            )
+    @APIResponse(
+                    responseCode = "401",
+                    description = "Nao autorizado.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            )
+    @APIResponse(
+                    responseCode = "403",
+                    description = "Canal ou usuario sem permissao.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            )
+    @APIResponse(
+                    responseCode = "404",
+                    description = "Dossie de produto nao localizado.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            )
+    @APIResponse(
+                    responseCode = "409",
+                    description = "Conflito ao processar a requisicao.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            )
+    @APIResponse(
+                    responseCode = "500",
+                    description = "Erro interno.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            )
+    @APIResponse(
+                    responseCode = "503",
+                    description = "Servico de terceiros indisponivel no momento.",
+                    content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+            )
+    public Uni<Response> alterarProdutosContratadosDossieProduto(
+            @PathParam("id")
+            @NotNull(message = "O identificador do dossie produto deve ser informado.")
+            @Min(value = 1, message = "O identificador do dossie produto deve ser maior que zero.")
+            Long id,
+            @NotNull(message = "O corpo da requisicao deve ser informado.")
+            List<
+                    @NotNull(message = "O produto contratado deve ser informado.")
+                    @Valid AlteracaoProdutoDossieProdutoRequest> requisicao) {
+
+        Integer quantidadeProdutos = quantidadeProdutos(requisicao);
+
+        Span span = Span.current();
+        span.setAttribute(HTTP_ROUTE_ATTRIBUTE, "/simtr-hub/v1/dossie-produto/{id}/produto");
+        span.setAttribute(SIMTR_HUB_API_ATTRIBUTE, DOSSIE_PRODUTO_API_V1);
+        setLongAttribute(span, DOSSIE_PRODUTO_ID_ATTRIBUTE, id);
+        setIntAttribute(span, "dossie_produto.produtos.quantidade", quantidadeProdutos);
+
+        ObservabilityLog.info(
+                LOG,
+                "simtr-hub.dossie-produto.produto.requisicao.recebida",
+                ObservabilityLog.fields(
+                        CAMADA_KEY, CAMADA,
+                        COMPONENTE_KEY, COMPONENTE,
+                        OPERACAO_KEY, ALTERAR_PRODUTOS_CONTRATADOS_DOSSIE_PRODUTO,
+                        DOSSIE_PRODUTO_ID_KEY, id,
+                        PRODUTOS_QUANTIDADE_KEY, quantidadeProdutos
+                )
+        );
+
+        return alterarProdutosContratados.executar(
+                        ProdutoDossieProdutoRestMapper.paraComando(id, requisicao))
+                .onFailure(FalhaAlteracaoProdutosContratadosDossieProduto.class)
+                .transform(ProdutoDossieProdutoRestMapper::paraExcecaoRest)
+                .invoke(resposta -> ObservabilityLog.info(
+                        LOG,
+                        "simtr-hub.dossie-produto.produto.resposta.enviada",
+                        ObservabilityLog.fields(
+                                CAMADA_KEY, CAMADA,
+                                COMPONENTE_KEY, COMPONENTE,
+                                OPERACAO_KEY, ALTERAR_PRODUTOS_CONTRATADOS_DOSSIE_PRODUTO,
+                                DOSSIE_PRODUTO_ID_KEY, id,
+                                PRODUTOS_QUANTIDADE_KEY, quantidadeProdutos,
+                                RESULTADO_KEY, SUCESSO
+                        )
+                ))
+                .replaceWith(Response.ok().build())
+                .onFailure().invoke(erro -> {
+                    span.recordException(erro);
+                    span.setStatus(StatusCode.ERROR, String.valueOf(erro.getMessage()));
+
+                    ObservabilityLog.error(
+                            LOG,
+                            "simtr-hub.dossie-produto.produto.requisicao.falhou",
+                            erro,
+                            ObservabilityLog.fields(
+                                    CAMADA_KEY, CAMADA,
+                                    COMPONENTE_KEY, COMPONENTE,
+                                    OPERACAO_KEY,
+                                    ALTERAR_PRODUTOS_CONTRATADOS_DOSSIE_PRODUTO,
+                                    DOSSIE_PRODUTO_ID_KEY, id,
+                                    PRODUTOS_QUANTIDADE_KEY, quantidadeProdutos,
+                                    ERRO_TIPO_KEY, erro.getClass().getSimpleName(),
+                                    RESULTADO_KEY, "erro"
+                            )
+                    );
+                });
+    }
+
     @POST
     @Path("/{id}/workflow")
     @Consumes(MediaType.WILDCARD)
@@ -764,6 +889,11 @@ public class DossieProdutoResource {
             return null;
         }
         return requisicao.respostasFormulario().size();
+    }
+
+    private static Integer quantidadeProdutos(
+            List<AlteracaoProdutoDossieProdutoRequest> requisicao) {
+        return requisicao != null ? requisicao.size() : null;
     }
 
     private static void setLongAttribute(Span span, String nome, Long valor) {

@@ -17,10 +17,12 @@ Os sinais permitem responder:
 
 | Teste | Contrato protegido |
 |---|---|
-| `ObservabilidadeSpansContratoTest#preservaSpansDasOitoCapacidadesNoCaminhoSimulador` | 16 spans manuais de API/aplicação, `SpanKind`, rota, API, flags de simulador e origem mock |
-| `ObservabilidadeSpansContratoTest#preservaDeclaracoesDosSpansDeIntegracaoMtr` | oito spans CLIENT dos gateways e atributos de processo/checklist |
+| `ObservabilidadeSpansContratoTest#preservaSpansDasNoveCapacidadesNoCaminhoSimulador` | 18 spans manuais de API/aplicação, `SpanKind`, parentage, rota, API, flags de simulador e origem mock |
+| `ObservabilidadeSpansContratoTest#preservaDeclaracoesDosSpansDeIntegracaoMtr` | nove spans CLIENT dos gateways e atributos de processo/checklist |
 | `RestClientObservabilityFilterTest#preservaEventosEAtributosDerivadosDaInvocacaoRestClient` | eventos request/response, método, path, status, payload e nomes derivados por reflexão |
-| `ObservabilidadeLogsContratoTest#preservaEventosEstruturadosDasOitoCapacidadesNoCaminhoSimulador` | 40 eventos de sucesso e MDC comum de evento/camada/componente/operação/trace |
+| `ObservabilidadeLogsContratoTest#preservaEventosEstruturadosDasNoveCapacidadesNoCaminhoSimulador` | 45 eventos de sucesso e MDC comum de evento/camada/componente/operação/trace |
+| `ObservabilidadeLogsContratoTest#registraFalhaDeProdutoComCamposEstaveisSemDadosSensiveis` | eventos de início/falha da alteração de produtos, id, quantidade, resultado e tipo de erro |
+| `ProdutoDossieProdutoMtrContractTest#propagaContextoEntreSpansApiAplicacaoEClientSemDadosSensiveis` | encadeamento real API → aplicação → CLIENT, rota, atributos da capacidade e ausência de dados sensíveis novos |
 
 ## Convenções comuns
 
@@ -56,8 +58,27 @@ que carregam semântica da capacidade.
 | Atualizar formulário | `simtr-hub.api.dossie-produto.formulario.atualizar` | `simtr-hub.service.dossie-produto.formulario.atualizar` | `simtr-hub.dossie-produto.formulario` | rota, API v1, flag e origem |
 | Incluir documento | `simtr-hub.api.dossie-produto.documento.incluir` | `simtr-hub.service.dossie-produto.documento.incluir` | `simtr-hub.dossie-produto.documento` | rota, `simtr_hub.api=dossie-produto-v2`, flag e origem |
 | Registrar validação | `simtr-hub.api.dossie-produto.validacao-negocial.registrar` | `simtr-hub.service.dossie-produto.validacao-negocial.registrar` | `simtr-hub.dossie-produto.validacao-negocial` | rota, API v1, flag e origem |
+| Alterar produtos contratados | `simtr-hub.api.dossie-produto.produto.alterar` | `simtr-hub.service.dossie-produto.produto.alterar` | `simtr-hub.dossie-produto.produto` | rota, `simtr_hub.api=dossie-produto-v1`, flag, origem, `dossie_produto.id` e `dossie_produto.produtos.quantidade` |
 | Avançar workflow | `simtr-hub.api.dossie-produto.workflow.avancar` | `simtr-hub.service.dossie-produto.workflow.avancar` | `simtr-hub.dossie-produto.workflow` | rota, API v1, flag e origem |
 | Obter credencial | `simtr-hub.api.gestao-documento.credencial-container.gerar` | `simtr-hub.service.gestao-documento.credencial-container.gerar` | `simtr-hub.gestao-documento.credencial-container` | rota, `simtr_hub.api=gestao-documento-v1`, flag e origem |
+
+### Alteração de produtos contratados
+
+- rota pública: `PATCH /simtr-hub/v1/dossie-produto/{id}/produto`;
+- prefixos de eventos REST/aplicação: `simtr-hub.dossie-produto.produto`;
+- prefixo de eventos MTR: `mtr.dossie-produto.produto`;
+- campos estáveis de log: `operacao`, `dossie_produto_id`, `produtos_quantidade`,
+  `origem_dados`, `simulador_habilitado`, `resultado` e `erro_tipo`, quando aplicáveis;
+- atributos estáveis dos spans: `http.route`, `simtr_hub.api`,
+  `simtr_hub.simulador_dossie_produto_habilitado`, `simtr_hub.origem_dados`,
+  `dossie_produto.id` e `dossie_produto.produtos.quantidade`;
+- o caminho MTR acrescenta `mtr.servico=simtr-dossie-produto`,
+  `mtr.api=dossie-produto-v1`, `http.request.method=PATCH`, `url.path`,
+  `mtr.resposta.sucesso` e `erro.tipo` na falha.
+
+Os sinais específicos da capacidade não adicionam payload, API key, token ou URL interna. O
+atributo `rest_client.url` continua pertencendo ao filtro compartilhado preexistente descrito
+abaixo; sua eventual alteração exige escopo e checkpoint observável próprios.
 
 ## Borda MTR
 
@@ -69,6 +90,7 @@ que carregam semântica da capacidade.
 | Formulário | `mtr.dossie-produto.formulario.atualizar` | `simtr-dossie-produto`, v1 |
 | Documento | `mtr.dossie-produto.documento.incluir` | `simtr-dossie-produto`, v2 |
 | Validação | `mtr.dossie-produto.validacao-negocial.registrar` | `simtr-dossie-produto`, v1 |
+| Produtos contratados | `mtr.dossie-produto.produto.alterar` | `simtr-dossie-produto`, v1 |
 | Workflow | `mtr.dossie-produto.workflow.avancar` | `simtr-dossie-produto`, v1 |
 | Credencial | `mtr.gestao-documento.credencial-container.gerar` | `simtr-gestao-documento`, v1 |
 
