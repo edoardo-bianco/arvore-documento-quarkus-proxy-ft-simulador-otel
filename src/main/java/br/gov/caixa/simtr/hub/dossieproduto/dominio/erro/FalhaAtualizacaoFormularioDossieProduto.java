@@ -39,9 +39,4 @@ public final class FalhaAtualizacaoFormularioDossieProduto extends FalhaDossiePr
     public Tipo tipo() {
         return super.tipo(Tipo.class);
     }
-
-    @Override
-    public List<String> mensagens() {
-        return super.mensagens();
-    }
 }

@@ -17,12 +17,15 @@ Os sinais permitem responder:
 
 | Teste | Contrato protegido |
 |---|---|
-| `ObservabilidadeSpansContratoTest#preservaSpansDasNoveCapacidadesNoCaminhoSimulador` | 18 spans manuais de API/aplicação, `SpanKind`, parentage, rota, API, flags de simulador e origem mock |
-| `ObservabilidadeSpansContratoTest#preservaDeclaracoesDosSpansDeIntegracaoMtr` | nove spans CLIENT dos gateways e atributos de processo/checklist |
+| `ObservabilidadeSpansContratoTest#preservaSpansDasDezCapacidadesNoCaminhoSimulador` | 20 spans manuais de API/aplicação, `SpanKind`, parentage, rota, API, flags de simulador e origem mock |
+| `ObservabilidadeSpansContratoTest#preservaDeclaracoesDosSpansDeIntegracaoMtr` | dez spans CLIENT dos gateways, incluindo `mtr.dossie-produto.consultar` |
 | `RestClientObservabilityFilterTest#preservaEventosEAtributosDerivadosDaInvocacaoRestClient` | eventos request/response, método, path, status, payload e nomes derivados por reflexão |
-| `ObservabilidadeLogsContratoTest#preservaEventosEstruturadosDasNoveCapacidadesNoCaminhoSimulador` | 45 eventos de sucesso e MDC comum de evento/camada/componente/operação/trace |
+| `ObservabilidadeLogsContratoTest#preservaEventosEstruturadosDasDezCapacidadesNoCaminhoSimulador` | 50 eventos de sucesso e MDC comum de evento/camada/componente/operação/trace |
 | `ObservabilidadeLogsContratoTest#registraFalhaDeProdutoComCamposEstaveisSemDadosSensiveis` | eventos de início/falha da alteração de produtos, id, quantidade, resultado e tipo de erro |
+| `ObservabilidadeLogsContratoTest#registraFalhaDaConsultaComOrigemEClassificacaoSemDadosSensiveis` | eventos da falha simulada da consulta, id, origem mock, resultado e classificação sem dados sensíveis |
 | `ProdutoDossieProdutoMtrContractTest#propagaContextoEntreSpansApiAplicacaoEClientSemDadosSensiveis` | encadeamento real API → aplicação → CLIENT, rota, atributos da capacidade e ausência de dados sensíveis novos |
+| `ConsultaDossieProdutoMtrContractTest#propagaContextoEntreApiAplicacaoEClientSemDadosSensiveis` | encadeamento real SERVER → INTERNAL → CLIENT, sinais de sucesso/contagens e ausência de payload, PII e segredos |
+| `ConsultaDossieProdutoMtrContractTest#preservaErro404CompletoSemRetry` | seis eventos do caminho MTR de falha, classificação por camada, uma chamada e corpo HTTP preservado sem mensagem externa na telemetria |
 
 ## Convenções comuns
 
@@ -54,6 +57,7 @@ que carregam semântica da capacidade.
 |---|---|---|---|---|
 | Consultar processo | `simtr-hub.api.processo.consultar` | `simtr-hub.service.processo.consultar` | `simtr-hub.processo` | rota, `simtr_hub.api=parametrizacao-processo-v1`, flag de simulador e origem |
 | Consultar checklist | `simtr-hub.api.checklist.consultar` | `simtr-hub.service.checklist.consultar` | `simtr-hub.checklist` | rota, `simtr_hub.api=parametrizacao-checklist-v1`, flag e origem |
+| Consultar dossiê | `simtr-hub.api.dossie-produto.consultar` | `simtr-hub.service.dossie-produto.consultar` | `simtr-hub.dossie-produto.consulta` | rota, `simtr_hub.api=dossie-produto-v2`, flag, origem, id e contagens de clientes, unidades e produtos |
 | Criar dossiê | `simtr-hub.api.dossie-produto.criar` | `simtr-hub.service.dossie-produto.criar` | `simtr-hub.dossie-produto` | rota, API v1, flag e origem |
 | Atualizar formulário | `simtr-hub.api.dossie-produto.formulario.atualizar` | `simtr-hub.service.dossie-produto.formulario.atualizar` | `simtr-hub.dossie-produto.formulario` | rota, API v1, flag e origem |
 | Incluir documento | `simtr-hub.api.dossie-produto.documento.incluir` | `simtr-hub.service.dossie-produto.documento.incluir` | `simtr-hub.dossie-produto.documento` | rota, `simtr_hub.api=dossie-produto-v2`, flag e origem |
@@ -61,6 +65,45 @@ que carregam semântica da capacidade.
 | Alterar produtos contratados | `simtr-hub.api.dossie-produto.produto.alterar` | `simtr-hub.service.dossie-produto.produto.alterar` | `simtr-hub.dossie-produto.produto` | rota, `simtr_hub.api=dossie-produto-v1`, flag, origem, `dossie_produto.id` e `dossie_produto.produtos.quantidade` |
 | Avançar workflow | `simtr-hub.api.dossie-produto.workflow.avancar` | `simtr-hub.service.dossie-produto.workflow.avancar` | `simtr-hub.dossie-produto.workflow` | rota, API v1, flag e origem |
 | Obter credencial | `simtr-hub.api.gestao-documento.credencial-container.gerar` | `simtr-hub.service.gestao-documento.credencial-container.gerar` | `simtr-hub.gestao-documento.credencial-container` | rota, `simtr_hub.api=gestao-documento-v1`, flag e origem |
+
+### Consulta de dossiê por identificador
+
+- rota pública: `GET /simtr-hub/v1/dossie-produto/{id}`;
+- spans: `simtr-hub.api.dossie-produto.consultar` (`SERVER`),
+  `simtr-hub.service.dossie-produto.consultar` (`INTERNAL`) e, no caminho MTR,
+  `mtr.dossie-produto.consultar` (`CLIENT`);
+- parentage: simulador `SERVER → INTERNAL`; MTR `SERVER → INTERNAL → CLIENT`, sempre no mesmo
+  trace;
+- eventos REST/aplicação de sucesso: `simtr-hub.dossie-produto.consulta.requisicao.recebida`,
+  `simtr-hub.dossie-produto.consulta.service.iniciada`,
+  `simtr-hub.dossie-produto.consulta.service.concluida` e
+  `simtr-hub.dossie-produto.consulta.resposta.enviada`;
+- evento do simulador: `simtr-hub.dossie-produto.consulta.simulador.usado`;
+- eventos MTR: `mtr.dossie-produto.consulta.chamada.iniciada`,
+  `mtr.dossie-produto.consulta.chamada.concluida` e
+  `mtr.dossie-produto.consulta.chamada.falhou`;
+- eventos REST/aplicação de falha: `simtr-hub.dossie-produto.consulta.service.falhou` e
+  `simtr-hub.dossie-produto.consulta.requisicao.falhou`;
+- campos estáveis de log: `operacao`, `dossie_produto_id`, `origem`,
+  `simulador_habilitado`, `clientes_quantidade`, `unidades_tratamento_quantidade`,
+  `produtos_contratados_quantidade`, `resultado` e `erro_tipo`, quando aplicáveis;
+- valores de operação: `consultar-dossie-produto` nas camadas REST/aplicação e
+  `consultar-dossie-produto-v2` na integração MTR;
+- atributos do span API: `http.route`, `simtr_hub.api=dossie-produto-v2`,
+  `dossie_produto.id` e as três contagens;
+- atributos do span de aplicação: `simtr_hub.simulador_dossie_produto_habilitado`,
+  `simtr_hub.origem_dados`, `dossie_produto.id`, `dossie_produto.clientes.quantidade`,
+  `dossie_produto.unidades_tratamento.quantidade` e
+  `dossie_produto.produtos_contratados.quantidade`;
+- atributos do span MTR: `mtr.servico=simtr-dossie-produto`, `mtr.api=dossie-produto-v2`,
+  `http.request.method=GET`, `url.path=/simtr/dossie-produto/v2/dossie-produto/{id}`,
+  `dossie_produto.id`, as três contagens, `mtr.resposta.sucesso` e `erro.tipo` na falha.
+
+Os sinais específicos da consulta não registram payload nem os campos `cpf`, `cnpj`, `nome`,
+`matricula` ou `chave_correlacao_canal`; token, API key, mensagem/detalhe de erro externo e URL
+interna completa também permanecem ausentes. O atributo `rest_client.url` continua pertencendo ao
+filtro compartilhado preexistente descrito abaixo. O mapper transversal conserva o corpo de erro
+na resposta HTTP, mas não copia `detalhe` nem mensagens do payload MTR para logs.
 
 ### Alteração de produtos contratados
 
@@ -86,6 +129,7 @@ abaixo; sua eventual alteração exige escopo e checkpoint observável próprios
 |---|---|---|
 | Processo | `mtr.parametrizacao.processo.consultar` | `simtr-parametrizacao`, `patriarca-processo-v2` |
 | Checklist | `mtr.parametrizacao.checklist.consultar` | `simtr-parametrizacao`, `cadastro-checklist-v1` |
+| Consultar dossiê | `mtr.dossie-produto.consultar` | `simtr-dossie-produto`, v2 |
 | Criar dossiê | `mtr.dossie-produto.criar` | `simtr-dossie-produto`, v1 |
 | Formulário | `mtr.dossie-produto.formulario.atualizar` | `simtr-dossie-produto`, v1 |
 | Documento | `mtr.dossie-produto.documento.incluir` | `simtr-dossie-produto`, v2 |

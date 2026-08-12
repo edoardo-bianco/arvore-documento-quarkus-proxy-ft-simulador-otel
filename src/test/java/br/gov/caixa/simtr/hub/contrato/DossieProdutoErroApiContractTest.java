@@ -5,6 +5,8 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static br.gov.caixa.simtr.hub.contrato.JsonContractAssertions.assertErroValidacaoExato;
 import static io.restassured.RestAssured.given;
@@ -14,6 +16,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class DossieProdutoErroApiContractTest {
 
     private static final String ROTA_DOSSIE_PRODUTO = "/simtr-hub/v1/dossie-produto";
+    private static final String ROTA_CONSULTA_DOSSIE_PRODUTO =
+            "/simtr-hub/v1/dossie-produto/{id}";
     private static final String ROTA_DOCUMENTO_DOSSIE_PRODUTO =
             "/simtr-hub/v1/dossie-produto/{id}/documento";
     private static final String ROTA_PRODUTO_DOSSIE_PRODUTO =
@@ -171,6 +175,14 @@ class DossieProdutoErroApiContractTest {
                 .extract().asString();
 
         assertEquals("", resposta);
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = {0L, -1L})
+    void preservaErroParaIdInvalidoNaConsulta(long id) {
+        validarErro(given()
+                .accept(ContentType.JSON)
+                .get(ROTA_CONSULTA_DOSSIE_PRODUTO, id), MENSAGEM_ID);
     }
 
     @Test

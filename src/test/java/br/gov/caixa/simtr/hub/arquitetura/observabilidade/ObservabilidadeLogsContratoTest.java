@@ -33,6 +33,39 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @QuarkusTest
 class ObservabilidadeLogsContratoTest {
 
+    private static final long IDENTIFICADOR_CONSULTA_DOSSIE = 4_324_680L;
+    private static final String IDENTIFICADOR_CONSULTA_DOSSIE_TEXTO = "4324680";
+    private static final String OPERACAO_CONSULTA_DOSSIE = "consultar-dossie-produto";
+    private static final String PREFIXO_EVENTO_CONSULTA =
+            "simtr-hub.dossie-produto.consulta.";
+    private static final String EVENTO_CONSULTA_RECEBIDA =
+            PREFIXO_EVENTO_CONSULTA + "requisicao.recebida";
+    private static final String EVENTO_CONSULTA_SERVICE_INICIADA =
+            PREFIXO_EVENTO_CONSULTA + "service.iniciada";
+    private static final String EVENTO_CONSULTA_SIMULADOR =
+            PREFIXO_EVENTO_CONSULTA + "simulador.usado";
+    private static final String EVENTO_CONSULTA_SERVICE_CONCLUIDA =
+            PREFIXO_EVENTO_CONSULTA + "service.concluida";
+    private static final String EVENTO_CONSULTA_RESPOSTA =
+            PREFIXO_EVENTO_CONSULTA + "resposta.enviada";
+    private static final String EVENTO_CONSULTA_SERVICE_FALHOU =
+            PREFIXO_EVENTO_CONSULTA + "service.falhou";
+    private static final String EVENTO_CONSULTA_REQUISICAO_FALHOU =
+            PREFIXO_EVENTO_CONSULTA + "requisicao.falhou";
+    private static final String ORIGEM_MOCK = "mock";
+    private static final String RESULTADO_SUCESSO = "sucesso";
+    private static final String RESULTADO_ERRO = "erro";
+    private static final String CAMPO_OPERACAO = "operacao";
+    private static final String CAMPO_DOSSIE_ID = "dossie_produto_id";
+    private static final String CAMPO_RESULTADO = "resultado";
+    private static final String CAMPO_ERRO_TIPO = "erro_tipo";
+    private static final String CAMPO_ORIGEM = "origem";
+    private static final String CAMPO_CLIENTES_QUANTIDADE = "clientes_quantidade";
+    private static final String CAMPO_UNIDADES_QUANTIDADE =
+            "unidades_tratamento_quantidade";
+    private static final String CAMPO_PRODUTOS_QUANTIDADE =
+            "produtos_contratados_quantidade";
+
     private final CapturingHandler handler = new CapturingHandler();
     private Logger rootLogger;
 
@@ -50,8 +83,8 @@ class ObservabilidadeLogsContratoTest {
     }
 
     @Test
-    void preservaEventosEstruturadosDasNoveCapacidadesNoCaminhoSimulador() {
-        chamarNoveEndpoints();
+    void preservaEventosEstruturadosDasDezCapacidadesNoCaminhoSimulador() {
+        chamarDezEndpoints();
 
         Map<String, LogObservado> observados = handler.logs().stream()
                 .filter(log -> eventosEsperados().contains(log.evento()))
@@ -78,10 +111,16 @@ class ObservabilidadeLogsContratoTest {
         assertEquals(eventosProdutoEsperados(), produto.keySet());
         produto.forEach((evento, log) -> assertCamposProduto(log, evento, "123", "2"));
         assertEquals("sucesso", produto.get(
-                "simtr-hub.dossie-produto.produto.service.concluido").mdc().get("resultado"));
+                "simtr-hub.dossie-produto.produto.service.concluido").mdc().get(CAMPO_RESULTADO));
         assertEquals("sucesso", produto.get(
-                "simtr-hub.dossie-produto.produto.resposta.enviada").mdc().get("resultado"));
+                "simtr-hub.dossie-produto.produto.resposta.enviada").mdc().get(CAMPO_RESULTADO));
         assertSemDadosSensiveis(produto.values());
+
+        Map<String, LogObservado> consulta = observados.entrySet().stream()
+                .filter(entry -> entry.getKey().startsWith(PREFIXO_EVENTO_CONSULTA))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        assertConsultaSimulador(consulta);
+        assertSemDadosSensiveis(consulta.values());
     }
 
     @Test
@@ -112,18 +151,57 @@ class ObservabilidadeLogsContratoTest {
         produto.forEach((evento, log) -> assertCamposProduto(log, evento, "456", "2"));
         LogObservado falhou = produto.get(
                 "simtr-hub.dossie-produto.produto.service.falhou");
-        assertEquals("erro", falhou.mdc().get("resultado"));
+        assertEquals("erro", falhou.mdc().get(CAMPO_RESULTADO));
         assertEquals("IllegalStateException", falhou.mdc().get("erro_tipo"));
         assertSemDadosSensiveis(produto.values());
     }
 
-    private static void chamarNoveEndpoints() {
+    @Test
+    void registraFalhaDaConsultaComOrigemEClassificacaoSemDadosSensiveis() {
+        long identificadorAusente = 9_876_543L;
+        String identificadorAusenteTexto = "9876543";
+
+        given()
+                .get("/simtr-hub/v1/dossie-produto/{id}", identificadorAusente)
+                .then().statusCode(404);
+
+        Map<String, LogObservado> consulta = handler.logs().stream()
+                .filter(log -> log.evento().startsWith(PREFIXO_EVENTO_CONSULTA))
+                .collect(Collectors.toMap(LogObservado::evento, log -> log));
+        assertEquals(Set.of(
+                EVENTO_CONSULTA_RECEBIDA,
+                EVENTO_CONSULTA_SERVICE_INICIADA,
+                EVENTO_CONSULTA_SIMULADOR,
+                EVENTO_CONSULTA_SERVICE_FALHOU,
+                EVENTO_CONSULTA_REQUISICAO_FALHOU
+        ), consulta.keySet());
+        consulta.forEach((evento, log) -> {
+            assertEquals(OPERACAO_CONSULTA_DOSSIE, log.mdc().get(CAMPO_OPERACAO), evento);
+            assertEquals(identificadorAusenteTexto,
+                    log.mdc().get(CAMPO_DOSSIE_ID), evento);
+        });
+        assertOrigemMock(consulta.get(EVENTO_CONSULTA_SERVICE_INICIADA));
+        assertOrigemMock(consulta.get(EVENTO_CONSULTA_SIMULADOR));
+        LogObservado serviceFalhou = consulta.get(EVENTO_CONSULTA_SERVICE_FALHOU);
+        assertOrigemMock(serviceFalhou);
+        assertEquals(RESULTADO_ERRO, serviceFalhou.mdc().get(CAMPO_RESULTADO));
+        assertEquals("FalhaConsultaDossieProduto", serviceFalhou.mdc().get(CAMPO_ERRO_TIPO));
+        LogObservado apiFalhou = consulta.get(EVENTO_CONSULTA_REQUISICAO_FALHOU);
+        assertEquals(RESULTADO_ERRO, apiFalhou.mdc().get(CAMPO_RESULTADO));
+        assertEquals("MtrBusinessErrorException", apiFalhou.mdc().get(CAMPO_ERRO_TIPO));
+        assertSemDadosSensiveis(consulta.values());
+    }
+
+    private static void chamarDezEndpoints() {
         given()
                 .get("/simtr-hub/v1/processo/identificador-negocial/{identificador}", 1000016487L)
                 .then().statusCode(200);
         given()
                 .get("/simtr-hub/v1/checklist/identificador-negocial/{identificador}/versao/{versao}",
                         1000012583L, 1)
+                .then().statusCode(200);
+        given()
+                .get("/simtr-hub/v1/dossie-produto/{id}", IDENTIFICADOR_CONSULTA_DOSSIE)
                 .then().statusCode(200);
         given()
                 .contentType(ContentType.JSON)
@@ -175,6 +253,11 @@ class ObservabilidadeLogsContratoTest {
                 "simtr-hub.checklist.simulador.usado",
                 "simtr-hub.checklist.service.concluido",
                 "simtr-hub.checklist.resposta.enviada",
+                EVENTO_CONSULTA_RECEBIDA,
+                EVENTO_CONSULTA_SERVICE_INICIADA,
+                EVENTO_CONSULTA_SIMULADOR,
+                EVENTO_CONSULTA_SERVICE_CONCLUIDA,
+                EVENTO_CONSULTA_RESPOSTA,
                 "simtr-hub.dossie-produto.requisicao.recebida",
                 "simtr-hub.dossie-produto.service.iniciado",
                 "simtr-hub.dossie-produto.simulador.usado",
@@ -230,8 +313,47 @@ class ObservabilidadeLogsContratoTest {
     ) {
         assertEquals("alterar-produtos-contratados-dossie-produto",
                 log.mdc().get("operacao"), evento + " operacao");
-        assertEquals(id, log.mdc().get("dossie_produto_id"), evento + " id");
+        assertEquals(id, log.mdc().get(CAMPO_DOSSIE_ID), evento + " id");
         assertEquals(quantidade, log.mdc().get("produtos_quantidade"), evento + " quantidade");
+    }
+
+    private static void assertConsultaSimulador(Map<String, LogObservado> consulta) {
+        assertEquals(eventosConsultaEsperados(), consulta.keySet());
+        consulta.forEach((evento, log) -> {
+            assertEquals(OPERACAO_CONSULTA_DOSSIE, log.mdc().get(CAMPO_OPERACAO), evento);
+            assertEquals(IDENTIFICADOR_CONSULTA_DOSSIE_TEXTO,
+                    log.mdc().get(CAMPO_DOSSIE_ID), evento);
+        });
+
+        assertOrigemMock(consulta.get(EVENTO_CONSULTA_SERVICE_INICIADA));
+        assertOrigemMock(consulta.get(EVENTO_CONSULTA_SIMULADOR));
+        assertOrigemMock(consulta.get(EVENTO_CONSULTA_SERVICE_CONCLUIDA));
+        assertEquals(RESULTADO_SUCESSO,
+                consulta.get(EVENTO_CONSULTA_SERVICE_CONCLUIDA).mdc().get(CAMPO_RESULTADO));
+        assertEquals(RESULTADO_SUCESSO,
+                consulta.get(EVENTO_CONSULTA_RESPOSTA).mdc().get(CAMPO_RESULTADO));
+        assertContagensConsulta(consulta.get(EVENTO_CONSULTA_SERVICE_CONCLUIDA));
+        assertContagensConsulta(consulta.get(EVENTO_CONSULTA_RESPOSTA));
+    }
+
+    private static Set<String> eventosConsultaEsperados() {
+        return Set.of(
+                EVENTO_CONSULTA_RECEBIDA,
+                EVENTO_CONSULTA_SERVICE_INICIADA,
+                EVENTO_CONSULTA_SIMULADOR,
+                EVENTO_CONSULTA_SERVICE_CONCLUIDA,
+                EVENTO_CONSULTA_RESPOSTA
+        );
+    }
+
+    private static void assertOrigemMock(LogObservado log) {
+        assertEquals(ORIGEM_MOCK, log.mdc().get(CAMPO_ORIGEM));
+    }
+
+    private static void assertContagensConsulta(LogObservado log) {
+        assertEquals("1", log.mdc().get(CAMPO_CLIENTES_QUANTIDADE));
+        assertEquals("0", log.mdc().get(CAMPO_UNIDADES_QUANTIDADE));
+        assertEquals("1", log.mdc().get(CAMPO_PRODUTOS_QUANTIDADE));
     }
 
     private static void assertSemDadosSensiveis(Iterable<LogObservado> logs) {
@@ -242,6 +364,11 @@ class ObservabilidadeLogsContratoTest {
         assertFalse(observado.contains("987654321"));
         assertFalse(observado.contains("test-apikey"));
         assertFalse(observado.contains("stub-access-token"));
+        assertFalse(observado.contains("00000000000"));
+        assertFalse(observado.contains("00000000000000"));
+        assertFalse(observado.contains("CLIENTE SIMULADO"));
+        assertFalse(observado.contains("SIMTRAPI"));
+        assertFalse(observado.contains("chave_correlacao_canal"));
         assertFalse(observado.contains("localhost"));
         assertFalse(observado.contains("127.0.0.1"));
     }

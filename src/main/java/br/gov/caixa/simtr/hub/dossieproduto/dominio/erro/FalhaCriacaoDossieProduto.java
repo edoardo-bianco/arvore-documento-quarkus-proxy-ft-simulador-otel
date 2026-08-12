@@ -39,9 +39,4 @@ public final class FalhaCriacaoDossieProduto extends FalhaDossieProduto {
     public Tipo tipo() {
         return super.tipo(Tipo.class);
     }
-
-    @Override
-    public List<String> mensagens() {
-        return super.mensagens();
-    }
 }

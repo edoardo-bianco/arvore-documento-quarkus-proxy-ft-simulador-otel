@@ -2,7 +2,7 @@ package br.gov.caixa.simtr.hub.dossieproduto.dominio.erro;
 
 import java.util.List;
 
-public final class FalhaWorkflowDossieProduto extends FalhaDossieProduto {
+public final class FalhaConsultaDossieProduto extends FalhaDossieProduto {
 
     public enum Tipo {
         NEGOCIO,
@@ -11,7 +11,8 @@ public final class FalhaWorkflowDossieProduto extends FalhaDossieProduto {
         TIMEOUT
     }
 
-    public FalhaWorkflowDossieProduto(
+    @SuppressWarnings("java:S107") // Os nove campos preservam sem perda o erro externo aprovado.
+    public FalhaConsultaDossieProduto(
             Tipo tipo,
             Integer status,
             String recurso,
@@ -33,7 +34,7 @@ public final class FalhaWorkflowDossieProduto extends FalhaDossieProduto {
                         detalhe,
                         stacktraceExterno),
                 causa,
-                "Falha ao avancar workflow do dossie produto");
+                "Falha ao consultar dossie produto");
     }
 
     public Tipo tipo() {

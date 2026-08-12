@@ -13,6 +13,7 @@ as decisões vigentes estão em `doc/arquitetura-ddd-integracoes-atomicas.md` e 
 |---|---|---|
 | `arvoredocumento` | `ConsultarProcessoParametrizado` | `GET /simtr-hub/v1/processo/identificador-negocial/{identificador}` |
 | `conformidade` | `ConsultarChecklist` | `GET /simtr-hub/v1/checklist/identificador-negocial/{identificador}/versao/{versao}` |
+| `dossieproduto` | `ConsultarDossieProduto` | `GET /simtr-hub/v1/dossie-produto/{id}` |
 | `dossieproduto` | `CriarDossieProduto` | `POST /simtr-hub/v1/dossie-produto` |
 | `dossieproduto` | `AtualizarFormularioDossieProduto` | `PATCH /simtr-hub/v1/dossie-produto/{id}/formulario` |
 | `dossieproduto` | `IncluirDocumentoDossieProduto` | `POST /simtr-hub/v1/dossie-produto/{id}/documento` |
@@ -28,8 +29,8 @@ arquivos ao Azure, nao interpreta a validade, nao reutiliza ou renova SAS e nao 
 ## Endpoints da especificacao que nao existem no Hub
 
 A especificacao funcional `doc/api-integracao-mtr-pre-validacao-v1.md` descreve APIs do MTR, nao
-somente as operacoes expostas por este Hub. As nove operacoes expostas estao implementadas e
-aparecem na tabela anterior. Os quatro endpoints MTR abaixo estao documentados na
+somente as operacoes expostas por este Hub. As dez operacoes expostas estao implementadas e
+aparecem na tabela anterior. Os tres endpoints MTR abaixo estao documentados na
 especificacao, mas **NAO ESTAO IMPLEMENTADOS NESTA SOLUCAO**:
 
 | Endpoint MTR de referencia | Situacao no Hub |
@@ -37,9 +38,8 @@ especificacao, mas **NAO ESTAO IMPLEMENTADOS NESTA SOLUCAO**:
 | `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/garantia` | Nao existe endpoint publico, capacidade, REST Client, adapter ou simulador |
 | `POST /simtr-dossie-produto/v1/dossie-produto/{id}/capturar` | Nao existe endpoint publico, capacidade, REST Client, adapter ou simulador |
 | `POST /simtr-dossie-produto/v1/dossie-produto/{id}/cancelar` | Nao existe endpoint publico, capacidade, REST Client, adapter ou simulador |
-| `GET /simtr-dossie-produto/v2/dossie-produto/{id}` | Nao existe endpoint publico, capacidade, REST Client, adapter ou simulador |
 
-"Nao implementado no Hub" nao significa que a API upstream nao exista no MTR. Esses quatro
+"Nao implementado no Hub" nao significa que a API upstream nao exista no MTR. Esses tres
 endpoints aparecem na especificacao como operacoes do ciclo de vida do dossie a serem mantidas,
 mas nao sao chamados pelo diagrama de sequencia principal e nao ganharam rota proxy nesta
 solucao. Tambem nao existe endpoint unico de pre-validacao nem orquestrador local. Uma eventual
@@ -124,6 +124,7 @@ saida.
 ```http
 GET /simtr/parametrizacao/v2/patriarca/processo/identificador-negocial/{identificador}
 GET /simtr/parametrizacao/v1/cadastro/checklist/identificador-negocial/{identificador}/versao/{versao}
+GET /simtr/dossie-produto/v2/dossie-produto/{id}
 POST /simtr/dossie-produto/v1/dossie-produto
 PATCH /simtr/dossie-produto/v1/dossie-produto/{id}/formulario
 POST /simtr/dossie-produto/v2/dossie-produto/{id}/documento
@@ -221,6 +222,6 @@ target/jacoco-report/index.html
 - observabilidade e operacao: `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`;
 - catalogo de sinais: `doc/catalogo-observabilidade.md`.
 
-Quarkus Flow, novos workflows, persistencia de orquestracao, os quatro endpoints ausentes listados
+Quarkus Flow, novos workflows, persistencia de orquestracao, os tres endpoints ausentes listados
 acima, quaisquer outros endpoints novos, upload e lifecycle de SAS nao estao implementados e
 exigem feature, plano e GO proprios.
