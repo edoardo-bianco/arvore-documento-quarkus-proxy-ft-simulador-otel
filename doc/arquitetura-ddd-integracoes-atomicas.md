@@ -3,7 +3,7 @@
 ## Como usar este documento
 
 - **Status:** aceito
-- **Última consolidação:** 2026-08-11
+- **Última consolidação:** 2026-08-12
 - **Objetivo:** explicar rapidamente a arquitetura implementada e as restrições que novas features
   devem respeitar.
 
@@ -17,7 +17,7 @@ correção.
 
 ## Visão do sistema
 
-O `simtr-hub` é um monólito modular Quarkus organizado por domínios de negócio. Ele expõe nove
+O `simtr-hub` é um monólito modular Quarkus organizado por domínios de negócio. Ele expõe dez
 capacidades atômicas por REST e integra cada uma ao MTR ou ao simulador por adapters de saída
 intercambiáveis.
 
@@ -42,7 +42,7 @@ motor de workflow, MCP Server ou comunicação distribuída entre os domínios.
 |---|---|---|
 | `arvoredocumento` | Dados parametrizados usados por uma futura árvore documental | `ConsultarProcessoParametrizado` |
 | `conformidade` | Consulta de checklist por identificador e versão | `ConsultarChecklist` |
-| `dossieproduto` | Operações atômicas do ciclo de vida do dossiê no MTR | `CriarDossieProduto`, `AtualizarFormularioDossieProduto`, `IncluirDocumentoDossieProduto`, `RegistrarValidacaoNegocialDossieProduto`, `AlterarProdutosContratadosDossieProduto`, `IniciarOuAvancarWorkflowDossieProduto` |
+| `dossieproduto` | Operações atômicas do ciclo de vida do dossiê no MTR | `ConsultarDossieProduto`, `CriarDossieProduto`, `AtualizarFormularioDossieProduto`, `IncluirDocumentoDossieProduto`, `RegistrarValidacaoNegocialDossieProduto`, `AlterarProdutosContratadosDossieProduto`, `IniciarOuAvancarWorkflowDossieProduto` |
 | `gestaodocumento` | Obtenção de credencial para o container documental | `ObterCredencialContainer` |
 
 `parametrizacao` é o nome de um sistema/contrato upstream, não um domínio interno compartilhado.
@@ -58,6 +58,7 @@ existirem requisitos, contratos e autorização próprios.
 |---|---|
 | `GET` | `/simtr-hub/v1/processo/identificador-negocial/{identificador}` |
 | `GET` | `/simtr-hub/v1/checklist/identificador-negocial/{identificador}/versao/{versao}` |
+| `GET` | `/simtr-hub/v1/dossie-produto/{id}` |
 | `POST` | `/simtr-hub/v1/dossie-produto` |
 | `PATCH` | `/simtr-hub/v1/dossie-produto/{id}/formulario` |
 | `POST` | `/simtr-hub/v1/dossie-produto/{id}/documento` |
@@ -66,12 +67,11 @@ existirem requisitos, contratos e autorização próprios.
 | `POST` | `/simtr-hub/v1/dossie-produto/{id}/workflow` |
 | `POST` | `/simtr-hub/v1/storage/container/credencial` |
 
-Quatro operações descritas na especificação de pré-validação ainda não existem no Hub:
+Três operações descritas na especificação de pré-validação ainda não existem no Hub:
 
 - alterar garantia do dossiê;
 - capturar dossiê;
-- cancelar dossiê;
-- consultar dossiê por identificador.
+- cancelar dossiê.
 
 A existência dessas operações no MTR não autoriza endpoint, capacidade, adapter ou simulador no
 Hub. Cada implementação futura exige feature, contrato, plano e GO próprios.
@@ -208,6 +208,8 @@ Uma feature segue fatias verticais pequenas:
 Conforme a mudança, os testes cobrem contrato HTTP/JSON, Jakarta Validation, mapeamentos, payload
 MTR, simulador, erros, fault tolerance, configuração, observabilidade e regras ArchUnit. Mudanças de
 contrato, arquitetura, segurança ou comportamento observável exigem checkpoint humano adicional.
+O OpenAPI é gerado pelo Quarkus a partir das annotations e contratos Java; os testes não mantêm
+snapshot nem inspecionam o documento gerado, conforme o ADR-0006.
 
 ## Restrições vigentes
 
@@ -217,7 +219,7 @@ contrato, arquitetura, segurança ou comportamento observável exigem checkpoint
 - não possui MCP Server ou tools;
 - não possui persistência de estado de fluxo;
 - não calcula árvore documental nem executa análise de conformidade;
-- não implementa os quatro endpoints ausentes listados acima.
+- não implementa os três endpoints ausentes listados acima.
 
 Essas restrições descrevem o estado atual, não uma proibição permanente. Uma feature pode mudá-las
 somente com requisitos explícitos, análise de impacto, plano, testes e GO humano.

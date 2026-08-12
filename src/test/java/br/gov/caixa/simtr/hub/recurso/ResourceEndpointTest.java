@@ -12,6 +12,8 @@ import static org.hamcrest.Matchers.notNullValue;
 @QuarkusTest
 class ResourceEndpointTest {
 
+    private static final String ROTA_CONSULTA_DOSSIE_PRODUTO =
+            "/simtr-hub/v1/dossie-produto/{id}";
     private static final String ROTA_DOCUMENTO_DOSSIE_PRODUTO =
             "/simtr-hub/v1/dossie-produto/{id}/documento";
     private static final String ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO =
@@ -57,6 +59,19 @@ class ResourceEndpointTest {
                 .then()
                 .statusCode(201)
                 .body("id", equalTo(1));
+    }
+
+    @Test
+    void dossieProdutoGetRetorna200ComMockDoQuarkus() {
+        given()
+                .accept(ContentType.JSON)
+                .when()
+                .get(ROTA_CONSULTA_DOSSIE_PRODUTO, 4324680L)
+                .then()
+                .statusCode(200)
+                .body("id", equalTo(4324680))
+                .body("clientes[0].cpf", equalTo("00000000000"))
+                .body("clientes[0].nome", equalTo("CLIENTE SIMULADO"));
     }
 
     @Test

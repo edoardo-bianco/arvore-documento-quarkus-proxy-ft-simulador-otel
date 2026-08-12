@@ -12,6 +12,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @QuarkusTest
 class DossieProdutoApiContractTest {
 
+    private static final String ROTA_CONSULTA_DOSSIE_PRODUTO =
+            "/simtr-hub/v1/dossie-produto/{id}";
     private static final String ROTA_PRODUTO_DOSSIE_PRODUTO =
             "/simtr-hub/v1/dossie-produto/{id}/produto";
     private static final String ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO =
@@ -141,6 +143,72 @@ class DossieProdutoApiContractTest {
               }
             ]
             """;
+
+    private static final String RESPOSTA_CONSULTA = """
+            {
+              "id": 4324680,
+              "chave_correlacao_canal": 1000012592,
+              "instancia_jbpm": null,
+              "numero_negocio": null,
+              "canal_criacao": "SIMTRAPI",
+              "unidade_criacao": 5402,
+              "data_criacao": null,
+              "clientes": [
+                {
+                  "cpf": "00000000000",
+                  "cnpj": null,
+                  "nome": "CLIENTE SIMULADO",
+                  "razao_social": null,
+                  "tipo_vinculo": "Proponente",
+                  "identificador_negocial_vinculo": 40610702,
+                  "principal": true
+                }
+              ],
+              "processo": {
+                "id": 5032,
+                "nome": "Concessão Habitacional",
+                "identificador_negocial": 1000016487,
+                "macroprocesso": "HABITAÇÃO",
+                "tratamento_seletivo": true,
+                "complementacao_seletiva": true
+              },
+              "fase_atual": {
+                "id": 5033,
+                "nome": "Recepção de dados e documentos",
+                "identificador_negocial": 1000016488,
+                "data": "23/07/2026 10:24:00"
+              },
+              "situacao_atual": {
+                "id": 1,
+                "nome": "Rascunho",
+                "data": "23/07/2026 10:24:00",
+                "matricula": "SIMTRAPI"
+              },
+              "unidades_tratamento": [],
+              "produtos_contratados": [
+                {
+                  "id": null,
+                  "codigo_operacao": null,
+                  "codigo_modalidade": null,
+                  "nome": null
+                }
+              ]
+            }
+            """;
+
+    @Test
+    void preservaContratoDeConsultaPorIdentificador() {
+        JsonNode resposta = given()
+                .accept(ContentType.JSON)
+                .when()
+                .get(ROTA_CONSULTA_DOSSIE_PRODUTO, 4324680L)
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .extract().as(JsonNode.class);
+
+        assertJsonExato(RESPOSTA_CONSULTA, resposta);
+    }
 
     @Test
     void preservaContratoDeCriacao() {

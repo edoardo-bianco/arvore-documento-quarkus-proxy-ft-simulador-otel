@@ -2,12 +2,15 @@ package br.gov.caixa.simtr.hub.dossieproduto.adaptador.entrada.rest.v1;
 
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.entrada.rest.v1.dto.CriacaoDossieProdutoRequest;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.entrada.rest.v1.dto.AlteracaoProdutoDossieProdutoRequest;
+import br.gov.caixa.simtr.hub.dossieproduto.adaptador.entrada.rest.v1.dto.ConsultaDossieProdutoResponse;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.AlterarProdutosContratadosDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.AtualizarFormularioDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.ConsultarDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.CriarDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.IncluirDocumentoDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.RegistrarValidacaoNegocialDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaCriacaoDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaConsultaDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaAlteracaoProdutosContratadosDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaAtualizacaoFormularioDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaInclusaoDocumentoDossieProduto;
@@ -32,6 +35,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.PATCH;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -64,8 +68,10 @@ public class DossieProdutoResource {
     private static final String HTTP_ROUTE_ATTRIBUTE = "http.route";
     private static final String SIMTR_HUB_API_ATTRIBUTE = "simtr_hub.api";
     private static final String DOSSIE_PRODUTO_API_V1 = "dossie-produto-v1";
+    private static final String DOSSIE_PRODUTO_API_V2 = "dossie-produto-v2";
     private static final String OPERACAO_KEY = "operacao";
     private static final String CRIAR_DOSSIE_PRODUTO = "criar-dossie-produto";
+    private static final String CONSULTAR_DOSSIE_PRODUTO = "consultar-dossie-produto";
     private static final String PROCESSO_KEY = "processo";
     private static final String CHAVE_CORRELACAO_CANAL_KEY = "chave_correlacao_canal";
     private static final String DOSSIE_PRODUTO_ID_ATTRIBUTE = "dossie_produto.id";
@@ -86,6 +92,7 @@ public class DossieProdutoResource {
             "iniciar-ou-avancar-workflow-dossie-produto";
 
     private final CriarDossieProduto criarDossieProduto;
+    private final ConsultarDossieProduto consultarDossieProduto;
     private final AtualizarFormularioDossieProduto atualizarFormularioDossieProduto;
     private final IncluirDocumentoDossieProduto incluirDocumentoDossieProduto;
     private final IniciarOuAvancarWorkflowDossieProduto iniciarOuAvancarWorkflow;
@@ -94,17 +101,89 @@ public class DossieProdutoResource {
 
     @Inject
     public DossieProdutoResource(CriarDossieProduto criarDossieProduto,
+                                 ConsultarDossieProduto consultarDossieProduto,
                                  AtualizarFormularioDossieProduto atualizarFormularioDossieProduto,
                                  IncluirDocumentoDossieProduto incluirDocumentoDossieProduto,
                                  IniciarOuAvancarWorkflowDossieProduto iniciarOuAvancarWorkflow,
                                  RegistrarValidacaoNegocialDossieProduto registrarValidacaoNegocial,
                                  AlterarProdutosContratadosDossieProduto alterarProdutosContratados) {
         this.criarDossieProduto = criarDossieProduto;
+        this.consultarDossieProduto = consultarDossieProduto;
         this.atualizarFormularioDossieProduto = atualizarFormularioDossieProduto;
         this.incluirDocumentoDossieProduto = incluirDocumentoDossieProduto;
         this.iniciarOuAvancarWorkflow = iniciarOuAvancarWorkflow;
         this.registrarValidacaoNegocial = registrarValidacaoNegocial;
         this.alterarProdutosContratados = alterarProdutosContratados;
+    }
+
+    @GET
+    @Path("/{id}")
+    @Consumes(MediaType.WILDCARD)
+    @WithSpan(value = "simtr-hub.api.dossie-produto.consultar", kind = SpanKind.SERVER)
+    @Operation(
+            summary = "Consulta dossiê de produto por identificador",
+            description = "Consulta no SIMTR o dossiê de produto identificado no path."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Dossiê de Produto localizado com sucesso.",
+            content = @Content(schema = @Schema(
+                    implementation = ConsultaDossieProdutoResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Requisição inválida.",
+            content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "Não autorizado.",
+            content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Canal ou usuário sem permissão.",
+            content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Dossiê de Produto não localizado.",
+            content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Erro interno.",
+            content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+    )
+    public Uni<Response> consultarDossieProduto(
+            @PathParam("id")
+            @NotNull(message = "O identificador do dossie produto deve ser informado.")
+            @Min(value = 1, message = "O identificador do dossie produto deve ser maior que zero.")
+            Long id
+    ) {
+        Span span = Span.current();
+        span.setAttribute(HTTP_ROUTE_ATTRIBUTE, "/simtr-hub/v1/dossie-produto/{id}");
+        span.setAttribute(SIMTR_HUB_API_ATTRIBUTE, DOSSIE_PRODUTO_API_V2);
+        setLongAttribute(span, DOSSIE_PRODUTO_ID_ATTRIBUTE, id);
+
+        ObservabilityLog.info(
+                LOG,
+                "simtr-hub.dossie-produto.consulta.requisicao.recebida",
+                ObservabilityLog.fields(
+                        CAMADA_KEY, CAMADA,
+                        COMPONENTE_KEY, COMPONENTE,
+                        OPERACAO_KEY, CONSULTAR_DOSSIE_PRODUTO,
+                        DOSSIE_PRODUTO_ID_KEY, id
+                )
+        );
+
+        return consultarDossieProduto.executar(new IdentificadorDossieProduto(id))
+                .onFailure(FalhaConsultaDossieProduto.class)
+                .transform(ConsultaDossieProdutoRestMapper::paraExcecaoRest)
+                .map(ConsultaDossieProdutoRestMapper::paraResposta)
+                .invoke(resposta -> registrarSucessoConsulta(span, id, resposta))
+                .map(resposta -> Response.ok(resposta).build())
+                .onFailure().invoke(erro -> registrarFalhaConsulta(span, id, erro));
     }
 
     @POST
@@ -406,7 +485,7 @@ public class DossieProdutoResource {
 
         Span span = Span.current();
         span.setAttribute(HTTP_ROUTE_ATTRIBUTE, "/simtr-hub/v1/dossie-produto/{id}/documento");
-        span.setAttribute(SIMTR_HUB_API_ATTRIBUTE, "dossie-produto-v2");
+        span.setAttribute(SIMTR_HUB_API_ATTRIBUTE, DOSSIE_PRODUTO_API_V2);
         setLongAttribute(span, DOSSIE_PRODUTO_ID_ATTRIBUTE, id);
         setStringAttribute(span, "dossie_produto.documento.tipo", tipoDocumento);
         setIntAttribute(span, "dossie_produto.documento.atributos.quantidade", quantidadeAtributos);
@@ -819,6 +898,55 @@ public class DossieProdutoResource {
                             )
                     );
                 });
+    }
+
+    private static void registrarSucessoConsulta(
+            Span span,
+            Long id,
+            ConsultaDossieProdutoResponse resposta
+    ) {
+        Integer clientes = resposta != null ? tamanho(resposta.clientes()) : null;
+        Integer unidades = resposta != null ? tamanho(resposta.unidadesTratamento()) : null;
+        Integer produtos = resposta != null ? tamanho(resposta.produtosContratados()) : null;
+        setIntAttribute(span, "dossie_produto.clientes.quantidade", clientes);
+        setIntAttribute(span, "dossie_produto.unidades_tratamento.quantidade", unidades);
+        setIntAttribute(span, "dossie_produto.produtos_contratados.quantidade", produtos);
+        ObservabilityLog.info(
+                LOG,
+                "simtr-hub.dossie-produto.consulta.resposta.enviada",
+                ObservabilityLog.fields(
+                        CAMADA_KEY, CAMADA,
+                        COMPONENTE_KEY, COMPONENTE,
+                        OPERACAO_KEY, CONSULTAR_DOSSIE_PRODUTO,
+                        DOSSIE_PRODUTO_ID_KEY, id,
+                        "clientes_quantidade", clientes,
+                        "unidades_tratamento_quantidade", unidades,
+                        "produtos_contratados_quantidade", produtos,
+                        RESULTADO_KEY, SUCESSO
+                )
+        );
+    }
+
+    private static void registrarFalhaConsulta(Span span, Long id, Throwable erro) {
+        String tipoErro = erro.getClass().getSimpleName();
+        span.setStatus(StatusCode.ERROR, tipoErro);
+        span.setAttribute("erro.tipo", tipoErro);
+        ObservabilityLog.info(
+                LOG,
+                "simtr-hub.dossie-produto.consulta.requisicao.falhou",
+                ObservabilityLog.fields(
+                        CAMADA_KEY, CAMADA,
+                        COMPONENTE_KEY, COMPONENTE,
+                        OPERACAO_KEY, CONSULTAR_DOSSIE_PRODUTO,
+                        DOSSIE_PRODUTO_ID_KEY, id,
+                        ERRO_TIPO_KEY, tipoErro,
+                        RESULTADO_KEY, "erro"
+                )
+        );
+    }
+
+    private static Integer tamanho(List<?> itens) {
+        return itens != null ? itens.size() : null;
     }
 
     private static Long processo(CriacaoDossieProdutoRequest requisicao) {

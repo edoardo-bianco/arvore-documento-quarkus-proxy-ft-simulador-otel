@@ -10,7 +10,6 @@ import jakarta.ws.rs.ext.Provider;
 import org.jboss.logging.Logger;
 
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Provider
 public class MtrRestClientExceptionMapper implements ExceptionMapper<MtrRestClientException> {
@@ -42,8 +41,6 @@ public class MtrRestClientExceptionMapper implements ExceptionMapper<MtrRestClie
                 "recurso", erro != null ? erro.recurso() : null,
                 "id_erro", erro != null ? erro.idErro() : null,
                 "codigo_erro", erro != null ? erro.codigoErro() : null,
-                "detalhe", erro != null ? erro.detalhe() : null,
-                "erros", mensagensErro(erro),
                 "resultado", "erro"
         );
 
@@ -53,16 +50,6 @@ public class MtrRestClientExceptionMapper implements ExceptionMapper<MtrRestClie
         }
 
         ObservabilityLog.error(LOG, "mtr.erro.tecnico.retornado", exception, campos);
-    }
-
-    private static String mensagensErro(ErroPadraoDto erro) {
-        if (erro == null || erro.erros() == null || erro.erros().isEmpty()) {
-            return null;
-        }
-        return erro.erros().stream()
-                .filter(mensagem -> mensagem != null && mensagem.mensagem() != null)
-                .map(mensagem -> mensagem.mensagem())
-                .collect(Collectors.joining(" | "));
     }
 
     private static boolean erroPayloadIncompleto(ErroPadraoDto erro) {
