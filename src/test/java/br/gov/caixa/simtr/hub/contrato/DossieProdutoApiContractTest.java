@@ -1,19 +1,34 @@
 package br.gov.caixa.simtr.hub.contrato;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+
 import static br.gov.caixa.simtr.hub.contrato.JsonContractAssertions.assertJsonExato;
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 class DossieProdutoApiContractTest {
 
+    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
+
     private static final String ROTA_CONSULTA_DOSSIE_PRODUTO =
             "/simtr-hub/v1/dossie-produto/{id}";
+    private static final String ROTA_CAPTURA_DOSSIE_PRODUTO =
+            "/simtr-hub/v1/dossie-produto/{id}/capturar";
     private static final String ROTA_PRODUTO_DOSSIE_PRODUTO =
             "/simtr-hub/v1/dossie-produto/{id}/produto";
     private static final String ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO =
@@ -195,6 +210,9 @@ class DossieProdutoApiContractTest {
               ]
             }
             """;
+
+    @TestHTTPResource
+    URI baseUri;
 
     @Test
     void preservaContratoDeConsultaPorIdentificador() {
@@ -392,5 +410,24 @@ class DossieProdutoApiContractTest {
                 .extract().as(JsonNode.class);
 
         assertJsonExato("{\"id\":123}", resposta);
+    }
+
+    @Test
+    void preservaContratoDeCapturaSemCorpoEContentType() throws IOException, InterruptedException {
+        HttpRequest requisicao = HttpRequest.newBuilder()
+                .uri(baseUri.resolve(ROTA_CAPTURA_DOSSIE_PRODUTO.replace("{id}", "123")))
+                .header("Accept", ContentType.JSON.toString())
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+
+        assertTrue(requisicao.headers().firstValue("Content-Type").isEmpty());
+
+        HttpResponse<String> resposta = HTTP_CLIENT.send(
+                requisicao, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+
+        assertEquals(200, resposta.statusCode());
+        assertTrue(resposta.headers().firstValue("Content-Type")
+                .orElseThrow().startsWith(ContentType.JSON.toString()));
+        assertJsonExato("{\"id\":123}", JSON.readTree(resposta.body()));
     }
 }

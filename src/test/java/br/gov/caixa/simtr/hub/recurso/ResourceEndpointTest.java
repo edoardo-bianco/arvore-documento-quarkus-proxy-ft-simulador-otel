@@ -14,6 +14,8 @@ class ResourceEndpointTest {
 
     private static final String ROTA_CONSULTA_DOSSIE_PRODUTO =
             "/simtr-hub/v1/dossie-produto/{id}";
+    private static final String ROTA_CAPTURA_DOSSIE_PRODUTO =
+            "/simtr-hub/v1/dossie-produto/{id}/capturar";
     private static final String ROTA_DOCUMENTO_DOSSIE_PRODUTO =
             "/simtr-hub/v1/dossie-produto/{id}/documento";
     private static final String ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO =
@@ -173,6 +175,17 @@ class ResourceEndpointTest {
                 .accept(ContentType.JSON)
                 .when()
                 .post("/simtr-hub/v1/dossie-produto/{id}/workflow", 123L)
+                .then()
+                .statusCode(200)
+                .body("id", equalTo(123));
+    }
+
+    @Test
+    void dossieProdutoPostCapturaRetorna200ComIdDoPath() {
+        given()
+                .accept(ContentType.JSON)
+                .when()
+                .post(ROTA_CAPTURA_DOSSIE_PRODUTO, 123L)
                 .then()
                 .statusCode(200)
                 .body("id", equalTo(123));

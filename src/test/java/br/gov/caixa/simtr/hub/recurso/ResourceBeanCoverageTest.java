@@ -10,6 +10,7 @@ import br.gov.caixa.simtr.hub.conformidade.aplicacao.porta.entrada.ConsultarChec
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.Checklist;
 import br.gov.caixa.simtr.hub.conformidade.dominio.modelo.ComandoConsultaChecklist;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.entrada.rest.v1.DossieProdutoResource;
+import br.gov.caixa.simtr.hub.dossieproduto.adaptador.entrada.rest.v1.dto.CapturaDossieProdutoResponse;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.entrada.rest.v1.dto.CriacaoDossieProdutoRequest;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.entrada.rest.v1.dto.CriacaoDossieProdutoResponse;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.entrada.rest.v1.dto.ConsultaDossieProdutoResponse;
@@ -19,6 +20,7 @@ import br.gov.caixa.simtr.hub.gestaodocumento.adaptador.entrada.rest.v1.GestaoDo
 import br.gov.caixa.simtr.hub.gestaodocumento.adaptador.entrada.rest.v1.dto.GestaoDocumentoCredencialContainerResponse;
 import br.gov.caixa.simtr.hub.gestaodocumento.aplicacao.porta.entrada.ObterCredencialContainer;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.IniciarOuAvancarWorkflowDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.CapturarDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.CriarDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.ConsultarDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.AtualizarFormularioDossieProduto;
@@ -27,6 +29,7 @@ import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.RegistrarVal
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.IdentificadorDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.DossieProdutoConsultado;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoAtualizacaoFormularioDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoCapturaDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoWorkflowDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoCriacaoDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoInclusaoDocumentoDossieProduto;
@@ -79,6 +82,9 @@ class ResourceBeanCoverageTest {
 
     @InjectMock
     IniciarOuAvancarWorkflowDossieProduto iniciarOuAvancarWorkflow;
+
+    @InjectMock
+    CapturarDossieProduto capturarDossieProduto;
 
     @InjectMock
     RegistrarValidacaoNegocialDossieProduto registrarValidacaoNegocial;
@@ -234,6 +240,22 @@ class ResourceBeanCoverageTest {
         assertThrows(IllegalStateException.class,
                 () -> dossieProdutoResource.iniciarOuAvancarWorkflowDossieProduto(124L)
                         .await().indefinitely());
+    }
+
+    @Test
+    void dossieProdutoResourceCobreCapturaSucessoEFalhaDoBeanCdi() {
+        when(capturarDossieProduto.executar(new IdentificadorDossieProduto(123L)))
+                .thenReturn(Uni.createFrom().item(new ResultadoCapturaDossieProduto(123L)));
+        when(capturarDossieProduto.executar(new IdentificadorDossieProduto(124L)))
+                .thenReturn(Uni.createFrom().failure(new IllegalStateException("falha captura")));
+
+        Response response = dossieProdutoResource.capturarDossieProduto(123L)
+                .await().indefinitely();
+
+        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+        assertEquals(123L, ((CapturaDossieProdutoResponse) response.getEntity()).id());
+        var espera = dossieProdutoResource.capturarDossieProduto(124L).await();
+        assertThrows(IllegalStateException.class, espera::indefinitely);
     }
 
     @Test

@@ -1,6 +1,7 @@
 package br.gov.caixa.simtr.hub.dossieproduto.dominio.erro;
 
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.DossieProdutoConsultado;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.ResultadoCapturaDossieProduto;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -166,6 +167,53 @@ class FalhasDossieProdutoTest {
         assertNull(produto.codigoOperacao());
         assertNull(produto.codigoModalidade());
         assertNull(produto.nome());
+    }
+
+    @Test
+    void preservaResultadoMinimoDaCaptura() {
+        var resultado = new ResultadoCapturaDossieProduto(123L);
+        var componentes = ResultadoCapturaDossieProduto.class.getRecordComponents();
+
+        assertEquals(123L, resultado.identificadorDossieProduto());
+        assertEquals(1, componentes.length);
+        assertEquals("identificadorDossieProduto", componentes[0].getName());
+        assertEquals(Long.class, componentes[0].getType());
+    }
+
+    @Test
+    void caracterizaFalhaDeCaptura() {
+        var causa = new IllegalStateException(MENSAGEM_CAUSA);
+        var mensagens = List.of(MENSAGEM);
+        var falha = falhaCaptura(mensagens, causa);
+
+        assertEquals(FalhaCapturaDossieProduto.Tipo.NEGOCIO, falha.tipo());
+        assertEquals(STATUS, falha.status());
+        assertEquals(RECURSO, falha.recurso());
+        assertEquals(ID_ERRO, falha.idErro());
+        assertEquals(CODIGO_ERRO, falha.codigoErro());
+        assertSame(mensagens, falha.mensagens());
+        assertEquals(DETALHE, falha.detalhe());
+        assertEquals(STACKTRACE_EXTERNO, falha.stacktraceExterno());
+        assertSame(causa, falha.getCause());
+        assertEquals("Falha ao capturar dossie produto", falha.getMessage());
+        assertEquals(
+                "Falha ao capturar dossie produto",
+                falhaCaptura(null, causa).getMessage());
+        assertEquals(
+                "Falha ao capturar dossie produto",
+                falhaCaptura(null, null).getMessage());
+    }
+
+    @Test
+    void classificaTodosOsTiposDeFalhaDeCaptura() {
+        assertArrayEquals(
+                new FalhaCapturaDossieProduto.Tipo[]{
+                        FalhaCapturaDossieProduto.Tipo.NEGOCIO,
+                        FalhaCapturaDossieProduto.Tipo.TECNICA_CLIENTE,
+                        FalhaCapturaDossieProduto.Tipo.DEPENDENCIA_INDISPONIVEL,
+                        FalhaCapturaDossieProduto.Tipo.TIMEOUT
+                },
+                FalhaCapturaDossieProduto.Tipo.values());
     }
 
     @Test
@@ -347,6 +395,22 @@ class FalhasDossieProdutoTest {
     ) {
         return new FalhaCriacaoDossieProduto(
                 FalhaCriacaoDossieProduto.Tipo.NEGOCIO,
+                STATUS,
+                RECURSO,
+                ID_ERRO,
+                CODIGO_ERRO,
+                mensagens,
+                DETALHE,
+                STACKTRACE_EXTERNO,
+                causa);
+    }
+
+    private static FalhaCapturaDossieProduto falhaCaptura(
+            List<String> mensagens,
+            Throwable causa
+    ) {
+        return new FalhaCapturaDossieProduto(
+                FalhaCapturaDossieProduto.Tipo.NEGOCIO,
                 STATUS,
                 RECURSO,
                 ID_ERRO,
