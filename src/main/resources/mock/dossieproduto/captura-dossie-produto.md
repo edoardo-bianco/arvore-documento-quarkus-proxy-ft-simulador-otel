@@ -1,4 +1,10 @@
-# Mock - Captura de Dossiê de Produto
+# Mock - Captura de Dossiê de Produto — ID disponível na fixture: 123
+
+## referência disponível no simulador
+
+- Identificador de dossiê disponível nesta fixture: `123`.
+- Endpoint público parametrizado: `POST /simtr-hub/v1/dossie-produto/{id}/capturar`.
+- Para obter sucesso com esta fixture, informe `123` no parâmetro `{id}`.
 
 ## endpoint MTR simulado
 
