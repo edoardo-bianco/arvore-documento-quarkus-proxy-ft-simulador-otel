@@ -19,6 +19,7 @@ as decisões vigentes estão em `doc/arquitetura-ddd-integracoes-atomicas.md` e 
 | `dossieproduto` | `IncluirDocumentoDossieProduto` | `POST /simtr-hub/v1/dossie-produto/{id}/documento` |
 | `dossieproduto` | `RegistrarValidacaoNegocialDossieProduto` | `PATCH /simtr-hub/v1/dossie-produto/{id}/validacao-negocial` |
 | `dossieproduto` | `AlterarProdutosContratadosDossieProduto` | `PATCH /simtr-hub/v1/dossie-produto/{id}/produto` |
+| `dossieproduto` | `CapturarDossieProduto` | `POST /simtr-hub/v1/dossie-produto/{id}/capturar` |
 | `dossieproduto` | `IniciarOuAvancarWorkflowDossieProduto` | `POST /simtr-hub/v1/dossie-produto/{id}/workflow` |
 | `gestaodocumento` | `ObterCredencialContainer` | `POST /simtr-hub/v1/storage/container/credencial` |
 
@@ -29,17 +30,16 @@ arquivos ao Azure, nao interpreta a validade, nao reutiliza ou renova SAS e nao 
 ## Endpoints da especificacao que nao existem no Hub
 
 A especificacao funcional `doc/api-integracao-mtr-pre-validacao-v1.md` descreve APIs do MTR, nao
-somente as operacoes expostas por este Hub. As dez operacoes expostas estao implementadas e
-aparecem na tabela anterior. Os tres endpoints MTR abaixo estao documentados na
+somente as operacoes expostas por este Hub. As onze operacoes expostas estao implementadas e
+aparecem na tabela anterior. Os dois endpoints MTR abaixo estao documentados na
 especificacao, mas **NAO ESTAO IMPLEMENTADOS NESTA SOLUCAO**:
 
 | Endpoint MTR de referencia | Situacao no Hub |
 |---|---|
 | `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/garantia` | Nao existe endpoint publico, capacidade, REST Client, adapter ou simulador |
-| `POST /simtr-dossie-produto/v1/dossie-produto/{id}/capturar` | Nao existe endpoint publico, capacidade, REST Client, adapter ou simulador |
 | `POST /simtr-dossie-produto/v1/dossie-produto/{id}/cancelar` | Nao existe endpoint publico, capacidade, REST Client, adapter ou simulador |
 
-"Nao implementado no Hub" nao significa que a API upstream nao exista no MTR. Esses tres
+"Nao implementado no Hub" nao significa que a API upstream nao exista no MTR. Esses dois
 endpoints aparecem na especificacao como operacoes do ciclo de vida do dossie a serem mantidas,
 mas nao sao chamados pelo diagrama de sequencia principal e nao ganharam rota proxy nesta
 solucao. Tambem nao existe endpoint unico de pre-validacao nem orquestrador local. Uma eventual
@@ -130,14 +130,21 @@ PATCH /simtr/dossie-produto/v1/dossie-produto/{id}/formulario
 POST /simtr/dossie-produto/v2/dossie-produto/{id}/documento
 PATCH /simtr/dossie-produto/v1/dossie-produto/{id}/validacao-negocial
 PATCH /simtr/dossie-produto/v1/dossie-produto/{id}/produto
+POST /simtr/dossie-produto/v1/dossie-produto/{id}/capturar
 POST /simtr/dossie-produto/v1/dossie-produto/{id}/workflow
 POST /simtr/gestao-documento/v1/storage/container/credencial
 ```
 
-Os REST Clients permanecem na borda `adaptador.saida.mtr.client` e conservam timeout, retry,
-circuit breaker, headers, OIDC, propagacao de trace e classificacao de erros observados no
-baseline. Operacoes mutaveis com retry continuam exigindo validacao de idempotencia antes de
-qualquer workflow futuro.
+Os REST Clients permanecem na borda `adaptador.saida.mtr.client` e conservam as politicas
+especificas de timeout, retry, circuit breaker, headers, OIDC, propagacao de trace e classificacao
+de erros protegidas por testes. A captura envia um POST sem corpo, com timeout e circuit breaker,
+mas sem retry automatico porque o contrato MTR nao comprova idempotencia. Seu provider de tracing
+e registrado somente nesse client para preservar a correlacao e impedir que a URL interna completa
+seja publicada pelo span HTTP automatico.
+
+`CapturarDossieProduto` usa a mesma porta de saida para MTR e simulador. O producer CDI seleciona o
+adapter pela property existente `simtr-hub.simulador.dossie-produto.habilitado`; no modo simulador,
+a fixture e o DTO proprios da captura sao usados sem chamada de rede.
 
 ## Configuracao
 
@@ -222,6 +229,6 @@ target/jacoco-report/index.html
 - observabilidade e operacao: `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`;
 - catalogo de sinais: `doc/catalogo-observabilidade.md`.
 
-Quarkus Flow, novos workflows, persistencia de orquestracao, os tres endpoints ausentes listados
+Quarkus Flow, novos workflows, persistencia de orquestracao, os dois endpoints ausentes listados
 acima, quaisquer outros endpoints novos, upload e lifecycle de SAS nao estao implementados e
 exigem feature, plano e GO proprios.

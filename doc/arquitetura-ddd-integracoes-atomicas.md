@@ -3,7 +3,7 @@
 ## Como usar este documento
 
 - **Status:** aceito
-- **Última consolidação:** 2026-08-12
+- **Última consolidação:** 2026-08-14
 - **Objetivo:** explicar rapidamente a arquitetura implementada e as restrições que novas features
   devem respeitar.
 
@@ -17,7 +17,7 @@ correção.
 
 ## Visão do sistema
 
-O `simtr-hub` é um monólito modular Quarkus organizado por domínios de negócio. Ele expõe dez
+O `simtr-hub` é um monólito modular Quarkus organizado por domínios de negócio. Ele expõe onze
 capacidades atômicas por REST e integra cada uma ao MTR ou ao simulador por adapters de saída
 intercambiáveis.
 
@@ -42,7 +42,7 @@ motor de workflow, MCP Server ou comunicação distribuída entre os domínios.
 |---|---|---|
 | `arvoredocumento` | Dados parametrizados usados por uma futura árvore documental | `ConsultarProcessoParametrizado` |
 | `conformidade` | Consulta de checklist por identificador e versão | `ConsultarChecklist` |
-| `dossieproduto` | Operações atômicas do ciclo de vida do dossiê no MTR | `ConsultarDossieProduto`, `CriarDossieProduto`, `AtualizarFormularioDossieProduto`, `IncluirDocumentoDossieProduto`, `RegistrarValidacaoNegocialDossieProduto`, `AlterarProdutosContratadosDossieProduto`, `IniciarOuAvancarWorkflowDossieProduto` |
+| `dossieproduto` | Operações atômicas do ciclo de vida do dossiê no MTR | `ConsultarDossieProduto`, `CriarDossieProduto`, `AtualizarFormularioDossieProduto`, `IncluirDocumentoDossieProduto`, `RegistrarValidacaoNegocialDossieProduto`, `AlterarProdutosContratadosDossieProduto`, `CapturarDossieProduto`, `IniciarOuAvancarWorkflowDossieProduto` |
 | `gestaodocumento` | Obtenção de credencial para o container documental | `ObterCredencialContainer` |
 
 `parametrizacao` é o nome de um sistema/contrato upstream, não um domínio interno compartilhado.
@@ -64,13 +64,13 @@ existirem requisitos, contratos e autorização próprios.
 | `POST` | `/simtr-hub/v1/dossie-produto/{id}/documento` |
 | `PATCH` | `/simtr-hub/v1/dossie-produto/{id}/validacao-negocial` |
 | `PATCH` | `/simtr-hub/v1/dossie-produto/{id}/produto` |
+| `POST` | `/simtr-hub/v1/dossie-produto/{id}/capturar` |
 | `POST` | `/simtr-hub/v1/dossie-produto/{id}/workflow` |
 | `POST` | `/simtr-hub/v1/storage/container/credencial` |
 
-Três operações descritas na especificação de pré-validação ainda não existem no Hub:
+Duas operações descritas na especificação de pré-validação ainda não existem no Hub:
 
 - alterar garantia do dossiê;
-- capturar dossiê;
 - cancelar dossiê.
 
 A existência dessas operações no MTR não autoriza endpoint, capacidade, adapter ou simulador no
@@ -147,12 +147,22 @@ não chama endpoints REST locais.
 - falhas externas são traduzidas para falhas internas somente depois da política de fault
   tolerance.
 
+A captura consome `POST /simtr/dossie-produto/v1/dossie-produto/{id}/capturar` sem corpo. Seu
+REST Client mantém API key e OIDC, aplica timeout e circuit breaker, mas não aplica retry porque o
+contrato externo não comprova idempotência. Um provider registrado somente nesse client suprime o
+span HTTP automático que publicaria a URL interna completa e reinjeta o contexto usando o
+propagador OpenTelemetry configurado; os demais REST Clients não são afetados.
+
 ### Simulador
 
 - implementa as mesmas portas de saída do adapter MTR;
 - usa DTO e mapper próprios para ler fixtures;
 - não reutiliza DTO REST ou MTR;
 - seleção MTR/simulador usa qualifiers ou producer CDI explícitos.
+
+`CapturarDossieProduto` reutiliza a property
+`simtr-hub.simulador.dossie-produto.habilitado` para selecionar seu adapter MTR ou simulador. A
+fixture da captura é sintética e o modo simulador não realiza chamada de rede.
 
 ### MCP futuro
 
@@ -181,10 +191,10 @@ thread sem expor esse detalhe ao domínio.
 Timeout, retry, circuit breaker e classificação de exceções pertencem ao adapter MTR. As políticas
 não são aplicadas automaticamente ao simulador.
 
-Criação de dossiê, inclusão de documento, alteração de produtos contratados e avanço de workflow
-são operações mutáveis. Antes de um workflow, orquestrador ou agente repetir essas operações,
-deve existir evidência de idempotência do MTR ou uma estratégia/chave idempotente aprovada. Sem
-essa evidência, a composição mutável fica bloqueada.
+Criação de dossiê, inclusão de documento, alteração de produtos contratados, captura e avanço de
+workflow são operações mutáveis. Antes de um workflow, orquestrador ou agente repetir essas
+operações, deve existir evidência de idempotência do MTR ou uma estratégia/chave idempotente
+aprovada. Sem essa evidência, a composição mutável fica bloqueada.
 
 ## Observabilidade e segurança
 
@@ -219,7 +229,7 @@ snapshot nem inspecionam o documento gerado, conforme o ADR-0006.
 - não possui MCP Server ou tools;
 - não possui persistência de estado de fluxo;
 - não calcula árvore documental nem executa análise de conformidade;
-- não implementa os três endpoints ausentes listados acima.
+- não implementa os dois endpoints ausentes listados acima.
 
 Essas restrições descrevem o estado atual, não uma proibição permanente. Uma feature pode mudá-las
 somente com requisitos explícitos, análise de impacto, plano, testes e GO humano.
