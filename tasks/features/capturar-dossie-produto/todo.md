@@ -3,10 +3,10 @@
 ## Estado
 
 - **Branch:** `feature/capturar-dossie-produto`
-- **Escopo:** feature aceita e encerrada em CF
-- **Próximo item:** nenhum — feature encerrada
-- **Último Sonar:** análise `0a51bf8a-180b-41a7-ad4a-f338f2f27a35`, fingerprint
-  `478ede4feadf45af5cab9638fe36433d26a16f2f1a089f5e5b9c97af81f7ec6c`, `COMPLIANT` e
+- **Escopo:** adendos documental e da mensagem simulada aprovados e encerrados
+- **Próximo item:** nenhum — C18 aprovado pelo usuário
+- **Último Sonar:** análise `98a5379f-ab23-40cd-b7c4-7b45c0289ecb`, fingerprint
+  `4373b4294828bbe04aeaf683c13b80e554fb4887bfc0299d382303f29af9a0ba`, `COMPLIANT` e
   `NOT_REQUIRED`: zero issue nova, cobertura 88,0% e duplicação 3,3%
 - **Alteração preexistente preservada:** `.tools/` não rastreado e fora do escopo
 
@@ -51,6 +51,11 @@
   - [x] 17.1-A Extrair constantes locais nos dois testes autorizados;
   - [x] 17.1-R Revalidar testes, SonarQube, diff e revisão após o ajuste;
 - [x] CF Registrar aceitação e encerramento humanos da feature.
+- [x] C18-GO Registrar GO humano para o adendo documental 18.1;
+- [x] 18.1 Explicitar o identificador `123` no título e nas referências do mock;
+- [x] C18-CONTRATO Aprovar a mensagem pública do `404` simulado e registrar `GO 18.2`;
+- [x] 18.2 Aplicar RED → GREEN, regressão completa e checkpoint SonarQube;
+- [x] C18 Revisar e encerrar os adendos.
 
 ## Critérios globais de conclusão
 
@@ -75,6 +80,10 @@
   nova e dentro dos limites de cobertura e duplicação;
 - [x] README, arquitetura, ADR e catálogo refletem a capacidade implementada;
 - [x] Postman, formatos derivados, dependências e arquivos fora do escopo permanecem intactos.
+- [x] o identificador `123` está visível como dado da fixture, enquanto o endpoint público continua
+  documentado com o parâmetro `{id}`, sem alteração do JSON ou do contrato parametrizado.
+- [x] o `404` simulado informa dinamicamente os identificadores solicitado e disponível quando a
+  fixture possui ID divergente, sem alterar os demais campos ou anunciar ID quando ele não existe.
 
 ## Decisões humanas
 
@@ -92,9 +101,65 @@
 | C3-R2 | APROVADO | 2026-08-14 | Usuário registrou `Aprovar C3` após o ajuste MINOR, 569 testes verdes e SonarQube `COMPLIANT/NOT_REQUIRED` | usuário |
 | C4 | APROVADO | 2026-08-14 | Usuário registrou `GO C4`; documentação consistente e Postman/derivados reservados à atualização manual | usuário |
 | CF | APROVADO | 2026-08-15 | Usuário registrou explicitamente `CF`; evidências finais aceitas e feature encerrada | usuário |
+| C18-GO | APROVADO | 2026-08-17 | Usuário registrou explicitamente `GO 18.1`; escopo restrito ao título e às referências humanas do mock | usuário |
+| C18-CONTRATO | APROVADO | 2026-08-17 | Usuário registrou `GO C18-CONTRATO e 18.2`; IDs solicitado e disponível permanecem dinâmicos, vindos respectivamente da rota e da fixture | usuário |
+| C18 | APROVADO | 2026-08-17 | Usuário registrou explicitamente `Aprovar C18` após receber as evidências da implementação, dos testes e do checkpoint SonarQube | usuário |
 
 ## Evidências do planejamento
 
+- 2026-08-17 — o usuário registrou explicitamente `Aprovar C18`, aceitou as evidências da Task
+  18.2 e encerrou os adendos. Nenhuma execução Maven ou SonarQube foi repetida, pois este registro
+  é exclusivamente documental e não houve alteração executável após o checkpoint final
+  `COMPLIANT/NOT_REQUIRED`.
+- 2026-08-17 — a Task 18.2 foi implementada após o GO. O primeiro baseline foi impedido pelo
+  processo de desenvolvimento que mantinha `target/simtr-hub-dev.jar` aberto; após identificar e
+  encerrar somente o processo Java da porta `8080`, o script oficial concluiu o baseline local
+  `READY`, análise `0ddbed8b-2bcc-4046-946f-eaea349d77b5`, com 213 issues, cobertura de 88,0%,
+  duplicação de 3,3% e `COMPLIANT/NOT_REQUIRED`. A aplicação local permaneceu parada para que o
+  usuário decida quando reiniciá-la.
+- 2026-08-17 — o RED focado executou nove testes e falhou exatamente nos dois novos contratos: o
+  teste unitário e o teste Quarkus pela rota pública ainda receberam a mensagem anterior, sem o ID
+  disponível. A implementação mínima passou a obter o ID solicitado do parâmetro da rota e o ID
+  disponível da resposta da fixture, sem fixar `13` ou `123` no código. Fixture ausente ou sem ID
+  preserva a mensagem anterior.
+- 2026-08-17 — o GREEN focado executou os mesmos nove testes sem falhas. `mvn -q clean test`
+  concluiu sem falhas, erros ou ignorados, e o checkpoint oficial publicou a análise
+  `98a5379f-ab23-40cd-b7c4-7b45c0289ecb`, fingerprint
+  `4373b4294828bbe04aeaf683c13b80e554fb4887bfc0299d382303f29af9a0ba`. O resultado ficou
+  `COMPLIANT/NOT_REQUIRED`: 213 issues atuais e 213 no baseline, zero issue nova ou severa,
+  cobertura de 88,0%, duplicação de 3,3% e nenhuma violação.
+- 2026-08-17 — a revisão de contrato, correção, simplicidade, arquitetura, segurança, desempenho,
+  testes e escopo não encontrou achado crítico ou obrigatório. Status, formato JSON, `recurso`,
+  `id_erro`, `codigo_erro`, sucesso com `123`, falhas sem ID, mensagens MTR e outros simuladores
+  permanecem inalterados. Configuração, dependências, Postman, formatos derivados e `.tools/`
+  ficaram fora do incremento; `git diff --check` terminou sem erros. A Task 18.2 está concluída,
+  mas o checkpoint C18 permanece pendente de decisão humana explícita.
+- 2026-08-17 — usuário registrou explicitamente `GO C18-CONTRATO e 18.2`. O contrato aprovado não
+  fixa o ID solicitado: a mensagem usa o parâmetro recebido em
+  `POST /simtr-hub/v1/dossie-produto/{id}/capturar` e informa o identificador disponível lido da
+  fixture. O próximo passo autorizado é inicializar o baseline local antes do teste RED.
+- 2026-08-17 — usuário solicitou implementar no `404` do simulador a informação de que a fixture
+  possui somente o ID `123`. A inspeção localizou a mensagem em
+  `CapturaDossieProdutoSimuladorAdapter.naoEncontrado` e sua asserção unitária; o plano acrescenta
+  também um contrato Quarkus pela rota pública. A proposta deriva o ID disponível da resposta da
+  fixture, preserva a mensagem atual quando não houver ID válido e não altera erros MTR ou outros
+  simuladores. Como passa a haver código/teste, baseline, Maven e checkpoint SonarQube voltam a ser
+  obrigatórios após o GO e antes/nos momentos definidos na Task 18.2. A verificação prévia
+  confirmou que `sonar/` permanece ausente, portanto não há pacote offline a escolher e o baseline
+  previsto usa somente o SonarQube Docker local.
+- 2026-08-17 — durante a revisão C18, o usuário esclareceu que o endpoint público deve permanecer
+  parametrizado por um identificador de dossiê. A referência foi corrigida para distinguir o
+  contrato `/{id}/capturar` do valor `123`, que pertence somente ao cenário feliz da fixture; não
+  houve alteração do JSON, do endpoint ou do comportamento.
+- 2026-08-17 — após `GO 18.1`, o título e a nova referência humana passaram a tornar o identificador
+  sintético descobrível. O endpoint templated, o cabeçalho técnico e o JSON da fixture permaneceram
+  inalterados. Por ser ajuste exclusivamente documental, Maven, baseline e checkpoint SonarQube
+  não foram executados; C18 aguarda revisão e encerramento humanos.
+- 2026-08-17 — usuário relatou que o identificador disponível não está explícito no título nem em
+  uma referência do mock e solicitou torná-lo visível. A inspeção confirmou que a fixture contém
+  somente o id sintético `123` no JSON e que `MarkdownJsonMockReader` depende literalmente do
+  cabeçalho `## dados do mock corpo do retorno json`; o adendo preservará ambos e alterará somente
+  o texto humano após `GO 18.1`.
 - 2026-08-13 — usuário registrou explicitamente `GO 12.1`; o escopo autorizado ficou limitado à
   ligação da rota pública ao caso de uso, wrapper de observabilidade da aplicação e testes dessa
   fatia, sem avançar para provas de wire MTR, contratos transversais, documentação ou C2.

@@ -729,6 +729,86 @@ oficial de checkpoint e inspeção do diff/whitespace.
 - apresentar contrato entregue, testes, integração, observabilidade, Sonar e diff;
 - somente o usuário registra CF/encerramento da feature.
 
+### Adendo corretivo 18.1 — Explicitar o identificador disponível no mock
+
+**Descrição:** tornar o cenário feliz do simulador descobrível diretamente no Markdown da fixture,
+sem alterar o JSON, o identificador disponível ou qualquer comportamento executável.
+
+**Critérios de aceitação:**
+
+- o título principal informa que o identificador disponível na fixture é `123`;
+- uma seção de referência distingue o endpoint público parametrizado pelo contrato, com `{id}`,
+  do identificador `123` aceito no cenário feliz desta fixture;
+- nenhuma redação apresenta `/123/capturar` como se fosse o contrato do endpoint;
+- o endpoint templated, o cabeçalho técnico `## dados do mock corpo do retorno json` e o JSON
+  `{ "id": 123 }` permanecem inalterados;
+- código, testes, configuração, contratos, Postman e formatos derivados permanecem fora do diff.
+
+**Verificação:** inspecionar o diff do Markdown e confirmar que somente título e referência humana
+foram acrescentados. Por ser um ajuste exclusivamente documental, não executar Maven, baseline ou
+checkpoint SonarQube.
+
+**Dependências:** `GO 18.1` explícito do usuário.
+
+**Arquivos prováveis:**
+
+- `src/main/resources/mock/dossieproduto/captura-dossie-produto.md`;
+- `tasks/features/capturar-dossie-produto/plan.md`;
+- `tasks/features/capturar-dossie-produto/todo.md`.
+
+### Checkpoint C18-CONTRATO — Mensagem pública do `404` simulado
+
+- aprovar a mensagem exata para ID divergente:
+  `Dossie produto <id> nao encontrado no simulador. O unico identificador disponivel no simulador e <id-disponivel>.`;
+- restringir a informação adicional ao modo simulador da captura e ao caso em que a fixture possui
+  um identificador válido diferente do solicitado;
+- preservar status, formato JSON, `recurso`, `id_erro`, `codigo_erro`, erros MTR e demais
+  simuladores;
+- nenhuma alteração executável começa antes do GO humano deste checkpoint.
+
+### Adendo corretivo 18.2 — Informar o único ID disponível no erro simulado
+
+**Descrição:** melhorar o `404` da captura simulada para informar o identificador realmente lido
+da fixture quando ele divergir do ID solicitado. Aplicar RED → GREEN → REFACTOR e manter o valor da
+fixture como fonte de verdade, sem duplicar `123` no Java.
+
+**Critérios de aceitação:**
+
+- `POST /simtr-hub/v1/dossie-produto/13/capturar`, com simulador habilitado e fixture `123`, retorna
+  `404` com a mensagem exata
+  `Dossie produto 13 nao encontrado no simulador. O unico identificador disponivel no simulador e 123.`;
+- ausência da fixture ou fixture sem ID preserva a mensagem atual, sem anunciar identificador
+  disponível inexistente;
+- sucesso com `123`, validação de IDs inválidos, formato do erro e todos os campos não textuais
+  permanecem inalterados;
+- nenhuma mensagem MTR, consulta de dossiê ou outro simulador é modificada;
+- teste unitário e teste Quarkus da resposta pública falham antes da produção e passam depois;
+- suíte completa, ArchUnit e checkpoint SonarQube ficam verdes.
+
+**Verificação:** inicializar baseline local antes do RED, executar os testes focados no RED e no
+GREEN, executar `mvn -q clean test`, o script oficial de checkpoint SonarQube e revisar
+diff/whitespace nos eixos de contrato, correção, simplicidade, arquitetura, segurança, desempenho e
+escopo.
+
+**Dependências:** `GO C18-CONTRATO e 18.2` explícito do usuário e baseline SonarQube inicializado
+antes da primeira alteração executável.
+
+**Arquivos prováveis:**
+
+- `src/main/java/br/gov/caixa/simtr/hub/dossieproduto/adaptador/saida/simulador/adapter/CapturaDossieProdutoSimuladorAdapter.java`;
+- `src/test/java/br/gov/caixa/simtr/hub/dossieproduto/adaptador/saida/simulador/adapter/CapturaDossieProdutoSimuladorAdapterTest.java`;
+- `src/test/java/br/gov/caixa/simtr/hub/dossieproduto/integracao/CapturaDossieProdutoSelecaoSimuladorQuarkusTest.java`;
+- `tasks/features/capturar-dossie-produto/plan.md`;
+- `tasks/features/capturar-dossie-produto/todo.md`.
+
+### Checkpoint C18 — Revisão final dos adendos
+
+- confirmar que `123` está visível como dado da fixture, sem substituir `{id}` no contrato;
+- confirmar a mensagem pública aprovada, seus testes e a preservação dos demais campos/cenários;
+- provar que nenhum arquivo derivado, Postman, configuração ou código fora da Task 18.2 foi
+  alterado;
+- somente o usuário registra o encerramento do adendo.
+
 ## SonarQube
 
 - a elaboração inicial foi exclusivamente documental; `sonar/`, Maven, API Sonar e baseline não
@@ -742,6 +822,14 @@ oficial de checkpoint e inspeção do diff/whitespace.
   `9056ed2e-9910-4ed7-b6b6-33371ca35e64`, revisão `d40999f`, 213 issues, cobertura de 87,8%,
   duplicação de 3,5%, avaliação `COMPLIANT` e decisão `NOT_REQUIRED`;
 - checkpoints esperados: C2, C3 e validação final, quando houver alteração do fingerprint;
+- retomada 18.2: `sonar/` foi verificado e permaneceu ausente; o novo baseline foi inicializado
+  somente no SonarQube Docker local antes da primeira alteração de produção, na análise
+  `0ddbed8b-2bcc-4046-946f-eaea349d77b5`, com 213 issues, cobertura de 88,0%, duplicação de 3,3%
+  e `COMPLIANT/NOT_REQUIRED`;
+- checkpoint 18.2: análise `98a5379f-ab23-40cd-b7c4-7b45c0289ecb`, fingerprint
+  `4373b4294828bbe04aeaf683c13b80e554fb4887bfc0299d382303f29af9a0ba`, 213 issues atuais e no
+  baseline, zero issue nova ou severa, cobertura de 88,0%, duplicação de 3,3% e
+  `COMPLIANT/NOT_REQUIRED`;
 - `NON_COMPLIANT` exige apresentação de evidências e decisão explícita
   `Reprovar`, `AceitarExcepcionalmente` ou `ContinuarAjustes`.
 
@@ -777,8 +865,9 @@ oficial de checkpoint e inspeção do diff/whitespace.
 
 ## GO necessário
 
-O `GO replanejar C3` autoriza somente esta atualização documental. Nenhuma alteração de produção,
-teste executável ou tooling da Task 14.2 começa antes do `GO C3-TRACE` registrado no `todo.md`.
-Depois desse GO, será executado somente o próximo item pendente do checklist. Qualquer mudança de
-contrato, arquitetura, segurança, observabilidade ou política de retry atualiza este plano e o
-checklist antes da implementação.
+Os GOs anteriores permanecem vinculados aos incrementos históricos já concluídos. O adendo 18.1
+não começa antes do `GO 18.1` explícito do usuário e registrado no `todo.md`. Esse GO autoriza
+somente a alteração textual descrita acima. O novo comportamento do adendo 18.2 não começa antes do
+`GO C18-CONTRATO e 18.2` explícito do usuário. Qualquer mudança adicional no JSON, no leitor do
+mock, em contrato, configuração ou comportamento exige novo replanejamento e os checkpoints
+aplicáveis.

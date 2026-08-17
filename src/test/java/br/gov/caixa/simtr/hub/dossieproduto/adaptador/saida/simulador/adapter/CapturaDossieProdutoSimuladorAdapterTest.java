@@ -88,7 +88,10 @@ class CapturaDossieProdutoSimuladorAdapterTest {
 
         var falha = executarFalha(adapter, IDENTIFICADOR);
 
-        assertNaoEncontrado(falha, IDENTIFICADOR);
+        assertNaoEncontrado(
+                falha,
+                IDENTIFICADOR,
+                "Dossie produto 123 nao encontrado no simulador.");
         verify(reader).readFirstJsonObject(
                 MOCK_RESOURCE,
                 CapturaDossieProdutoSimuladorResponse.class);
@@ -108,7 +111,11 @@ class CapturaDossieProdutoSimuladorAdapterTest {
 
         var falha = executarFalha(adapter, 456L);
 
-        assertNaoEncontrado(falha, 456L);
+        assertNaoEncontrado(
+                falha,
+                456L,
+                "Dossie produto 456 nao encontrado no simulador. "
+                        + "O unico identificador disponivel no simulador e 123.");
         verifyNoInteractions(mapper);
     }
 
@@ -124,7 +131,10 @@ class CapturaDossieProdutoSimuladorAdapterTest {
 
         var falha = executarFalha(adapter, IDENTIFICADOR);
 
-        assertNaoEncontrado(falha, IDENTIFICADOR);
+        assertNaoEncontrado(
+                falha,
+                IDENTIFICADOR,
+                "Dossie produto 123 nao encontrado no simulador.");
         verifyNoInteractions(mapper);
     }
 
@@ -186,15 +196,14 @@ class CapturaDossieProdutoSimuladorAdapterTest {
 
     private static void assertNaoEncontrado(
             FalhaCapturaDossieProduto falha,
-            Long identificador
+            Long identificador,
+            String mensagemEsperada
     ) {
         assertEquals(FalhaCapturaDossieProduto.Tipo.NEGOCIO, falha.tipo());
         assertEquals(404, falha.status());
         assertEquals("simtr-dossie-produto", falha.recurso());
         assertEquals("mock-captura-dossie-produto-" + identificador, falha.idErro());
         assertEquals("DOSSIE_PRODUTO_NAO_ENCONTRADO", falha.codigoErro());
-        assertEquals(
-                "Dossie produto " + identificador + " nao encontrado no simulador.",
-                falha.mensagens().getFirst());
+        assertEquals(mensagemEsperada, falha.mensagens().getFirst());
     }
 }

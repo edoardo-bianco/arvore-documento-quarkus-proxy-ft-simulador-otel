@@ -48,14 +48,15 @@ public class CapturaDossieProdutoSimuladorAdapter implements SolicitarCapturaDos
         Long id = identificador != null ? identificador.valor() : null;
         registrarUso(id);
         if (id == null) {
-            return Uni.createFrom().failure(naoEncontrado(null));
+            return Uni.createFrom().failure(naoEncontrado(null, null));
         }
 
         CapturaDossieProdutoSimuladorResponse resposta = mockReader.readFirstJsonObject(
                 MOCK_RESOURCE,
                 CapturaDossieProdutoSimuladorResponse.class);
-        if (resposta == null || resposta.id() == null || !id.equals(resposta.id())) {
-            return Uni.createFrom().failure(naoEncontrado(id));
+        Long idDisponivel = resposta != null ? resposta.id() : null;
+        if (idDisponivel == null || !id.equals(idDisponivel)) {
+            return Uni.createFrom().failure(naoEncontrado(id, idDisponivel));
         }
         return Uni.createFrom().item(mapper.paraResultado(resposta));
     }
@@ -77,15 +78,23 @@ public class CapturaDossieProdutoSimuladorAdapter implements SolicitarCapturaDos
                         "origem", "mock"));
     }
 
-    private static FalhaCapturaDossieProduto naoEncontrado(Long identificador) {
+    private static FalhaCapturaDossieProduto naoEncontrado(
+            Long identificador,
+            Long identificadorDisponivel
+    ) {
         String valor = String.valueOf(identificador);
+        String mensagem = "Dossie produto " + valor + " nao encontrado no simulador.";
+        if (identificadorDisponivel != null) {
+            mensagem += " O unico identificador disponivel no simulador e "
+                    + identificadorDisponivel + ".";
+        }
         return new FalhaCapturaDossieProduto(
                 FalhaCapturaDossieProduto.Tipo.NEGOCIO,
                 404,
                 SERVICO,
                 "mock-captura-dossie-produto-" + valor,
                 CODIGO_NAO_ENCONTRADO,
-                List.of("Dossie produto " + valor + " nao encontrado no simulador."),
+                List.of(mensagem),
                 null,
                 null,
                 null);
