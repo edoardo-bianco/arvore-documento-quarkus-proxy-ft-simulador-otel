@@ -52,6 +52,8 @@ class ObservabilidadeLogsContratoTest {
             PREFIXO_EVENTO_CONSULTA + "service.falhou";
     private static final String EVENTO_CONSULTA_REQUISICAO_FALHOU =
             PREFIXO_EVENTO_CONSULTA + "requisicao.falhou";
+    private static final String PREFIXO_EVENTO_CAPTURA =
+            "simtr-hub.dossie-produto.captura.";
     private static final String ORIGEM_MOCK = "mock";
     private static final String RESULTADO_SUCESSO = "sucesso";
     private static final String RESULTADO_ERRO = "erro";
@@ -83,8 +85,8 @@ class ObservabilidadeLogsContratoTest {
     }
 
     @Test
-    void preservaEventosEstruturadosDasDezCapacidadesNoCaminhoSimulador() {
-        chamarDezEndpoints();
+    void preservaEventosEstruturadosDasOnzeCapacidadesNoCaminhoSimulador() {
+        chamarOnzeEndpoints();
 
         Map<String, LogObservado> observados = handler.logs().stream()
                 .filter(log -> eventosEsperados().contains(log.evento()))
@@ -121,6 +123,12 @@ class ObservabilidadeLogsContratoTest {
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         assertConsultaSimulador(consulta);
         assertSemDadosSensiveis(consulta.values());
+
+        Map<String, LogObservado> captura = observados.entrySet().stream()
+                .filter(entry -> entry.getKey().startsWith(PREFIXO_EVENTO_CAPTURA))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        assertCapturaSimulador(captura);
+        assertSemDadosSensiveis(captura.values());
     }
 
     @Test
@@ -192,7 +200,7 @@ class ObservabilidadeLogsContratoTest {
         assertSemDadosSensiveis(consulta.values());
     }
 
-    private static void chamarDezEndpoints() {
+    private static void chamarOnzeEndpoints() {
         given()
                 .get("/simtr-hub/v1/processo/identificador-negocial/{identificador}", 1000016487L)
                 .then().statusCode(200);
@@ -235,6 +243,9 @@ class ObservabilidadeLogsContratoTest {
                 .then().statusCode(204);
         given()
                 .post("/simtr-hub/v1/dossie-produto/{id}/workflow", 123L)
+                .then().statusCode(200);
+        given()
+                .post("/simtr-hub/v1/dossie-produto/{id}/capturar", 123L)
                 .then().statusCode(200);
         given()
                 .post("/simtr-hub/v1/storage/container/credencial")
@@ -288,6 +299,11 @@ class ObservabilidadeLogsContratoTest {
                 "simtr-hub.dossie-produto.workflow.simulador.usado",
                 "simtr-hub.dossie-produto.workflow.service.concluido",
                 "simtr-hub.dossie-produto.workflow.resposta.enviada",
+                PREFIXO_EVENTO_CAPTURA + "recebida",
+                PREFIXO_EVENTO_CAPTURA + "processamento.iniciada",
+                PREFIXO_EVENTO_CAPTURA + "simulador.usado",
+                PREFIXO_EVENTO_CAPTURA + "processamento.concluida",
+                PREFIXO_EVENTO_CAPTURA + "concluida",
                 "simtr-hub.gestao-documento.credencial-container.requisicao.recebida",
                 "simtr-hub.gestao-documento.credencial-container.service.iniciado",
                 "simtr-hub.gestao-documento.credencial-container.simulador.usado",
@@ -344,6 +360,27 @@ class ObservabilidadeLogsContratoTest {
                 EVENTO_CONSULTA_SERVICE_CONCLUIDA,
                 EVENTO_CONSULTA_RESPOSTA
         );
+    }
+
+    private static void assertCapturaSimulador(Map<String, LogObservado> captura) {
+        assertEquals(Set.of(
+                PREFIXO_EVENTO_CAPTURA + "recebida",
+                PREFIXO_EVENTO_CAPTURA + "processamento.iniciada",
+                PREFIXO_EVENTO_CAPTURA + "simulador.usado",
+                PREFIXO_EVENTO_CAPTURA + "processamento.concluida",
+                PREFIXO_EVENTO_CAPTURA + "concluida"), captura.keySet());
+        captura.forEach((evento, log) -> {
+            assertEquals("capturar-dossie-produto-v1",
+                    log.mdc().get(CAMPO_OPERACAO), evento);
+            assertEquals("123", log.mdc().get(CAMPO_DOSSIE_ID), evento);
+        });
+        assertOrigemMock(captura.get(PREFIXO_EVENTO_CAPTURA + "processamento.iniciada"));
+        assertOrigemMock(captura.get(PREFIXO_EVENTO_CAPTURA + "simulador.usado"));
+        assertOrigemMock(captura.get(PREFIXO_EVENTO_CAPTURA + "processamento.concluida"));
+        assertEquals(RESULTADO_SUCESSO, captura.get(
+                PREFIXO_EVENTO_CAPTURA + "processamento.concluida").mdc().get(CAMPO_RESULTADO));
+        assertEquals(RESULTADO_SUCESSO, captura.get(
+                PREFIXO_EVENTO_CAPTURA + "concluida").mdc().get(CAMPO_RESULTADO));
     }
 
     private static void assertOrigemMock(LogObservado log) {

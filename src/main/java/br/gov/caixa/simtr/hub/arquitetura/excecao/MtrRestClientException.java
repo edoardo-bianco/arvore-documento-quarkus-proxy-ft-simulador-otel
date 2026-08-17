@@ -14,7 +14,16 @@ public abstract class MtrRestClientException extends RuntimeException {
     }
 
     protected MtrRestClientException(int status, ErroPadraoDto erro, MtrErrorType tipoErro) {
-        super(resolveMessage(erro));
+        this(status, erro, tipoErro, resolveMessage(erro));
+    }
+
+    protected MtrRestClientException(
+            int status,
+            ErroPadraoDto erro,
+            MtrErrorType tipoErro,
+            String mensagemObservavel
+    ) {
+        super(mensagemObservavel);
         this.status = status;
         this.erro = erro;
         this.tipoErro = tipoErro != null ? tipoErro : MtrErrorType.TECNICO_CLIENTE;

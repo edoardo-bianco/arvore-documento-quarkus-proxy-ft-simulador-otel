@@ -11,4 +11,13 @@ public class MtrClientErrorException extends MtrRestClientException {
     protected MtrClientErrorException(int status, ErroPadraoDto erro, MtrErrorType tipoErro) {
         super(status, erro, tipoErro);
     }
+
+    protected MtrClientErrorException(
+            int status,
+            ErroPadraoDto erro,
+            MtrErrorType tipoErro,
+            String mensagemObservavel
+    ) {
+        super(status, erro, tipoErro, mensagemObservavel);
+    }
 }

@@ -3,13 +3,16 @@ package br.gov.caixa.simtr.hub.dossieproduto.adaptador.entrada.rest.v1;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.entrada.rest.v1.dto.CriacaoDossieProdutoRequest;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.entrada.rest.v1.dto.AlteracaoProdutoDossieProdutoRequest;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.entrada.rest.v1.dto.ConsultaDossieProdutoResponse;
+import br.gov.caixa.simtr.hub.dossieproduto.adaptador.entrada.rest.v1.dto.CapturaDossieProdutoResponse;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.AlterarProdutosContratadosDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.AtualizarFormularioDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.CapturarDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.ConsultarDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.CriarDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.IncluirDocumentoDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada.RegistrarValidacaoNegocialDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaCriacaoDossieProduto;
+import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaCapturaDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaConsultaDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaAlteracaoProdutosContratadosDossieProduto;
 import br.gov.caixa.simtr.hub.dossieproduto.dominio.erro.FalhaAtualizacaoFormularioDossieProduto;
@@ -90,6 +93,8 @@ public class DossieProdutoResource {
             "alterar-produtos-contratados-dossie-produto";
     private static final String INICIAR_OU_AVANCAR_WORKFLOW_DOSSIE_PRODUTO =
             "iniciar-ou-avancar-workflow-dossie-produto";
+    private static final String CAPTURAR_DOSSIE_PRODUTO =
+            "capturar-dossie-produto-v1";
 
     private final CriarDossieProduto criarDossieProduto;
     private final ConsultarDossieProduto consultarDossieProduto;
@@ -98,15 +103,18 @@ public class DossieProdutoResource {
     private final IniciarOuAvancarWorkflowDossieProduto iniciarOuAvancarWorkflow;
     private final RegistrarValidacaoNegocialDossieProduto registrarValidacaoNegocial;
     private final AlterarProdutosContratadosDossieProduto alterarProdutosContratados;
+    private final CapturarDossieProduto capturarDossieProduto;
 
     @Inject
+    @SuppressWarnings("java:S107") // Cada parâmetro é uma porta de capacidade REST independente.
     public DossieProdutoResource(CriarDossieProduto criarDossieProduto,
                                  ConsultarDossieProduto consultarDossieProduto,
                                  AtualizarFormularioDossieProduto atualizarFormularioDossieProduto,
                                  IncluirDocumentoDossieProduto incluirDocumentoDossieProduto,
                                  IniciarOuAvancarWorkflowDossieProduto iniciarOuAvancarWorkflow,
                                  RegistrarValidacaoNegocialDossieProduto registrarValidacaoNegocial,
-                                 AlterarProdutosContratadosDossieProduto alterarProdutosContratados) {
+                                 AlterarProdutosContratadosDossieProduto alterarProdutosContratados,
+                                 CapturarDossieProduto capturarDossieProduto) {
         this.criarDossieProduto = criarDossieProduto;
         this.consultarDossieProduto = consultarDossieProduto;
         this.atualizarFormularioDossieProduto = atualizarFormularioDossieProduto;
@@ -114,6 +122,7 @@ public class DossieProdutoResource {
         this.iniciarOuAvancarWorkflow = iniciarOuAvancarWorkflow;
         this.registrarValidacaoNegocial = registrarValidacaoNegocial;
         this.alterarProdutosContratados = alterarProdutosContratados;
+        this.capturarDossieProduto = capturarDossieProduto;
     }
 
     @GET
@@ -790,6 +799,77 @@ public class DossieProdutoResource {
     }
 
     @POST
+    @Path("/{id}/capturar")
+    @Consumes(MediaType.WILDCARD)
+    @WithSpan(value = "simtr-hub.api.dossie-produto.capturar", kind = SpanKind.SERVER)
+    @Operation(
+            summary = "Captura dossiê de produto para edição",
+            description = "Solicita ao SIMTR a captura do dossiê de produto identificado no path."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "Dossiê de Produto capturado com sucesso.",
+            content = @Content(schema = @Schema(
+                    implementation = CapturaDossieProdutoResponse.class))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Requisição inválida.",
+            content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "Não autorizado.",
+            content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Canal ou usuário sem permissão.",
+            content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Dossiê de Produto não localizado.",
+            content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+    )
+    @APIResponse(
+            responseCode = "409",
+            description = "Conflito ao capturar o Dossiê de Produto.",
+            content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Erro interno.",
+            content = @Content(schema = @Schema(implementation = ErroPadraoDto.class))
+    )
+    public Uni<Response> capturarDossieProduto(
+            @PathParam("id")
+            @NotNull(message = "O identificador do dossie produto deve ser informado.")
+            @Min(value = 1,
+                    message = "O identificador do dossie produto deve ser maior que zero.")
+            Long id) {
+        Span span = Span.current();
+        span.setAttribute(
+                HTTP_ROUTE_ATTRIBUTE,
+                "/simtr-hub/v1/dossie-produto/{id}/capturar");
+        span.setAttribute(SIMTR_HUB_API_ATTRIBUTE, DOSSIE_PRODUTO_API_V1);
+        setLongAttribute(span, DOSSIE_PRODUTO_ID_ATTRIBUTE, id);
+
+        ObservabilityLog.info(
+                LOG,
+                "simtr-hub.dossie-produto.captura.recebida",
+                camposCaptura(id, null, null));
+
+        return capturarDossieProduto.executar(new IdentificadorDossieProduto(id))
+                .onFailure(FalhaCapturaDossieProduto.class)
+                .transform(CapturaDossieProdutoRestMapper::paraExcecaoRest)
+                .map(CapturaDossieProdutoRestMapper::paraResposta)
+                .invoke(_ -> registrarSucessoCaptura(span, id))
+                .map(resposta -> Response.ok(resposta).build())
+                .onFailure().invoke(erro -> registrarFalhaCaptura(span, id, erro));
+    }
+
+    @POST
     @Path("/{id}/workflow")
     @Consumes(MediaType.WILDCARD)
     @WithSpan(value = "simtr-hub.api.dossie-produto.workflow.avancar", kind = SpanKind.SERVER)
@@ -898,6 +978,39 @@ public class DossieProdutoResource {
                             )
                     );
                 });
+    }
+
+    private static void registrarSucessoCaptura(Span span, Long id) {
+        span.setAttribute(RESULTADO_KEY, SUCESSO);
+        ObservabilityLog.info(
+                LOG,
+                "simtr-hub.dossie-produto.captura.concluida",
+                camposCaptura(id, SUCESSO, null));
+    }
+
+    private static void registrarFalhaCaptura(Span span, Long id, Throwable erro) {
+        String tipoErro = erro.getClass().getSimpleName();
+        span.setStatus(StatusCode.ERROR, "falha na captura de dossie produto");
+        span.setAttribute("erro.tipo", tipoErro);
+        span.setAttribute(RESULTADO_KEY, "erro");
+        ObservabilityLog.info(
+                LOG,
+                "simtr-hub.dossie-produto.captura.falhou",
+                camposCaptura(id, "erro", tipoErro));
+    }
+
+    private static java.util.Map<String, Object> camposCaptura(
+            Long id,
+            String resultado,
+            String tipoErro
+    ) {
+        return ObservabilityLog.fields(
+                CAMADA_KEY, CAMADA,
+                COMPONENTE_KEY, COMPONENTE,
+                OPERACAO_KEY, CAPTURAR_DOSSIE_PRODUTO,
+                DOSSIE_PRODUTO_ID_KEY, id,
+                ERRO_TIPO_KEY, tipoErro,
+                RESULTADO_KEY, resultado);
     }
 
     private static void registrarSucessoConsulta(

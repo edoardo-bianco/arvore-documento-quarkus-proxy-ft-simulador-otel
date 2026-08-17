@@ -1,6 +1,7 @@
 package br.gov.caixa.simtr.hub.arquitetura.observabilidade;
 
 import br.gov.caixa.simtr.hub.arvoredocumento.adaptador.saida.mtr.adapter.ProcessoParametrizadoMtrAdapter;
+import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.CapturaDossieProdutoMtrAdapter;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.CriacaoDossieProdutoMtrAdapter;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.ConsultaDossieProdutoMtrAdapter;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.DocumentoDossieProdutoMtrAdapter;
@@ -59,7 +60,7 @@ class ObservabilidadeSpansContratoTest {
     }
 
     @Test
-    void preservaSpansDasDezCapacidadesNoCaminhoSimulador() {
+    void preservaSpansDasOnzeCapacidadesNoCaminhoSimulador() {
         given()
                 .get("/simtr-hub/v1/processo/identificador-negocial/{identificador}", 1000016487L)
                 .then()
@@ -108,12 +109,17 @@ class ObservabilidadeSpansContratoTest {
                 .then()
                 .statusCode(200);
         given()
+                .post("/simtr-hub/v1/dossie-produto/{id}/capturar", 123L)
+                .then()
+                .statusCode(200);
+        given()
                 .post("/simtr-hub/v1/storage/container/credencial")
                 .then()
                 .statusCode(200);
 
         ((OpenTelemetrySdk) openTelemetry).getSdkTracerProvider().forceFlush().join(10, TimeUnit.SECONDS);
-        Map<String, SpanData> spans = exporter.getFinishedSpanItems().stream()
+        List<SpanData> finalizados = exporter.getFinishedSpanItems();
+        Map<String, SpanData> spans = finalizados.stream()
                 .filter(span -> span.getName().startsWith("simtr-hub."))
                 .collect(Collectors.toMap(SpanData::getName, span -> span));
         Map<String, SpanEsperado> esperados = spansEsperados();
@@ -138,6 +144,7 @@ class ObservabilidadeSpansContratoTest {
         assertEquals(1L, atributo(serviceProduto, "dossie_produto.produtos.quantidade"));
 
         assertArvoreConsultaSimulador(spans);
+        assertArvoreCapturaSimulador(spans, finalizados);
     }
 
     @Test
@@ -162,7 +169,9 @@ class ObservabilidadeSpansContratoTest {
                 Map.entry("ChecklistMtrAdapter#obter",
                         "mtr.parametrizacao.checklist.consultar|CLIENT|"),
                 Map.entry("ProcessoParametrizadoMtrAdapter#obter",
-                        "mtr.parametrizacao.processo.consultar|CLIENT|")
+                        "mtr.parametrizacao.processo.consultar|CLIENT|"),
+                Map.entry("CapturaDossieProdutoMtrAdapter#capturar",
+                        "mtr.dossie-produto.capturar|CLIENT|")
         );
 
         assertEquals(esperado, extrairSpansDeclarados(
@@ -171,6 +180,7 @@ class ObservabilidadeSpansContratoTest {
                 DocumentoDossieProdutoMtrAdapter.class,
                 FormularioDossieProdutoMtrAdapter.class,
                 ProdutoDossieProdutoMtrAdapter.class,
+                CapturaDossieProdutoMtrAdapter.class,
                 ValidacaoNegocialDossieProdutoMtrAdapter.class,
                 WorkflowDossieProdutoMtrAdapter.class,
                 GestaoDocumentoMtrAdapter.class,
@@ -218,6 +228,10 @@ class ObservabilidadeSpansContratoTest {
                 api("simtr-hub.api.dossie-produto.workflow.avancar",
                         "/simtr-hub/v1/dossie-produto/{id}/workflow", API_DOSSIE_PRODUTO_V1),
                 service("simtr-hub.service.dossie-produto.workflow.avancar",
+                        ATRIBUTO_SIMULADOR_DOSSIE_PRODUTO_HABILITADO),
+                api("simtr-hub.api.dossie-produto.capturar",
+                        "/simtr-hub/v1/dossie-produto/{id}/capturar", API_DOSSIE_PRODUTO_V1),
+                service("simtr-hub.service.dossie-produto.capturar",
                         ATRIBUTO_SIMULADOR_DOSSIE_PRODUTO_HABILITADO),
                 api("simtr-hub.api.gestao-documento.credencial-container.gerar",
                         "/simtr-hub/v1/storage/container/credencial", "gestao-documento-v1"),
@@ -286,6 +300,23 @@ class ObservabilidadeSpansContratoTest {
                 atributo(aplicacao, "dossie_produto.unidades_tratamento.quantidade"));
         assertEquals(1L,
                 atributo(aplicacao, "dossie_produto.produtos_contratados.quantidade"));
+    }
+
+    private static void assertArvoreCapturaSimulador(
+            Map<String, SpanData> spans,
+            List<SpanData> finalizados
+    ) {
+        SpanData api = spans.get("simtr-hub.api.dossie-produto.capturar");
+        SpanData aplicacao = spans.get("simtr-hub.service.dossie-produto.capturar");
+
+        assertEquals(api.getTraceId(), aplicacao.getTraceId());
+        assertEquals(api.getSpanId(), aplicacao.getParentSpanId());
+        assertEquals(123L, atributo(api, ATRIBUTO_DOSSIE_PRODUTO_ID));
+        assertEquals(123L, atributo(aplicacao, ATRIBUTO_DOSSIE_PRODUTO_ID));
+        assertEquals("mock", atributo(aplicacao, "simtr_hub.origem_dados"));
+        assertEquals(0L, finalizados.stream()
+                .filter(span -> "mtr.dossie-produto.capturar".equals(span.getName()))
+                .count());
     }
 
     private record SpanEsperado(SpanKind kind, Map<String, Object> atributos) {

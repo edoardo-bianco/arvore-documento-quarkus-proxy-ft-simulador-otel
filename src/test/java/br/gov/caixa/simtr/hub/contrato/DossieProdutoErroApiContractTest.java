@@ -18,6 +18,8 @@ class DossieProdutoErroApiContractTest {
     private static final String ROTA_DOSSIE_PRODUTO = "/simtr-hub/v1/dossie-produto";
     private static final String ROTA_CONSULTA_DOSSIE_PRODUTO =
             "/simtr-hub/v1/dossie-produto/{id}";
+    private static final String ROTA_CAPTURA_DOSSIE_PRODUTO =
+            "/simtr-hub/v1/dossie-produto/{id}/capturar";
     private static final String ROTA_DOCUMENTO_DOSSIE_PRODUTO =
             "/simtr-hub/v1/dossie-produto/{id}/documento";
     private static final String ROTA_PRODUTO_DOSSIE_PRODUTO =
@@ -217,6 +219,13 @@ class DossieProdutoErroApiContractTest {
     void preservaErroParaIdInvalidoNoWorkflow() {
         validarErro(given().accept(ContentType.JSON)
                 .post("/simtr-hub/v1/dossie-produto/{id}/workflow", 0), MENSAGEM_ID);
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = {0L, -1L})
+    void preservaErroParaIdInvalidoNaCaptura(long id) {
+        validarErro(given().accept(ContentType.JSON)
+                .post(ROTA_CAPTURA_DOSSIE_PRODUTO, id), MENSAGEM_ID);
     }
 
     private static void validarErro(Response response, String... mensagens) {

@@ -7,4 +7,8 @@ public class MtrBusinessErrorException extends MtrClientErrorException {
     public MtrBusinessErrorException(int status, ErroPadraoDto erro) {
         super(status, erro, MtrErrorType.NEGOCIO);
     }
+
+    public MtrBusinessErrorException(int status, ErroPadraoDto erro, String mensagemObservavel) {
+        super(status, erro, MtrErrorType.NEGOCIO, mensagemObservavel);
+    }
 }

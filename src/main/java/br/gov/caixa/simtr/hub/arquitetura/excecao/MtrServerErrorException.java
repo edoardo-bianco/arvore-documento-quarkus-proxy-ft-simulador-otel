@@ -7,4 +7,8 @@ public class MtrServerErrorException extends MtrRestClientException {
     public MtrServerErrorException(int status, ErroPadraoDto erro) {
         super(status, erro, MtrErrorType.TECNICO_SERVIDOR);
     }
+
+    public MtrServerErrorException(int status, ErroPadraoDto erro, String mensagemObservavel) {
+        super(status, erro, MtrErrorType.TECNICO_SERVIDOR, mensagemObservavel);
+    }
 }
