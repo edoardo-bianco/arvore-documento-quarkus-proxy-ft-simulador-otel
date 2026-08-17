@@ -51,9 +51,10 @@ Dono de `ConsultarChecklist`. Nao analisa documentos nem orquestra conformidade.
 
 ### `dossieproduto`
 
-Dono das capacidades atomicas de criacao, formulario, documento, validacao negocial, alteracao de
-produtos contratados e avanco de workflow. A borda REST segue o package canonico
-`adaptador.entrada.rest.v1`; os demais componentes seguem `dominio`, `aplicacao` e `adaptador`.
+Dono das capacidades atomicas de consulta, criacao, formulario, documento, validacao negocial,
+alteracao de produtos contratados, captura para edicao e avanco de workflow. A borda REST segue o
+package canonico `adaptador.entrada.rest.v1`; os demais componentes seguem `dominio`, `aplicacao`
+e `adaptador`.
 
 ### `gestaodocumento`
 
@@ -65,11 +66,13 @@ MTR. Nao ha Azure Storage SDK no nucleo, upload, cache, renovacao ou reutilizaca
 ```http
 GET /simtr-hub/v1/processo/identificador-negocial/{identificador}
 GET /simtr-hub/v1/checklist/identificador-negocial/{identificador}/versao/{versao}
+GET /simtr-hub/v1/dossie-produto/{id}
 POST /simtr-hub/v1/dossie-produto
 PATCH /simtr-hub/v1/dossie-produto/{id}/formulario
 POST /simtr-hub/v1/dossie-produto/{id}/documento
 PATCH /simtr-hub/v1/dossie-produto/{id}/validacao-negocial
 PATCH /simtr-hub/v1/dossie-produto/{id}/produto
+POST /simtr-hub/v1/dossie-produto/{id}/capturar
 POST /simtr-hub/v1/dossie-produto/{id}/workflow
 POST /simtr-hub/v1/storage/container/credencial
 ```
@@ -83,16 +86,14 @@ sem inspecionar o artefato gerado.
 
 ## Limite frente aos endpoints da especificacao de pre-validacao
 
-Os endpoints locais acima correspondem as nove capacidades implementadas. A especificacao
-`api-integracao-mtr-pre-validacao-v1.md` tambem cataloga quatro operacoes do ciclo de vida do
+Os endpoints locais acima correspondem as onze capacidades implementadas. A especificacao
+`api-integracao-mtr-pre-validacao-v1.md` tambem cataloga duas operacoes do ciclo de vida do
 dossie que **NAO EXISTEM NESTE HUB**:
 
 | Endpoint MTR descrito na especificacao | Estado operacional no Hub |
 |---|---|
 | `PATCH /simtr-dossie-produto/v1/dossie-produto/{id}/garantia` | Nao implementado |
-| `POST /simtr-dossie-produto/v1/dossie-produto/{id}/capturar` | Nao implementado |
 | `POST /simtr-dossie-produto/v1/dossie-produto/{id}/cancelar` | Nao implementado |
-| `GET /simtr-dossie-produto/v2/dossie-produto/{id}` | Nao implementado |
 
 Para essas operacoes nao ha Resource, rota `/simtr-hub`, porta ou caso de uso, REST Client,
 adapter MTR, simulador, configuracao, fault tolerance ou sinais de observabilidade no Hub. A
@@ -103,7 +104,7 @@ unico de pre-validacao ou orquestrador local.
 Os prefixos `/simtr-parametrizacao`, `/simtr-dossie-produto` e `/simtr-gestao-documento` usados
 pela especificacao representam os servicos MTR. Nesta implantacao, o gateway e configurado com
 base `/simtr`, e cada REST Client acrescenta seu segmento de servico. A matriz completa, incluindo
-as nove operacoes implementadas, esta em `arquitetura-ddd-integracoes-atomicas.md`.
+as onze operacoes implementadas, esta em `arquitetura-ddd-integracoes-atomicas.md`.
 
 ## Configuracao de integracoes
 
@@ -131,11 +132,17 @@ simtr-hub.simulador.gestao-documento.habilitado=false
 O profile `dev` habilita os simuladores. O profile padrao de testes usa fixtures e stubs localhost,
 sem Docker, Dev Services ou rede externa.
 
+A captura reutiliza `simtr-hub.simulador.dossie-produto.habilitado`: desabilitada, seleciona o
+adapter MTR; habilitada, usa fixture, DTO e mapper proprios sem chamada de rede.
+
 ## Fault tolerance e erros
 
 As annotations de timeout, retry e circuit breaker ficam somente nos REST Clients MTR. Erros
 negociais nao sao tratados como falhas transitorias; erros de servidor, comunicacao e timeout
 seguem a matriz congelada de cada capacidade.
+
+A captura aplica timeout e circuit breaker, mas nao possui retry automatico. Como a operacao altera
+estado e o contrato MTR nao comprova idempotencia, erros `500` e timeout geram uma unica chamada.
 
 A ordem e contratual:
 
@@ -157,14 +164,24 @@ Logs estruturados sao escritos no console e em:
 target/logs/simtr-hub.json
 ```
 
-O filtro de REST Client registra metodo, URL, status, duracao, classe e operacao. Payloads sao
-truncados e mascarados para campos sensiveis. SAS e validade de credencial nao sao registradas.
+O filtro compartilhado de REST Client registra metodo, URL, status, duracao, classe e operacao nos
+clients que o utilizam. Payloads sao truncados e mascarados para campos sensiveis. SAS e validade
+de credencial nao sao registradas. O client da captura nao registra esse filtro; usa eventos
+proprios e um provider local para não publicar payload nem URL interna completa.
 
 ### Traces
 
 Cada capacidade preserva spans nas fronteiras REST, caso de uso e adapter MTR. Os nomes e
 atributos completos ficam em `catalogo-observabilidade.md` e sao protegidos por
 `ObservabilidadeSpansContratoTest` e pelos contratos ponta a ponta.
+
+No modo MTR, a captura produz exatamente os spans
+`simtr-hub.api.dossie-produto.capturar` (`SERVER`),
+`simtr-hub.service.dossie-produto.capturar` (`INTERNAL`) e
+`mtr.dossie-produto.capturar` (`CLIENT`). Somente nesse client, `TracingPolicy.IGNORE` suprime o
+span HTTP automatico com `url.full`; o contexto e reinjetado pelo propagador OpenTelemetry
+configurado, mantendo o `traceparent` ligado ao CLIENT proprio. Os demais REST Clients nao sao
+afetados.
 
 Por padrao:
 
@@ -202,7 +219,7 @@ Se uma chamada MTR falhar, verificar nesta ordem:
 1. property do simulador e profile ativo;
 2. URL do REST Client e credenciais por ambiente;
 3. logs `mtr.*.chamada.iniciada`, `concluida` ou `falhou`;
-4. trace e atributos do REST Client;
+4. trace, span CLIENT da capacidade e, quando aplicável, atributos do filtro REST Client;
 5. classificacao do erro e tentativas previstas pela matriz FT.
 
 ## Limites e dividas conhecidas
@@ -210,7 +227,7 @@ Se uma chamada MTR falhar, verificar nesta ordem:
 - retry em operacoes mutaveis exige prova de idempotencia antes de orquestracao futura;
 - o package tecnico compartilhado de erro `arquitetura.excecao.dto` permanece como desvio interno
   documentado e confinado as bordas REST permitidas;
-- Quarkus Flow, persistencia de workflow, os quatro endpoints ausentes listados acima, quaisquer
+- Quarkus Flow, persistencia de workflow, os dois endpoints ausentes listados acima, quaisquer
   outros endpoints novos, upload e lifecycle de SAS permanecem fora do escopo.
 
 As listas REST de formulario e documento usam `List<@Valid T>`; contratos executaveis preservam
