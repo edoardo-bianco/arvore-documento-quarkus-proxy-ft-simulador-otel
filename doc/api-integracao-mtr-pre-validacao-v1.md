@@ -26,52 +26,45 @@ A parte arquitetural é representada por diagramas C4 de contexto, containers e 
 
 ## Índice
 
-* [Endpoints de Integração com o MTR](#endpoints-de-integração-com-o-mtr)
-
-  * [Alterações de endpoints necessárias para Fluxo 1](#alterações-de-endpoints-necessárias-para-fluxo-1)
-  * [Módulo Parametrização](#módulo-parametrização)
-  * [Módulo dossiês de produto](#módulo-dossiês-de-produto)
-  * [Módulo gestão dos documentos](#módulo-gestão-dos-documentos)
-
-* [APIs do MTR](#apis-do-mtr)
-
-  * [Módulo Parametrização](#módulo-parametrização)
-
-    * [Criar nova versão v2 do endpoint GET de Consulta do processo a partir de seu Identificador Negocial](#criar-nova-versão-v2-do-endpoint-get--de-consulta-do-processo-a-partir-de-seu-identificador-negocial)
-    * [Criar novo endpoint de consulta de checklist](#criar-novo-endpoint-de-consulta-de-cheklist)
-  * [Módulo de Dossiê Produto](#módulo-de-dossiê-produto)
-
-    * [Criar nova versão v2 do endpoint POST de Inclusão de Documento no Dossiê de Produto](#criar-nova-versão-v2-do-endpoint-post-de-inclusão-de-documento-no-dossiê-de-produto)
-    * [Criar novo endpoint de PATCH de Validação Negocial para receber o Resultado dos Checklists analisados](#criar-novo-endpoint-de-patch-de-validação-negocial-para-receber-o-resultao-dos-checklists-analisados)
-    * [Manter inalterado o endpoint POST de Criação básica de Dossiê de Produto em modo rascunho](#manter-inalterado-o-endpoint-post-de-criação-básica-de-dossiê-de-produto-em-modo-rascunho)
-    * [Manter inalterado o endpoint PATCH de Inclusão ou edição de Respostas de Formulário no Dossiê de Produto](#manter-inalterado-o-endpoint-patch-de-inclusão-ou-edição-de-respostas-de-formulário-no-dossiê-de-produto)
-    * [Manter inalterado o endpoint POST que Inicia ou avança o fluxo de um Dossiê de Produto](#manter-inalterado-o-endpoint-post-que-inicia-ou-avança-o-fluxo-de-um-dossiê-de-produto-que-esteja-na-situação-rascunho-em-alimentação-ou-em-complementação)
-    * [Manter inalterado o endpoint GET de Consulta de dossiê de produto pelo identificador](#manter-inalterado-o-endpoint-get-de-consulta-de-dossiê-de-produto-pelo-identificador)
-  * [Módulo Gestão Documento](#módulo-gestão-documento)
-
-    * [Manter inalterado o endpoint POST que Gera uma nova credencial de acesso compartilhado SAS](#manter-inalterado-o-endpoint-post-que-gera-uma-nova-credencial-de-acesso-compartilhado-sas-para-um-container-de-armazenamento-de-documentos-no-storage)
-
-* [Diagramas arquiteturais da Integração entre Pré-validação e SIMTR](#diagramas-arquiteturais-da-integração-entre-pré-validação-e-simtr)
-
-  * [C4 - Containers - Integração Pré-validação com SIMTR](#c4---containers---integração-pré-validação-com-simtr)
-  * [C4 - Componentes - Módulo Parametrização do SIMTR](#c4---componentes---módulo-parametrização-do-simtr)
-  * [C4 - Componentes - Módulo Dossiês de Produto do SIMTR](#c4---componentes---módulo-dossiês-de-produto-do-simtr)
-  * [C4 - Componentes - Módulo Gestão dos Documentos do SIMTR](#c4---componentes---módulo-gestão-dos-documentos-do-simtr)
-
-* [Diagrama de Sequência da Integração com o MTR](#diagrama-de-sequência-da-integração-com-o-mtr)
-
-  * [Diagrama de Sequência — Pré-validação antes da criação do Dossiê de Produto](#diagrama-de-sequência--pré-validação-antes-da-criação-do-dossiê-de-produto)
-  * [Diagrama de Sequência — Criação do Dossiê de Produto e avanço do Workflow](#diagrama-de-sequência--criação-do-dossiê-de-produto-e-avanço-do-workflow)
-
-* [Diagrama de Estado — Situações de Dossiê de Produto decorrentes da pré-validação](#diagrama-de-estado--situações-de-dossiê-de-produto-decorrentes-da-pré-validação)
-
-* [Anexos Diagramas arquiteturais da Integração entre Pré-validação e SIMTR](#anexos-diagramas-arquiteturais-da-integração-entre-pré-validação-e-simtr)
-
-  * [1. C4 — Contexto de Sistema plantuml](#1-c4--contexto-de-sistema-plantuml)
-  * [2. C4 — Containers plantuml](#2-c4--containers-plantuml)
-  * [3. C4 — Componentes do Parametrização plantuml](#3-c4--componentes-do-parametrização-plantuml)
-  * [4. C4 — Componentes do Dossiês de Produto plantuml](#4-c4--componentes-do-dossiês-de-produto-plantuml)
-  * [5. C4 — Componentes do Gestão dos Documentos plantuml](#5-c4--componentes-do-gestão-dos-documentos-plantuml)
+- [Projeto Pré-validação - Integração com MTR](#projeto-pré-validação---integração-com-mtr)
+  - [Objetivo](#objetivo)
+  - [Resumo](#resumo)
+  - [Índice](#índice)
+  - [Endpoints de Integração com o MTR](#endpoints-de-integração-com-o-mtr)
+    - [Alterações de endpoints necessárias para **Fluxo 1**](#alterações-de-endpoints-necessárias-para-fluxo-1)
+      - [Módulo Parametrização](#módulo-parametrização)
+      - [Módulo dossiês de produto](#módulo-dossiês-de-produto)
+      - [Módulo gestão dos documentos](#módulo-gestão-dos-documentos)
+  - [APIs do MTR](#apis-do-mtr)
+    - [Módulo Parametrização](#módulo-parametrização-1)
+      - [Criar nova versão v2 do endpoint GET  de Consulta do processo a partir de seu Identificador Negocial](#criar-nova-versão-v2-do-endpoint-get--de-consulta-do-processo-a-partir-de-seu-identificador-negocial)
+        - [Tipos de vínculos de checklists](#tipos-de-vínculos-de-checklists)
+      - [Criar novo endpoint de consulta de cheklist](#criar-novo-endpoint-de-consulta-de-cheklist)
+    - [Módulo de Dossiê Produto](#módulo-de-dossiê-produto)
+      - [Criar nova versão v2 do endpoint POST de Inclusão de Documento no Dossiê de Produto](#criar-nova-versão-v2-do-endpoint-post-de-inclusão-de-documento-no-dossiê-de-produto)
+      - [Criar novo endpoint de PATCH de Validação Negocial para receber o Resultao dos Checklists analisados](#criar-novo-endpoint-de-patch-de-validação-negocial-para-receber-o-resultao-dos-checklists-analisados)
+      - [Manter inalterado o endpoint POST de Criação básica de Dossiê de Produto em modo rascunho](#manter-inalterado-o-endpoint-post-de-criação-básica-de-dossiê-de-produto-em-modo-rascunho)
+      - [Manter inalterado o endpoint PATCH de Inclusão ou edição de Respostas de Formulário no Dossiê de Produto.](#manter-inalterado-o-endpoint-patch-de-inclusão-ou-edição-de-respostas-de-formulário-no-dossiê-de-produto)
+      - [Manter inalterado o endpoint PATCH de Inclusão/Exclusão de Garantias no Dossiê de Produto.](#manter-inalterado-o-endpoint-patch-de-inclusãoexclusão-de-garantias-no-dossiê-de-produto)
+      - [Manter inalterado o endpoint PATCH de Inclusão/Exclusão de Produtos Contratados no Dossiê de Produto.](#manter-inalterado-o-endpoint-patch-de-inclusãoexclusão-de-produtos-contratados-no-dossiê-de-produto)
+      - [Manter inalterado o endpoint POST de Captura o dossiê de Produto para edição, alterando sua situação para Em Alimentação.](#manter-inalterado-o-endpoint-post-de-captura-o-dossiê-de-produto-para-edição-alterando-sua-situação-para-em-alimentação)
+      - [Manter inalterado o endpoint POST que Inicia ou avança o fluxo de um Dossiê de Produto que esteja na situação Rascunho, Em Alimentação ou Em Complementação.](#manter-inalterado-o-endpoint-post-que-inicia-ou-avança-o-fluxo-de-um-dossiê-de-produto-que-esteja-na-situação-rascunho-em-alimentação-ou-em-complementação)
+      - [Manter inalterado o endpoint POST que Realiza o cancelamento de um dossiê de produto.](#manter-inalterado-o-endpoint-post-que-realiza-o-cancelamento-de-um-dossiê-de-produto)
+      - [Manter inalterado o endpoint GET de Consulta de dossiê de produto pelo identificador.](#manter-inalterado-o-endpoint-get-de-consulta-de-dossiê-de-produto-pelo-identificador)
+      - [Manter inalterado o endpoint GET de Consulta uma lista de documentos vinculados ao dossiê de produto](#manter-inalterado-o-endpoint-get-de-consulta-uma-lista-de-documentos-vinculados-ao-dossiê-de-produto)
+    - [Módulo Gestão Documento](#módulo-gestão-documento)
+      - [Manter inalterado o endpoint POST que Gera uma nova credencial de acesso compartilhado (SAS) para um container de armazenamento de documentos no Storage.](#manter-inalterado-o-endpoint-post-que-gera-uma-nova-credencial-de-acesso-compartilhado-sas-para-um-container-de-armazenamento-de-documentos-no-storage)
+  - [Diagramas arquiteturais da Integração entre pré-validação e SIMTR](#diagramas-arquiteturais-da-integração-entre-pré-validação-e-simtr)
+    - [C4 - Containers - Integração Pré-validação com SIMTR](#c4---containers---integração-pré-validação-com-simtr)
+    - [C4 - Componentes - Módulo Parametrização do SIMTR](#c4---componentes---módulo-parametrização-do-simtr)
+    - [C4 - Componentes - Módulo Dossiês de Produto do SIMTR](#c4---componentes---módulo-dossiês-de-produto-do-simtr)
+    - [C4 - Componentes - Módulo Gestão dos Documentos do SIMTR](#c4---componentes---módulo-gestão-dos-documentos-do-simtr)
+  - [Diagrama de Sequência da Integração com o MTR](#diagrama-de-sequência-da-integração-com-o-mtr)
+    - [Diagrama de Sequência — Pré-validação antes da criação do Dossiê de Produto](#diagrama-de-sequência--pré-validação-antes-da-criação-do-dossiê-de-produto)
+    - [Diagrama de Sequência — Criação do Dossiê de Produto e avanço do Workflow](#diagrama-de-sequência--criação-do-dossiê-de-produto-e-avanço-do-workflow)
+  - [Diagrama de Estado — Situações de Dossiê de Produto decorrentes da pré-validação](#diagrama-de-estado--situações-de-dossiê-de-produto-decorrentes-da-pré-validação)
+  - [Anexos Diagramas arquiteturais da Integração entre pré-validação e SIMTR](#anexos-diagramas-arquiteturais-da-integração-entre-pré-validação-e-simtr)
+    - [C4 — Containers plantuml](#c4--containers-plantuml)
 
 ---
 
@@ -1360,6 +1353,1237 @@ Corpo da resposta de erro:
   ],
   "detalhe": "string",
   "stacktrace": "string"
+}
+```
+
+#### Manter inalterado o endpoint GET de Consulta uma lista de documentos vinculados ao dossiê de produto
+
+- GET /simtr-dossie-produto/v4/dossie-produto/{id}/documentos
+
+Consulta uma lista de documentos vinculados ao dossiê de produto utilizando diversos parâmetros opcionais como filtro
+
+Parameters filtros:
+Name	Description
+id     Identificador do dossiê de produto a ser localizado
+cnpj   Cnpj do vinculo do dossie.
+cpf    Cpf do vinculo do dossie.
+fase   Identificador Negocial da Fase do vinculo do dossie.
+inclui-armazenamento Indica se deve ser incluído no retorno o historico de armazenamento do documento.
+inclui-assinaturas Indica se deve ser incluído no retorno as assinaturas digitais do documento
+inclui-atributos Indica se deve ser incluído no retorno os atributos extraídos do documento.
+inclui-conformidade Indica se deve ser incluído no retorno um resumo das verificações de conformidade realizadas para o documento, sejam elas realizadas pela área de operações internas da Caixa ou por fornecedor externo.
+inclui-outsourcing Indica se deve ser incluído no retorno os serviços de outsourcing realizados para o documento.
+inclui-propriedades Indica se deve ser incluído no retorno as propriedades (metadados) gravadas com o documento.
+inclui-url Indica se deve ser incluído no retorno uma URL de consulta da imagem do documento, de uso exclusivo pelo IP do usuário ou canal requisitante.
+ip-usuario IP do usuário final ou canal que consultará a URL do documento. O GED possui validação de IP na consulta de documentos. Caso não enviado este parâmetro será utilizado o IP existente no header da requisição.
+tipologia Tipologia do documento a ser consultada.
+
+http 200 Dossiê localizado com sucesso. Media/ type application/json
+
+Corpo da resposta http 200
+Dossiê localizado com sucesso.
+
+```json
+[
+  {
+    "id_instancia_documento": 0,
+    "id_documento": 0,
+    "codigo_ged": "string",
+    "data_hora_captura": "dd/MM/yyyy HH:mm:ss",
+    "data_hora_validade": "dd/MM/yyyy HH:mm:ss",
+    "matricula_captura": "string",
+    "tipo_documento": {
+      "id": 0,
+      "nome": "string",
+      "codigo_tipologia": "string",
+      "ativo": true
+    },
+    "situacao_documento": "string",
+    "vinculo_dossie": {
+      "cliente": {
+        "cpf": "string",
+        "cnpj": "string",
+        "nome": "string",
+        "razao_social": "string",
+        "tipo_vinculo": "string",
+        "identificador_negocial_vinculo": 0,
+        "principal": true
+      },
+      "produto": {
+        "id": 0,
+        "nome": "string",
+        "modalidade": 0,
+        "operacao": 0
+      },
+      "garantia": {
+        "id": 0,
+        "nome": "string",
+        "codigo_bacen": 0,
+        "produto": {
+          "id": 0,
+          "nome": "string",
+          "modalidade": 0,
+          "operacao": 0
+        },
+        "clientes_avalistas": [
+          {
+            "cpf": "string",
+            "cnpj": "string"
+          }
+        ]
+      },
+      "fase": {
+        "id": 0,
+        "nome": "string",
+        "identificador_negocial": 0
+      },
+      "processo": {
+        "id": 0,
+        "nome": "string",
+        "identificador_negocial": 0,
+        "macroprocesso": "string"
+      }
+    },
+    "url": "string",
+    "atributos": [
+      {
+        "chave": "string",
+        "valor": "fulano de tal",
+        "opcoes_selecionadas": [
+          "string"
+        ]
+      }
+    ],
+    "assinaturas_digitais": [
+      {
+        "data_assinatura": "dd/MM/yyyy HH:mm:ss",
+        "emissor": "string",
+        "cpf": "string",
+        "cnpj": "string",
+        "nome": "string",
+        "cpf_responsavel_pj": "string",
+        "nome_responsavel_pj": "string"
+      }
+    ],
+    "conformidade": [
+      {
+        "id": 0,
+        "tipo_conformidade": "string",
+        "unidade_conformidade": 0,
+        "data_hora_verificacao": "dd/MM/yyyy HH:mm:ss",
+        "dossie_produto": 0,
+        "fornecedor": "string",
+        "resultado": "string",
+        "checklist": {
+          "id": 0,
+          "identificador_negocial": 0,
+          "nome": "string",
+          "versao": "string",
+          "apontamentos": [
+            {
+              "id": 0,
+              "identificador_negocial": 0,
+              "nome": "string",
+              "tipo": "string",
+              "complexidade": "S",
+              "aprovado": true,
+              "orientacao": "string",
+              "comentario": "string"
+            }
+          ]
+        }
+      }
+    ],
+    "propriedades": [
+      {
+        "chave": "string",
+        "valor": "string"
+      }
+    ],
+    "outsourcing": [
+      {
+        "solicitacao": "string",
+        "processo": "string",
+        "analise_conjunta": true,
+        "codigo_controle": 0,
+        "codigo_fornecedor": "string",
+        "sigla_fornecedor": "string",
+        "sigla_canal": "string",
+        "codigo_canal": "O",
+        "retorno_agrupado": true,
+        "data_hora_envio": "dd/MM/yyyy HH:mm:ss",
+        "status_envio": "string",
+        "solicitacao_tratamento_imagem": true,
+        "solicitacao_extracao": true,
+        "solicitacao_validacao_negocial": true,
+        "solicitacao_classificacao": true,
+        "solicitacao_avaliacao_cadastral": true,
+        "solicitacao_avaliacao_autenticidade": true,
+        "solicitacao_grafoscopia": true,
+        "solicitacao_validacao_externa": true,
+        "solicitacao_consulta_externa": true,
+        "janela_extracao": "M0",
+        "data_hora_retorno_classificacao": "dd/MM/yyyy HH:mm:ss",
+        "data_hora_retorno_extracao": "dd/MM/yyyy HH:mm:ss",
+        "data_hora_retorno_validacao_negocial": "dd/MM/yyyy HH:mm:ss",
+        "data_hora_retorno_grafoscopia": "dd/MM/yyyy HH:mm:ss",
+        "data_hora_retorno_avaliacao_autenticidade": "dd/MM/yyyy HH:mm:ss",
+        "data_hora_retorno_imagem_tratada": "dd/MM/yyyy HH:mm:ss",
+        "data_hora_validacao_externa": "dd/MM/yyyy HH:mm:ss",
+        "data_consulta_externa": "dd/MM/yyyy HH:mm:ss",
+        "data_avaliacao_cadastral": "dd/MM/yyyy HH:mm:ss",
+        "resultado_indice_avaliacao_autenticidade": 0,
+        "resultado_indice_grafoscopia": 0,
+        "resultado_codigo_rejeicao": "DOC001",
+        "resultado_descricao_rejeicao": "string",
+        "resultado_consulta_externa": "string",
+        "resultado_classificacao": "string",
+        "resultado_extracao": "string",
+        "resultado_validacao_negocial": {
+          "identificador_checklist": 0,
+          "versao_checklist": 0,
+          "apontamentos": [
+            {
+              "identificador_apontamento": 0,
+              "aprovado": true,
+              "comentario": "string"
+            }
+          ]
+        }
+      }
+    ],
+    "armazenamento": [
+      {
+        "id": 0,
+        "data_hora_armazenamento": "dd/MM/yyyy HH:mm:ss",
+        "tipo_armazenamento": "GED_RECEBIDO",
+        "path_storage": "string",
+        "object_store_ged": "string",
+        "codigo_ged": "string",
+        "data_hora_previsao_exclusao": "dd/MM/yyyy HH:mm:ss",
+        "data_hora_exclusao": "dd/MM/yyyy HH:mm:ss"
+      }
+    ]
+  }
+]
+```
+
+exemplo de resposta http 200
+que pode ser usada para o simulador, no mock usar no titulo o id:
+resposta http 200 sem filtros aplicado
+GET /simtr-dossie-produto/v4/dossie-produto/4081899/documentos
+
+exemplo de corpo de resposta
+
+```json
+[
+    {
+        "id_instancia_documento": 1132178,
+        "id_documento": 184067,
+        "codigo_ged": null,
+        "data_hora_captura": "04/06/2024 13:48:42",
+        "data_hora_validade": null,
+        "matricula_captura": "SIMTRAPI",
+        "tipo_documento": {
+            "id": 2,
+            "nome": "CNH - Carteira Nacional de Habilitação",
+            "codigo_tipologia": "0001000100020007",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cpf": "51718219687",
+                "nome": "ANTONIA SOUZA DE MOURA",
+                "tipo_vinculo": "Vendedor PF",
+                "identificador_negocial_vinculo": 42005200,
+                "principal": false
+            }
+        }
+    },
+    {
+        "id_instancia_documento": 1132221,
+        "id_documento": 1924728,
+        "codigo_ged": "7013429F-0000-C346-A919-B52F4524AF77",
+        "data_hora_captura": "08/07/2026 11:13:19",
+        "data_hora_validade": null,
+        "matricula_captura": "f751917",
+        "tipo_documento": {
+            "id": 1135,
+            "nome": "Certidão de Nascimento",
+            "codigo_tipologia": "0001000100020008",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cpf": "51718219687",
+                "nome": "ANTONIA SOUZA DE MOURA",
+                "tipo_vinculo": "Vendedor PF",
+                "identificador_negocial_vinculo": 42005200,
+                "principal": false
+            }
+        }
+    },
+    {
+        "id_instancia_documento": 1132220,
+        "id_documento": 1924727,
+        "codigo_ged": "7013429F-0000-C026-A366-CA335E5A825C",
+        "data_hora_captura": "08/07/2026 11:13:18",
+        "data_hora_validade": null,
+        "matricula_captura": "f751917",
+        "tipo_documento": {
+            "id": 3315,
+            "nome": "Pesquisa Cadastral - Sipes",
+            "codigo_tipologia": "0001000100069003",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cpf": "51718219687",
+                "nome": "ANTONIA SOUZA DE MOURA",
+                "tipo_vinculo": "Vendedor PF",
+                "identificador_negocial_vinculo": 42005200,
+                "principal": false
+            }
+        }
+    },
+    {
+        "id_instancia_documento": 1132226,
+        "id_documento": 1826851,
+        "codigo_ged": null,
+        "data_hora_captura": "06/11/2024 17:20:47",
+        "data_hora_validade": "23/03/2052 17:20:47",
+        "matricula_captura": "SIMTRAPI",
+        "tipo_documento": {
+            "id": 1,
+            "nome": "RG - Documento de Identidade",
+            "codigo_tipologia": "0001000100020005",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cpf": "00155905694",
+                "nome": "TEREZINHA FERREIRA DA SILVA",
+                "tipo_vinculo": "Coobrigado",
+                "identificador_negocial_vinculo": 41205600,
+                "principal": false
+            }
+        }
+    },
+    {
+        "id_instancia_documento": 1132227,
+        "id_documento": 173088,
+        "codigo_ged": null,
+        "data_hora_captura": "04/06/2024 13:32:18",
+        "data_hora_validade": null,
+        "matricula_captura": "SIMTRAPI",
+        "tipo_documento": {
+            "id": 2,
+            "nome": "CNH - Carteira Nacional de Habilitação",
+            "codigo_tipologia": "0001000100020007",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cpf": "00155905694",
+                "nome": "TEREZINHA FERREIRA DA SILVA",
+                "tipo_vinculo": "Coobrigado",
+                "identificador_negocial_vinculo": 41205600,
+                "principal": false
+            }
+        }
+    },
+    {
+        "id_instancia_documento": 1132224,
+        "id_documento": 1924731,
+        "codigo_ged": "7013429F-0000-C5B0-804C-654625D1468F",
+        "data_hora_captura": "08/07/2026 11:13:20",
+        "data_hora_validade": null,
+        "matricula_captura": "f751917",
+        "tipo_documento": {
+            "id": 672,
+            "nome": "Ficha Cadastro Pessoa Física",
+            "codigo_tipologia": "0001000100060002",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cpf": "00155905694",
+                "nome": "TEREZINHA FERREIRA DA SILVA",
+                "tipo_vinculo": "Coobrigado",
+                "identificador_negocial_vinculo": 41205600,
+                "principal": false
+            }
+        }
+    },
+    {
+        "id_instancia_documento": 1132225,
+        "id_documento": 1924732,
+        "codigo_ged": "7013429F-0000-C4D5-968E-14432AA3AD01",
+        "data_hora_captura": "08/07/2026 11:13:20",
+        "data_hora_validade": null,
+        "matricula_captura": "f751917",
+        "tipo_documento": {
+            "id": 4663,
+            "nome": "MO30844 - Formulário Cliente Habitação",
+            "codigo_tipologia": "0007000200020134",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cpf": "00155905694",
+                "nome": "TEREZINHA FERREIRA DA SILVA",
+                "tipo_vinculo": "Coobrigado",
+                "identificador_negocial_vinculo": 41205600,
+                "principal": false
+            }
+        }
+    },
+    {
+        "id_instancia_documento": 1132179,
+        "id_documento": 1852358,
+        "codigo_ged": null,
+        "data_hora_captura": "28/03/2025 10:13:56",
+        "data_hora_validade": null,
+        "matricula_captura": "f751917",
+        "tipo_documento": {
+            "id": 1483,
+            "nome": "Documento Constitutivo",
+            "codigo_tipologia": "0001000200010031",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cnpj": "00013888000105",
+                "razao_social": "CENTELHA ELETRICA COMERCIAL LTDA",
+                "tipo_vinculo": "Vendedor PJ",
+                "identificador_negocial_vinculo": 42005201,
+                "principal": false
+            }
+        }
+    },
+    {
+        "id_instancia_documento": 1132222,
+        "id_documento": 1924729,
+        "codigo_ged": "7013429F-0000-CF63-AC78-7886081A0211",
+        "data_hora_captura": "08/07/2026 11:13:19",
+        "data_hora_validade": null,
+        "matricula_captura": "f751917",
+        "tipo_documento": {
+            "id": 4031,
+            "nome": "Crf - Certificado de Regularidade do Fgts",
+            "codigo_tipologia": "0001000200030043",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cnpj": "00013888000105",
+                "razao_social": "CENTELHA ELETRICA COMERCIAL LTDA",
+                "tipo_vinculo": "Vendedor PJ",
+                "identificador_negocial_vinculo": 42005201,
+                "principal": false
+            }
+        }
+    },
+    {
+        "id_instancia_documento": 1132223,
+        "id_documento": 1924730,
+        "codigo_ged": "7013429F-0000-C684-AE8A-99EA248A204B",
+        "data_hora_captura": "08/07/2026 11:13:19",
+        "data_hora_validade": "06/08/2026 16:41:17",
+        "matricula_captura": "f751917",
+        "tipo_documento": {
+            "id": 5375,
+            "nome": "Certidão Simplificada da Junta Comercial",
+            "codigo_tipologia": "0001000200010042",
+            "ativo": false
+        },
+        "situacao_documento": "Vencido",
+        "vinculo_dossie": {
+            "cliente": {
+                "cnpj": "00013888000105",
+                "razao_social": "CENTELHA ELETRICA COMERCIAL LTDA",
+                "tipo_vinculo": "Vendedor PJ",
+                "identificador_negocial_vinculo": 42005201,
+                "principal": false
+            }
+        }
+    },
+    {
+        "id_instancia_documento": 1132180,
+        "id_documento": 1826869,
+        "codigo_ged": null,
+        "data_hora_captura": "06/11/2024 17:20:47",
+        "data_hora_validade": "23/03/2052 17:20:47",
+        "matricula_captura": "SIMTRAPI",
+        "tipo_documento": {
+            "id": 1,
+            "nome": "RG - Documento de Identidade",
+            "codigo_tipologia": "0001000100020005",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cpf": "01226470688",
+                "nome": "JUSSARA DE LOURDES DOS SANTOS",
+                "tipo_vinculo": "Responsável Técnico da obra",
+                "identificador_negocial_vinculo": 42405201,
+                "principal": false
+            }
+        }
+    },
+    {
+        "id_instancia_documento": 1132175,
+        "id_documento": 1826910,
+        "codigo_ged": null,
+        "data_hora_captura": "06/11/2024 17:20:47",
+        "data_hora_validade": "23/03/2052 17:20:47",
+        "matricula_captura": "SIMTRAPI",
+        "tipo_documento": {
+            "id": 1,
+            "nome": "RG - Documento de Identidade",
+            "codigo_tipologia": "0001000100020005",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cpf": "95981985615",
+                "nome": "JOAQUIM EUGENIO DOS SANTOS",
+                "tipo_vinculo": "Proponente",
+                "identificador_negocial_vinculo": 40610702,
+                "principal": false
+            }
+        }
+    },
+    {
+        "id_instancia_documento": 1132176,
+        "id_documento": 173091,
+        "codigo_ged": null,
+        "data_hora_captura": "04/06/2024 13:32:19",
+        "data_hora_validade": null,
+        "matricula_captura": "SIMTRAPI",
+        "tipo_documento": {
+            "id": 2,
+            "nome": "CNH - Carteira Nacional de Habilitação",
+            "codigo_tipologia": "0001000100020007",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cpf": "95981985615",
+                "nome": "JOAQUIM EUGENIO DOS SANTOS",
+                "tipo_vinculo": "Proponente",
+                "identificador_negocial_vinculo": 40610702,
+                "principal": false
+            }
+        }
+    },
+    {
+        "id_instancia_documento": 1132177,
+        "id_documento": 1924682,
+        "codigo_ged": "A0B73E9F-0000-C211-B48E-45CF746BF61A",
+        "data_hora_captura": "07/07/2026 19:34:08",
+        "data_hora_validade": null,
+        "matricula_captura": "f751917",
+        "tipo_documento": {
+            "id": 4663,
+            "nome": "MO30844 - Formulário Cliente Habitação",
+            "codigo_tipologia": "0007000200020134",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cpf": "95981985615",
+                "nome": "JOAQUIM EUGENIO DOS SANTOS",
+                "tipo_vinculo": "Proponente",
+                "identificador_negocial_vinculo": 40610702,
+                "principal": false
+            }
+        }
+    }
+]
+```
+
+outro exemplo http 200 aplicando alguns dos filtros
+
+GET {{dossie-produto-BaseUrl}}/simtr-dossie-produto/v4/dossie-produto/4081899/documentos?inclui-armazenamento=true&inclui-assinaturas=true&inclui-atributos=true&inclui-conformidade=true&inclui-outsourcing=true&inclui-propriedades=true
+
+exemplo de corpo de resposta
+
+```json
+[
+    {
+        "id_instancia_documento": 1132220,
+        "id_documento": 1924727,
+        "codigo_ged": "7013429F-0000-C026-A366-CA335E5A825C",
+        "data_hora_captura": "08/07/2026 11:13:18",
+        "data_hora_validade": null,
+        "matricula_captura": "f751917",
+        "tipo_documento": {
+            "id": 3315,
+            "nome": "Pesquisa Cadastral - Sipes",
+            "codigo_tipologia": "0001000100069003",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cpf": "51718219687",
+                "nome": "ANTONIA SOUZA DE MOURA",
+                "tipo_vinculo": "Vendedor PF",
+                "identificador_negocial_vinculo": 42005200,
+                "principal": false
+            }
+        },
+        "atributos": [],
+        "assinaturas_digitais": [],
+        "conformidade": [],
+        "propriedades": [],
+        "outsourcing": [],
+        "armazenamento": [
+            {
+                "id": 2098870,
+                "data_hora_armazenamento": "08/07/2026 11:13:19",
+                "tipo_armazenamento": "GED_RECEBIDO",
+                "path_storage": null,
+                "object_store_ged": "OS_DOSSIEDIGITAL",
+                "codigo_ged": "7013429F-0000-C026-A366-CA335E5A825C",
+                "data_hora_previsao_exclusao": null,
+                "data_hora_exclusao": null
+            }
+        ]
+    },
+    {
+        "id_instancia_documento": 1132221,
+        "id_documento": 1924728,
+        "codigo_ged": "7013429F-0000-C346-A919-B52F4524AF77",
+        "data_hora_captura": "08/07/2026 11:13:19",
+        "data_hora_validade": null,
+        "matricula_captura": "f751917",
+        "tipo_documento": {
+            "id": 1135,
+            "nome": "Certidão de Nascimento",
+            "codigo_tipologia": "0001000100020008",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cpf": "51718219687",
+                "nome": "ANTONIA SOUZA DE MOURA",
+                "tipo_vinculo": "Vendedor PF",
+                "identificador_negocial_vinculo": 42005200,
+                "principal": false
+            }
+        },
+        "atributos": [],
+        "assinaturas_digitais": [],
+        "conformidade": [],
+        "propriedades": [],
+        "outsourcing": [],
+        "armazenamento": [
+            {
+                "id": 2098871,
+                "data_hora_armazenamento": "08/07/2026 11:13:19",
+                "tipo_armazenamento": "GED_RECEBIDO",
+                "path_storage": null,
+                "object_store_ged": "OS_DOSSIEDIGITAL",
+                "codigo_ged": "7013429F-0000-C346-A919-B52F4524AF77",
+                "data_hora_previsao_exclusao": null,
+                "data_hora_exclusao": null
+            }
+        ]
+    },
+    {
+        "id_instancia_documento": 1132178,
+        "id_documento": 184067,
+        "codigo_ged": null,
+        "data_hora_captura": "04/06/2024 13:48:42",
+        "data_hora_validade": null,
+        "matricula_captura": "SIMTRAPI",
+        "tipo_documento": {
+            "id": 2,
+            "nome": "CNH - Carteira Nacional de Habilitação",
+            "codigo_tipologia": "0001000100020007",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cpf": "51718219687",
+                "nome": "ANTONIA SOUZA DE MOURA",
+                "tipo_vinculo": "Vendedor PF",
+                "identificador_negocial_vinculo": 42005200,
+                "principal": false
+            }
+        },
+        "atributos": [],
+        "assinaturas_digitais": [],
+        "conformidade": [],
+        "propriedades": [],
+        "outsourcing": [],
+        "armazenamento": [
+            {
+                "id": 151906,
+                "data_hora_armazenamento": "04/06/2024 13:48:42",
+                "tipo_armazenamento": "STORAGE_RECEBIDO",
+                "path_storage": "D_cli-ser-mtr/PERFORMANCE_DOC_24365.pdf",
+                "object_store_ged": null,
+                "codigo_ged": null,
+                "data_hora_previsao_exclusao": null,
+                "data_hora_exclusao": null
+            }
+        ]
+    },
+    {
+        "id_instancia_documento": 1132224,
+        "id_documento": 1924731,
+        "codigo_ged": "7013429F-0000-C5B0-804C-654625D1468F",
+        "data_hora_captura": "08/07/2026 11:13:20",
+        "data_hora_validade": null,
+        "matricula_captura": "f751917",
+        "tipo_documento": {
+            "id": 672,
+            "nome": "Ficha Cadastro Pessoa Física",
+            "codigo_tipologia": "0001000100060002",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cpf": "00155905694",
+                "nome": "TEREZINHA FERREIRA DA SILVA",
+                "tipo_vinculo": "Coobrigado",
+                "identificador_negocial_vinculo": 41205600,
+                "principal": false
+            }
+        },
+        "atributos": [],
+        "assinaturas_digitais": [],
+        "conformidade": [],
+        "propriedades": [],
+        "outsourcing": [],
+        "armazenamento": [
+            {
+                "id": 2098874,
+                "data_hora_armazenamento": "08/07/2026 11:13:20",
+                "tipo_armazenamento": "GED_RECEBIDO",
+                "path_storage": null,
+                "object_store_ged": "OS_DOSSIEDIGITAL",
+                "codigo_ged": "7013429F-0000-C5B0-804C-654625D1468F",
+                "data_hora_previsao_exclusao": null,
+                "data_hora_exclusao": null
+            }
+        ]
+    },
+    {
+        "id_instancia_documento": 1132225,
+        "id_documento": 1924732,
+        "codigo_ged": "7013429F-0000-C4D5-968E-14432AA3AD01",
+        "data_hora_captura": "08/07/2026 11:13:20",
+        "data_hora_validade": null,
+        "matricula_captura": "f751917",
+        "tipo_documento": {
+            "id": 4663,
+            "nome": "MO30844 - Formulário Cliente Habitação",
+            "codigo_tipologia": "0007000200020134",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cpf": "00155905694",
+                "nome": "TEREZINHA FERREIRA DA SILVA",
+                "tipo_vinculo": "Coobrigado",
+                "identificador_negocial_vinculo": 41205600,
+                "principal": false
+            }
+        },
+        "atributos": [],
+        "assinaturas_digitais": [],
+        "conformidade": [],
+        "propriedades": [],
+        "outsourcing": [],
+        "armazenamento": [
+            {
+                "id": 2098875,
+                "data_hora_armazenamento": "08/07/2026 11:13:21",
+                "tipo_armazenamento": "GED_RECEBIDO",
+                "path_storage": null,
+                "object_store_ged": "OS_DOSSIEDIGITAL",
+                "codigo_ged": "7013429F-0000-C4D5-968E-14432AA3AD01",
+                "data_hora_previsao_exclusao": null,
+                "data_hora_exclusao": null
+            }
+        ]
+    },
+    {
+        "id_instancia_documento": 1132226,
+        "id_documento": 1826851,
+        "codigo_ged": null,
+        "data_hora_captura": "06/11/2024 17:20:47",
+        "data_hora_validade": "23/03/2052 17:20:47",
+        "matricula_captura": "SIMTRAPI",
+        "tipo_documento": {
+            "id": 1,
+            "nome": "RG - Documento de Identidade",
+            "codigo_tipologia": "0001000100020005",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cpf": "00155905694",
+                "nome": "TEREZINHA FERREIRA DA SILVA",
+                "tipo_vinculo": "Coobrigado",
+                "identificador_negocial_vinculo": 41205600,
+                "principal": false
+            }
+        },
+        "atributos": [],
+        "assinaturas_digitais": [],
+        "conformidade": [],
+        "propriedades": [],
+        "outsourcing": [],
+        "armazenamento": [
+            {
+                "id": 2004918,
+                "data_hora_armazenamento": "06/11/2024 17:20:47",
+                "tipo_armazenamento": "STORAGE_RECEBIDO",
+                "path_storage": "cli-ser-mtr/DOC_TESTE_642249.pdf",
+                "object_store_ged": null,
+                "codigo_ged": null,
+                "data_hora_previsao_exclusao": null,
+                "data_hora_exclusao": null
+            }
+        ]
+    },
+    {
+        "id_instancia_documento": 1132227,
+        "id_documento": 173088,
+        "codigo_ged": null,
+        "data_hora_captura": "04/06/2024 13:32:18",
+        "data_hora_validade": null,
+        "matricula_captura": "SIMTRAPI",
+        "tipo_documento": {
+            "id": 2,
+            "nome": "CNH - Carteira Nacional de Habilitação",
+            "codigo_tipologia": "0001000100020007",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cpf": "00155905694",
+                "nome": "TEREZINHA FERREIRA DA SILVA",
+                "tipo_vinculo": "Coobrigado",
+                "identificador_negocial_vinculo": 41205600,
+                "principal": false
+            }
+        },
+        "atributos": [],
+        "assinaturas_digitais": [],
+        "conformidade": [],
+        "propriedades": [],
+        "outsourcing": [],
+        "armazenamento": [
+            {
+                "id": 140927,
+                "data_hora_armazenamento": "04/06/2024 13:32:18",
+                "tipo_armazenamento": "STORAGE_RECEBIDO",
+                "path_storage": "D_cli-ser-mtr/PERFORMANCE_DOC_13368.pdf",
+                "object_store_ged": null,
+                "codigo_ged": null,
+                "data_hora_previsao_exclusao": null,
+                "data_hora_exclusao": null
+            }
+        ]
+    },
+    {
+        "id_instancia_documento": 1132222,
+        "id_documento": 1924729,
+        "codigo_ged": "7013429F-0000-CF63-AC78-7886081A0211",
+        "data_hora_captura": "08/07/2026 11:13:19",
+        "data_hora_validade": null,
+        "matricula_captura": "f751917",
+        "tipo_documento": {
+            "id": 4031,
+            "nome": "Crf - Certificado de Regularidade do Fgts",
+            "codigo_tipologia": "0001000200030043",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cnpj": "00013888000105",
+                "razao_social": "CENTELHA ELETRICA COMERCIAL LTDA",
+                "tipo_vinculo": "Vendedor PJ",
+                "identificador_negocial_vinculo": 42005201,
+                "principal": false
+            }
+        },
+        "atributos": [],
+        "assinaturas_digitais": [],
+        "conformidade": [],
+        "propriedades": [],
+        "outsourcing": [],
+        "armazenamento": [
+            {
+                "id": 2098872,
+                "data_hora_armazenamento": "08/07/2026 11:13:19",
+                "tipo_armazenamento": "GED_RECEBIDO",
+                "path_storage": null,
+                "object_store_ged": "OS_DOSSIEDIGITAL",
+                "codigo_ged": "7013429F-0000-CF63-AC78-7886081A0211",
+                "data_hora_previsao_exclusao": null,
+                "data_hora_exclusao": null
+            }
+        ]
+    },
+    {
+        "id_instancia_documento": 1132223,
+        "id_documento": 1924730,
+        "codigo_ged": "7013429F-0000-C684-AE8A-99EA248A204B",
+        "data_hora_captura": "08/07/2026 11:13:19",
+        "data_hora_validade": "06/08/2026 16:41:17",
+        "matricula_captura": "f751917",
+        "tipo_documento": {
+            "id": 5375,
+            "nome": "Certidão Simplificada da Junta Comercial",
+            "codigo_tipologia": "0001000200010042",
+            "ativo": false
+        },
+        "situacao_documento": "Vencido",
+        "vinculo_dossie": {
+            "cliente": {
+                "cnpj": "00013888000105",
+                "razao_social": "CENTELHA ELETRICA COMERCIAL LTDA",
+                "tipo_vinculo": "Vendedor PJ",
+                "identificador_negocial_vinculo": 42005201,
+                "principal": false
+            }
+        },
+        "atributos": [],
+        "assinaturas_digitais": [],
+        "conformidade": [],
+        "propriedades": [],
+        "outsourcing": [],
+        "armazenamento": [
+            {
+                "id": 2098873,
+                "data_hora_armazenamento": "08/07/2026 11:13:20",
+                "tipo_armazenamento": "GED_RECEBIDO",
+                "path_storage": null,
+                "object_store_ged": "OS_DOSSIEDIGITAL",
+                "codigo_ged": "7013429F-0000-C684-AE8A-99EA248A204B",
+                "data_hora_previsao_exclusao": null,
+                "data_hora_exclusao": null
+            }
+        ]
+    },
+    {
+        "id_instancia_documento": 1132179,
+        "id_documento": 1852358,
+        "codigo_ged": null,
+        "data_hora_captura": "28/03/2025 10:13:56",
+        "data_hora_validade": null,
+        "matricula_captura": "f751917",
+        "tipo_documento": {
+            "id": 1483,
+            "nome": "Documento Constitutivo",
+            "codigo_tipologia": "0001000200010031",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cnpj": "00013888000105",
+                "razao_social": "CENTELHA ELETRICA COMERCIAL LTDA",
+                "tipo_vinculo": "Vendedor PJ",
+                "identificador_negocial_vinculo": 42005201,
+                "principal": false
+            }
+        },
+        "atributos": [],
+        "assinaturas_digitais": [],
+        "conformidade": [],
+        "propriedades": [],
+        "outsourcing": [],
+        "armazenamento": [
+            {
+                "id": 2023875,
+                "data_hora_armazenamento": "28/03/2025 10:13:56",
+                "tipo_armazenamento": "STORAGE_RECEBIDO",
+                "path_storage": "cli-web-mtr-bpm/imagem_teste1.jpg",
+                "object_store_ged": null,
+                "codigo_ged": null,
+                "data_hora_previsao_exclusao": null,
+                "data_hora_exclusao": null
+            }
+        ]
+    },
+    {
+        "id_instancia_documento": 1132180,
+        "id_documento": 1826869,
+        "codigo_ged": null,
+        "data_hora_captura": "06/11/2024 17:20:47",
+        "data_hora_validade": "23/03/2052 17:20:47",
+        "matricula_captura": "SIMTRAPI",
+        "tipo_documento": {
+            "id": 1,
+            "nome": "RG - Documento de Identidade",
+            "codigo_tipologia": "0001000100020005",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cpf": "01226470688",
+                "nome": "JUSSARA DE LOURDES DOS SANTOS",
+                "tipo_vinculo": "Responsável Técnico da obra",
+                "identificador_negocial_vinculo": 42405201,
+                "principal": false
+            }
+        },
+        "atributos": [],
+        "assinaturas_digitais": [],
+        "conformidade": [],
+        "propriedades": [],
+        "outsourcing": [],
+        "armazenamento": [
+            {
+                "id": 2004934,
+                "data_hora_armazenamento": "06/11/2024 17:20:47",
+                "tipo_armazenamento": "STORAGE_RECEBIDO",
+                "path_storage": "cli-ser-mtr/DOC_TESTE_642252.pdf",
+                "object_store_ged": null,
+                "codigo_ged": null,
+                "data_hora_previsao_exclusao": null,
+                "data_hora_exclusao": null
+            }
+        ]
+    },
+    {
+        "id_instancia_documento": 1132175,
+        "id_documento": 1826910,
+        "codigo_ged": null,
+        "data_hora_captura": "06/11/2024 17:20:47",
+        "data_hora_validade": "23/03/2052 17:20:47",
+        "matricula_captura": "SIMTRAPI",
+        "tipo_documento": {
+            "id": 1,
+            "nome": "RG - Documento de Identidade",
+            "codigo_tipologia": "0001000100020005",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cpf": "95981985615",
+                "nome": "JOAQUIM EUGENIO DOS SANTOS",
+                "tipo_vinculo": "Proponente",
+                "identificador_negocial_vinculo": 40610702,
+                "principal": false
+            }
+        },
+        "atributos": [],
+        "assinaturas_digitais": [],
+        "conformidade": [],
+        "propriedades": [],
+        "outsourcing": [],
+        "armazenamento": [
+            {
+                "id": 2004977,
+                "data_hora_armazenamento": "06/11/2024 17:20:47",
+                "tipo_armazenamento": "STORAGE_RECEBIDO",
+                "path_storage": "cli-ser-mtr/DOC_TESTE_642290.pdf",
+                "object_store_ged": null,
+                "codigo_ged": null,
+                "data_hora_previsao_exclusao": null,
+                "data_hora_exclusao": null
+            }
+        ]
+    },
+    {
+        "id_instancia_documento": 1132176,
+        "id_documento": 173091,
+        "codigo_ged": null,
+        "data_hora_captura": "04/06/2024 13:32:19",
+        "data_hora_validade": null,
+        "matricula_captura": "SIMTRAPI",
+        "tipo_documento": {
+            "id": 2,
+            "nome": "CNH - Carteira Nacional de Habilitação",
+            "codigo_tipologia": "0001000100020007",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cpf": "95981985615",
+                "nome": "JOAQUIM EUGENIO DOS SANTOS",
+                "tipo_vinculo": "Proponente",
+                "identificador_negocial_vinculo": 40610702,
+                "principal": false
+            }
+        },
+        "atributos": [],
+        "assinaturas_digitais": [],
+        "conformidade": [],
+        "propriedades": [],
+        "outsourcing": [],
+        "armazenamento": [
+            {
+                "id": 140930,
+                "data_hora_armazenamento": "04/06/2024 13:32:19",
+                "tipo_armazenamento": "STORAGE_RECEBIDO",
+                "path_storage": "D_cli-ser-mtr/PERFORMANCE_DOC_13374.pdf",
+                "object_store_ged": null,
+                "codigo_ged": null,
+                "data_hora_previsao_exclusao": null,
+                "data_hora_exclusao": null
+            }
+        ]
+    },
+    {
+        "id_instancia_documento": 1132177,
+        "id_documento": 1924682,
+        "codigo_ged": "A0B73E9F-0000-C211-B48E-45CF746BF61A",
+        "data_hora_captura": "07/07/2026 19:34:08",
+        "data_hora_validade": null,
+        "matricula_captura": "f751917",
+        "tipo_documento": {
+            "id": 4663,
+            "nome": "MO30844 - Formulário Cliente Habitação",
+            "codigo_tipologia": "0007000200020134",
+            "ativo": false
+        },
+        "situacao_documento": "Criado",
+        "vinculo_dossie": {
+            "cliente": {
+                "cpf": "95981985615",
+                "nome": "JOAQUIM EUGENIO DOS SANTOS",
+                "tipo_vinculo": "Proponente",
+                "identificador_negocial_vinculo": 40610702,
+                "principal": false
+            }
+        },
+        "atributos": [],
+        "assinaturas_digitais": [],
+        "conformidade": [],
+        "propriedades": [],
+        "outsourcing": [],
+        "armazenamento": [
+            {
+                "id": 2098824,
+                "data_hora_armazenamento": "07/07/2026 19:34:09",
+                "tipo_armazenamento": "GED_RECEBIDO",
+                "path_storage": null,
+                "object_store_ged": "OS_DOSSIEDIGITAL",
+                "codigo_ged": "A0B73E9F-0000-C211-B48E-45CF746BF61A",
+                "data_hora_previsao_exclusao": null,
+                "data_hora_exclusao": null
+            }
+        ]
+    }
+]
+```
+
+---
+
+retorno http 204 Não há dossiês com os critérios informados.
+
+exemplo de retorno http 204 com filtro fase=1 habilitdo
+
+GET {{dossie-produto-BaseUrl}}/simtr-dossie-produto/v4/dossie-produto/4081899/documentos?fase=1&inclui-armazenamento=true&inclui-assinaturas=true&inclui-atributos=true&inclui-conformidade=true&inclui-outsourcing=true&inclui-propriedades=true
+
+retorno http 204
+
+---
+
+http 400 Falha no processamento.
+
+Corpo da resposta de erro:
+
+```json
+{
+  "codigo_http": 0,
+  "recurso": "string",
+  "id_erro": "string",
+  "codigo_erro": "string",
+  "erros": [
+    {
+      "mensagem": "string"
+    }
+  ],
+  "detalhe": "string",
+  "stacktrace": "string"
+}
+```
+
+---
+
+401 Not Authorized
+403 Not Allowed
+
+---
+
+http 404 Dossiê não localizado com o Id informado.
+
+exemplo de erro com etrutura padronizada do erro
+{
+"codigo_http": 404,
+"id_erro": "43a0acf2-eab5-4bbb-b2b9-ada6371f3f46",
+"codigo_erro": "MTRPRD0002",
+"erros": [
+{
+"mensagem": "DS.gBI - Dossiê de Produto de Id 40818910 não localizado"
+}
+]
+}
+
+---
+
+500 	Falha não mapeada ao processar a requisição.
+
+```json
+{
+  "codigo_http": 0,
+  "recurso": "string",
+  "id_erro": "string",
+  "codigo_erro": "string",
+  "erros": [
+    {
+      "mensagem": "string"
+    }
+  ],
+  "detalhe": "string",
+  "stacktrace": "string"
+}
+```
+
+exemplo de erro com etrutura padronizada do erro
+```json
+{
+    "codigo_http": 500,
+    "id_erro": "e6f21512-9416-47b1-be4d-b5ff8c11e3a5",
+    "erros": [
+        {
+            "mensagem": "HTTP 404 Not Found"
+        }
+    ]
 }
 ```
 
