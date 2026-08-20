@@ -19,8 +19,9 @@ Os limites atuais são:
 
 - `arvoredocumento`: consulta de processo parametrizado;
 - `conformidade`: consulta de checklist;
-- `dossieproduto`: oito operações atômicas do ciclo do dossiê, incluindo a consulta por
-  identificador, a alteração de produtos contratados e a captura para edição;
+- `dossieproduto`: nove operações atômicas do ciclo do dossiê, incluindo a consulta por
+  identificador, a consulta de documentos vinculados, a alteração de produtos contratados e a
+  captura para edição;
 - `gestaodocumento`: obtenção da credencial de container.
 
 `parametrizacao` permanece somente como nome de integração na borda MTR. Modelos e mappers não são

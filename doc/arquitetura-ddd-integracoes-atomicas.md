@@ -3,7 +3,7 @@
 ## Como usar este documento
 
 - **Status:** aceito
-- **Última consolidação:** 2026-08-14
+- **Última consolidação:** 2026-08-19
 - **Objetivo:** explicar rapidamente a arquitetura implementada e as restrições que novas features
   devem respeitar.
 
@@ -17,7 +17,7 @@ correção.
 
 ## Visão do sistema
 
-O `simtr-hub` é um monólito modular Quarkus organizado por domínios de negócio. Ele expõe onze
+O `simtr-hub` é um monólito modular Quarkus organizado por domínios de negócio. Ele expõe doze
 capacidades atômicas por REST e integra cada uma ao MTR ou ao simulador por adapters de saída
 intercambiáveis.
 
@@ -42,7 +42,7 @@ motor de workflow, MCP Server ou comunicação distribuída entre os domínios.
 |---|---|---|
 | `arvoredocumento` | Dados parametrizados usados por uma futura árvore documental | `ConsultarProcessoParametrizado` |
 | `conformidade` | Consulta de checklist por identificador e versão | `ConsultarChecklist` |
-| `dossieproduto` | Operações atômicas do ciclo de vida do dossiê no MTR | `ConsultarDossieProduto`, `CriarDossieProduto`, `AtualizarFormularioDossieProduto`, `IncluirDocumentoDossieProduto`, `RegistrarValidacaoNegocialDossieProduto`, `AlterarProdutosContratadosDossieProduto`, `CapturarDossieProduto`, `IniciarOuAvancarWorkflowDossieProduto` |
+| `dossieproduto` | Operações atômicas do ciclo de vida do dossiê no MTR | `ConsultarDossieProduto`, `ConsultarDocumentosDossieProduto`, `CriarDossieProduto`, `AtualizarFormularioDossieProduto`, `IncluirDocumentoDossieProduto`, `RegistrarValidacaoNegocialDossieProduto`, `AlterarProdutosContratadosDossieProduto`, `CapturarDossieProduto`, `IniciarOuAvancarWorkflowDossieProduto` |
 | `gestaodocumento` | Obtenção de credencial para o container documental | `ObterCredencialContainer` |
 
 `parametrizacao` é o nome de um sistema/contrato upstream, não um domínio interno compartilhado.
@@ -59,6 +59,7 @@ existirem requisitos, contratos e autorização próprios.
 | `GET` | `/simtr-hub/v1/processo/identificador-negocial/{identificador}` |
 | `GET` | `/simtr-hub/v1/checklist/identificador-negocial/{identificador}/versao/{versao}` |
 | `GET` | `/simtr-hub/v1/dossie-produto/{id}` |
+| `GET` | `/simtr-hub/v1/dossie-produto/{id}/documentos` |
 | `POST` | `/simtr-hub/v1/dossie-produto` |
 | `PATCH` | `/simtr-hub/v1/dossie-produto/{id}/formulario` |
 | `POST` | `/simtr-hub/v1/dossie-produto/{id}/documento` |
@@ -153,6 +154,13 @@ contrato externo não comprova idempotência. Um provider registrado somente nes
 span HTTP automático que publicaria a URL interna completa e reinjeta o contexto usando o
 propagador OpenTelemetry configurado; os demais REST Clients não são afetados.
 
+A consulta de documentos consome
+`GET /simtr/dossie-produto/v4/dossie-produto/{id}/documentos` sem corpo e encaminha os 12 filtros
+opcionais somente quando informados. Por ser leitura idempotente, aplica timeout, retry apenas a
+falhas transitórias e circuit breaker. Um provider exclusivo também suprime o span HTTP automático
+que publicaria a query string e reinjeta o contexto corrente; o adapter publica um único span
+CLIENT próprio e traduz a falha protocolar somente depois da política de fault tolerance.
+
 ### Simulador
 
 - implementa as mesmas portas de saída do adapter MTR;
@@ -160,9 +168,12 @@ propagador OpenTelemetry configurado; os demais REST Clients não são afetados.
 - não reutiliza DTO REST ou MTR;
 - seleção MTR/simulador usa qualifiers ou producer CDI explícitos.
 
-`CapturarDossieProduto` reutiliza a property
-`simtr-hub.simulador.dossie-produto.habilitado` para selecionar seu adapter MTR ou simulador. A
-fixture da captura é sintética e o modo simulador não realiza chamada de rede.
+`CapturarDossieProduto` e `ConsultarDocumentosDossieProduto` reutilizam a property
+`simtr-hub.simulador.dossie-produto.habilitado` em producers explícitos para selecionar seus
+adapters MTR ou simulador. Cada capacidade mantém DTO, mapper e fixture próprios. A consulta de
+documentos resolve o cenário determinístico do identificador `4081899`, não reproduz filtros ou
+projeções do MTR e, como a captura, não aplica fault tolerance nem realiza chamada de rede no modo
+simulador.
 
 ### MCP futuro
 
@@ -204,6 +215,13 @@ aprovada. Sem essa evidência, a composição mutável fica bloqueada.
 - tokens, credenciais, argumentos sensíveis, URLs internas e payloads protegidos não aparecem em
   respostas, logs, traces, relatórios ou memória de conversa;
 - exposição de `ObterCredencialContainer` a agentes exige decisão de segurança própria.
+
+`ConsultarDocumentosDossieProduto` publica os spans
+`simtr-hub.api.dossie-produto.documentos.consultar` (SERVER),
+`simtr-hub.service.dossie-produto.documentos.consultar` (INTERNAL) e, somente no modo MTR,
+`mtr.dossie-produto.documentos.consultar` (CLIENT). Seus sinais registram rota parametrizada,
+versão v4, origem, flag do simulador, identificador, quantidade e tipo técnico de erro, sem query
+string, filtros, payload, identidade, URL de documento, path de storage ou credenciais.
 
 ## Estratégia de testes e evolução
 

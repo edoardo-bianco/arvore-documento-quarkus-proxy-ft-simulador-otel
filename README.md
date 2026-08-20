@@ -14,6 +14,7 @@ as decisões vigentes estão em `doc/arquitetura-ddd-integracoes-atomicas.md` e 
 | `arvoredocumento` | `ConsultarProcessoParametrizado` | `GET /simtr-hub/v1/processo/identificador-negocial/{identificador}` |
 | `conformidade` | `ConsultarChecklist` | `GET /simtr-hub/v1/checklist/identificador-negocial/{identificador}/versao/{versao}` |
 | `dossieproduto` | `ConsultarDossieProduto` | `GET /simtr-hub/v1/dossie-produto/{id}` |
+| `dossieproduto` | `ConsultarDocumentosDossieProduto` | `GET /simtr-hub/v1/dossie-produto/{id}/documentos` |
 | `dossieproduto` | `CriarDossieProduto` | `POST /simtr-hub/v1/dossie-produto` |
 | `dossieproduto` | `AtualizarFormularioDossieProduto` | `PATCH /simtr-hub/v1/dossie-produto/{id}/formulario` |
 | `dossieproduto` | `IncluirDocumentoDossieProduto` | `POST /simtr-hub/v1/dossie-produto/{id}/documento` |
@@ -30,7 +31,7 @@ arquivos ao Azure, nao interpreta a validade, nao reutiliza ou renova SAS e nao 
 ## Endpoints da especificacao que nao existem no Hub
 
 A especificacao funcional `doc/api-integracao-mtr-pre-validacao-v1.md` descreve APIs do MTR, nao
-somente as operacoes expostas por este Hub. As onze operacoes expostas estao implementadas e
+somente as operacoes expostas por este Hub. As doze operacoes expostas estao implementadas e
 aparecem na tabela anterior. Os dois endpoints MTR abaixo estao documentados na
 especificacao, mas **NAO ESTAO IMPLEMENTADOS NESTA SOLUCAO**:
 
@@ -125,6 +126,7 @@ saida.
 GET /simtr/parametrizacao/v2/patriarca/processo/identificador-negocial/{identificador}
 GET /simtr/parametrizacao/v1/cadastro/checklist/identificador-negocial/{identificador}/versao/{versao}
 GET /simtr/dossie-produto/v2/dossie-produto/{id}
+GET /simtr/dossie-produto/v4/dossie-produto/{id}/documentos
 POST /simtr/dossie-produto/v1/dossie-produto
 PATCH /simtr/dossie-produto/v1/dossie-produto/{id}/formulario
 POST /simtr/dossie-produto/v2/dossie-produto/{id}/documento
@@ -142,9 +144,17 @@ mas sem retry automatico porque o contrato MTR nao comprova idempotencia. Seu pr
 e registrado somente nesse client para preservar a correlacao e impedir que a URL interna completa
 seja publicada pelo span HTTP automatico.
 
-`CapturarDossieProduto` usa a mesma porta de saida para MTR e simulador. O producer CDI seleciona o
-adapter pela property existente `simtr-hub.simulador.dossie-produto.habilitado`; no modo simulador,
-a fixture e o DTO proprios da captura sao usados sem chamada de rede.
+A consulta de documentos usa o GET v4 idempotente e encaminha somente os query params opcionais
+explicitamente recebidos. Ela aplica timeout, retry apenas para falhas transitorias e circuit
+breaker. Um provider exclusivo desse client suprime o span HTTP automatico, que poderia publicar a
+query string, e reinjeta o contexto OpenTelemetry; o caminho MTR conserva exatamente um span
+CLIENT proprio.
+
+`CapturarDossieProduto` e `ConsultarDocumentosDossieProduto` usam portas de saida intercambiaveis
+para MTR e simulador. Producers CDI selecionam os adapters pela property existente
+`simtr-hub.simulador.dossie-produto.habilitado`; no modo simulador, cada capacidade usa DTO, mapper
+e fixture proprios, sem chamada de rede. A consulta de documentos entrega o cenario deterministico
+do identificador `4081899` e nao reproduz a engine de filtros/projecoes do MTR.
 
 ## Configuracao
 
