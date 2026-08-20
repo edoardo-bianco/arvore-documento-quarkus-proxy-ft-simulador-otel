@@ -18,6 +18,8 @@ class ResourceEndpointTest {
             "/simtr-hub/v1/dossie-produto/{id}/capturar";
     private static final String ROTA_DOCUMENTO_DOSSIE_PRODUTO =
             "/simtr-hub/v1/dossie-produto/{id}/documento";
+    private static final String ROTA_DOCUMENTOS_DOSSIE_PRODUTO =
+            "/simtr-hub/v1/dossie-produto/{id}/documentos";
     private static final String ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO =
             "/simtr-hub/v1/dossie-produto/{id}/validacao-negocial";
     private static final String CAMPO_CODIGO_ERRO = "codigo_erro";
@@ -74,6 +76,24 @@ class ResourceEndpointTest {
                 .body("id", equalTo(4324680))
                 .body("clientes[0].cpf", equalTo("00000000000"))
                 .body("clientes[0].nome", equalTo("CLIENTE SIMULADO"));
+    }
+
+    @Test
+    void dossieProdutoGetDocumentosRetorna200ComMockDoQuarkus() {
+        given()
+                .accept(ContentType.JSON)
+                .queryParam("inclui-armazenamento", true)
+                .queryParam("inclui-assinaturas", true)
+                .queryParam("inclui-atributos", true)
+                .queryParam("inclui-conformidade", true)
+                .queryParam("inclui-outsourcing", true)
+                .queryParam("inclui-propriedades", true)
+                .when()
+                .get(ROTA_DOCUMENTOS_DOSSIE_PRODUTO, 4081899L)
+                .then()
+                .statusCode(200)
+                .body("size()", equalTo(14))
+                .body("[0].id_instancia_documento", equalTo(1132220));
     }
 
     @Test

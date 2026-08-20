@@ -19,6 +19,7 @@ public class DossieProdutoMtrStubTestResource implements QuarkusTestResourceLife
 
     static final String CAMINHO_CRIACAO = "/simtr/dossie-produto/v1/dossie-produto";
     static final String CAMINHO_DOCUMENTO = "/simtr/dossie-produto/v2/dossie-produto";
+    static final String CAMINHO_DOCUMENTOS = "/simtr/dossie-produto/v4/dossie-produto";
 
     private static final ConcurrentLinkedQueue<StubResponse> RESPOSTAS = new ConcurrentLinkedQueue<>();
     private static final CopyOnWriteArrayList<CapturedRequest> REQUISICOES = new CopyOnWriteArrayList<>();
@@ -39,6 +40,7 @@ public class DossieProdutoMtrStubTestResource implements QuarkusTestResourceLife
         server.createContext("/oidc/token", this::handleToken);
         server.createContext(CAMINHO_CRIACAO, this::handleDossieProduto);
         server.createContext(CAMINHO_DOCUMENTO, this::handleDossieProduto);
+        server.createContext(CAMINHO_DOCUMENTOS, this::handleDossieProduto);
         server.start();
 
         String baseUrl = "http://127.0.0.1:" + server.getAddress().getPort();
@@ -97,6 +99,7 @@ public class DossieProdutoMtrStubTestResource implements QuarkusTestResourceLife
         REQUISICOES.add(new CapturedRequest(
                 exchange.getRequestMethod(),
                 exchange.getRequestURI().getPath(),
+                exchange.getRequestURI().getRawQuery(),
                 body,
                 exchange.getRequestHeaders().getFirst("Content-Type"),
                 exchange.getRequestHeaders().getFirst("Accept"),
@@ -139,6 +142,7 @@ public class DossieProdutoMtrStubTestResource implements QuarkusTestResourceLife
     record CapturedRequest(
             String method,
             String path,
+            String query,
             String body,
             String contentType,
             String accept,

@@ -17,8 +17,11 @@ Os sinais permitem responder:
 
 | Teste | Contrato protegido |
 |---|---|
-| `ObservabilidadeSpansContratoTest#preservaSpansDasOnzeCapacidadesNoCaminhoSimulador` | 22 spans manuais de API/aplicação, `SpanKind`, parentage, rota, API, flags de simulador e origem mock |
-| `ObservabilidadeSpansContratoTest#preservaDeclaracoesDosSpansDeIntegracaoMtr` | onze spans CLIENT dos gateways, incluindo `mtr.dossie-produto.consultar` e `mtr.dossie-produto.capturar` |
+| `ObservabilidadeSpansContratoTest#preservaSpansDasDozeCapacidadesNoCaminhoSimulador` | 24 spans manuais de API/aplicação, `SpanKind`, parentage, rota, API, flags de simulador e origem mock |
+| `ObservabilidadeSpansContratoTest#preservaDeclaracoesDosSpansDeIntegracaoMtr` | doze spans CLIENT dos gateways, incluindo `mtr.dossie-produto.consultar`, `mtr.dossie-produto.documentos.consultar` e `mtr.dossie-produto.capturar` |
+| `ConsultaDocumentosDossieProdutoObservabilidadeTest#registraOrigemIdentificadorEQuantidadeSemDadosSensiveis` | span INTERNAL e eventos da aplicação com origem, id e quantidade, sem filtros, identidade ou conteúdo documental |
+| `ConsultaDocumentosDossieProdutoMtrContractTest#propagaContextoEmUmUnicoClientSemVazarQueryCredenciaisOuPayload` | encadeamento SERVER → INTERNAL → CLIENT, um único CLIENT próprio, `traceparent` correlacionado e ausência de query, filtros, conteúdo, erro externo e credenciais |
+| `ConsultaDocumentosDossieProdutoSelecaoSimuladorQuarkusTest#selecionaFixtureLocalSemSpanClientNemChamadaAoStubMtr` | seleção CDI do simulador com zero CLIENT próprio e zero requisições ao stub MTR |
 | `RestClientObservabilityFilterTest#preservaEventosEAtributosDerivadosDaInvocacaoRestClient` | eventos request/response, método, path, status, payload e nomes derivados por reflexão |
 | `ObservabilidadeLogsContratoTest#preservaEventosEstruturadosDasOnzeCapacidadesNoCaminhoSimulador` | 55 eventos de sucesso e MDC comum de evento/camada/componente/operação/trace |
 | `ObservabilidadeLogsContratoTest#registraFalhaDeProdutoComCamposEstaveisSemDadosSensiveis` | eventos de início/falha da alteração de produtos, id, quantidade, resultado e tipo de erro |
@@ -51,9 +54,10 @@ da mesma capacidade; os nomes exatos da captura estão registrados abaixo.
 - integração MTR: `SpanKind.CLIENT`, prefixo `mtr.*`.
 
 A instrumentação HTTP automática do Quarkus permanece ativa para os demais REST Clients, mas não
-substitui os sinais manuais que carregam semântica da capacidade. Exclusivamente na captura, um
-provider registrado no próprio client usa `TracingPolicy.IGNORE` para impedir o span HTTP
-automático com `url.full` e reinjeta o contexto corrente pelo propagador OpenTelemetry configurado.
+substitui os sinais manuais que carregam semântica da capacidade. Na captura e na consulta de
+documentos, providers registrados somente nos respectivos clients usam `TracingPolicy.IGNORE`
+para impedir o span HTTP automático com URL completa e reinjetam o contexto corrente pelo
+propagador OpenTelemetry configurado.
 
 ## Sinais por capacidade
 
@@ -62,6 +66,7 @@ automático com `url.full` e reinjeta o contexto corrente pelo propagador OpenTe
 | Consultar processo | `simtr-hub.api.processo.consultar` | `simtr-hub.service.processo.consultar` | `simtr-hub.processo` | rota, `simtr_hub.api=parametrizacao-processo-v1`, flag de simulador e origem |
 | Consultar checklist | `simtr-hub.api.checklist.consultar` | `simtr-hub.service.checklist.consultar` | `simtr-hub.checklist` | rota, `simtr_hub.api=parametrizacao-checklist-v1`, flag e origem |
 | Consultar dossiê | `simtr-hub.api.dossie-produto.consultar` | `simtr-hub.service.dossie-produto.consultar` | `simtr-hub.dossie-produto.consulta` | rota, `simtr_hub.api=dossie-produto-v2`, flag, origem, id e contagens de clientes, unidades e produtos |
+| Consultar documentos do dossiê | `simtr-hub.api.dossie-produto.documentos.consultar` | `simtr-hub.service.dossie-produto.documentos.consultar` | `simtr-hub.dossie-produto.documentos.consulta` | rota, `simtr_hub.api=dossie-produto-v4`, flag, origem, id e quantidade de documentos |
 | Criar dossiê | `simtr-hub.api.dossie-produto.criar` | `simtr-hub.service.dossie-produto.criar` | `simtr-hub.dossie-produto` | rota, API v1, flag e origem |
 | Atualizar formulário | `simtr-hub.api.dossie-produto.formulario.atualizar` | `simtr-hub.service.dossie-produto.formulario.atualizar` | `simtr-hub.dossie-produto.formulario` | rota, API v1, flag e origem |
 | Incluir documento | `simtr-hub.api.dossie-produto.documento.incluir` | `simtr-hub.service.dossie-produto.documento.incluir` | `simtr-hub.dossie-produto.documento` | rota, `simtr_hub.api=dossie-produto-v2`, flag e origem |
@@ -109,6 +114,41 @@ Os sinais específicos da consulta não registram payload nem os campos `cpf`, `
 interna completa também permanecem ausentes. O atributo `rest_client.url` continua pertencendo ao
 filtro compartilhado preexistente descrito abaixo. O mapper transversal conserva o corpo de erro
 na resposta HTTP, mas não copia `detalhe` nem mensagens do payload MTR para logs.
+
+### Consulta de documentos vinculados ao dossiê
+
+- rota pública: `GET /simtr-hub/v1/dossie-produto/{id}/documentos`, com 12 query params opcionais
+  e sem corpo;
+- spans no modo MTR: `simtr-hub.api.dossie-produto.documentos.consultar` (`SERVER`),
+  `simtr-hub.service.dossie-produto.documentos.consultar` (`INTERNAL`) e
+  `mtr.dossie-produto.documentos.consultar` (`CLIENT`), no mesmo trace e com parentage
+  `SERVER → INTERNAL → CLIENT`;
+- spans no simulador: somente `SERVER → INTERNAL`; não existe CLIENT nem chamada ao stub MTR;
+- eventos da aplicação: `simtr-hub.dossie-produto.documentos.consulta.service.iniciada`,
+  `simtr-hub.dossie-produto.documentos.consulta.service.concluida` e
+  `simtr-hub.dossie-produto.documentos.consulta.service.falhou`;
+- eventos MTR: `mtr.dossie-produto.documentos.consulta.chamada.iniciada`,
+  `mtr.dossie-produto.documentos.consulta.chamada.concluida` e
+  `mtr.dossie-produto.documentos.consulta.chamada.falhou`;
+- campos estáveis de log: `operacao=consultar-documentos-dossie-produto-v4`,
+  `dossie_produto_id`, `origem`, `simulador_habilitado`, `documentos_quantidade`, `resultado` e
+  `erro_tipo`, quando aplicáveis; a integração acrescenta `dependencia=simtr-dossie-produto`;
+- atributos do span API: `http.route`, `simtr_hub.api=dossie-produto-v4`,
+  `dossie_produto.id`, `dossie_produto.documentos.quantidade` e `erro.tipo` na falha;
+- atributos do span de aplicação: `simtr_hub.simulador_dossie_produto_habilitado`,
+  `simtr_hub.origem_dados`, `dossie_produto.id`, `dossie_produto.documentos.quantidade` e
+  `erro.tipo` na falha;
+- atributos do CLIENT: `mtr.servico=simtr-dossie-produto`, `mtr.api=dossie-produto-v4`,
+  `http.request.method=GET`,
+  `url.path=/simtr/dossie-produto/v4/dossie-produto/{id}/documentos`, `dossie_produto.id`,
+  `dossie_produto.documentos.quantidade`, `mtr.resposta.sucesso` e `erro.tipo` na falha.
+
+O filtro de entrada dessa rota esvazia `url.query` no span HTTP para impedir a exposição dos
+filtros. No outbound, o provider exclusivo suprime o span HTTP automático e injeta o contexto do
+CLIENT próprio, de modo que existe exatamente um CLIENT e o `traceparent` recebido pelo MTR o
+referencia. Spans e logs permanecem sem query string, CPF, CNPJ, IP, tipologia, URL de documento,
+nome, matrícula, código GED, path de storage, payload, mensagem/detalhe/stacktrace externos, API
+key, bearer token ou valor do `traceparent`.
 
 ### Alteração de produtos contratados
 
@@ -171,6 +211,7 @@ ou stacktrace externos.
 | Processo | `mtr.parametrizacao.processo.consultar` | `simtr-parametrizacao`, `patriarca-processo-v2` |
 | Checklist | `mtr.parametrizacao.checklist.consultar` | `simtr-parametrizacao`, `cadastro-checklist-v1` |
 | Consultar dossiê | `mtr.dossie-produto.consultar` | `simtr-dossie-produto`, v2 |
+| Consultar documentos | `mtr.dossie-produto.documentos.consultar` | `simtr-dossie-produto`, v4 |
 | Criar dossiê | `mtr.dossie-produto.criar` | `simtr-dossie-produto`, v1 |
 | Formulário | `mtr.dossie-produto.formulario.atualizar` | `simtr-dossie-produto`, v1 |
 | Documento | `mtr.dossie-produto.documento.incluir` | `simtr-dossie-produto`, v2 |
@@ -196,9 +237,9 @@ metadados de payload. Classe e operação dependem do método refletido; renome 
 dashboards e exige checkpoint observável.
 
 Payloads mascaram recursivamente SAS, tokens, secrets, API keys e passwords. Payload completo não
-deve virar atributo novo nem label de métrica. O client MTR da captura não registra esse filtro
-compartilhado: seus eventos próprios permanecem, e o provider local evita tanto o payload quanto
-`rest_client.url`/`url.full` para essa operação sem alterar os demais clients.
+deve virar atributo novo nem label de métrica. Os clients MTR da captura e da consulta de
+documentos não registram esse filtro compartilhado: seus eventos próprios permanecem, e os
+providers locais evitam payload e URL completa para essas operações sem alterar os demais clients.
 
 ## Configuração
 

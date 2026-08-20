@@ -22,6 +22,8 @@ class DossieProdutoErroApiContractTest {
             "/simtr-hub/v1/dossie-produto/{id}/capturar";
     private static final String ROTA_DOCUMENTO_DOSSIE_PRODUTO =
             "/simtr-hub/v1/dossie-produto/{id}/documento";
+    private static final String ROTA_DOCUMENTOS_DOSSIE_PRODUTO =
+            "/simtr-hub/v1/dossie-produto/{id}/documentos";
     private static final String ROTA_PRODUTO_DOSSIE_PRODUTO =
             "/simtr-hub/v1/dossie-produto/{id}/produto";
     private static final String ROTA_VALIDACAO_NEGOCIAL_DOSSIE_PRODUTO =
@@ -185,6 +187,14 @@ class DossieProdutoErroApiContractTest {
         validarErro(given()
                 .accept(ContentType.JSON)
                 .get(ROTA_CONSULTA_DOSSIE_PRODUTO, id), MENSAGEM_ID);
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = {0L, -1L})
+    void preservaErroParaIdInvalidoNaConsultaDeDocumentos(long id) {
+        validarErro(given()
+                .accept(ContentType.JSON)
+                .get(ROTA_DOCUMENTOS_DOSSIE_PRODUTO, id), MENSAGEM_ID);
     }
 
     @Test

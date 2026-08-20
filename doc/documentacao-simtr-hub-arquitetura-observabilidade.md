@@ -51,10 +51,10 @@ Dono de `ConsultarChecklist`. Nao analisa documentos nem orquestra conformidade.
 
 ### `dossieproduto`
 
-Dono das capacidades atomicas de consulta, criacao, formulario, documento, validacao negocial,
-alteracao de produtos contratados, captura para edicao e avanco de workflow. A borda REST segue o
-package canonico `adaptador.entrada.rest.v1`; os demais componentes seguem `dominio`, `aplicacao`
-e `adaptador`.
+Dono das capacidades atomicas de consulta por identificador, consulta de documentos vinculados,
+criacao, formulario, documento, validacao negocial, alteracao de produtos contratados, captura
+para edicao e avanco de workflow. A borda REST segue o package canonico
+`adaptador.entrada.rest.v1`; os demais componentes seguem `dominio`, `aplicacao` e `adaptador`.
 
 ### `gestaodocumento`
 
@@ -67,6 +67,7 @@ MTR. Nao ha Azure Storage SDK no nucleo, upload, cache, renovacao ou reutilizaca
 GET /simtr-hub/v1/processo/identificador-negocial/{identificador}
 GET /simtr-hub/v1/checklist/identificador-negocial/{identificador}/versao/{versao}
 GET /simtr-hub/v1/dossie-produto/{id}
+GET /simtr-hub/v1/dossie-produto/{id}/documentos
 POST /simtr-hub/v1/dossie-produto
 PATCH /simtr-hub/v1/dossie-produto/{id}/formulario
 POST /simtr-hub/v1/dossie-produto/{id}/documento
@@ -86,7 +87,7 @@ sem inspecionar o artefato gerado.
 
 ## Limite frente aos endpoints da especificacao de pre-validacao
 
-Os endpoints locais acima correspondem as onze capacidades implementadas. A especificacao
+Os endpoints locais acima correspondem as doze capacidades implementadas. A especificacao
 `api-integracao-mtr-pre-validacao-v1.md` tambem cataloga duas operacoes do ciclo de vida do
 dossie que **NAO EXISTEM NESTE HUB**:
 
@@ -104,7 +105,7 @@ unico de pre-validacao ou orquestrador local.
 Os prefixos `/simtr-parametrizacao`, `/simtr-dossie-produto` e `/simtr-gestao-documento` usados
 pela especificacao representam os servicos MTR. Nesta implantacao, o gateway e configurado com
 base `/simtr`, e cada REST Client acrescenta seu segmento de servico. A matriz completa, incluindo
-as onze operacoes implementadas, esta em `arquitetura-ddd-integracoes-atomicas.md`.
+as doze operacoes implementadas, esta em `arquitetura-ddd-integracoes-atomicas.md`.
 
 ## Configuracao de integracoes
 
@@ -132,8 +133,11 @@ simtr-hub.simulador.gestao-documento.habilitado=false
 O profile `dev` habilita os simuladores. O profile padrao de testes usa fixtures e stubs localhost,
 sem Docker, Dev Services ou rede externa.
 
-A captura reutiliza `simtr-hub.simulador.dossie-produto.habilitado`: desabilitada, seleciona o
-adapter MTR; habilitada, usa fixture, DTO e mapper proprios sem chamada de rede.
+A captura e a consulta de documentos reutilizam
+`simtr-hub.simulador.dossie-produto.habilitado`: desabilitada, a property seleciona os adapters
+MTR; habilitada, cada capacidade usa fixture, DTO e mapper proprios sem chamada de rede. A consulta
+de documentos entrega o cenario deterministico do identificador `4081899` e nao reproduz os
+filtros ou projecoes do MTR.
 
 ## Fault tolerance e erros
 
@@ -143,6 +147,10 @@ seguem a matriz congelada de cada capacidade.
 
 A captura aplica timeout e circuit breaker, mas nao possui retry automatico. Como a operacao altera
 estado e o contrato MTR nao comprova idempotencia, erros `500` e timeout geram uma unica chamada.
+
+A consulta de documentos chama o GET idempotente
+`/simtr/dossie-produto/v4/dossie-produto/{id}/documentos`, encaminha somente os 12 filtros
+opcionais informados e aplica timeout, retry apenas para falhas transitorias e circuit breaker.
 
 A ordem e contratual:
 
@@ -166,8 +174,9 @@ target/logs/simtr-hub.json
 
 O filtro compartilhado de REST Client registra metodo, URL, status, duracao, classe e operacao nos
 clients que o utilizam. Payloads sao truncados e mascarados para campos sensiveis. SAS e validade
-de credencial nao sao registradas. O client da captura nao registra esse filtro; usa eventos
-proprios e um provider local para não publicar payload nem URL interna completa.
+de credencial nao sao registradas. Os clients da captura e da consulta de documentos nao registram
+esse filtro; usam eventos proprios e providers locais para não publicar payload, URL interna
+completa ou query string.
 
 ### Traces
 
@@ -182,6 +191,16 @@ No modo MTR, a captura produz exatamente os spans
 span HTTP automatico com `url.full`; o contexto e reinjetado pelo propagador OpenTelemetry
 configurado, mantendo o `traceparent` ligado ao CLIENT proprio. Os demais REST Clients nao sao
 afetados.
+
+No modo MTR, a consulta de documentos produz exatamente
+`simtr-hub.api.dossie-produto.documentos.consultar` (`SERVER`),
+`simtr-hub.service.dossie-produto.documentos.consultar` (`INTERNAL`) e
+`mtr.dossie-produto.documentos.consultar` (`CLIENT`), no mesmo trace e com parentage
+`SERVER -> INTERNAL -> CLIENT`. O filtro de entrada esvazia `url.query`; no outbound, o provider
+exclusivo usa `TracingPolicy.IGNORE` e reinjeta o contexto no `traceparent`, preservando um unico
+CLIENT proprio. Os sinais mantêm rota parametrizada, versao v4, origem, flag do simulador,
+identificador, quantidade e tipo tecnico de erro, sem filtros, identidade, URL de documento,
+storage, payload ou credenciais. No simulador permanecem apenas SERVER e INTERNAL, sem rede.
 
 Por padrao:
 

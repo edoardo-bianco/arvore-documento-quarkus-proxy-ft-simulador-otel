@@ -4,6 +4,7 @@ import br.gov.caixa.simtr.hub.arvoredocumento.adaptador.saida.mtr.adapter.Proces
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.CapturaDossieProdutoMtrAdapter;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.CriacaoDossieProdutoMtrAdapter;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.ConsultaDossieProdutoMtrAdapter;
+import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.ConsultaDocumentosDossieProdutoMtrAdapter;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.DocumentoDossieProdutoMtrAdapter;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.FormularioDossieProdutoMtrAdapter;
 import br.gov.caixa.simtr.hub.dossieproduto.adaptador.saida.mtr.adapter.ProdutoDossieProdutoMtrAdapter;
@@ -40,7 +41,9 @@ class ObservabilidadeSpansContratoTest {
 
     private static final String API_DOSSIE_PRODUTO_V1 = "dossie-produto-v1";
     private static final String API_DOSSIE_PRODUTO_V2 = "dossie-produto-v2";
+    private static final String API_DOSSIE_PRODUTO_V4 = "dossie-produto-v4";
     private static final long IDENTIFICADOR_CONSULTA_DOSSIE_PRODUTO = 4_324_680L;
+    private static final long IDENTIFICADOR_CONSULTA_DOCUMENTOS_DOSSIE_PRODUTO = 4_081_899L;
     private static final String ROTA_CONSULTA_DOSSIE_PRODUTO =
             "/simtr-hub/v1/dossie-produto/{id}";
     private static final String ATRIBUTO_DOSSIE_PRODUTO_ID = "dossie_produto.id";
@@ -60,7 +63,7 @@ class ObservabilidadeSpansContratoTest {
     }
 
     @Test
-    void preservaSpansDasOnzeCapacidadesNoCaminhoSimulador() {
+    void preservaSpansDasDozeCapacidadesNoCaminhoSimulador() {
         given()
                 .get("/simtr-hub/v1/processo/identificador-negocial/{identificador}", 1000016487L)
                 .then()
@@ -72,6 +75,11 @@ class ObservabilidadeSpansContratoTest {
                 .statusCode(200);
         given()
                 .get(ROTA_CONSULTA_DOSSIE_PRODUTO, IDENTIFICADOR_CONSULTA_DOSSIE_PRODUTO)
+                .then()
+                .statusCode(200);
+        given()
+                .get("/simtr-hub/v1/dossie-produto/{id}/documentos",
+                        IDENTIFICADOR_CONSULTA_DOCUMENTOS_DOSSIE_PRODUTO)
                 .then()
                 .statusCode(200);
         given()
@@ -144,6 +152,7 @@ class ObservabilidadeSpansContratoTest {
         assertEquals(1L, atributo(serviceProduto, "dossie_produto.produtos.quantidade"));
 
         assertArvoreConsultaSimulador(spans);
+        assertArvoreConsultaDocumentosSimulador(spans, finalizados);
         assertArvoreCapturaSimulador(spans, finalizados);
     }
 
@@ -156,6 +165,8 @@ class ObservabilidadeSpansContratoTest {
                         "mtr.dossie-produto.criar|CLIENT|"),
                 Map.entry("ConsultaDossieProdutoMtrAdapter#obter",
                         "mtr.dossie-produto.consultar|CLIENT|"),
+                Map.entry("ConsultaDocumentosDossieProdutoMtrAdapter#obter",
+                        "mtr.dossie-produto.documentos.consultar|CLIENT|"),
                 Map.entry("DocumentoDossieProdutoMtrAdapter#incluir",
                         "mtr.dossie-produto.documento.incluir|CLIENT|"),
                 Map.entry("ProdutoDossieProdutoMtrAdapter#alterar",
@@ -177,6 +188,7 @@ class ObservabilidadeSpansContratoTest {
         assertEquals(esperado, extrairSpansDeclarados(
                 CriacaoDossieProdutoMtrAdapter.class,
                 ConsultaDossieProdutoMtrAdapter.class,
+                ConsultaDocumentosDossieProdutoMtrAdapter.class,
                 DocumentoDossieProdutoMtrAdapter.class,
                 FormularioDossieProdutoMtrAdapter.class,
                 ProdutoDossieProdutoMtrAdapter.class,
@@ -204,6 +216,11 @@ class ObservabilidadeSpansContratoTest {
                 api("simtr-hub.api.dossie-produto.consultar",
                         ROTA_CONSULTA_DOSSIE_PRODUTO, API_DOSSIE_PRODUTO_V2),
                 service("simtr-hub.service.dossie-produto.consultar",
+                        ATRIBUTO_SIMULADOR_DOSSIE_PRODUTO_HABILITADO),
+                api("simtr-hub.api.dossie-produto.documentos.consultar",
+                        "/simtr-hub/v1/dossie-produto/{id}/documentos",
+                        API_DOSSIE_PRODUTO_V4),
+                service("simtr-hub.service.dossie-produto.documentos.consultar",
                         ATRIBUTO_SIMULADOR_DOSSIE_PRODUTO_HABILITADO),
                 api("simtr-hub.api.dossie-produto.criar",
                         "/simtr-hub/v1/dossie-produto", API_DOSSIE_PRODUTO_V1),
@@ -316,6 +333,29 @@ class ObservabilidadeSpansContratoTest {
         assertEquals("mock", atributo(aplicacao, "simtr_hub.origem_dados"));
         assertEquals(0L, finalizados.stream()
                 .filter(span -> "mtr.dossie-produto.capturar".equals(span.getName()))
+                .count());
+    }
+
+    private static void assertArvoreConsultaDocumentosSimulador(
+            Map<String, SpanData> spans,
+            List<SpanData> finalizados
+    ) {
+        SpanData api = spans.get("simtr-hub.api.dossie-produto.documentos.consultar");
+        SpanData aplicacao = spans.get(
+                "simtr-hub.service.dossie-produto.documentos.consultar");
+
+        assertEquals(api.getTraceId(), aplicacao.getTraceId());
+        assertEquals(api.getSpanId(), aplicacao.getParentSpanId());
+        assertEquals(IDENTIFICADOR_CONSULTA_DOCUMENTOS_DOSSIE_PRODUTO,
+                atributo(api, ATRIBUTO_DOSSIE_PRODUTO_ID));
+        assertEquals(IDENTIFICADOR_CONSULTA_DOCUMENTOS_DOSSIE_PRODUTO,
+                atributo(aplicacao, ATRIBUTO_DOSSIE_PRODUTO_ID));
+        assertEquals("mock", atributo(aplicacao, "simtr_hub.origem_dados"));
+        assertEquals(14L,
+                atributo(aplicacao, "dossie_produto.documentos.quantidade"));
+        assertEquals(0L, finalizados.stream()
+                .filter(span -> "mtr.dossie-produto.documentos.consultar"
+                        .equals(span.getName()))
                 .count());
     }
 
