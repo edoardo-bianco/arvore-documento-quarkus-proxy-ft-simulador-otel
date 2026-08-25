@@ -3,7 +3,7 @@
 ## Como usar este documento
 
 - **Status:** aceito
-- **Última consolidação:** 2026-08-19
+- **Última consolidação:** 2026-08-25
 - **Objetivo:** explicar rapidamente a arquitetura implementada e as restrições que novas features
   devem respeitar.
 
@@ -35,6 +35,11 @@ cliente HTTP
 O caso de uso não conhece Resource, REST Client, URL, DTO MTR, fixture nem o mecanismo CDI que
 seleciona o adapter. Não existem atualmente endpoint único de pré-validação, orquestrador local,
 motor de workflow, MCP Server ou comunicação distribuída entre os domínios.
+
+Além da borda REST, a consulta de documentos do dossiê pode ser iniciada pelo consumidor CDI local
+`br.gov.caixa.simtr.dossie.ConsultaDocumentosDossieProduto`, no mesmo artifact e runtime Quarkus.
+Esse caminho entra pela mesma porta de aplicação e não cria chamada HTTP local nem nova superfície
+externa.
 
 ## Domínios e capacidades implementadas
 
@@ -118,6 +123,27 @@ framework.
 
 ArchUnit protege essas fronteiras. Uma feature que precise alterar uma regra deve explicar a
 necessidade no plano e obter checkpoint humano de arquitetura.
+
+### Consumidor CDI local da consulta de documentos
+
+`br.gov.caixa.simtr.dossie` é um package consumidor irmão de `br.gov.caixa.simtr.hub`, não um novo
+domínio nem uma borda de rede. Seu bean `@ApplicationScoped` injeta a porta de entrada
+`ConsultarDocumentosDossieProduto` e delega a ela os critérios, preservando o `Uni`, a lista, a
+lista vazia e a falha. O CDI resolve `ConsultaDocumentosDossieProdutoObservabilidade`, que mantém o
+caso de uso concreto e a porta de saída selecionada encapsulados no Hub.
+
+```text
+br.gov.caixa.simtr.dossie.ConsultaDocumentosDossieProduto
+    -> porta de entrada ConsultarDocumentosDossieProduto
+        -> wrapper observável existente
+            -> caso de uso
+                -> adapter MTR ou simulador selecionado
+```
+
+O guardrail importa o código de produção de todo `br.gov.caixa.simtr`. Para o package irmão, a
+allowlist permite dependências no Hub somente para a porta de entrada de `dossieproduto` e para o
+package de modelos semânticos usado por sua assinatura. Caso de uso concreto, porta de saída,
+adapter, Resource e REST Client permanecem fora desse limite.
 
 ## Portas, casos de uso e colaboração
 
@@ -238,6 +264,10 @@ MTR, simulador, erros, fault tolerance, configuração, observabilidade e regras
 contrato, arquitetura, segurança ou comportamento observável exigem checkpoint humano adicional.
 O OpenAPI é gerado pelo Quarkus a partir das annotations e contratos Java; os testes não mantêm
 snapshot nem inspecionam o documento gerado, conforme o ADR-0006.
+
+O escopo ArchUnit de produção abrange todo `br.gov.caixa.simtr`, inclusive packages consumidores
+irmãos. A fronteira de `br.gov.caixa.simtr.dossie` possui verificação positiva sobre o código real e
+prova negativa que rejeita dependência no caso de uso concreto.
 
 ## Restrições vigentes
 

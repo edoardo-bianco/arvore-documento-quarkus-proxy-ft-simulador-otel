@@ -1,5 +1,7 @@
 package br.gov.caixa.simtr.hub.arquitetura.guardrails;
 
+import br.gov.caixa.simtr.dossie.ConsultaDocumentosDossieProduto;
+import br.gov.caixa.simtr.dossie.falso.DependenciaCasoDeUsoNoPackageIrmaoViolacao;
 import br.gov.caixa.simtr.hub.arvoredocumento.adaptador.saida.acl.falso.AcessoInternoDossieProdutoViolacao;
 import br.gov.caixa.simtr.hub.arvoredocumento.dominio.modelo.ProcessoParametrizado;
 import br.gov.caixa.simtr.hub.arvoredocumento.falso.DependenciaDossieProdutoViolacao;
@@ -19,12 +21,15 @@ import com.tngtech.archunit.lang.ArchRule;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import org.junit.jupiter.api.Test;
 
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideOutsideOfPackage;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noFields;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ArchUnitProgressivoTest {
 
@@ -35,6 +40,12 @@ class ArchUnitProgressivoTest {
     private static final String PACOTE_PORTA_SAIDA = "..aplicacao.porta.saida..";
     private static final String PACOTE_ADAPTADOR_SAIDA_MTR = "..adaptador.saida.mtr..";
     private static final String PACOTE_DTO_ERRO_REST = "..arquitetura.excecao.dto..";
+    private static final String PACOTE_HUB = "br.gov.caixa.simtr.hub..";
+    private static final String PACOTE_DOSSIE_IRMAO = "br.gov.caixa.simtr.dossie..";
+    private static final String[] PACOTES_API_PUBLICA_DOSSIE_PRODUTO = {
+            "br.gov.caixa.simtr.hub.dossieproduto.aplicacao.porta.entrada..",
+            "br.gov.caixa.simtr.hub.dossieproduto.dominio.modelo.."
+    };
     private static final String DOMINIO_DOSSIE_PRODUTO = "dossieproduto";
     private static final String DOMINIO_ARVORE_DOCUMENTO = "arvoredocumento";
     private static final String DOMINIO_CONFORMIDADE = "conformidade";
@@ -47,7 +58,7 @@ class ArchUnitProgressivoTest {
             "(?i).*(cache|renew|refresh|renov|upload|blob|armazen|reutiliz).*";
     private static final JavaClasses CODIGO_PRODUCAO = new ClassFileImporter()
             .withImportOption(new DoNotIncludeTests())
-            .importPackages("br.gov.caixa.simtr.hub");
+            .importPackages("br.gov.caixa.simtr");
 
     static final ArchRule dominio_nao_deve_depender_de_bordas = noClasses()
             .that().resideInAPackage(PACOTE_DOMINIO)
@@ -114,6 +125,12 @@ class ArchUnitProgressivoTest {
                     "..gestaodocumento.aplicacao.porta.entrada..")
             .should().dependOnClassesThat()
             .resideInAnyPackage(PACOTE_PORTA_SAIDA, "..aplicacao.casodeuso..");
+
+    static final ArchRule package_irmao_so_deve_depender_da_api_publica_do_hub = classes()
+            .that().resideInAPackage(PACOTE_DOSSIE_IRMAO)
+            .should().onlyDependOnClassesThat(
+                    resideOutsideOfPackage(PACOTE_HUB)
+                            .or(resideInAnyPackage(PACOTES_API_PUBLICA_DOSSIE_PRODUTO)));
 
     static final ArchRule adapters_rest_nao_devem_acessar_internos_ou_bordas_de_saida = noClasses()
             .that().resideInAPackage(PACOTE_ADAPTADOR_ENTRADA_REST)
@@ -250,6 +267,16 @@ class ArchUnitProgressivoTest {
     }
 
     @Test
+    void escopoIncluiPackageIrmao() {
+        assertTrue(CODIGO_PRODUCAO.contain(ConsultaDocumentosDossieProduto.class));
+    }
+
+    @Test
+    void packageIrmaoDependeSomenteDaApiPublicaDoHub() {
+        package_irmao_so_deve_depender_da_api_publica_do_hub.check(CODIGO_PRODUCAO);
+    }
+
+    @Test
     void dominioNaoDependeDeBordas() {
         dominio_nao_deve_depender_de_bordas.check(CODIGO_PRODUCAO);
     }
@@ -370,6 +397,14 @@ class ArchUnitProgressivoTest {
     }
 
     @Test
+    void regraDoPackageIrmaoDetectaAcessoAoCasoDeUsoConcreto() {
+        assertThrows(AssertionError.class, () ->
+                package_irmao_so_deve_depender_da_api_publica_do_hub.check(
+                        new ClassFileImporter().importClasses(
+                                DependenciaCasoDeUsoNoPackageIrmaoViolacao.class)));
+    }
+
+    @Test
     void regraDeIsolamentoEntreDominiosDetectaDependenciaForaDeAcl() {
         assertThrows(AssertionError.class, () ->
                 arvore_documento_nao_deve_depender_de_outros_dominios.check(
@@ -424,9 +459,11 @@ class ArchUnitProgressivoTest {
 
     @Test
     void regraFinalDeCamadasDetectaAdapterRestAcessandoPortaDeSaida() {
+        JavaClasses classes = new ClassFileImporter()
+                .importClasses(AdapterEntradaComPortaSaidaViolacao.class);
+
         assertThrows(AssertionError.class, () ->
-                adapters_rest_nao_devem_acessar_internos_ou_bordas_de_saida.check(
-                        new ClassFileImporter().importClasses(AdapterEntradaComPortaSaidaViolacao.class)));
+                adapters_rest_nao_devem_acessar_internos_ou_bordas_de_saida.check(classes));
     }
 
     @Test
