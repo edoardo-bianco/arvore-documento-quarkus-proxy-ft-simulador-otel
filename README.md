@@ -235,7 +235,7 @@ target/jacoco-report/index.html
 - decisao arquitetural canonica: `doc/arquitetura-ddd-integracoes-atomicas.md`;
 - indice de decisoes arquiteturais: `doc/adr/README.md`;
 - guia para implementar nova capacidade integrada ao MTR:
-  `doc/guia-implementacao-nova-capacidade-mtr.md`;
+  `doc/guias/guia-implementacao-nova-capacidade-mtr.md`;
 - especificacao funcional de referencia: `doc/api-integracao-mtr-pre-validacao-v1.md`;
 - planejamento de novas features: `tasks/README.md`;
 - observabilidade e operacao: `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`;
