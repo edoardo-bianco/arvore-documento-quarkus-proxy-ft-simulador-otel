@@ -28,7 +28,7 @@ somente no sentido `main -> POC`, por rebase da POC sobre a `main`.
 
 ### Parte exclusiva — destinada somente à POC
 
-- mover `doc/poc/guia-verificacao-poc-conformidade.md` para `doc/guias/`;
+- manter o guia exclusivo da POC somente em `doc/guias/`;
 - ajustar os links do `README.md`, da especificação da POC, do próprio guia e dos registros da
   feature que apontam para o path antigo;
 - manter essa alteração em commit posterior e exclusivo da branch POC;
@@ -51,8 +51,8 @@ somente no sentido `main -> POC`, por rebase da POC sobre a `main`.
 - os blobs staged dos guias comuns são idênticos aos arquivos em `doc/`; o guia CDI possui quatro
   correções unstaged de links relativos necessárias após a mudança de pasta;
 - o `README.md` ainda aponta para o path antigo do guia de implementação comum;
-- o guia exclusivo da POC está em `doc/poc/guia-verificacao-poc-conformidade.md` e é referenciado
-  pelo `README.md`, pela especificação da POC e pelo checklist histórico da feature;
+- antes da Task 3, o guia exclusivo da POC estava na pasta `doc/poc/` e era referenciado pelo
+  `README.md`, pela especificação da POC e pelo checklist histórico da feature;
 - mover o guia exclusivo para `doc/guias/` exige ajustar também o link de volta para a
   especificação, hoje relativo à pasta `doc/poc/`;
 - divergência corrigida no plano: igualdade entre as branches aplica-se somente à parte comum; a
@@ -153,7 +153,7 @@ referências e registrar essa mudança em commit exclusivo da POC.
 **Critérios de aceitação:**
 
 - o guia exclusivo existe uma única vez em `doc/guias/` na POC;
-- nenhuma referência ativa aponta para `doc/poc/guia-verificacao-poc-conformidade.md`;
+- nenhuma referência ativa aponta para a antiga localização na pasta `doc/poc/`;
 - o guia e suas referências não existem na `main` nem na branch da PR comum;
 - o conteúdo técnico é preservado, salvo links necessários ao move.
 

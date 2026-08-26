@@ -632,7 +632,7 @@ como repositório documental.
 Os arquivos sob <code>/opt/couchdb/data</code> pertencem ao CouchDB e não devem ser editados
 diretamente. A inspeção deve usar API HTTP, Fauxton ou ferramenta compatível, sempre com dados
 sintéticos. O procedimento operacional está em
-[guia-verificacao-poc-conformidade.md](guia-verificacao-poc-conformidade.md).
+[guia-verificacao-poc-conformidade.md](../guias/guia-verificacao-poc-conformidade.md).
 
 ## 11. Concorrência, imutabilidade e idempotência
 
@@ -1138,7 +1138,7 @@ alta disponibilidade de toda a solução.
 | propriedades | <code>src/main/resources/application.properties</code> |
 | Compose | <code>compose-devservices.yml</code> e <code>compose-poc.yml</code> |
 | Kubernetes | <code>k8s/poc</code> |
-| guia operacional | [guia-verificacao-poc-conformidade.md](guia-verificacao-poc-conformidade.md) |
+| guia operacional | [guia-verificacao-poc-conformidade.md](../guias/guia-verificacao-poc-conformidade.md) |
 | execução e decisões da feature | <code>tasks/features/poc-conformidade-flow-ollama-hitl</code> |
 
 ## 24. Referências

@@ -6,7 +6,7 @@
 - **Branch POC:** `feature/poc-conformidade-flow-ollama`
 - **Fluxo permitido:** `main -> POC`; nunca `POC -> main`
 - **Escopo:** exclusivamente documental
-- **Próximo item:** 3.1 — mover o guia exclusivo da POC para `doc/guias/`
+- **Próximo item:** CF — solicitar encerramento humano da feature
 
 ## Checklist
 
@@ -22,9 +22,9 @@
 - [x] 1.3 Abrir PR de `docs/consolidar-guias-doc` para `main` e aguardar seu merge;
 - [x] 2.1 Rebasear a POC sobre a `main` que já contém a mudança comum;
 - [x] C2 Verificar ancestralidade e que o diff da POC contém somente seus acréscimos exclusivos;
-- [ ] 3.1 Mover o guia exclusivo da POC para `doc/guias/` e corrigir suas referências;
-- [ ] C3 Verificar unicidade e confirmar que o guia exclusivo não existe na `main`;
-- [ ] 3.2 Commitar e publicar a alteração exclusiva somente na branch POC;
+- [x] 3.1 Mover o guia exclusivo da POC para `doc/guias/` e corrigir suas referências;
+- [x] C3 Verificar unicidade e confirmar que o guia exclusivo não existe na `main`;
+- [x] 3.2 Commitar e publicar a alteração exclusiva somente na branch POC;
 - [ ] CF Solicitar encerramento humano da feature.
 
 ## Decisões humanas
@@ -44,3 +44,6 @@
 | 1.3 | MERGED | 2026-08-26 | Rebase merge da PR `#19` autorizado no chat e concluído em `main` como `c258706`; somente `README.md` e os dois renomes comuns; paths antigos ausentes; guia exclusivo da POC ausente da `main`; `git diff --check` limpo |
 | 2.1 | REBASEADO | 2026-08-26 | Backup local `backup/poc-before-main-c258706-rebase` preserva `7433c97`; rebase sobre `c258706` concluiu sem conflitos, descartou somente o patch comum `eb11f2d` e gerou `70ef07e`; árvores antes/depois idênticas em `7c2781c`; guias comuns iguais à `main` e guia exclusivo preservado |
 | C2 | CONFORME_COM_DECISAO | 2026-08-26 | `origin/main` é ancestral; 40 patches POC exclusivos e zero equivalentes; 180 arquivos no diff; guias comuns têm blobs idênticos e paths antigos estão ausentes; `git diff --check` limpo. O usuário decidiu manter a `main` como está e classificou as 20 linhas adicionais de `AGENTS.md` como governança exclusiva da POC neste fluxo |
+| 3.1 | IMPLEMENTADO | 2026-08-26 | Guia exclusivo movido para `doc/guias/guia-verificacao-poc-conformidade.md`; referências atualizadas no `README.md`, na especificação, no próprio guia e nos registros de tasks; aguarda C3 |
+| C3 | CONFORME | 2026-08-26 | `origin/main` `c258706` atualizada e ancestral de `HEAD`; contém somente os dois guias comuns e zero arquivo ou referência ao guia exclusivo. A POC contém uma única cópia em `doc/guias/`; o delta contra a `main` classifica o guia como adição exclusiva; caminho antigo e referências antigas ausentes; rename local de 99%; `git diff HEAD --check` limpo |
+| 3.2 | PUBLICADO | 2026-08-26 | Alteração documental exclusiva consolidada em commit próprio e publicada somente em `origin/feature/poc-conformidade-flow-ollama`; `main` não alterada |

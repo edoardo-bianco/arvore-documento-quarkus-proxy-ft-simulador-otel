@@ -1202,7 +1202,7 @@
 
 - a pedido do usuário, o plano e o checklist passaram a incluir uma etapa documental própria antes
   do checkpoint CF;
-- `doc/poc/guia-verificacao-poc-conformidade.md` organiza a comprovação em suíte padrão,
+- `doc/guias/guia-verificacao-poc-conformidade.md` organiza a comprovação em suíte padrão,
   demonstração HITL local, restart, duas réplicas/failover, observabilidade, Sonar e gate Cosmos;
 - o roteiro informa pré-requisitos, comandos PowerShell, resultados esperados, coleta de evidência,
   checklist de aceite e diagnóstico rápido;

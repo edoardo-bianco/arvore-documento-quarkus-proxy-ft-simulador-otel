@@ -237,7 +237,7 @@ Durante todo o fluxo exibe como somente leitura `correlationId`, `instanceId`,
 
 O roteiro reproduzível para conferir suíte, página, API, restart, duas réplicas, failover,
 observabilidade, Sonar e o gate Cosmos está no
-[guia de verificação da PoC](doc/poc/guia-verificacao-poc-conformidade.md).
+[guia de verificação da PoC](doc/guias/guia-verificacao-poc-conformidade.md).
 
 Os dados de negócio ficam no backend documental selecionado: CouchDB no ambiente local e Azure
 Cosmos DB for NoSQL em PRD. Redis/Valkey guarda somente checkpoints técnicos do Flow. Solicitação
@@ -340,7 +340,7 @@ kind, faça primeiro o port-forward e use as credenciais de `.env.poc-kubernetes
 aparecer, use Fauxton ou as consultas HTTP do guia, que permanecem a verificação reproduzível da
 PoC. Consulte o [catálogo oficial do DBeaver](https://dbeaver.com/databases/), a
 [comparação de edições](https://dbeaver.com/edition/) e o
-[roteiro detalhado de inspeção](doc/poc/guia-verificacao-poc-conformidade.md#7-validar-os-dados-persistidos-no-couchdb).
+[roteiro detalhado de inspeção](doc/guias/guia-verificacao-poc-conformidade.md#7-validar-os-dados-persistidos-no-couchdb).
 
 ### Retenção e limpeza dos dados da PoC
 
@@ -397,7 +397,7 @@ normal, pois o comando atua globalmente.
 Para construir novamente, execute o `package` seguido do `docker compose ... up --build --detach`
 na prova de uma réplica ou `./validar-poc-kubernetes.ps1` na prova com duas réplicas. Os comandos de
 inspeção, reconstrução e as ressalvas completas estão na seção
-[Encerrar a execução local](doc/poc/guia-verificacao-poc-conformidade.md#13-encerrar-a-execução-local).
+[Encerrar a execução local](doc/guias/guia-verificacao-poc-conformidade.md#13-encerrar-a-execução-local).
 
 ### Replay e limites operacionais
 
@@ -444,7 +444,7 @@ target/jacoco-report/index.html
 - planejamento de novas features: `tasks/README.md`;
 - observabilidade e operacao: `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`;
 - catalogo de sinais: `doc/catalogo-observabilidade.md`;
-- verificacao reproduzivel da PoC: `doc/poc/guia-verificacao-poc-conformidade.md`.
+- verificacao reproduzivel da PoC: `doc/guias/guia-verificacao-poc-conformidade.md`.
 
 O workflow de conformidade descrito acima está implementado. Os dois endpoints ausentes listados,
 quaisquer outros endpoints ou workflows, upload e lifecycle de SAS continuam fora do escopo e

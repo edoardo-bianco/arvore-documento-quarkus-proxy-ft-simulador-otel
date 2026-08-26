@@ -1044,7 +1044,7 @@ do ADR-0010: ambas dependem dos respectivos gates e de decisão humana explícit
 - [README da PoC](../../README.md#poc-de-conformidade-durável)
 - [Arquitetura consolidada](../arquitetura-ddd-integracoes-atomicas.md)
 - [ADR-0010](../adr/0010-conformidade-couchdb-checkpoint-redis-e-hitl-multipod.md)
-- [Especificação da PoC](especificacao-poc-conformidade-quarkus-flow-ollama-hitl-sem-broker.md)
+- [Especificação da PoC](../poc/especificacao-poc-conformidade-quarkus-flow-ollama-hitl-sem-broker.md)
 - [Catálogo de observabilidade](../catalogo-observabilidade.md)
 - [Compose local](../../compose-poc.yml)
 - [Script de restart](../../validar-restart-conformidade.ps1)
