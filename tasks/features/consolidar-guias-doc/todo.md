@@ -6,7 +6,7 @@
 - **Branch POC:** `feature/poc-conformidade-flow-ollama`
 - **Fluxo permitido:** `main -> POC`; nunca `POC -> main`
 - **Escopo:** exclusivamente documental
-- **Próximo item:** 1.2 — criar a branch documental sobre `main` e aplicar o commit comum
+- **Próximo item:** 1.3 — abrir a PR documental para `main` e aguardar seu merge
 
 ## Checklist
 
@@ -18,7 +18,7 @@
 - [x] C0 Registrar GO humano antes da primeira alteração nos guias, referências ou branches;
 - [x] 1.1 Consolidar os dois guias comuns em `doc/guias/` num commit documental isolado;
 - [x] C1 Verificar unicidade, ausência de paths antigos, whitespace e ausência de conteúdo POC;
-- [ ] 1.2 Criar `docs/consolidar-guias-doc` sobre `main`, aplicar somente o commit comum e publicar;
+- [x] 1.2 Criar `docs/consolidar-guias-doc` sobre `main`, aplicar somente o commit comum e publicar;
 - [ ] 1.3 Abrir PR de `docs/consolidar-guias-doc` para `main` e aguardar seu merge;
 - [ ] 2.1 Rebasear a POC sobre a `main` que já contém a mudança comum;
 - [ ] C2 Verificar ancestralidade e que o diff da POC contém somente seus acréscimos exclusivos;
@@ -39,3 +39,4 @@
 | Checkpoint | Status | Data | Evidência |
 |---|---|---|---|
 | C1 | CONFORME | 2026-08-26 | `eb11f2d`: somente `README.md` e dois renomes Markdown; R097/R100; paths antigos ausentes; `git diff --check` limpo; blobs de origem iguais aos da `origin/main` `6fd653d`; guia exclusivo da POC preservado byte a byte |
+| 1.2 | PUBLICADO | 2026-08-26 | `docs/consolidar-guias-doc` criada sobre `origin/main` `6fd653d`; somente o commit comum foi aplicado como `48e2495`; branch publicada e sincronizada com `origin/docs/consolidar-guias-doc` |
