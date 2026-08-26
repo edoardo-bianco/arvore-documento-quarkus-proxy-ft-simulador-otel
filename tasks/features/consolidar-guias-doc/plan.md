@@ -57,6 +57,8 @@ somente no sentido `main -> POC`, por rebase da POC sobre a `main`.
   especificação, hoje relativo à pasta `doc/poc/`;
 - divergência corrigida no plano: igualdade entre as branches aplica-se somente à parte comum; a
   POC permanece um superset da `main` e não será integrada nela.
+- decisão humana C2 em 2026-08-26: manter a `main` como está e tratar as regras adicionais de
+  `AGENTS.md` como governança exclusiva da POC neste fluxo.
 
 ## Estratégia de histórico
 
