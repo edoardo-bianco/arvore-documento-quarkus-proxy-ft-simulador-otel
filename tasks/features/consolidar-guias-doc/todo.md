@@ -1,0 +1,35 @@
+# Checklist: consolidar guias comuns e exclusivos em `doc/guias`
+
+## Estado
+
+- **Branch da PR comum:** `docs/consolidar-guias-doc`, baseada em `main`
+- **Branch POC:** `feature/poc-conformidade-flow-ollama`
+- **Fluxo permitido:** `main -> POC`; nunca `POC -> main`
+- **Escopo:** exclusivamente documental
+- **Próximo item:** C1 — verificar o incremento documental comum
+
+## Checklist
+
+- [x] 0.1 Confirmar que a igualdade entre branches vale somente para a documentação comum;
+- [x] 0.2 Confirmar que funcionalidades e documentação exclusivas permanecem somente na POC;
+- [x] 0.3 Ler arquitetura, índice e ADRs aplicáveis;
+- [x] 0.4 Inspecionar guias comuns, guia exclusivo, duplicidades, blobs e referências;
+- [x] 0.5 Corrigir o plano, os riscos e a estratégia de histórico;
+- [x] C0 Registrar GO humano antes da primeira alteração nos guias, referências ou branches;
+- [x] 1.1 Consolidar os dois guias comuns em `doc/guias/` num commit documental isolado;
+- [ ] C1 Verificar unicidade, ausência de paths antigos, whitespace e ausência de conteúdo POC;
+- [ ] 1.2 Criar `docs/consolidar-guias-doc` sobre `main`, aplicar somente o commit comum e publicar;
+- [ ] 1.3 Abrir PR de `docs/consolidar-guias-doc` para `main` e aguardar seu merge;
+- [ ] 2.1 Rebasear a POC sobre a `main` que já contém a mudança comum;
+- [ ] C2 Verificar ancestralidade e que o diff da POC contém somente seus acréscimos exclusivos;
+- [ ] 3.1 Mover o guia exclusivo da POC para `doc/guias/` e corrigir suas referências;
+- [ ] C3 Verificar unicidade e confirmar que o guia exclusivo não existe na `main`;
+- [ ] 3.2 Commitar e publicar a alteração exclusiva somente na branch POC;
+- [ ] CF Solicitar encerramento humano da feature.
+
+## Decisões humanas
+
+| Checkpoint | Status | Data | Evidência | Aprovador |
+|---|---|---|---|---|
+| C0 | APROVADO | 2026-08-26 | GO explícito no chat para o plano corrigido | usuário |
+| CF | PENDENTE | — | Encerramento depende das verificações finais | — |
