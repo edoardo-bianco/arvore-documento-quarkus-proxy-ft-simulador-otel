@@ -6,7 +6,7 @@
 - **Branch POC:** `feature/poc-conformidade-flow-ollama`
 - **Fluxo permitido:** `main -> POC`; nunca `POC -> main`
 - **Escopo:** exclusivamente documental
-- **Próximo item:** CF — solicitar encerramento humano da feature
+- **Estado:** ENCERRADO — CF aprovado em 2026-08-26
 
 ## Checklist
 
@@ -25,7 +25,7 @@
 - [x] 3.1 Mover o guia exclusivo da POC para `doc/guias/` e corrigir suas referências;
 - [x] C3 Verificar unicidade e confirmar que o guia exclusivo não existe na `main`;
 - [x] 3.2 Commitar e publicar a alteração exclusiva somente na branch POC;
-- [ ] CF Solicitar encerramento humano da feature.
+- [x] CF Solicitar encerramento humano da feature.
 
 ## Decisões humanas
 
@@ -33,7 +33,7 @@
 |---|---|---|---|---|
 | C0 | APROVADO | 2026-08-26 | GO explícito no chat para o plano corrigido | usuário |
 | C2 | APROVADO | 2026-08-26 | Usuário decidiu manter a `main` como está e tratar as regras adicionais de `AGENTS.md` como exclusivas da POC neste fluxo | usuário |
-| CF | PENDENTE | — | Encerramento depende das verificações finais | — |
+| CF | APROVADO | 2026-08-26 | `CF APROVADO` explícito no chat após conclusão, publicação e alinhamento das branches | usuário |
 
 ## Evidências técnicas
 
