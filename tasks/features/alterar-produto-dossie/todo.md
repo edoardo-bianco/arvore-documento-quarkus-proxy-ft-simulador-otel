@@ -244,7 +244,8 @@
   derivado `.html`, `.pdf`, `.ppt` ou `.pptx` foi alterado. Por ser incremento exclusivamente
   documental, Maven e checkpoint SonarQube não foram executados, conforme `AGENTS.md`. Tarefa
   12.1 concluída, sem iniciar 13.1.
-- 2026-08-11 — tarefa 13.1 atualizou `doc/catalogo-observabilidade.md` com a nona capacidade:
+- 2026-08-11 — tarefa 13.1 atualizou
+  `doc/arquitetura-distribuida/catalogo-observabilidade.md` com a nona capacidade:
   spans `simtr-hub.api.dossie-produto.produto.alterar`,
   `simtr-hub.service.dossie-produto.produto.alterar` e
   `mtr.dossie-produto.produto.alterar`, prefixos de eventos REST/aplicação/MTR, id, quantidade,

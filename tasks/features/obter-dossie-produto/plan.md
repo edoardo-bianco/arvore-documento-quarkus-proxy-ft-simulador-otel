@@ -76,12 +76,14 @@ um simulador próprio.
 
 ## Contexto verificado
 
-- arquitetura consolidada lida em `doc/arquitetura-ddd-integracoes-atomicas.md`;
+- arquitetura consolidada lida em
+  `doc/arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md`;
 - índice de decisões lido em `doc/adr/README.md`;
 - ADRs aplicáveis lidos integralmente: ADR-0002, ADR-0004, ADR-0005 e ADR-0006;
 - contrato fonte inspecionado no Swagger
   `doc/swagger-mtr/simtr-dossie-produto-openapi- 2.20.0.8`, versão `2.20.0.8`;
-- especificação complementar inspecionada em `doc/api-integracao-mtr-pre-validacao-v1.md`;
+- especificação complementar inspecionada em
+  `doc/arquitetura-distribuida/api-integracao-mtr-pre-validacao-v1.md`;
 - ausência atual da capacidade confirmada no README, na arquitetura, no código e nos testes;
 - fluxo de consulta comparado com `ConsultarChecklist`, incluindo Resource, portas, caso de uso,
   REST Client, adapter MTR, simulador, producer CDI, observabilidade e testes com stub local;
@@ -659,7 +661,7 @@ Quarkus.
 **Arquivos prováveis:**
 
 - `README.md`;
-- `doc/arquitetura-ddd-integracoes-atomicas.md`;
+- `doc/arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md`;
 - `doc/adr/0002-limites-por-dominio-e-capacidade.md`;
 - `doc/adr/README.md`.
 
@@ -683,7 +685,7 @@ Postman será atualizada manualmente pelo responsável e não integra esta task.
 
 **Arquivos prováveis:**
 
-- `doc/catalogo-observabilidade.md`;
+- `doc/arquitetura-distribuida/catalogo-observabilidade.md`;
 
 ### Ajuste S1 — Eliminar cinco issues LOW `java:S1185`
 

@@ -778,7 +778,7 @@ automatizada dessa ausência.
 
 O exporter OpenTelemetry padrão é `none`. Para inspeção externa, use somente os profiles opcionais
 `dev,jaeger` ou `dev,grafana` e um collector local já preparado, conforme o
-[catálogo de observabilidade](../catalogo-observabilidade.md).
+[catálogo de observabilidade](../arquitetura-distribuida/catalogo-observabilidade.md).
 
 ## 11. Executar o checkpoint de qualidade
 
@@ -1042,10 +1042,10 @@ do ADR-0010: ambas dependem dos respectivos gates e de decisão humana explícit
 ## Fontes versionadas
 
 - [README da PoC](../../README.md#poc-de-conformidade-durável)
-- [Arquitetura consolidada](../arquitetura-ddd-integracoes-atomicas.md)
+- [Arquitetura consolidada](../arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md)
 - [ADR-0010](../adr/0010-conformidade-couchdb-checkpoint-redis-e-hitl-multipod.md)
 - [Especificação da PoC](../poc/especificacao-poc-conformidade-quarkus-flow-ollama-hitl-sem-broker.md)
-- [Catálogo de observabilidade](../catalogo-observabilidade.md)
+- [Catálogo de observabilidade](../arquitetura-distribuida/catalogo-observabilidade.md)
 - [Compose local](../../compose-poc.yml)
 - [Script de restart](../../validar-restart-conformidade.ps1)
 - [Script de Kubernetes](../../validar-poc-kubernetes.ps1)

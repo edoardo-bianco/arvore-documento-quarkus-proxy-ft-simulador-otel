@@ -1145,7 +1145,7 @@ alta disponibilidade de toda a solução.
 
 ### 24.1 Arquitetura do repositório
 
-- [Arquitetura DDD e integrações atômicas](../arquitetura-ddd-integracoes-atomicas.md)
+- [Arquitetura DDD e integrações atômicas](../arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md)
 - [Índice de ADRs](../adr/README.md)
 - [ADR-0001 — monólito modular e arquitetura hexagonal](../adr/0001-monolito-modular-e-hexagonal.md)
 - [ADR-0002 — limites por domínio e capacidade](../adr/0002-limites-por-dominio-e-capacidade.md)

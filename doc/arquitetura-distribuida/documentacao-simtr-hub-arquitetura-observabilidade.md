@@ -270,7 +270,7 @@ target/jacoco-report/index.html
 ```
 
 Os comandos completos da PoC para Compose, restart da aplicação, replay, kind, duas réplicas e
-failover ficam no [README](../README.md#poc-de-conformidade-durável).
+failover ficam no [README](../../README.md#poc-de-conformidade-durável).
 
 Se uma chamada MTR falhar, verificar nesta ordem:
 

@@ -53,10 +53,10 @@ sem introduzir workflow, orquestração ou compartilhamento de DTOs entre REST, 
 
 ## Contexto verificado
 
-- arquitetura consolidada: `doc/arquitetura-ddd-integracoes-atomicas.md`;
+- arquitetura consolidada: `doc/arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md`;
 - índice e decisões aplicáveis: ADR-0002, ADR-0004, ADR-0005, ADR-0006 e ADR-0007;
 - contrato primário: `doc/swagger-mtr/simtr-dossie-produto-openapi- 2.20.0.8`;
-- contrato complementar: `doc/api-integracao-mtr-pre-validacao-v1.md`;
+- contrato complementar: `doc/arquitetura-distribuida/api-integracao-mtr-pre-validacao-v1.md`;
 - código análogo inspecionado: capacidade `IniciarOuAvancarWorkflowDossieProduto`, consulta por
   identificador, producers, observabilidade e `DossieProdutoResource`;
 - testes análogos inspecionados: contratos REST, wire MTR, seleção de simulador, cobertura de
@@ -648,7 +648,7 @@ de `dossieproduto`, reduzindo para duas as operações MTR ainda ausentes.
 **Arquivos prováveis:**
 
 - `README.md`;
-- `doc/arquitetura-ddd-integracoes-atomicas.md`;
+- `doc/arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md`;
 - `doc/adr/0002-limites-por-dominio-e-capacidade.md`;
 - `doc/adr/README.md`.
 
@@ -669,8 +669,8 @@ indicação de operação não implementada dos Markdown fonte.
 
 **Arquivos prováveis:**
 
-- `doc/catalogo-observabilidade.md`;
-- `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`.
+- `doc/arquitetura-distribuida/catalogo-observabilidade.md`;
+- `doc/arquitetura-distribuida/documentacao-simtr-hub-arquitetura-observabilidade.md`.
 
 ### Checkpoint C4 — Documentação fonte
 
