@@ -48,7 +48,8 @@ executado.
 
 ### 1. Abrir a feature e registrar o plano
 
-1. Leia `doc/arquitetura-ddd-integracoes-atomicas.md` e `doc/adr/README.md`.
+1. Leia `doc/arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md` e
+   `doc/adr/README.md`.
 2. Leia integralmente os ADRs aplicáveis. Para este tipo de feature, normalmente são aplicáveis:
    ADR-0001, ADR-0002, ADR-0004, ADR-0005 e ADR-0006. Consulte também o ADR-0007 quando a operação
    for mutável, repetível, composta por workflow ou sujeita a retry.
@@ -352,7 +353,8 @@ comportamento observável.
 
 Depois de o comportamento estar estável:
 
-1. atualize `README.md` e `doc/arquitetura-ddd-integracoes-atomicas.md` com a capacidade entregue;
+1. atualize `README.md` e `doc/arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md` com
+   a capacidade entregue;
 2. atualize o ADR aplicável e seu índice somente quando o estado ou a decisão tiver mudado;
 3. crie ADR novo como `Proposto` apenas se houver decisão arquitetural nova;
 4. atualize o catálogo de observabilidade quando houver novos sinais;

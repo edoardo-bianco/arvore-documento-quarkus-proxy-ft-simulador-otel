@@ -378,6 +378,6 @@ uso concreto ou o Resource REST.
 - [ADR-0001 — Monólito modular e arquitetura hexagonal pragmática](../adr/0001-monolito-modular-e-hexagonal.md);
 - [ADR-0003 — Orquestração e colaboração por portas](../adr/0003-orquestracao-e-colaboracao-por-portas.md);
 - [ADR-0004 — Contratos independentes por borda](../adr/0004-contratos-independentes-por-borda.md);
-- [arquitetura consolidada](../arquitetura-ddd-integracoes-atomicas.md);
+- [arquitetura consolidada](../arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md);
 - [Quarkus 3.33 — uso de injeção CDI](https://quarkus.io/version/3.33/guides/getting-started#using-injection);
 - [Quarkus — referência CDI e descoberta de beans](https://quarkus.io/guides/cdi-reference#bean_discovery).

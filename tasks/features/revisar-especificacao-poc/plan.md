@@ -24,7 +24,8 @@ localização lógica e física dos dados persistidos.
 
 ## Contexto verificado
 
-- arquitetura consolidada lida: `doc/arquitetura-ddd-integracoes-atomicas.md`;
+- arquitetura consolidada lida:
+  `doc/arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md`;
 - ADRs aplicáveis: 0001, 0002, 0003, 0004, 0005, 0006, 0009 e 0010;
 - código, contratos e testes inspecionados: domínio e aplicação de `conformidade`, adapters
   documentais CouchDB/Cosmos, feeds nativos, Flow, REST, propriedades, Compose, manifests kind e

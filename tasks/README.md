@@ -1,7 +1,8 @@
 # Planejamento de features
 
 `tasks/` contém somente planejamento e decisões de trabalho atuais ou futuras. Contexto
-arquitetural permanente pertence a `doc/arquitetura-ddd-integracoes-atomicas.md` e `doc/adr/`.
+arquitetural permanente pertence a
+`doc/arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md` e `doc/adr/`.
 
 ## Estrutura
 
