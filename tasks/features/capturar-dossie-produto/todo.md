@@ -787,8 +787,9 @@
   exclusivamente documental, Maven, SonarQube e baseline não foram executados. Task 15.1
   concluída; a retomada depende de `GO 16.1`.
 - 2026-08-14 — o usuário registrou explicitamente `GO 16.1`. O incremento permanece
-  exclusivamente documental e se limita a `doc/catalogo-observabilidade.md`,
-  `doc/documentacao-simtr-hub-arquitetura-observabilidade.md` e este registro. C4, código,
+  exclusivamente documental e se limita a `doc/arquitetura-distribuida/catalogo-observabilidade.md`,
+  `doc/arquitetura-distribuida/documentacao-simtr-hub-arquitetura-observabilidade.md` e este
+  registro. C4, código,
   configuração, testes, Postman e formatos derivados permanecem fora do escopo; Maven, SonarQube
   e baseline não serão executados.
 - 2026-08-14 — a leitura dos contratos executáveis confirmou 11 capacidades, 22 spans manuais no

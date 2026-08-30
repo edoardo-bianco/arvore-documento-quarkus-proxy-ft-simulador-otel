@@ -1,6 +1,7 @@
 # Índice de decisões arquiteturais
 
-Leia este índice depois da [arquitetura atual](../arquitetura-ddd-integracoes-atomicas.md). As
+Leia este índice depois da
+[arquitetura atual](../arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md). As
 descrições abaixo devem permitir identificar as decisões relevantes sem abrir todos os ADRs.
 Leia o arquivo completo somente quando a coluna **Consultar quando** alcançar a mudança planejada
 ou quando restar dúvida.

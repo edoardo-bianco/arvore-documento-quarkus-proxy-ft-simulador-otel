@@ -15,7 +15,7 @@ saída por um simulador próprio.
   retry e circuit breaker adequados a uma leitura idempotente;
 - em modo simulador, a mesma porta de saída lê uma fixture própria do identificador `4081899`,
   derivada do exemplo `200` com os seis filtros `inclui-*` solicitados como `true` em
-  `doc/api-integracao-mtr-pre-validacao-v1.md` e sem rede;
+  `doc/arquitetura-distribuida/api-integracao-mtr-pre-validacao-v1.md` e sem rede;
 - DTOs e mappers REST, MTR e simulador permanecem independentes;
 - `200` preserva a lista e o JSON `snake_case`; ausência de documentos produz `204` sem corpo;
 - CPF, CNPJ, IP, nome, matrícula, URL, paths, payload, credenciais e query string não aparecem em
@@ -106,7 +106,8 @@ recomendadas abaixo e o detalhamento adicional da fixture do simulador.
 ## Fora de escopo
 
 - expor `/simtr-dossie-produto/v4` como namespace público do Hub;
-- alterar o Swagger MTR ou `doc/api-integracao-mtr-pre-validacao-v1.md`;
+- alterar o Swagger MTR ou
+  `doc/arquitetura-distribuida/api-integracao-mtr-pre-validacao-v1.md`;
 - implementar alteração de garantia, cancelamento, workflow, orquestração ou outro endpoint;
 - baixar, armazenar, fazer proxy do binário ou validar a URL da imagem do documento;
 - interpretar datas, resultados de conformidade, outsourcing ou conteúdo dos atributos;
@@ -121,12 +122,12 @@ recomendadas abaixo e o detalhamento adicional da fixture do simulador.
 
 ## Contexto verificado
 
-- arquitetura lida em `doc/arquitetura-ddd-integracoes-atomicas.md`;
+- arquitetura lida em `doc/arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md`;
 - índice e ADRs aplicáveis lidos: ADR-0001, ADR-0002, ADR-0004, ADR-0005 e ADR-0006;
 - contrato fonte inspecionado em
   `doc/swagger-mtr/simtr-dossie-produto-openapi- 2.20.0.8`, versão `2.20.0.8`;
 - exemplo filtrado do id `4081899`, seu corpo `200`, filtros, `204` e erros inspecionados na seção
-  indicada de `doc/api-integracao-mtr-pre-validacao-v1.md`;
+  indicada de `doc/arquitetura-distribuida/api-integracao-mtr-pre-validacao-v1.md`;
 - ausência atual da capacidade confirmada na arquitetura, API pública, código, testes e fixtures;
 - padrão comparado com `ConsultarDossieProduto`, incluindo Resource, portas, caso de uso, REST
   Client, adapter MTR, simulador, producer, observabilidade e testes com stub;
@@ -544,10 +545,10 @@ nenhum `.html/.pdf/.ppt/.pptx` alterado.
 **Arquivos prováveis:**
 
 - `README.md`;
-- `doc/arquitetura-ddd-integracoes-atomicas.md`;
+- `doc/arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md`;
 - `doc/adr/0002-limites-por-dominio-e-capacidade.md`;
 - `doc/adr/README.md`;
-- `doc/catalogo-observabilidade.md`.
+- `doc/arquitetura-distribuida/catalogo-observabilidade.md`.
 
 ### Task 14 — Revisar e verificar a feature completa
 

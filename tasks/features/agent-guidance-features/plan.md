@@ -16,8 +16,8 @@ relevantes e o protocolo completo de checkpoint SonarQube.
 ## Escopo
 
 - reescrever `AGENTS.md` como guia operacional sem referências a fases encerradas;
-- condensar `doc/arquitetura-ddd-integracoes-atomicas.md` para descrever somente a arquitetura
-  implementada e as restrições vigentes;
+- condensar `doc/arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md` para descrever
+  somente a arquitetura implementada e as restrições vigentes;
 - criar `doc/adr/README.md` como índice de leitura rápida;
 - extrair decisões vigentes para ADRs individuais, com resumo e indicação de aplicabilidade no
   início de cada arquivo;
@@ -40,8 +40,9 @@ relevantes e o protocolo completo de checkpoint SonarQube.
 ```text
 AGENTS.md
 doc/
-|-- arquitetura-ddd-integracoes-atomicas.md
-|-- catalogo-observabilidade.md
+|-- arquitetura-distribuida/
+|   |-- arquitetura-ddd-integracoes-atomicas.md
+|   `-- catalogo-observabilidade.md
 `-- adr/
     |-- README.md
     |-- 0001-monolito-modular-e-hexagonal.md

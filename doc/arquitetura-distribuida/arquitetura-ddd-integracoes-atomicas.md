@@ -8,7 +8,7 @@
   devem respeitar.
 
 Leia este consolidado antes de planejar uma feature. Em seguida, consulte o
-[índice de ADRs](adr/README.md): a descrição do índice deve bastar para identificar quais decisões
+[índice de ADRs](../adr/README.md): a descrição do índice deve bastar para identificar quais decisões
 se aplicam. Leia o ADR completo somente quando ele for aplicável à mudança ou quando houver dúvida.
 
 O código, os contratos executáveis e os testes são a fonte de verdade do comportamento atual. Se
@@ -284,5 +284,5 @@ somente com requisitos explícitos, análise de impacto, plano, testes e GO huma
 
 ## Decisões arquiteturais
 
-Consulte [doc/adr/README.md](adr/README.md) para o resumo e a aplicabilidade de cada decisão. O
+Consulte [doc/adr/README.md](../adr/README.md) para o resumo e a aplicabilidade de cada decisão. O
 índice é parte da leitura inicial; o texto completo de um ADR é leitura sob demanda.
