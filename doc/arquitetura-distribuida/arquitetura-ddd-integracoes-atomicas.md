@@ -8,7 +8,7 @@
   devem respeitar.
 
 Leia este consolidado antes de planejar uma feature. Em seguida, consulte o
-[índice de ADRs](adr/README.md): a descrição do índice deve bastar para identificar quais decisões
+[índice de ADRs](../adr/README.md): a descrição do índice deve bastar para identificar quais decisões
 se aplicam. Leia o ADR completo somente quando ele for aplicável à mudança ou quando houver dúvida.
 
 O código, os contratos executáveis e os testes são a fonte de verdade do comportamento atual. Se
@@ -441,7 +441,7 @@ prova negativa que rejeita dependência no caso de uso concreto.
   Cosmos permanece mockado com gate real obrigatório antes de PRD;
 - não calcula árvore documental; a análise de conformidade ponta a ponta está implementada apenas
   como PoC, com página, revisão humana obrigatória e as limitações operacionais documentadas no
-  [README](../README.md#poc-de-conformidade-durável);
+  [README](../../README.md#poc-de-conformidade-durável);
 - não há validação real do adapter Cosmos, recuperação ou HA dos próprios CouchDB/Valkey, nem
   suporte produtivo inferido a partir das provas locais;
 - não implementa os dois endpoints ausentes listados acima.
@@ -451,5 +451,5 @@ somente com requisitos explícitos, análise de impacto, plano, testes e GO huma
 
 ## Decisões arquiteturais
 
-Consulte [doc/adr/README.md](adr/README.md) para o resumo e a aplicabilidade de cada decisão. O
+Consulte [doc/adr/README.md](../adr/README.md) para o resumo e a aplicabilidade de cada decisão. O
 índice é parte da leitura inicial; o texto completo de um ADR é leitura sob demanda.

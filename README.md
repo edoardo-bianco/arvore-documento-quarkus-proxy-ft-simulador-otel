@@ -5,7 +5,8 @@ MTR de parametrizacao, dossie produto e gestao documental.
 
 O codigo esta organizado como monolito modular DDD. Cada capacidade possui nucleo proprio,
 portas de aplicacao e adapters independentes para REST publico, MTR e simulador. A visão atual e
-as decisões vigentes estão em `doc/arquitetura-ddd-integracoes-atomicas.md` e `doc/adr/README.md`.
+as decisões vigentes estão em
+`doc/arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md` e `doc/adr/README.md`.
 
 ## Capacidades e endpoints
 
@@ -35,7 +36,8 @@ não reutiliza ou renova SAS e não mantém cache.
 
 ## Endpoints da especificacao que nao existem no Hub
 
-A especificacao funcional `doc/api-integracao-mtr-pre-validacao-v1.md` descreve APIs do MTR, nao
+A especificacao funcional
+`doc/arquitetura-distribuida/api-integracao-mtr-pre-validacao-v1.md` descreve APIs do MTR, nao
 somente as operacoes expostas por este Hub. As doze operacoes expostas estao implementadas e
 aparecem na tabela anterior. Os dois endpoints MTR abaixo estao documentados na
 especificacao, mas **NAO ESTAO IMPLEMENTADOS NESTA SOLUCAO**:
@@ -214,7 +216,8 @@ Logs estruturados e spans possuem nomes e atributos protegidos por testes. Paylo
 REST Client sao mascarados para campos sensiveis; a obtencao de credencial nao registra SAS nem
 validade. Por padrao, o projeto grava logs JSON e nao exporta OpenTelemetry para fora.
 
-Consulte `doc/catalogo-observabilidade.md` para os sinais contratuais completos.
+Consulte `doc/arquitetura-distribuida/catalogo-observabilidade.md` para os sinais contratuais
+completos.
 
 ## Execucao local
 
@@ -436,14 +439,17 @@ target/jacoco-report/index.html
 
 ## Documentacao
 
-- decisao arquitetural canonica: `doc/arquitetura-ddd-integracoes-atomicas.md`;
+- decisao arquitetural canonica:
+  `doc/arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md`;
 - indice de decisoes arquiteturais: `doc/adr/README.md`;
 - guia para implementar nova capacidade integrada ao MTR:
   `doc/guias/guia-implementacao-nova-capacidade-mtr.md`;
-- especificacao funcional de referencia: `doc/api-integracao-mtr-pre-validacao-v1.md`;
+- especificacao funcional de referencia:
+  `doc/arquitetura-distribuida/api-integracao-mtr-pre-validacao-v1.md`;
 - planejamento de novas features: `tasks/README.md`;
-- observabilidade e operacao: `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`;
-- catalogo de sinais: `doc/catalogo-observabilidade.md`;
+- observabilidade e operacao:
+  `doc/arquitetura-distribuida/documentacao-simtr-hub-arquitetura-observabilidade.md`;
+- catalogo de sinais: `doc/arquitetura-distribuida/catalogo-observabilidade.md`;
 - verificacao reproduzivel da PoC: `doc/guias/guia-verificacao-poc-conformidade.md`.
 
 O workflow de conformidade descrito acima está implementado. Os dois endpoints ausentes listados,

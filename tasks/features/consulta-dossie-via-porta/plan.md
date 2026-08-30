@@ -113,7 +113,7 @@ mvn -q test
 - dois testes em `src/test/java/br/gov/caixa/simtr/dossie/`;
 - fixture negativa em `src/test/java/br/gov/caixa/simtr/dossie/falso/`;
 - `src/test/java/br/gov/caixa/simtr/hub/arquitetura/guardrails/ArchUnitProgressivoTest.java`;
-- `doc/arquitetura-ddd-integracoes-atomicas.md`;
+- `doc/arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md`;
 - `tasks/features/consulta-dossie-via-porta/plan.md` e `todo.md`.
 
 ## Riscos e controles

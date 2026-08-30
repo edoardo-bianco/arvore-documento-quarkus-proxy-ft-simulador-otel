@@ -8,7 +8,8 @@ de cada feature fica em sua própria pasta de tasks.
 
 Antes de planejar qualquer mudança:
 
-1. Leia `doc/arquitetura-ddd-integracoes-atomicas.md`, que resume o estado arquitetural atual.
+1. Leia `doc/arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md`, que resume o estado
+   arquitetural atual.
 2. Leia `doc/adr/README.md`. O índice contém descrição e aplicabilidade suficientes para selecionar
    as decisões relevantes.
 3. Leia um ADR completo somente quando ele for aplicável à mudança ou quando houver dúvida.

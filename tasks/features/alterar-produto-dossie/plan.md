@@ -37,11 +37,13 @@ saída por um simulador próprio.
 
 ## Contexto verificado
 
-- arquitetura consolidada lida em `doc/arquitetura-ddd-integracoes-atomicas.md`;
+- arquitetura consolidada lida em
+  `doc/arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md`;
 - ADRs aplicáveis lidos integralmente: ADR-0002, ADR-0004, ADR-0005 e ADR-0006;
 - contrato fonte inspecionado em
   `doc/swagger-mtr/simtr-dossie-produto-openapi- 2.20.0.8`, versão `2.20.0.8`;
-- especificação complementar conferida em `doc/api-integracao-mtr-pre-validacao-v1.md`;
+- especificação complementar conferida em
+  `doc/arquitetura-distribuida/api-integracao-mtr-pre-validacao-v1.md`;
 - código, contratos e testes inspecionados: fluxo completo de
   `AtualizarFormularioDossieProduto`, fluxo sem corpo de
   `RegistrarValidacaoNegocialDossieProduto`, `DossieProdutoResource`, DTOs REST,
@@ -496,10 +498,10 @@ do Hub e a sexta de `dossieproduto`, sem criar decisão arquitetural nova.
 **Arquivos prováveis:**
 
 - `README.md`;
-- `doc/arquitetura-ddd-integracoes-atomicas.md`;
+- `doc/arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md`;
 - `doc/adr/0002-limites-por-dominio-e-capacidade.md`;
 - `doc/adr/README.md`;
-- `doc/documentacao-simtr-hub-arquitetura-observabilidade.md`.
+- `doc/arquitetura-distribuida/documentacao-simtr-hub-arquitetura-observabilidade.md`.
 
 ### Task 13 — Atualizar catálogo observável e coleção de uso
 
@@ -523,7 +525,7 @@ na coleção Postman.
 
 **Arquivos prováveis:**
 
-- `doc/catalogo-observabilidade.md`;
+- `doc/arquitetura-distribuida/catalogo-observabilidade.md`;
 - `doc/postman/simtr-hub.postman_collection.json`.
 
 ### Task 14 — Executar verificação final e preparar encerramento

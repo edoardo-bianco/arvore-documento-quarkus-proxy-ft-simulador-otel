@@ -92,7 +92,7 @@ continua condicionado ao GO humano e aos checkpoints adicionais.
 ## Contexto verificado
 
 - arquitetura consolidada lida:
-  `doc/arquitetura-ddd-integracoes-atomicas.md`;
+  `doc/arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md`;
 - índice de ADRs lido: `doc/adr/README.md`;
 - ADRs aplicáveis lidos integralmente:
   - ADR-0001 — monólito modular e arquitetura hexagonal;
@@ -684,7 +684,7 @@ Não armazenará texto ou revisão no browser além do necessário à tela atual
 | `src/test/java/br/gov/caixa/simtr/hub/arquitetura/ArchUnitProgressivoTest.java` | preservar direção de dependência e confinamento dos novos DTOs de borda |
 | `src/test/java/br/gov/caixa/simtr/hub/arquitetura/observabilidade/ObservabilidadeLogsContratoTest.java` | incluir eventos estruturados da nova capacidade sem payload sensível |
 | `src/test/java/br/gov/caixa/simtr/hub/arquitetura/observabilidade/ObservabilidadeSpansContratoTest.java` | incluir spans e atributos de API, workflow, IA e HITL |
-| `doc/arquitetura-ddd-integracoes-atomicas.md` | consolidar o estado efetivamente implementado |
+| `doc/arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md` | consolidar o estado efetivamente implementado |
 | `doc/adr/README.md` | indexar o novo ADR e explicar sua aplicabilidade |
 
 ### Arquivos a criar
