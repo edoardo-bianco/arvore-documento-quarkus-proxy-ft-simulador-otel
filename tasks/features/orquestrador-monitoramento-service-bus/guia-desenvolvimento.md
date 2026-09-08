@@ -283,21 +283,28 @@ Fonte: [Jakarta CDI — Vetoed](https://jakarta.ee/specifications/cdi/4.1/apidoc
 
 ## Pontos a fechar antes da lógica correspondente
 
-1. **Resultado em 4.1:** completar campos, invariantes e classificação do contrato v1 conforme
-   o plano. Os tipos vazios de C4.4 não são evidência de contrato pronto.
-2. **Versão de política em 7.1/8.1:** definir como tratar mensagem antiga com versão diferente
+**Resultado e guardrails de 4.1 já estão concluídos.** Os modelos, DTOs e mappers de resultado
+estão implementados, incluindo a validação de quarentena/conclusivo.
+[FronteirasMonitoramentoArchUnitTest](../../../src/test/java/br/gov/caixa/simtr/arquitetura/guardrails/FronteirasMonitoramentoArchUnitTest.java)
+já verifica acesso das ACLs somente às portas/modelos públicos, isolamento dos DTOs por borda
+e direção das dependências, com provas positivas e negativas. Preservar essas regras e
+verificá-las sobre as implementações funcionais introduzidas nas próximas fatias.
+
+1. **Consultas em 5.1:** detalhar campos mínimos dos dois modelos de consulta, cenários do
+   simulador, ativação explícita e tratamento de ausência/falhas. As portas já existem;
+   `PreValidacaoSimuladaAdapter` e `SituacaoDossieHubAcl` ainda estão inativos.
+2. **Lifecycle em 6.1:** implementar qualifiers das duas filas, clientes duradouros, identidade,
+   inicialização e fechamento. A fábrica ainda não cria clientes; listeners devem encerrar suas
+   assinaturas antes deles.
+3. **Versão de política em 7.1/8.1:** definir como tratar mensagem antiga com versão diferente
    da política selecionada. O ADR-0011 proíbe substituição silenciosa.
-3. **Decisão e transação em 7.1/8.1:** detalhar o conteúdo de `DecisaoProcessamento` e
+4. **Decisão e transação em 7.1/8.1:** detalhar o conteúdo de `DecisaoProcessamento` e
    `ReagendamentoMonitoramento` e a associação entre agendamento e settlement da mesma entrega.
    As assinaturas estruturais orientam a discussão; não resolvem essa coordenação. Não expor
    contexto/handles Azure nas portas nem armazenar contexto mutável de entrega em um singleton.
-4. **Lifecycle em 6.1:** implementar qualifiers das duas filas, clientes duradouros, identidade,
-   inicialização e fechamento. A fábrica ainda não cria clientes; listeners devem encerrar suas
-   assinaturas antes deles.
-5. **Guardrails:** os testes novos protegem núcleo/borda, SDK, colaboração fora de ACL e
-   infraestrutura, mas ainda faltam provas específicas de acesso somente à API pública dentro
-   de cada ACL e do isolamento completo dos DTOs entre bordas. Completar em 4.1 e nas fatias
-   que introduzirem as dependências.
+   Provar `schedule + Complete`, rollback e redelivery no SDK/emulador antes de afirmar atomicidade.
+5. **Telemetria em 10.1:** caracterizar a instrumentação efetiva do SDK, revisar os nomes
+   observáveis planejados e preencher apenas lacunas de propagação/spans, conforme o guia principal.
 
 ## Verificação e acompanhamento
 
@@ -313,7 +320,7 @@ e as bordas de resultado possuem API exercitada pelos testes; 19 tipos continuam
 
 ```powershell
 mvn -q compile
-mvn -q "-Dtest=EstruturaMonitoramentoArchUnitTest,EsqueletosMonitoramentoCdiTest,ArchUnitProgressivoTest" test
+mvn -q "-Dtest=EstruturaMonitoramentoArchUnitTest,FronteirasMonitoramentoArchUnitTest,EsqueletosMonitoramentoCdiTest,ArchUnitProgressivoTest" test
 ```
 
 Para uma fatia funcional, selecionar os testes pertinentes ao comportamento alterado. Depois de um
@@ -346,12 +353,13 @@ Para a reunião: percorrer o diagrama, abrir as portas e as classes pelos links 
 revisar os cinco pontos pendentes acima e distribuir as próximas fatias pelo checklist.
 Não apresentar a estrutura como processamento Service Bus já disponível.
 
-## Revisão do guia Service Bus e orientação Java
+## Referência histórica da revisão do guia Service Bus e orientação Java
 
 O guia técnico principal foi alinhado às decisões vigentes de fluxo, packages, connection
 string/SAS, extensão e Dev Services. Nas onze portas, o Javadoc agora descreve o comportamento
 de cada método, sua conclusão e falha; foram corrigidos os trechos `undefined`.
 Nove classes do fluxo receberam a posição exata nas duas filas, critérios e responsabilidades.
-A sintaxe foi conferida com DocLint (sem erros; nove avisos de construtores implícitos),
-e nenhum código fora dos comentários mudou. A validação documental não altera o estado RED
-do trabalho funcional de reagendamento preservado no workspace.
+Naquela revisão, a sintaxe foi conferida com DocLint (sem erros; nove avisos de construtores
+implícitos), sem alteração fora dos comentários. O RED de reagendamento pertencia à pausa
+daquele momento e foi superado pela implementação. O estado vigente é 4.1 tecnicamente
+concluído; a evidência executável e o histórico completo estão no checklist.

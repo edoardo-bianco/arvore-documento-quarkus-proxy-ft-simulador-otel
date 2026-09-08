@@ -528,6 +528,38 @@ ou Hub, sem persistência nova, e encerramento do demonstrador por log.
 
 ## Roteiro para continuar a implementação
 
+### Ponto de partida para o desenvolvedor
+
+1. Trabalhar na branch `feature/orquestrador-monitoramento-service-bus` e consultar o estado
+   atual no [checklist](../../tasks/features/orquestrador-monitoramento-service-bus/todo.md).
+   A base de 4.1 está pronta; o primeiro item funcional pendente é **5.1**.
+2. Abrir no [inventário Java](../../tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md)
+   as portas `ConsultarPreValidacao` e `ConsultarSituacaoDossie`, os modelos
+   `PreValidacaoConsultada` e `SituacaoDossieConsultada`, e os adapters
+   `PreValidacaoSimuladaAdapter` e `SituacaoDossieHubAcl`. As portas já declaram
+   `executar(String)` com retorno `Uni`; os modelos/adapters ainda precisam de implementação.
+3. Detalhar no item 5.1 os campos mínimos dos modelos, cenários simulados e tratamento de
+   ausência/falha. Esses detalhes permanecem em aberto nos Javadocs. Registrar as definições
+   e obter os checkpoints aplicáveis antes da alteração de produção.
+4. Implementar em subfatias o simulador da pré-validação e a ACL do Hub. O simulador exige
+   ativação explícita e cenários determinísticos com origem identificada. A ACL implementa
+   a porta do monitoramento, converte o identificador MTR validado para Long e chama somente
+   `ConsultarDossieProduto`, traduzindo a situação para o modelo próprio.
+5. Verificar cenários elegível/não elegível, limites do identificador, tradução, ausência/falhas,
+   seleção CDI e fronteiras ArchUnit. Ao ativar cada classe, atualizar `@Vetoed`,
+   `EstruturaPlanejada.ESQUELETOS` e a prova de inatividade conforme o
+   [procedimento por classe](../../tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md).
+   Concluir a fatia com testes focados, revisão e checkpoint Sonar, preservando o baseline.
+6. Registrar evidências e pendências no checklist. Depois de 5.1, seguir a sequência abaixo:
+   entrada REST/publicação, processamento, reagendamento, consumo do resultado e verificação
+   ponta a ponta. Cada etapa possui critérios no [plano](../../tasks/features/orquestrador-monitoramento-service-bus/plan.md).
+
+**5.1 está pronto quando as duas consultas funcionarem pelas portas, com testes de comportamento,
+injeção e fronteiras.** Endpoint, clientes Service Bus e consumo das filas pertencem às etapas
+seguintes. A verificação final do demonstrador exige o fluxo completo e os cenários de falha.
+
+### Ordem das entregas restantes
+
 | Item | Entrega a implementar | Verificação para considerar pronta |
 |---|---|---|
 | **5.1 — próximo** | Consulta simulada da pré-validação e ACL do Hub | Cenários determinísticos, ativação explícita do mock, tradução mínima, falhas e fronteiras |

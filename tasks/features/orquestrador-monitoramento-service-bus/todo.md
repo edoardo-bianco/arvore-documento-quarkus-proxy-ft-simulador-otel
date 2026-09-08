@@ -1231,6 +1231,19 @@ Referências de validação consultadas e confirmadas no runtime efetivo:
 [Jakarta AssertTrue](https://jakarta.ee/specifications/bean-validation/3.1/apidocs/jakarta/validation/constraints/asserttrue).
 
 
+## Complemento do roteiro para continuidade por desenvolvedores — 2026-09-08
+
+- [x] Corrigir pendências antigas de 4.1 no guia de desenvolvimento e identificar notas históricas.
+- [x] Explicitar no guia principal como começar 5.1, com arquivos e critérios já planejados.
+- [x] Verificar referências e diff documental do complemento.
+
+Conferidos 96 links locais dos dois guias, sem destino ausente. Portas/Javadocs de 5.1,
+validação dos DTOs de resultado e testes de fronteira confirmados no código. O diff contém
+somente os dois guias e plan/todo; `git diff --check` sem erros. Não houve alteração executável,
+Maven, baseline ou Sonar. O complemento está preparado para commit e push na mesma branch,
+conforme autorização da revisão documental; a publicação será identificável no histórico Git.
+4.1 continua concluído tecnicamente e 5.1 não foi iniciado.
+
 ## Preparação de commit e push para revisão com desenvolvedores — 2026-09-08
 
 O usuário autorizou organizar commit e push na branch atual, depois de revisar o guia para

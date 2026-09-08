@@ -1688,6 +1688,20 @@ Referências de validação consultadas e confirmadas no runtime efetivo:
 [Jakarta AssertTrue](https://jakarta.ee/specifications/bean-validation/3.1/apidocs/jakarta/validation/constraints/asserttrue).
 
 
+## Complemento do roteiro para continuidade por desenvolvedores — 2026-09-08
+
+Na conferência solicitada pelo usuário após a publicação de `84fca5c`, foram encontrados
+trechos desatualizados no guia de desenvolvimento: resultado e guardrails de 4.1 ainda
+apareciam como pendentes, e a nota final de uma revisão antiga podia ser lida como RED atual.
+Risco: orientar outro desenvolvedor a refazer entregas já concluídas.
+
+Escopo documental: corrigir essas referências, identificar notas históricas e acrescentar
+ao guia principal o ponto de partida de 5.1, com arquivos, sequência e verificação.
+Conferir portas, Javadocs, validação de resultado e testes ArchUnit existentes; revisar
+links e diff. Não implementar 5.1 nem alterar contratos, ADRs ou arquivos executáveis.
+Não executar Maven, Sonar ou baseline neste complemento exclusivamente Markdown.
+A publicação segue a autorização de commit e push da revisão dos guias na mesma branch.
+
 ## Preparação de commit e push para revisão com desenvolvedores — 2026-09-08
 
 O usuário autorizou organizar commit e push na branch atual, depois de revisar o guia para
