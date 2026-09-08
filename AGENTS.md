@@ -18,6 +18,22 @@ Antes de planejar qualquer mudança:
 5. Registre divergências entre documentação e implementação como risco ou tarefa do plano; não as
    corrija silenciosamente fora do escopo.
 
+## Referências oficiais Quarkus Azure Services
+
+Em toda implementação que envolva serviços Azure:
+
+1. Use como ponto de entrada a
+   [guia Quarkus Azure Services Extensions](https://docs.quarkiverse.io/quarkus-azure-services/dev/index.html).
+2. Consulte a guia específica de cada extensão que esteja no escopo:
+   - [Quarkus Azure Service Bus Extension](https://docs.quarkiverse.io/quarkus-azure-services/dev/quarkus-azure-servicebus.html);
+   - [Quarkus Azure Cosmos DB Extension](https://docs.quarkiverse.io/quarkus-azure-services/dev/quarkus-azure-cosmos.html);
+   - [Quarkus Azure App Configuration Extension](https://docs.quarkiverse.io/quarkus-azure-services/dev/quarkus-azure-app-configuration.html);
+   - [Quarkus Azure Blob Storage Extension](https://docs.quarkiverse.io/quarkus-azure-services/dev/quarkus-azure-storage-blob.html);
+   - [Quarkus Azure Key Vault Extension](https://docs.quarkiverse.io/quarkus-azure-services/dev/quarkus-azure-key-vault.html).
+3. Confirme a documentação contra a versão efetiva das dependências e o estado atual do código.
+4. Não adicione extensão, configuração ou abstração de outro serviço Azure antes que ele entre no
+   escopo planejado e aprovado.
+
 ## Planejamento e autorização
 
 - Nunca implemente uma feature diretamente em `main`.

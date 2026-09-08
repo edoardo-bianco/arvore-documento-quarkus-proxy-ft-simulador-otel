@@ -1,5 +1,14 @@
 # Checklist: criar guia de filas do dossiê com Azure Service Bus e AMQP
 
+## Referência histórica deste recorte
+
+Este arquivo preserva o planejamento e as decisões da feature documental anterior, encerrada
+em 2026-09-02. Seus contratos, packages e autenticação não são o plano da implementação atual.
+O [guia Service Bus](../../../doc/guias/guia-service-bus-amqp-dossie.md) foi alinhado ao
+[plano de orquestrador/monitoramento](../orquestrador-monitoramento-service-bus/plan.md) e ao
+[ADR-0010](../../../doc/adr/0010-extensao-quarkus-service-bus-connection-string-dev-services.md).
+A continuidade fica nessa feature, sem reabrir os itens/decisões históricas abaixo.
+
 ## Estado
 
 - **Branch:** `docs/planejar-guia-service-bus-amqp-dossie`

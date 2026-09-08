@@ -1,13 +1,17 @@
 # ADR-0009: Azure SDK na borda Service Bus do dossiê
 
-- **Status:** Aceito
+- **Status:** Substituído pelo [ADR-0010](0010-extensao-quarkus-service-bus-connection-string-dev-services.md)
+- **Substituído em:** 2026-09-04, por decisão humana explícita no item 1.2 da feature de
+  orquestração de monitoramento com duas filas.
+- **Efeito:** o conteúdo abaixo preserva a decisão histórica; novas implementações no recorte de
+  monitoramento seguem o ADR-0010.
 - **Emenda aceita em 2026-08-31:** usar AMQP 1.0 sobre WebSockets/TLS em TCP `443` por meio de
   `AmqpTransportType.AMQP_WEB_SOCKETS`, sem fallback automático para AMQP/TCP.
-- **Decisão em uma frase:** manter Quarkus `3.33` LTS e usar o Azure SDK Java com Microsoft Entra
+- **Decisão histórica em uma frase:** manter Quarkus `3.33` LTS e usar o Azure SDK Java com Microsoft Entra
   ID na futura borda Azure Service Bus do dossiê, sem SmallRye AMQP nessa integração.
-- **Quando consultar:** propostas de Azure Service Bus, AMQP, autenticação Entra ID, clientes de
-  mensageria do package `br.gov.caixa.simtr.dossie`, mensagens agendadas, settlement ou transações
-  do broker.
+- **Quando consultar:** compreender o desenho anterior de SDK direto/Entra ID no package
+  `br.gov.caixa.simtr.dossie`. A implementação atual preserva esse package e segue os ADRs
+  0010/0011 nos componentes `orquestrador` e `monitoramento`.
 
 ## Contexto
 
