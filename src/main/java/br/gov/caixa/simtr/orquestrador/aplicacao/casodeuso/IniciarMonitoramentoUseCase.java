@@ -1,29 +1,52 @@
 package br.gov.caixa.simtr.orquestrador.aplicacao.casodeuso;
 
-import jakarta.enterprise.inject.Vetoed;
+import br.gov.caixa.simtr.orquestrador.aplicacao.porta.entrada.IniciarMonitoramento;
+import br.gov.caixa.simtr.orquestrador.aplicacao.porta.saida.ObterParametrosMonitoramento;
+import br.gov.caixa.simtr.orquestrador.aplicacao.porta.saida.PublicarTentativaMonitoramento;
+import br.gov.caixa.simtr.orquestrador.dominio.modelo.MonitoramentoIniciado;
+import br.gov.caixa.simtr.orquestrador.dominio.modelo.SolicitacaoMonitoramento;
+import br.gov.caixa.simtr.orquestrador.dominio.modelo.TentativaMonitoramento;
+import io.smallrye.mutiny.Uni;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import java.time.Clock;
+import java.util.Objects;
+import java.util.UUID;
 
-/**
- * Coordenar parametros iniciais, geracao de IDs e publicacao.
- *
- * <p><strong>Estado:</strong> estrutura sem lógica, mantida fora do CDI por {@link jakarta.enterprise.inject.Vetoed}.
- * Completar no item 6.1 do checklist da feature antes de habilitar o componente.
- *
- * <p><strong>Implementação e verificação previstas:</strong>
- * <ul>
- * <li>Implementar a porta de início, gerar IDs e o instante inicial no servidor e obter limite/versão pela porta de parâmetros.</li>
- * <li>Montar a tentativa no modelo do orquestrador e publicar pela porta de saída; concluir o início apenas após confirmação.</li>
- * <li>Não importar política/configuração do monitoramento nem tipos Azure; a tradução entre componentes pertence à ACL.</li>
- * <li>Provar geração e preservação dos identificadores, ordem de consulta/publicação e propagação da falha do broker.</li>
- * </ul>
- *
- * <p>As referências abaixo indicam dependências previstas; ainda não há injeção, chamada ou
- * implementação de interface. Não usar a classe vazia como retorno fictício de sucesso.
- * Consultar {@code tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md}.
- *
- * @see br.gov.caixa.simtr.orquestrador.aplicacao.porta.entrada.IniciarMonitoramento
- * @see br.gov.caixa.simtr.orquestrador.aplicacao.porta.saida.ObterParametrosMonitoramento
- * @see br.gov.caixa.simtr.orquestrador.aplicacao.porta.saida.PublicarTentativaMonitoramento
- */
-@Vetoed
-public final class IniciarMonitoramentoUseCase {
+/** Gera a identidade inicial e publica pela porta; a politica permanece no monitoramento. */
+@ApplicationScoped
+public class IniciarMonitoramentoUseCase implements IniciarMonitoramento {
+
+    private final ObterParametrosMonitoramento parametros;
+    private final PublicarTentativaMonitoramento publicar;
+    private final Clock relogio;
+
+    @Inject
+    public IniciarMonitoramentoUseCase(ObterParametrosMonitoramento parametros, PublicarTentativaMonitoramento publicar) {
+        this(parametros, publicar, Clock.systemUTC());
+    }
+
+    IniciarMonitoramentoUseCase(ObterParametrosMonitoramento parametros,
+            PublicarTentativaMonitoramento publicar, Clock relogio) {
+        this.parametros = parametros;
+        this.publicar = publicar;
+        this.relogio = relogio;
+    }
+
+    /** Cada invocacao mantem IDs e parametros estaveis e conclui somente apos a publicacao. */
+    @Override
+    public Uni<MonitoramentoIniciado> executar(SolicitacaoMonitoramento solicitacao) {
+        return Uni.createFrom().deferred(() -> {
+            Objects.requireNonNull(solicitacao, "Solicitacao de monitoramento obrigatoria.");
+            var iniciadoEm = relogio.instant();
+            var configurados = parametros.executar(iniciadoEm);
+            var monitoramentoId = UUID.randomUUID().toString();
+            var orquestracaoId = UUID.randomUUID().toString();
+            var tentativa = new TentativaMonitoramento(monitoramentoId, orquestracaoId,
+                    solicitacao.idDossiePreValidacao(), solicitacao.idDossieMtr(), 1,
+                    iniciadoEm, configurados.limiteEm(), configurados.politicaMonitoramentoVersao());
+            return publicar.executar(tentativa)
+                    .replaceWith(new MonitoramentoIniciado(monitoramentoId, orquestracaoId));
+        }).memoize().indefinitely();
+    }
 }

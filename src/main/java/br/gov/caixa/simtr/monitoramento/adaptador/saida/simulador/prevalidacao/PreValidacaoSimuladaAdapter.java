@@ -1,27 +1,53 @@
 package br.gov.caixa.simtr.monitoramento.adaptador.saida.simulador.prevalidacao;
 
-import jakarta.enterprise.inject.Vetoed;
+import br.gov.caixa.simtr.monitoramento.adaptador.saida.simulador.prevalidacao.dto.PreValidacaoSimuladaDto;
+import br.gov.caixa.simtr.monitoramento.aplicacao.porta.saida.ConsultarPreValidacao;
+import br.gov.caixa.simtr.monitoramento.dominio.modelo.PreValidacaoConsultada;
+import io.smallrye.mutiny.Uni;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-/**
- * Atender a consulta com cenarios simulados explicitamente habilitados.
- *
- * <p><strong>Estado:</strong> estrutura sem lógica, mantida fora do CDI por {@link jakarta.enterprise.inject.Vetoed}.
- * Completar no item 5.1 do checklist da feature antes de habilitar o componente.
- *
- * <p><strong>Implementação e verificação previstas:</strong>
- * <ul>
- * <li>Implementar a porta de consulta com cenários determinísticos de pré-validação.</li>
- * <li>Usar DTO/mapper próprios do simulador e traduzir somente os dados necessários ao consumidor.</li>
- * <li>Exigir habilitação explícita, identificar origem simulada e impedir fallback silencioso em produção.</li>
- * <li>Provar cenários, tradução, seleção de configuração e falhas sem importar fixtures ou adapters internos do Hub.</li>
- * </ul>
- *
- * <p>As referências abaixo indicam dependências previstas; ainda não há injeção, chamada ou
- * implementação de interface. Não usar a classe vazia como retorno fictício de sucesso.
- * Consultar {@code tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md}.
- *
- * @see br.gov.caixa.simtr.monitoramento.aplicacao.porta.saida.ConsultarPreValidacao
- */
-@Vetoed
-public final class PreValidacaoSimuladaAdapter {
+/** Consulta cenarios imutaveis do demonstrador somente com ativacao explicita. */
+@ApplicationScoped
+public class PreValidacaoSimuladaAdapter implements ConsultarPreValidacao {
+
+    private static final Map<String, PreValidacaoSimuladaDto> CENARIOS = Map.of(
+            "pre-em-analise", new PreValidacaoSimuladaDto("EM_ANALISE_ENVIO_MTR"),
+            "pre-conforme", new PreValidacaoSimuladaDto("CONFORME"),
+            "pre-nao-conforme", new PreValidacaoSimuladaDto("NAO_CONFORME"));
+
+    private final boolean habilitado;
+    private final PreValidacaoSimuladaMapper mapper;
+
+    @Inject
+    public PreValidacaoSimuladaAdapter(
+            @ConfigProperty(name = "monitoramento.simulador.prevalidacao.habilitado", defaultValue = "false")
+            boolean habilitado,
+            PreValidacaoSimuladaMapper mapper) {
+        this.habilitado = habilitado;
+        this.mapper = mapper;
+    }
+
+    /** Executa a consulta na assinatura do Uni, inclusive a verificacao da ativacao. */
+    @Override
+    public Uni<PreValidacaoConsultada> executar(String idDossiePreValidacao) {
+        return Uni.createFrom().item(() -> consultar(idDossiePreValidacao));
+    }
+
+    private PreValidacaoConsultada consultar(String id) {
+        if (!habilitado) {
+            throw new IllegalStateException("Simulador de pre-validacao desabilitado.");
+        }
+        if (id == null || id.isBlank()) {
+            throw new IllegalArgumentException("Identificador da pre-validacao obrigatorio.");
+        }
+        var resposta = CENARIOS.get(id);
+        if (resposta == null) {
+            throw new NoSuchElementException("Pre-validacao nao encontrada no simulador.");
+        }
+        return mapper.paraModelo(resposta);
+    }
 }

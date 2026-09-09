@@ -3,7 +3,7 @@
 ## Como usar este documento
 
 - **Status:** aceito
-- **Última consolidação:** 2026-09-08
+- **Última consolidação:** 2026-09-09
 - **Objetivo:** explicar rapidamente a arquitetura implementada e as restrições que novas features
   devem respeitar.
 
@@ -136,7 +136,7 @@ arquiteturais de suporte próprias do Hub. A feature de monitoramento não migra
 essas capacidades, incluindo segurança, erros e observabilidade.
 
 Para a composição técnica compartilhada do Service Bus, o destino definido é
-`br.gov.caixa.simtr.arquitetura.infraestrutura.servicebus`, ainda sem implementação. Esse package
+`br.gov.caixa.simtr.arquitetura.infraestrutura.servicebus`, com fábrica e qualifiers implementados. Esse package
 não recebe todo código assíncrono: políticas, tentativas, prazo e decisões de processamento
 continuam em `monitoramento`; regras de orquestração continuam em `orquestrador`. Listeners,
 publishers, DTOs e mappers pertencem aos adapters de cada componente.
@@ -198,28 +198,59 @@ tentativas é opcional e duração máxima é obrigatória. A política não usa
 Quarkus reativo/Mutiny e CDI continuam permitidos no domínio e na aplicação; SDK e contratos de
 borda não migram para o núcleo por essa permissão.
 
-A extensão Quarkus Azure Service Bus e o Dev Services já são exercitados em testes nas duas
-filas. O emulador conserva `src/main/azure/servicebus-emulator/config.json`. Ainda não existem
-endpoint REST de monitoramento, listeners funcionais ou colaboração entre o orquestrador e o
-monitoramento. O restante está no
+A extensão Quarkus Azure Service Bus e o Dev Services são exercitados em integração explícita
+nas duas filas e no caminho REST → publicação inicial. O emulador conserva
+`src/main/azure/servicebus-emulator/config.json`. O endpoint e a preparação local pela ACL já
+funcionam; listeners e processamento das filas permanecem pendentes. O restante está no
 [plano da feature](../../tasks/features/orquestrador-monitoramento-service-bus/plan.md).
+
+### Monitoramento: consultas implementadas
+
+As portas de saída `ConsultarPreValidacao` e `ConsultarSituacaoDossie` já possuem adapters
+CDI funcionais. Ambas devolvem `Uni` com modelos próprios; a execução ocorre na assinatura,
+sem bloqueio, retry ou log adicional. Essa colaboração concretiza os
+[ADRs 0003](../adr/0003-orquestracao-e-colaboracao-por-portas.md) e
+[0011](../adr/0011-composicao-local-monitoramento-e-fabrica-service-bus.md).
+
+`PreValidacaoSimuladaAdapter` usa DTO/mapper exclusivos da borda, conforme
+[ADR-0004](../adr/0004-contratos-independentes-por-borda.md), e retorna
+`PreValidacaoConsultada(String situacao, boolean simulada)`. A situação não é vazia e a
+origem simulada fica explícita. A flag `monitoramento.simulador.prevalidacao.habilitado`
+é `false` por padrão; ativação explícita libera três cenários imutáveis:
+`pre-em-analise → EM_ANALISE_ENVIO_MTR`, `pre-conforme → CONFORME` e
+`pre-nao-conforme → NAO_CONFORME`. Desativação ou ausência falha, sem fallback ou resultado
+funcional fictício; a flag não impede a inicialização das capacidades atuais do Hub.
+
+`SituacaoDossieHubAcl` injeta somente a porta pública `ConsultarDossieProduto`.
+Converte a string MTR para `IdentificadorDossieProduto(Long)`, aceita zeros à esquerda e
+valida o intervalo positivo antes de chamar o Hub. A seleção MTR/simulador permanece no
+fornecedor; não há acesso a HTTP local, Resource, DTO de borda ou implementação interna.
+
+O resultado `SituacaoDossieConsultada(Integer id, String nome)` preserva id, inclusive nulo,
+e nome original não vazio; não transporta data/matrícula nem normaliza ou classifica a
+situação. Resposta/situação ausente ou nome vazio falha explicitamente. Falhas locais têm
+texto fixo sem o valor rejeitado; falhas do Hub seguem pelo mesmo `Uni`, sem nova interpretação.
+O mapeamento entre id/nome do Hub e estados conclusivos precisa ser confirmado antes do
+processamento terminal; as consultas prontas não resolvem essa regra.
 
 ### Fluxo aprovado das duas filas
 
 Os componentes novos são `orquestrador` e `monitoramento`; `br.gov.caixa.simtr.dossie`
-e o Hub permanecem preservados. O orquestrador publicará na fila de entrada. O listener do
+e o Hub permanecem preservados. O orquestrador já publica a primeira tentativa na fila de entrada. O listener do
 monitoramento acionará a aplicação/política para consultar as fontes, decidir no-op,
 reagendar na entrada ou publicar resultado terminal/quarentena na saída. O listener do
 orquestrador consumirá a saída e concluirá o demonstrador após o log do resultado.
 
 A autenticação aprovada é connection string/SAS externa nos ambientes reais e connection string
 do emulador via Dev Services em dev/test habilitados. O builder pertence à extensão Quarkus
-Azure Service Bus; a fábrica técnica prevista no ADR-0011 permanece sem implementação.
+Azure Service Bus; a fábrica técnica do ADR-0011 já cria os quatro clientes compartilhados.
 Entra ID/SDK direto do ADR-0009 são históricos. O
 [guia Service Bus](../guias/guia-service-bus-amqp-dossie.md) detalha fluxo, critérios,
-contratos e configuração. Essa descrição não declara endpoint, listener ou publicação já funcionais.
+contratos e configuração. O trecho inicial REST → entrada está funcional; o diagrama do fluxo
+completo não implica que listeners e processamento estejam prontos. O publisher de resultado
+foi implementado em 7.1-A; ainda não há caso de uso de processamento conectado a ele.
 
-### Orquestrador: contratos REST preparados
+### Orquestrador: iniciação REST e publicação inicial implementadas
 
 `br.gov.caixa.simtr.orquestrador` possui os tipos semânticos `SolicitacaoMonitoramento` e
 `MonitoramentoIniciado` em `dominio.modelo`. A borda `adaptador.entrada.rest.v1` contém request,
@@ -227,17 +258,53 @@ response e mapper próprios, sem reutilizar DTOs do Hub ou do monitoramento. O r
 identificadores obrigatórios e o MTR como inteiro decimal no intervalo `1..9223372036854775807`,
 com `@DecimalMin`/`@DecimalMax` e formato decimal. Preserva o JSON string, zeros à esquerda e a
 tolerância Jackson existente a campos desconhecidos. O response contém somente os dois IDs
-técnicos. A porta de iniciação está declarada; Resource e caso de uso existem como estrutura
-inativa, sem implementação funcional nem endpoint novo.
+técnicos. `POST /simtr-hub/v1/monitoramentos-dossie` injeta a porta `IniciarMonitoramento` e
+responde `202` somente após confirmação da publicação. O caso de uso gera UUIDs e instante no
+servidor, obtém os parâmetros e monta a tentativa inicial 1. Reassinaturas do mesmo `Uni`
+compartilham o resultado, sem novo envio; novas requisições são novas iniciações, sem idempotência
+durável entre elas.
 
-A composição dos parâmetros iniciais por porta/ACL e da fábrica técnica CDI está aprovada no
-[ADR-0011 aceito](../adr/0011-composicao-local-monitoramento-e-fabrica-service-bus.md), ainda sem
-implementação funcional. As portas e classes estruturais desses elementos estão declaradas;
-a colaboração e os clientes ainda não foram conectados.
+Validação mantém `400/ARVDOCP0001` pelo mapper global existente. Falhas da iniciação são
+traduzidas localmente para `500/ARVDOCP9999`, com mensagem genérica e ID técnico, sem causa do
+broker. O DTO de erro pertence à borda REST do orquestrador: mantém o formato existente sem
+importar o DTO atualmente localizado no Hub. O Hub e sua exceção arquitetural permanecem intactos.
+
+A composição dos parâmetros iniciais implementa o
+[ADR-0011 aceito](../adr/0011-composicao-local-monitoramento-e-fabrica-service-bus.md):
+`ObterParametrosMonitoramento` → `ParametrosMonitoramentoAcl` → `PrepararMonitoramento`.
+O monitoramento recebe `iniciadoEm` e calcula limite/versão pela política CDI; a ACL traduz
+para o record próprio do orquestrador. Não consulta fontes nem publica nessa colaboração.
 O limite superior do identificador MTR foi aprovado e aplicado no request REST, compatível com
-a futura conversão ao `Long` do Hub. Essa conversão não foi implementada nesta subfatia.
+a conversão ao `Long` do Hub, agora implementada na ACL de consulta. O contrato REST permanece string.
 
-### Fila de entrada: contratos locais preparados
+### Clientes Service Bus e escolha do ambiente
+
+Somente `ClientesServiceBus` injeta/configura o builder da extensão. Cria senders e receivers
+assíncronos duradouros das duas filas, com qualifiers `FilaEntrada`/`FilaSaida`; os receivers
+usam `PEEK_LOCK` e auto-complete desabilitado. Não inicia consumo ao criar os clientes.
+A fábrica fecha todos em ordem inversa, inclusive após falha parcial, sem repetir fechamento.
+O observer de shutdown usa `PLATFORM_AFTER`; futuros listeners devem cancelar suas assinaturas
+antes dele. `@PreDestroy` usa a mesma rotina idempotente.
+
+A fábrica acompanha a ativação da extensão por `IfBuildProperty` e exige connection string,
+fornecida por Dev Services ou pelo ambiente externo. O publisher resolve o cliente qualificado
+por `Instance` apenas ao enviar. Com extensão desabilitada, o Resource permanece registrado
+e a publicação falha explicitamente. Não há fallback Entra ou cliente por mensagem.
+
+Testes padrão (`mvn test`) não usam emulador nem fila Azure; extensão e Dev Services ficam
+desabilitados. Mocks/stubs verificam parâmetros, envio, falhas, confirmação e lifecycle.
+A integração com broker possui tag/profile explícitos: `mvn -Pservicebus-integration test`
+executa somente os testes de emulador. Seu profile fixa `test` e reconstrói as fontes de
+configuração antes do bootstrap, rejeitando conexão/namespace efetivos, inclusive por arquivo
+ou `%test`, sem expandir expressões. Falha de leitura impede a execução com erro fixo sem causa.
+
+O desenvolvedor escolhe emulador com `mvn quarkus:dev`, em sessão sem configuração externa,
+ou filas Azure com `mvn quarkus:dev "-Dquarkus.profile=dev,azure"` e connection string SAS/
+nomes de filas fornecidos pelo ambiente. Essa escolha não muda a execução padrão dos testes.
+O profile Azure mantém Dev Services desabilitado e AMQP sobre WebSockets; versões,
+credenciais e configuração do emulador permanecem conforme ADR-0010.
+
+### Fila de entrada: contratos e publisher implementados
 
 O orquestrador possui `TentativaMonitoramento` em seu domínio e um DTO v1 próprio em
 `adaptador.saida.servicebus.dto`. Seu mapper monta o JSON e as propriedades AMQP da mensagem
@@ -252,9 +319,10 @@ tipada, sem SDK, payload ou causa do parser. Não representa execução de DeadL
 Identificadores e zeros à esquerda são preservados; campos desconhecidos não são incorporados.
 `DeliveryCount` não participa da tentativa funcional. Prazo original e versão da política são
 preservados, sem substituição pela configuração ativa. A compatibilidade ocorre por JSON, não
-por compartilhamento de DTOs entre componentes. Não há publicação, listener, settlement ou
-colaboração de aplicação implementada; os limites operacionais de recebimento continuam
-dependentes da futura integração dos listeners.
+por compartilhamento de DTOs entre componentes. O publisher inicial reutiliza o mapper e o
+sender compartilhado, concluindo seu `Uni` após confirmação e traduzindo falhas do SDK para
+mensagem fixa sem causa externa. Não adiciona retry ou bloqueio. Listener, settlement e limites
+operacionais de recebimento continuam dependentes das próximas etapas.
 
 ### Reagendamento: contrato preparado
 
@@ -288,23 +356,42 @@ de aplicação, portas de entrada sem acesso a implementações/portas de saída
 às portas de entrada/modelos públicos do fornecedor. Fixtures positivas e negativas exercitam
 as regras; a permissão de Quarkus/Mutiny/CDI continua protegida pelos testes existentes.
 
+### Publicação de resultado implementada em 7.1-A
+
+A porta `PublicarResultadoMonitoramento` resolve por CDI para
+`MonitoramentoResultadoPublisher`. O adapter usa seu mapper e o sender compartilhado
+`FilaSaida`; não cria clientes, classifica situações nem persiste transições. O `Uni`
+é preguiçoso e compartilha uma publicação por invocação; só conclui após confirmação do
+broker. Falhas síncronas/assíncronas do SDK são traduzidas para mensagem fixa sem causa
+externa; a exceção própria do mapper é preservada.
+
+Testes sem broker cobrem confirmação, falhas e composição CDI. Dois casos de integração
+explícita provam a publicação de resultado conclusivo/quarentena e a leitura pelo contrato
+independente do orquestrador. Nessa prova, Complete ocorre antes do cancelamento da
+assinatura de recebimento. A evidência não representa processamento completo nem
+atomicidade entre publicar a saída e concluir a entrada. O caso de uso e os listeners
+continuam pendentes; ver [continuidade de 7.1](../../tasks/features/orquestrador-monitoramento-service-bus/continuidade-7-1.md).
+
 ### Estrutura inativa de orquestrador e monitoramento
 
 Os packages definitivos também contêm a representação antecipada das capacidades planejadas:
-11 portas de aplicação, dois records independentes de parâmetros iniciais e 19 classes ainda
-pendentes. Casos de uso, adapters, DTOs/mappers restantes e fábrica técnica possuem Javadoc com
+11 portas de aplicação (sete com implementação conectada), dois records independentes de
+parâmetros iniciais funcionais e oito classes ainda pendentes. Modelos de decisão, casos de uso
+e adapters futuros possuem Javadoc com
 responsabilidade e dependências previstas. As classes pendentes usam `@Vetoed`; não são beans,
 não expõem endpoint e não executam operações. Referências `@see` descrevem ligações previstas,
 sem constituir injeção ou implementação de interface.
 
 Essa representação foi antecipada explicitamente para revisão da arquitetura com desenvolvedores.
 Ela não constitui entrega das capacidades nem regra geral de criação de abstrações futuras.
-Tipos vazios ainda precisam de campos e invariantes; os records de parâmetros apenas declaram
-limite e versão. Os contratos e a política já funcionais permanecem preservados.
+Tipos vazios ainda precisam de campos e invariantes; os records de parâmetros já participam
+do cálculo e tradução locais. Os contratos e a política funcionais permanecem preservados.
 
 Testes verificam a inatividade no CDI e as fronteiras entre núcleo, bordas, SDK e infraestrutura,
-com provas positiva de Quarkus/Mutiny/CDI e negativa de SDK no núcleo. A proteção completa do
-acesso público pelas ACLs e dos DTOs entre bordas acompanha os incrementos restantes.
+com provas positiva de Quarkus/Mutiny/CDI e negativa de SDK no núcleo. As regras de acesso
+público pelas ACLs já verificam a consulta funcional ao Hub; o isolamento de DTOs inclui a borda
+do simulador de pré-validação. Novas provas positivas/negativas restringem o builder à fábrica
+e o acesso à infraestrutura Service Bus às bordas correspondentes. Preservar essas regras.
 O [guia de desenvolvimento](../../tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md)
 mapeia cada arquivo para o item que implementará seu comportamento.
 

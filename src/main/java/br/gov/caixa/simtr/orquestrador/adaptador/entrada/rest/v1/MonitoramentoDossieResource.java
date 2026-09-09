@@ -1,28 +1,62 @@
 package br.gov.caixa.simtr.orquestrador.adaptador.entrada.rest.v1;
 
-import jakarta.enterprise.inject.Vetoed;
+import br.gov.caixa.simtr.orquestrador.adaptador.entrada.rest.v1.dto.ErroInicioMonitoramentoDto;
+import br.gov.caixa.simtr.orquestrador.adaptador.entrada.rest.v1.dto.IniciarMonitoramentoDossieRequest;
+import br.gov.caixa.simtr.orquestrador.adaptador.entrada.rest.v1.dto.IniciarMonitoramentoDossieResponse;
+import br.gov.caixa.simtr.orquestrador.aplicacao.porta.entrada.IniciarMonitoramento;
+import io.smallrye.mutiny.Uni;
+import jakarta.inject.Inject;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import java.util.List;
+import java.util.UUID;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
-/**
- * Expor a entrada REST somente quando a fatia funcional estiver pronta.
- *
- * <p><strong>Estado:</strong> estrutura sem lógica, mantida fora do CDI por {@link jakarta.enterprise.inject.Vetoed}.
- * Completar no item 6.1 do checklist da feature antes de habilitar o componente.
- *
- * <p><strong>Implementação e verificação previstas:</strong>
- * <ul>
- * <li>Habilitar o POST aprovado apenas com a fatia funcional, validando o request e usando o mapper REST existente.</li>
- * <li>Acionar a porta de início e produzir 202 depois da confirmação da publicação; preservar path, JSON e segurança aprovados.</li>
- * <li>Traduzir falhas pelo contrato de erro da borda, sem expor broker/credencial nem alterar erros do Hub.</li>
- * <li>Provar request válido/inválido, resposta, falha de publicação e OpenAPI; não chamar publisher ou caso de uso concreto diretamente.</li>
- * </ul>
- *
- * <p>As referências abaixo indicam dependências previstas; ainda não há injeção, chamada ou
- * implementação de interface. Não usar a classe vazia como retorno fictício de sucesso.
- * Consultar {@code tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md}.
- *
- * @see br.gov.caixa.simtr.orquestrador.aplicacao.porta.entrada.IniciarMonitoramento
- * @see br.gov.caixa.simtr.orquestrador.adaptador.entrada.rest.v1.MonitoramentoDossieRestMapper
- */
-@Vetoed
-public final class MonitoramentoDossieResource {
+/** Inicia a orquestracao pela porta e responde 202 somente apos confirmacao da publicacao. */
+@Path("/simtr-hub/v1/monitoramentos-dossie")
+@Consumes(MediaType.APPLICATION_JSON)
+@Produces(MediaType.APPLICATION_JSON)
+@Tag(name = "Monitoramento de dossie")
+public class MonitoramentoDossieResource {
+
+    private final IniciarMonitoramento iniciar;
+
+    @Inject
+    public MonitoramentoDossieResource(IniciarMonitoramento iniciar) {
+        this.iniciar = iniciar;
+    }
+
+    @POST
+    @Operation(summary = "Iniciar monitoramento de dossie")
+    @APIResponse(responseCode = "202", description = "Tentativa inicial confirmada pelo broker.",
+            content = @Content(schema = @Schema(implementation = IniciarMonitoramentoDossieResponse.class)))
+    @APIResponse(responseCode = "400", description = "Solicitacao invalida.",
+            content = @Content(schema = @Schema(implementation = ErroInicioMonitoramentoDto.class)))
+    @APIResponse(responseCode = "500", description = "Falha ao iniciar o monitoramento.",
+            content = @Content(schema = @Schema(implementation = ErroInicioMonitoramentoDto.class)))
+    public Uni<Response> iniciar(@NotNull(message = "A solicitacao deve ser informada.")
+            @Valid IniciarMonitoramentoDossieRequest request) {
+        return Uni.createFrom().deferred(() ->
+                        iniciar.executar(MonitoramentoDossieRestMapper.paraSolicitacao(request)))
+                .onItem().transform(resultado ->
+                        Response.accepted(MonitoramentoDossieRestMapper.paraResposta(resultado)).build())
+                .onFailure().recoverWithItem(_ -> falhaSegura());
+    }
+
+    private static Response falhaSegura() {
+        var erro = new ErroInicioMonitoramentoDto(500, "simtr-hub", UUID.randomUUID().toString(),
+                "ARVDOCP9999", List.of(new ErroInicioMonitoramentoDto.Mensagem(
+                        "Erro interno ao processar a requisição.")));
+        return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(erro).build();
+    }
 }

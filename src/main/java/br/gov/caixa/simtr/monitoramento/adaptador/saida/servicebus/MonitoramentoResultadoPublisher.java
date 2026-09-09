@@ -1,31 +1,36 @@
 package br.gov.caixa.simtr.monitoramento.adaptador.saida.servicebus;
 
-import jakarta.enterprise.inject.Vetoed;
+import br.gov.caixa.simtr.arquitetura.infraestrutura.servicebus.FilaSaida;
+import br.gov.caixa.simtr.monitoramento.aplicacao.porta.saida.PublicarResultadoMonitoramento;
+import br.gov.caixa.simtr.monitoramento.dominio.modelo.ResultadoMonitoramento;
+import com.azure.messaging.servicebus.ServiceBusSenderAsyncClient;
+import io.smallrye.mutiny.Uni;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
 
-/**
- * Publicar o resultado na fila de saida.
- *
- * <p><strong>Estado:</strong> estrutura sem lógica, mantida fora do CDI por {@link jakarta.enterprise.inject.Vetoed}.
- * Completar no item 7.1 do checklist da feature antes de habilitar o componente.
- *
- * <p><strong>Implementação e verificação previstas:</strong>
- * <ul>
- * <li>Implementar a porta de publicação de resultado com o sender da fila de saída da fábrica técnica.</li>
- * <li>Usar DTO/mapper próprios do produtor e preservar identidade/correlação do contrato v1 aprovado.</li>
- * <li>Concluir apenas após confirmação do broker, sem cliente por mensagem e sem alterar situação persistida da pré-validação.</li>
- * <li>Provar sucesso/falha de publicação e correlação; o listener só pode concluir a entrada após o efeito confirmado.</li>
- * </ul>
- *
- * <p><strong>Fluxo aprovado a implementar:</strong> Escrever em {@code q.prevalidacao.monitoramento-mtr.out} quando os critérios gerarem resultado terminal ou quarentena. O destinatário é o listener de resultado do orquestrador; este publisher não reagenda na entrada nem registra o log final da orquestração. A confirmação do broker permite a conclusão da entrada pelo listener do monitoramento.
- * Consultar {@code doc/guias/guia-service-bus-amqp-dossie.md}.
- *
- * <p>As referências abaixo indicam dependências previstas; ainda não há injeção, chamada ou
- * implementação de interface. Não usar a classe vazia como retorno fictício de sucesso.
- * Consultar {@code tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md}.
- *
- * @see br.gov.caixa.simtr.monitoramento.aplicacao.porta.saida.PublicarResultadoMonitoramento
- * @see br.gov.caixa.simtr.arquitetura.infraestrutura.servicebus.ClientesServiceBus
- */
-@Vetoed
-public final class MonitoramentoResultadoPublisher {
+/** Publica o resultado pelo cliente compartilhado; conclusao significa confirmacao do broker. */
+@ApplicationScoped
+public class MonitoramentoResultadoPublisher implements PublicarResultadoMonitoramento {
+
+    private final Instance<ServiceBusSenderAsyncClient> sender;
+    private final MonitoramentoResultadoServiceBusMapper mapper;
+
+    @Inject
+    public MonitoramentoResultadoPublisher(@FilaSaida Instance<ServiceBusSenderAsyncClient> sender,
+            MonitoramentoResultadoServiceBusMapper mapper) {
+        this.sender = sender;
+        this.mapper = mapper;
+    }
+
+    /** Compartilha o envio da invocacao, sem retry nem transacao entre as filas. */
+    @Override
+    public Uni<Void> executar(ResultadoMonitoramento resultado) {
+        return Uni.createFrom().item(() -> mapper.paraMensagem(resultado))
+                .onItem().transformToUni(mensagem -> Uni.createFrom().completionStage(
+                        () -> sender.get().sendMessage(mensagem).toFuture())
+                        .onFailure().transform(_ ->
+                                new IllegalStateException("Falha ao publicar resultado de monitoramento.")))
+                .memoize().indefinitely();
+    }
 }

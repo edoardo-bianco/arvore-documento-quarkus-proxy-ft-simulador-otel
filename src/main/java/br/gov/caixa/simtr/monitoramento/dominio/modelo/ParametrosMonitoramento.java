@@ -5,8 +5,8 @@ import java.time.Instant;
 /**
  * Declara limite e versão dos parâmetros iniciais pertencentes ao monitoramento.
  *
- * <p><strong>Estado:</strong> os dados do record estão declarados; cálculo e tradução por ACL
- * permanecem no item 6.1. Não duplicar a política nem compartilhar este tipo entre componentes.
+ * <p>O cálculo pertence à política do monitoramento; a ACL traduz para o tipo do orquestrador.
+ * A colaboração está implementada em 6.1. Não compartilhar este tipo entre componentes.
  * O limite é calculado a partir do instante fornecido e deve permanecer estável no reagendamento.
  *
  * @param limiteEm instante limite calculado pela política do monitoramento, preservado na tradução

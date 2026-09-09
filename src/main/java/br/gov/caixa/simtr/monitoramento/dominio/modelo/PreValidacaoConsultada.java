@@ -1,25 +1,16 @@
 package br.gov.caixa.simtr.monitoramento.dominio.modelo;
 
-import jakarta.enterprise.inject.Vetoed;
-
 /**
- * Representar os dados minimos obtidos da pre-validacao.
+ * Situacao minima consultada da pre-validacao, com origem explicita.
  *
- * <p><strong>Estado:</strong> estrutura sem lógica, mantida fora do CDI por {@link jakarta.enterprise.inject.Vetoed}.
- * Completar no item 5.1 do checklist da feature antes de habilitar o componente.
- *
- * <p><strong>Implementação e verificação previstas:</strong>
- * <ul>
- * <li>Definir somente os dados de pré-validação necessários ao processamento da tentativa.</li>
- * <li>Manter o tipo independente de DTOs do simulador e de modelos de outros componentes.</li>
- * <li>Fixar invariantes e situações ausentes/inválidas junto da porta e do mapper no item 5.1.</li>
- * <li>Provar tradução e casos de ausência/falha; esta classe vazia ainda não representa uma consulta realizada.</li>
- * </ul>
- *
- * <p>As referências abaixo indicam dependências previstas; ainda não há injeção, chamada ou
- * implementação de interface. Não usar a classe vazia como retorno fictício de sucesso.
- * Consultar {@code tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md}.
+ * @param situacao texto original nao vazio; a elegibilidade pertence ao processamento
+ * @param simulada indica se a consulta usou dados simulados
  */
-@Vetoed
-public final class PreValidacaoConsultada {
+public record PreValidacaoConsultada(String situacao, boolean simulada) {
+
+    public PreValidacaoConsultada {
+        if (situacao == null || situacao.isBlank()) {
+            throw new IllegalArgumentException("Situacao da pre-validacao obrigatoria.");
+        }
+    }
 }

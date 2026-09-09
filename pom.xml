@@ -23,6 +23,7 @@
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
         <quarkus.platform.version>3.33.2.1</quarkus.platform.version>
         <surefire-plugin.version>3.5.3</surefire-plugin.version>
+        <test.groups>!servicebus-integration</test.groups>
     </properties>
 
     <dependencyManagement>
@@ -212,6 +213,7 @@
                 <version>${surefire-plugin.version}</version>
                 <configuration>
                     <argLine>@{argLine} -javaagent:${project.build.directory}/test-agents/mockito-core.jar</argLine>
+                    <groups>${test.groups}</groups>
                     <systemPropertyVariables>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                     </systemPropertyVariables>
@@ -219,4 +221,12 @@
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>servicebus-integration</id>
+            <properties>
+                <test.groups>servicebus-integration</test.groups>
+            </properties>
+        </profile>
+    </profiles>
 </project>

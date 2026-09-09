@@ -10,17 +10,18 @@ import com.azure.messaging.servicebus.ServiceBusReceiverAsyncClient;
 import com.azure.messaging.servicebus.ServiceBusSenderAsyncClient;
 import com.azure.messaging.servicebus.models.ServiceBusReceiveMode;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.QuarkusTestProfile;
+import br.gov.caixa.simtr.arquitetura.infraestrutura.servicebus.ServiceBusEmuladorTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import java.time.Duration;
-import java.util.Map;
 import java.util.UUID;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 
 @QuarkusTest
-@TestProfile(ServiceBusDevServicesTest.DevServicesProfile.class)
+@Tag("servicebus-integration")
+@TestProfile(ServiceBusEmuladorTestProfile.class)
 class ServiceBusDevServicesTest {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
@@ -67,38 +68,6 @@ class ServiceBusDevServicesTest {
             assertNotNull(received);
             assertEquals(messageId, received.getMessageId());
             receiver.complete(received).block(TIMEOUT);
-        }
-    }
-
-    public static final class DevServicesProfile implements QuarkusTestProfile {
-
-        @Override
-        public Map<String, String> getConfigOverrides() {
-            rejectExternalServiceBusConfiguration();
-            return Map.of(
-                    "quarkus.devservices.enabled", "true",
-                    "quarkus.azure.servicebus.enabled", "true",
-                    "quarkus.azure.servicebus.devservices.enabled", "true");
-        }
-
-        private static void rejectExternalServiceBusConfiguration() {
-            if (isConfigured("QUARKUS_AZURE_SERVICEBUS_CONNECTION_STRING")
-                    || isConfigured("QUARKUS_AZURE_SERVICEBUS_NAMESPACE")
-                    || isSystemPropertyConfigured("quarkus.azure.servicebus.connection-string")
-                    || isSystemPropertyConfigured("quarkus.azure.servicebus.namespace")) {
-                throw new IllegalStateException(
-                        "O teste de Dev Services exige ausência de configuração externa do Azure Service Bus");
-            }
-        }
-
-        private static boolean isConfigured(String name) {
-            String value = System.getenv(name);
-            return value != null && !value.isBlank();
-        }
-
-        private static boolean isSystemPropertyConfigured(String name) {
-            String value = System.getProperty(name);
-            return value != null && !value.isBlank();
         }
     }
 }

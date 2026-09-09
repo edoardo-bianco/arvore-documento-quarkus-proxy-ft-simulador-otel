@@ -93,7 +93,8 @@ class FronteirasMonitoramentoArchUnitTest {
                 ORQUESTRADOR + ".adaptador.entrada.servicebus",
                 ORQUESTRADOR + ".adaptador.saida.servicebus",
                 MONITORAMENTO + ".adaptador.entrada.servicebus",
-                MONITORAMENTO + ".adaptador.saida.servicebus");
+                MONITORAMENTO + ".adaptador.saida.servicebus",
+                MONITORAMENTO + ".adaptador.saida.simulador.prevalidacao");
     }
 
     private static ArchRule isolamentoDto(String borda) {

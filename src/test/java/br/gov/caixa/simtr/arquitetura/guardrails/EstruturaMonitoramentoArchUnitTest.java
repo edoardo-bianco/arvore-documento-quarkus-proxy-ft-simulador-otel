@@ -81,4 +81,33 @@ class EstruturaMonitoramentoArchUnitTest {
         JavaClasses permitido = new ClassFileImporter().importClasses(QuarkusReativoPermitido.class);
         assertDoesNotThrow(() -> NUCLEO_SEM_BORDA.check(permitido));
     }
+
+    private static final ArchRule BUILDER_EXCLUSIVO = noClasses()
+            .that().resideOutsideOfPackage("br.gov.caixa.simtr.arquitetura.infraestrutura.servicebus..")
+            .should().dependOnClassesThat().haveFullyQualifiedName("com.azure.messaging.servicebus.ServiceBusClientBuilder");
+
+    private static final ArchRule FABRICA_SOMENTE_SERVICE_BUS = noClasses()
+            .that().resideOutsideOfPackages("..adaptador.entrada.servicebus..", "..adaptador.saida.servicebus..",
+                    "br.gov.caixa.simtr.arquitetura.infraestrutura.servicebus..")
+            .should().dependOnClassesThat().resideInAPackage("br.gov.caixa.simtr.arquitetura.infraestrutura.servicebus..");
+
+    @Test
+    void somenteFabricaConfiguraBuilderESomenteBordasServiceBusAcessamClientes() {
+        BUILDER_EXCLUSIVO.check(PRODUCAO);
+        FABRICA_SOMENTE_SERVICE_BUS.check(PRODUCAO);
+    }
+
+    @Test
+    void deveRejeitarBuilderForaDaFabrica() {
+        var classes = new ClassFileImporter().importClasses(
+                br.gov.caixa.simtr.orquestrador.adaptador.entrada.rest.v1.falso.AcessosServiceBusProibidos.BuilderForaFabrica.class);
+        assertThrows(AssertionError.class, () -> BUILDER_EXCLUSIVO.check(classes));
+    }
+
+    @Test
+    void deveRejeitarFabricaForaDasBordasServiceBus() {
+        var classes = new ClassFileImporter().importClasses(
+                br.gov.caixa.simtr.orquestrador.adaptador.entrada.rest.v1.falso.AcessosServiceBusProibidos.FabricaForaBordaServiceBus.class);
+        assertThrows(AssertionError.class, () -> FABRICA_SOMENTE_SERVICE_BUS.check(classes));
+    }
 }

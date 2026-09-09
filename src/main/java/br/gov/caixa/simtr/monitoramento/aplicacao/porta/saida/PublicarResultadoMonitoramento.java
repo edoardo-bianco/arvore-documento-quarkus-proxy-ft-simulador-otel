@@ -4,27 +4,17 @@ import br.gov.caixa.simtr.monitoramento.dominio.modelo.ResultadoMonitoramento;
 import io.smallrye.mutiny.Uni;
 
 /**
- * Publica o resultado terminal ou a quarentena na fila de saída.
- *
- * <p><strong>Estado:</strong> porta declarada, sem implementação conectada.
- * Completar no item 7.1 do checklist; modelos ainda vazios permanecem pendentes.
- *
- * <p><strong>Implementação prevista:</strong> Implementar no MonitoramentoResultadoPublisher com o sender de q.prevalidacao.monitoramento-mtr.out e DTO/mapper próprios. Preservar situação original do MTR e situação calculada de pré-validação; não persistir transição neste recorte.
- *
- * <p><strong>Verificação prevista:</strong> Provar contrato v1, identidade, confirmação e falha. A entrada só pode receber Complete após confirmação desta publicação; a operação não representa transação entre as duas filas.
- *
- * Consultar {@code doc/guias/guia-service-bus-amqp-dossie.md} e
- * {@code tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md}.
+ * Publica resultado terminal ou quarentena pela borda Service Bus do monitoramento.
+ * A situacao original do MTR permanece separada da pre-validacao calculada.
+ * Nao persiste transicao nem representa transacao entre as duas filas.
  */
 public interface PublicarResultadoMonitoramento {
 
     /**
-     * Publica o resultado terminal ou a quarentena na fila de saída.
+     * Publica pelo sender compartilhado e mapper proprios da fila de saida.
      *
-     * <p>Comportamento a implementar no item 7.1: Implementar no MonitoramentoResultadoPublisher com o sender de q.prevalidacao.monitoramento-mtr.out e DTO/mapper próprios. Preservar situação original do MTR e situação calculada de pré-validação; não persistir transição neste recorte.
-     *
-     * @param resultado resultado próprio do monitoramento; campos e invariantes serão completados em 4.1
-     * @return conclusão sem item de dados após confirmação do broker; falha se o envio não concluir
+     * @param resultado resultado proprio com identidade e campos preservados
+     * @return conclusao apos confirmacao do broker; falha se a publicacao nao concluir
      */
     Uni<Void> executar(ResultadoMonitoramento resultado);
 }

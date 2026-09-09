@@ -1,31 +1,83 @@
 # Checklist: orquestração de monitoramento com duas filas do Service Bus
 
-**Continuidade atual:** item 4.1 tecnicamente concluído, incluindo política/configuração,
-contratos, mappers, logs tipados, validação confirmada de resultado e guardrails.
-Checkpoint COMPLIANT; evidências completas no checklist. Nenhum avanço para 5.1,
-listener, publicação, settlement ou encerramento humano da feature.
+## Preparação documental para o dev — 2026-09-09
 
-## Estado
+Pedido humano: atualizar o material de entrega, incluindo o guia que o dev seguirá.
 
-O usuário confirmou QUARENTENA com situacaoMtr=null e zero tentativas quando ainda não
-houve consulta; CONCLUSIVO exige situação conclusiva e pelo menos uma tentativa.
-A regra foi implementada e verificada nas duas bordas independentes. Contadores negativos
-são rejeitados. O JSON v1 e as situações recebidas são preservados, sem recálculo ou efeito remoto.
+- [x] Atualizar [manifesto](pacote-commit.md) para o conjunto até 7.1-A, preservando a referência da base publicada de 4.1.
+- [x] Alinhar [guia do dev](guia-desenvolvimento.md) e guia Service Bus: C2 aceito, publisher da saída pronto, próxima subfatia 7.1-B.
+- [x] Explicitar configuração v1 já implementada, diferença entre situações informadas e contrato atual, tratamento de versão pendente e limites antes de ativar listeners.
+- [x] Separar comandos de testes sem broker, integração explícita e escolha local emulador/Azure.
+- [x] Conferir links, diff e preservação executável da atualização documental: 194 referências locais, 78 arquivos de destino e 21 âncoras válidas; git diff --check sem erros.
+- [x] Comparar os 50 arquivos locais de código/testes/build e o patch temporário monitorados por hash: conteúdo idêntico, HEAD/branch preservados e staging vazio.
 
-**4.1 tecnicamente concluído.** A regressão focada passou em 342 testes, incluindo 25 casos
-novos; a suíte completa passou em **1046 testes em 171 classes**, sem falhas, erros ou ignorados.
-Checkpoint de `2026-09-08T11:12:19.3296159-03:00`: **COMPLIANT**, cobertura **87,0%**,
-duplicação **4,4%**, 213 issues abertas, nenhuma nova ou HIGH/BLOCKER/CRITICAL.
-A duplicação não aumentou neste incremento. A validação nova tem 100% das linhas e condições
-cobertas em ambas as bordas. Análise `f3b6720c-0b18-4713-8a16-22a030278153`.
-Os checkpoints de 859, 900 e 1021 testes continuam como evidências históricas.
+Esta preparação não executa staging, commit/push, Maven ou Sonar; não altera baseline ou
+formatos derivados. O checkpoint abaixo é evidência anterior, não medição desta edição.
+A divergência do Javadoc e da validação de situações foi registrada no plano para 7.1-B.
 
-Baseline original de 217 issues integralmente preservado, análise
-`f6183a72-a2ea-44bc-9374-b2b064bdad55`, READY; nenhuma reinicialização.
-Branch `feature/orquestrador-monitoramento-service-bus`; commit e push autorizados pelo usuário para revisão com os desenvolvedores.
-Hub, dossiê, configurações e extensão/emulador preservados. Restam 19 esqueletos inativos,
-correspondentes aos incrementos futuros. O próximo item é 5.1, ainda não iniciado.
-O encerramento humano da feature não foi inferido; detalhes no [checklist](todo.md).
+
+## Estado atual de 7.1-A — 2026-09-09
+
+C2 aceito e 7.1 autorizado. **7.1-A concluída:** publisher de resultado implementado;
+145 testes focados, 1.172 testes padrão/184 classes e seis testes de integração explícita
+passaram. O usuário decidiu ContinuarAjustes; S5778 foi corrigida somente no teste CDI.
+Checkpoint final COMPLIANT / NOT_REQUIRED: cobertura 87,4%, duplicação 4,3%, nenhuma
+issue nova ou HIGH/BLOCKER/CRITICAL. 7.1 continua em andamento; caso de uso/listener
+e 8.1 não foram implementados.
+Baseline original e alterações locais preservados, sem staging, commit ou push.
+Detalhes e próxima decisão em [continuidade-7-1.md](continuidade-7-1.md).
+Os registros anteriores de retomada e C2 abaixo permanecem como histórico.
+
+
+## Estado após a correção C2-R1 — 2026-09-09
+
+C2-R1 corrigido após o pedido explícito do usuário: fontes efetivas do Quarkus verificadas
+antes do bootstrap do emulador. **1.166 testes padrão/182 classes**, sem broker, e **quatro
+testes de integração explícita** aprovados. Sonar **COMPLIANT**, cobertura **87,4%**,
+duplicação **4,3%**, nenhuma issue nova ou grave. Baseline original preservado.
+C2 aceito explicitamente pelo usuário em 2026-09-09; 7.1 não iniciado. Detalhes em [revisao-c2.md](revisao-c2.md).
+
+
+**Continuidade atual:** comportamento de 6.1 implementado conforme o GO humano:
+REST → parâmetros locais pela ACL/política → publicação inicial confirmada. Testes padrão
+sem emulador nem fila Azure; integração com emulador somente por profile explícito.
+Item 6.1 tecnicamente concluído após o ajuste Sonar autorizado por ContinuarAjustes.
+C2 aceito; próximo item funcional: 7.1, ainda pendente. Ver [continuidade de 6.1](continuidade-6-1.md).
+
+## Estado vigente em 2026-09-08
+
+Fábrica CDI com quatro clientes duradouros/qualifiers e fechamento completo/idempotente;
+preparação/ACL calculam limite/versão; iniciação gera UUIDs/instante no servidor e tentativa 1.
+O POST responde 202 somente após confirmação; validação/falha preservam o formato REST.
+Das 11 portas, seis possuem implementação conectada; restam nove esqueletos inativos.
+
+**1155 testes padrão em 181 classes**, zero falhas/erros/ignorados, sem broker.
+Separadamente, **quatro testes em duas classes de integração explícita** passaram no emulador,
+incluindo REST → JSON/envelope v1. O profile Maven `servicebus-integration` seleciona somente
+essas provas; não participam da execução padrão nem da cobertura do checkpoint.
+
+Checkpoint de `2026-09-08T21:03:51.3982853-03:00`: **COMPLIANT**, decisão **NOT_REQUIRED**.
+Cobertura **87,4%**, duplicação **4,3%**, 213 issues, nenhuma nova ou HIGH/BLOCKER/CRITICAL.
+Análise `0b8a179d-1dd9-4e88-bbef-d1fefd914484`.
+O usuário decidiu ContinuarAjustes sobre S1710; o ajuste removeu apenas o agrupador
+`@APIResponses`, mantendo os três `@APIResponse` e o contrato existente.
+
+Baseline READY/LOCAL_SONAR original de 217 issues preservado, análise
+`f6183a72-a2ea-44bc-9374-b2b064bdad55`; nenhuma reinicialização.
+Hub, `dossie`, testes/configurações dessas capacidades, dependências e emulador preservados.
+A alteração de build de 6.1 somente separa a suíte padrão da integração com broker.
+
+O dev escolhe emulador (`mvn quarkus:dev`) ou filas Azure externas
+(`mvn quarkus:dev "-Dquarkus.profile=dev,azure"`), conforme o guia. Azure real não foi usado
+na verificação; teste unitário não depende dessa escolha. Antes de 7.1, confirmar a tabela
+id/nome do Hub → códigos conclusivos e o tratamento de versão de política.
+Telemetria automática do SDK e encerramento das assinaturas dos futuros listeners ainda
+precisam de caracterização nas etapas correspondentes.
+
+Branch `feature/orquestrador-monitoramento-service-bus`. Base até 4.1 publicada em
+`84fca5c`, complemento documental em `266092f`. Alterações de 5.1/6.1 no workspace,
+sem novo commit/push. Não houve encerramento humano da feature.
+Detalhes e histórico das verificações no [checklist](todo.md).
 
 ## Checklist
 
@@ -51,9 +103,9 @@ O encerramento humano da feature não foi inferido; detalhes no [checklist](todo
 - [x] 4.1-E1 Antecipar estrutura Java inativa dos componentes/classes, verificar arquitetura e CDI;
 - [x] 4.1-E2 Criar guia de continuidade e preparar manifesto do pacote de commit para revisão;
 - [x] 4.1 Completar contratos e política em `monitoramento`, com migração, configuração CDI, implementação e cobertura conforme direção humana atual;
-- [ ] 5.1 Implementar em `monitoramento` consulta simulada da pré-validação e ACL local para o Hub;
-- [ ] 6.1 Implementar em `orquestrador` a fatia POST REST -> fila de entrada, através das portas;
-- [ ] C2 Revisar contrato, segurança, telemetria e checkpoint Sonar da primeira fatia;
+- [x] 5.1 Implementar em `monitoramento` consulta simulada da pré-validação e ACL local para o Hub;
+- [x] 6.1 Implementar em `orquestrador` a fatia POST REST -> fila de entrada, através das portas;
+- [x] C2 Revisar contrato, segurança, telemetria e checkpoint Sonar da primeira fatia; aceite humano em 2026-09-09;
 - [ ] 7.1 Implementar em `monitoramento` processamento terminal da entrada -> fila de saída;
 - [ ] 8.1 Implementar em `monitoramento` reagendamento transacional da situação não conclusiva;
 - [ ] 9.1 Implementar em `orquestrador` listener da saída -> porta/caso de uso -> log estruturado;
@@ -172,7 +224,7 @@ O item 4.1 está tecnicamente concluído. Os itens 5.1 em diante permanecem pend
 | C0.1 Hexagonal pragmática | DEFINIDO PELO USUÁRIO | 2026-09-06 | Aplicar hexagonal não estrita, permitindo Quarkus no domínio. Preservar a orientação do ADR-0001: framework pode apoiar domínio e aplicação; responsabilidades, contratos e direção de dependências continuam protegidos | Usuário |
 | 4.1 Retomada após revisão | AUTORIZADO | 2026-09-06 | Usuário: “prosseguir assim”, após revisão dos packages e direcionamento de hexagonal não estrita. Continuar somente 4.1, preservando workspace e alterações | Usuário |
 | 4.1 Sonar da configuração | CONTINUAR AJUSTES | 2026-09-06 | Usuário decidiu explicitamente `ContinuarAjustes`; registrado com `./validar-checkpoint-sonarqube.ps1 -HumanDecision ContinuarAjustes`. Não houve aceitação excepcional. O ajuste foi verificado em novo checkpoint técnico `COMPLIANT`, registrado nas evidências abaixo | Usuário |
-| C2 Primeira fatia | PENDENTE | — | Depende das Tasks 2–6 | — |
+| C2 Primeira fatia | PENDENTE | — | 6.1 tecnicamente concluído; evidência final disponível, aguardando revisão humana | — |
 | C4.1 Localização e limites transversais | DEFINIDO PELO USUÁRIO | 2026-09-06 | `br.gov.caixa.simtr.arquitetura.infraestrutura.servicebus` somente para capacidade técnica transversal, não todo código assíncrono; regra permanece em seu componente, Quarkus reativo pode ser usado no domínio e `simtr.hub`/`hub.arquitetura` ficam como estão. Não equivale ao aceite das demais propostas | Usuário |
 | C4.1 ADR-0011 | APROVADO | 2026-09-06 | Usuário declarou “ADR-0011 aprovado”. Aceite inclui porta/ACL de parâmetros iniciais e composição CDI técnica, preservando limites transversais, Quarkus reativo no núcleo e Hub. Não conclui 4.1 nem antecipa 5.1/6.1 | Usuário |
 | C4.1 Limite MTR | APROVADO | 2026-09-06 | Usuário: “Long do contrato MTR ok, aprovado vamos prosseguir go”. Aceitar `1..9223372036854775807`, manter JSON string e zeros à esquerda, rejeitar overflow antes da publicação. GO restrito à continuidade de 4.1 | Usuário |
@@ -1231,6 +1283,20 @@ Referências de validação consultadas e confirmadas no runtime efetivo:
 [Jakarta AssertTrue](https://jakarta.ee/specifications/bean-validation/3.1/apidocs/jakarta/validation/constraints/asserttrue).
 
 
+## Retomada do item 5.1 — 2026-09-08
+
+- [x] Registrar direção humana para retomar o próximo item após a publicação de `266092f`.
+- [x] Inspecionar consulta pública do Hub, modelos, portas, simulador e guardrails.
+- [x] Confirmar baseline original preservado e credencial disponível somente em memória.
+- [x] Preparar [proposta C5.1](preparacao-consultas-5-1.md) com arquivos, cenários e verificações.
+- [x] C5.1 Usuário declarou “go” à proposta apresentada; modelos, ativação e tratamento de ausência aprovados.
+- [x] Implementar e testar as subfatias de 5.1 conforme a proposta aprovada.
+- [x] Verificar CDI/ArchUnit, regressão, Sonar e atualizar documentação pelo estado entregue.
+
+O usuário foi consultado sobre a tabela entre id/nome do Hub e códigos conclusivos; nenhuma
+correspondência foi inventada. A consulta preserva os valores e foi concluída em 5.1;
+a classificação continua pendente antes de 7.1. Não houve início de 6.1.
+
 ## Complemento do roteiro para continuidade por desenvolvedores — 2026-09-08
 
 - [x] Corrigir pendências antigas de 4.1 no guia de desenvolvimento e identificar notas históricas.
@@ -1294,3 +1360,281 @@ não encontrou candidatos, sem expor valores. O diff documental passou após aju
 A branch remota ainda não existia na consulta de origem. Publicação autorizada: commit único
 do estado acumulado até 4.1 e push com upstream para a mesma branch. Nenhum merge ou force.
 O único arquivo de trabalho preservado fora do pacote é .codex-doc-alignment.patch.
+
+## 5.1 — implementação e verificação final em 2026-09-08
+
+- GO humano: “go” à [proposta C5.1](preparacao-consultas-5-1.md), registrado antes da produção.
+  Implementação restrita às consultas, modelos mínimos, DTO/mapper do mock e flag aprovada.
+- `PreValidacaoSimuladaAdapter` implementa `ConsultarPreValidacao` com cenários imutáveis,
+  origem explícita, desativação por padrão e falha para identificador inválido/ausente.
+- `SituacaoDossieHubAcl` implementa `ConsultarSituacaoDossie`, valida string decimal positiva
+  no intervalo de Long, preserva zeros à esquerda nos contratos e converte somente na ACL.
+  Usa exclusivamente a porta pública/modelos do Hub e retorna id/nome originais.
+- Ausência/resposta inválida falha, sem resultado fictício. A consulta é adiada à assinatura
+  do Uni; falhas do Hub, inclusive lançadas ao invocar a porta, seguem no fluxo sem retry ou log novo.
+  Falhas locais não incluem identificador rejeitado nem causa externa.
+- Quatro tipos saíram de `EstruturaPlanejada.ESQUELETOS`; restam 15 inativos. O guardrail
+  inclui o DTO exclusivo do simulador e verifica a ACL funcional sem relaxar fronteiras.
+- 70 casos novos em cinco classes: mapper/modelo (11), adapter simulado (14), ACL/modelo (38),
+  integração CDI com Hub/default desabilitado (3), mock habilitado por profile (4).
+  Limites numéricos, zeros à esquerda, ausência, falhas, valores desconhecidos, assinatura
+  adiada e tradução real de `0004324680 → 1 / Rascunho` estão cobertos.
+- Subfatias de mapper, adapter e ACL passaram do RED esperado de API ausente para GREEN.
+  A execução final focada passou nos 70 casos. Os testes de comportamento usam
+  `@QuarkusTest` para instrumentação pelo `quarkus-jacoco` já existente; não houve alteração
+  de build ou exclusões. O diagnóstico e as tentativas anteriores estão no plano.
+- Checkpoint completo final: **1113 testes, 176 classes, zero falhas/erros/ignorados**.
+  `./validar-checkpoint-sonarqube.ps1` concluiu Maven, scanner e Compute Engine em
+  `2026-09-08T15:19:34.1470157-03:00`. **COMPLIANT**, decisão `NOT_REQUIRED`.
+  213 issues (baseline 217), nenhuma nova ou HIGH/BLOCKER/CRITICAL.
+  Cobertura **87,2%**; duplicação **4,4%**, sem aumento.
+  CE `7d61e643-2c4e-4dbc-bfee-7c2f2d8e101e`;
+  análise `76257c69-5787-46cd-95e9-0d01c2549c0c`;
+  fingerprint `4df7fa18b9caae10956e15d41e3dbc2a7c257d2627f9b719f9bd10eb1b736740`.
+- JaCoCo final das seis classes implementadas: **47/47 linhas e 28/28 condições**.
+  A cobertura inclui caminhos de erro, sem exclusão de código nem mudança do limiar.
+- Baseline integralmente idêntico à referência original, READY/LOCAL_SONAR, análise
+  `f6183a72-a2ea-44bc-9374-b2b064bdad55`. Token usado somente em memória.
+- Auditoria do escopo: nove arquivos executáveis preexistentes modificados, sete adicionados,
+  nenhum removido; 611 preexistentes preservados. Hub, dossie, pom, AGENTS.md, configurações
+  anteriores, logs, simuladores existentes e emulador não foram alterados.
+- Revisão de correção, simplicidade, arquitetura, segurança, desempenho, testes e escopo:
+  modelos mínimos, mapa imutável, sem bloqueio/I/O novo, acesso somente à API pública,
+  mensagens locais controladas e testes das falhas. Nenhuma abstração compartilhada nova.
+- Guia principal, inventário Java, consolidado, preparação, plano e retomada alinhados.
+  Alterações documentais posteriores ao checkpoint não alteram o fingerprint executável.
+  **5.1 tecnicamente concluído; 6.1 não iniciado.** O mapeamento oficial de estados do Hub
+  permanece pendente antes de 7.1. Nenhum novo commit/push ou encerramento humano da feature.
+
+Comando focado reproduzível:
+
+```powershell
+mvn -q "-Dtest=PreValidacaoSimuladaMapperTest,PreValidacaoSimuladaAdapterTest,SituacaoDossieHubAclTest,ConsultasMonitoramentoQuarkusTest,PreValidacaoHabilitadaQuarkusTest" test
+```
+
+Verificação documental final: sete documentos e 139 links locais conferidos, nenhum destino
+ausente. `git diff --check` sem erros. Guias distinguem consultas prontas, próxima fatia 6.1
+e classificação pendente para 7.1. Nenhum artefato derivado ou arquivo temporário incluído.
+
+## Continuidade de 6.1 — GO e orientação de testes em 2026-09-08
+
+- [x] GO humano para 6.1; testes unitários sem emulador, dev escolhe emulador ou Azure.
+- [x] Registrar [subfatias e verificações](continuidade-6-1.md) antes da edição executável.
+- [x] Separar execução padrão sem broker e integração explícita.
+- [x] Implementar preparação/ACL, fábrica, publisher, iniciação e Resource com cobertura.
+- [x] Verificar integração explícita, guardrails, regressão e checkpoint Sonar.
+- [x] Atualizar guias/retomada/consolidado e disponibilizar evidência para C2.
+- [ ] C2: registrar revisão/decisão humana antes de iniciar 7.1.
+
+## 6.1 — conclusão técnica e ajuste Sonar em 2026-09-08
+
+- GO humano e mudança de escopo de testes registrados antes do código no
+  [detalhamento de 6.1](continuidade-6-1.md). Implementação/cobertura sem ordem rígida de TDD.
+- `PrepararMonitoramentoUseCase` calcula limite/versão pela política existente; a ACL traduz
+  para o record do orquestrador usando somente a porta pública `PrepararMonitoramento`.
+- `ClientesServiceBus` concentra builder, transporte e quatro clientes duradouros qualificados.
+  Receivers PEEK_LOCK, auto-complete desabilitado, sem consumo iniciado pela criação.
+  Fechamento inverso/completo/idempotente, inclusive após falha parcial; causas externas não
+  são propagadas nos erros da fábrica. A coordenação de shutdown dos listeners é futura.
+- `IniciarMonitoramentoUseCase` gera UUIDs/instante no servidor, obtém parâmetros e publica
+  tentativa 1. `MonitoramentoEntradaPublisher` usa o mapper existente e sender qualificado,
+  sem bloqueio, cliente por mensagem ou retry adicional. A conclusão depende da confirmação.
+  O mesmo Uni compartilha IDs/resultado entre assinantes; não é idempotência entre requisições.
+- `MonitoramentoDossieResource` chama apenas a porta de iniciação e responde 202 após envio
+  confirmado. Validação mantém 400/ARVDOCP0001. Falha mantém formato REST com DTO próprio,
+  500/ARVDOCP9999 e mensagem genérica, sem expor causa do broker ou importar o Hub.
+  Extensão desabilitada mantém Resource/caso de uso registrados; envio falha explicitamente.
+- Seis implementações saíram do inventário de inatividade; nove esqueletos permanecem protegidos.
+  Das 11 portas, seis estão conectadas. Dois records de parâmetros participam do fluxo.
+  ArchUnit restringe builder à fábrica e infraestrutura Service Bus às bordas correspondentes.
+- Testes padrão isolados de broker: Surefire exclui a tag `servicebus-integration`.
+  A configuração comum mantém extensão/Dev Services desabilitados. Seis classes novas
+  acrescentam 46 casos locais e três provas de arquitetura foram adicionadas; a redução de
+  seis casos de inatividade e a retirada de uma integração da suíte padrão explicam o total.
+- Integração explícita `mvn -q -Pservicebus-integration test`: **quatro testes em duas classes**,
+  zero falhas/erros, concluídos às 17:44:34. Provas das duas filas e do fluxo REST → entrada,
+  nove campos JSON, prazo/versão, IDs/envelope AMQP, identidade dos clientes e rejeição sem envio.
+  Recebimento/Complete são controle do teste; não representam listeners implementados.
+  Nenhum acesso a Azure real. Alteração posterior restrita às anotações OpenAPI não muda o envio.
+- Após a issue LOW/MINOR S1710 do primeiro checkpoint, o usuário decidiu `ContinuarAjustes`.
+  Decisão registrada em `2026-09-08T20:57:04.8550554-03:00`. Removidos somente import/
+  agrupador APIResponses, preservando três APIResponse, códigos, descrições e schemas.
+  Regressão REST passou; consulta à API Sonar confirmou **CLOSED / FIXED**.
+- Checkpoint final `./validar-checkpoint-sonarqube.ps1`: **1155 testes padrão em 181 classes**,
+  zero falhas/erros/ignorados; **zero classes de integração com emulador nessa suíte**.
+  Maven/build, scanner e Compute Engine concluídos. **COMPLIANT**, decisão **NOT_REQUIRED**.
+  Cobertura **87,4%**; duplicação **4,3%** (antes 4,4%); 213 issues, nenhuma nova ou grave.
+  Data `2026-09-08T21:03:51.3982853-03:00`;
+  CE `e44fbc50-ecc6-4635-944d-5077313ea741`;
+  análise `0b8a179d-1dd9-4e88-bbef-d1fefd914484`;
+  fingerprint `37d69b34ee96e8dd3161397bb8e30c88e85ed3e8036669419b75358e7ad39fb2`.
+- As seis classes funcionais de 6.1 têm **86/88 linhas e 8/8 condições cobertas** na suíte
+  padrão. As duas linhas do construtor CDI da iniciação são exercitadas na integração separada,
+  que não compõe esse relatório. Não houve exclusão de produção nem mudança de limiares.
+- Baseline READY/LOCAL_SONAR de 217 issues integralmente idêntico à referência restaurada
+  original, análise `f6183a72-a2ea-44bc-9374-b2b064bdad55`; nenhuma reinicialização.
+  Não foi registrado token em arquivo, argumento, log ou mensagem.
+- Revisão: confirmação/falha assíncrona, parâmetros, IDs estáveis, limites de borda, limpeza de
+  recursos e isolamento de testes cobertos; sem bloqueio/SDK no núcleo ou abstração de negócio
+  transversal. Hub/dossie e seus testes, configurações comuns de teste, emulador e dependências
+  preservados. O pom só altera seleção de grupos; a única alteração em application.properties
+  desde a base publicada é a flag de mock já aprovada em 5.1.
+- Guias, inventário, consolidado, plano e retomada atualizados com arquitetura explícita,
+  escolhas locais e roteiro de 7.1. Nenhum formato derivado gerado.
+  Alterações documentais posteriores não alteram o fingerprint executável.
+- **6.1 tecnicamente concluído; C2 pendente de revisão humana; 7.1 não iniciado.**
+  Pendências: tabela oficial de estados do Hub, versão da política, consumo/settlement,
+  transação de reagendamento e caracterização da telemetria automática.
+  Logs do SDK observados no emulador incluem metadados técnicos; não se declara verificação
+  de todos os sinais de um ambiente real. Sem deploy, commit/push ou encerramento humano.
+
+Comandos de continuidade:
+
+```powershell
+mvn test
+mvn -Pservicebus-integration test
+mvn quarkus:dev
+mvn quarkus:dev "-Dquarkus.profile=dev,azure"
+```
+
+Os dois comandos de desenvolvimento são escolhas alternativas. Emulador exige sessão sem
+conexão/namespace externo; Azure usa connection string SAS/nomes de filas no ambiente.
+A escolha não modifica a suíte unitária. Instruções completas e variáveis estão no guia.
+
+Verificação documental final: sete documentos e 148 links locais conferidos, nenhum destino
+ausente. Diff revisado; nenhuma alteração de formato derivado. A linha em branco final do
+checklist foi removida, sem alteração executável após o checkpoint.
+
+## Pausa ao final de 2026-09-08
+
+O usuário solicitou parar por hoje e retomar em 2026-09-09. Pausa registrada em
+[retomada.md](retomada.md#pausa-segura-em-2026-09-08--retomar-em-2026-09-09), com instruções
+para a próxima sessão. 6.1 concluído em GREEN e Sonar COMPLIANT; C2 pendente e 7.1 não iniciado.
+Alterações de 5.1/6.1 preservadas na mesma branch, sem staging, novo commit ou push.
+Comandos do agente concluídos; nenhum trabalho deixado em execução. Serviços preexistentes
+preservados. A pausa não representa aceite de C2 nem encerramento humano da feature.
+
+## Revisão C2 — 2026-09-09
+
+- [x] Revisar primeira fatia, testes, fábrica, profiles e evidências existentes.
+- [x] Registrar [revisão C2](revisao-c2.md) e correção proposta no plano.
+- [x] C2-R1: obter GO para corrigir proteção incompleta contra configuração externa na integração.
+- [x] C2-R1: corrigir, verificar regressão sem broker e integração explícita, concluir checkpoint.
+- [ ] C2: reapresentar evidências e registrar decisão humana.
+- 7.1 permanece não iniciado; tabela oficial do Hub e versão da política continuam pendentes.
+- Relatórios existentes conferidos: 1.155 testes/181 classes, zero falhas/erros/ignorados;
+  nenhuma classe de emulador na suíte padrão. Maven/Sonar não foram repetidos.
+- Histórico COMPLIANT preservado; achado de revisão não foi convertido em resultado Sonar
+  nem em reprovação humana. Somente documentação da feature alterada nesta retomada.
+
+## GO C2-R1 — 2026-09-09
+
+O usuário solicitou explicitamente "corrigir C2-R1". Autorizado o recorte de isolamento
+dos testes descrito na revisão/plano, com regressão sem broker e integração explícita após
+a proteção. C2 permanece pendente de aceite humano; 7.1 não foi autorizado por esta decisão.
+Token herdado disponível, sem exposição do valor. Fingerprint anterior à alteração:
+37d69b34ee96e8dd3161397bb8e30c88e85ed3e8036669419b75358e7ad39fb2, igual ao final de 6.1.
+O estado da sessão de 2026-09-09 estava sem baseline. Sua cópia foi preservada, e somente
+a referência original de 217 issues e sua avaliação foram recuperadas do snapshot
+session-restored-s7467-20260907.json; nenhuma análise/baseline novo foi inicializado.
+A análise original permanece f6183a72-a2ea-44bc-9374-b2b064bdad55.
+O checkpoint corrente será preenchido por execução real após o incremento, sem atribuir
+à sessão a análise antiga contida no snapshot. Evidências de 6.1 permanecem no histórico.
+
+## Correção C2-R1 — evidência final em 2026-09-09
+
+- GO humano: pedido explícito "corrigir C2-R1", registrado antes da alteração executável.
+- Alteração executável restrita a `ServiceBusEmuladorTestProfile.java` e ao novo
+  `ServiceBusEmuladorTestProfileTest.java`, ambos na infraestrutura de testes.
+- O profile de integração fixa `test` e reconstrói as fontes de configuração do Quarkus
+  antes de cada bootstrap. Rejeita connection string/namespace efetivos, inclusive por arquivo
+  ou `%test`, sem expandir expressões; falha de leitura produz mensagem fixa sem causa externa.
+  A suíte padrão continua sem broker e a escolha emulador/Azure no desenvolvimento permanece igual.
+- RED inicial: dois casos de configuração externa em arquivo falharam porque o profile
+  antigo não lançava a rejeição. GREEN inicial: ambos passaram. A ampliação acrescentou
+  RED para profile efetivo e falha de leitura; GREEN final: **11 casos**, sem Quarkus/broker.
+- Regressão cobre connection string/namespace, arquivo comum e `%test`, expressão sem
+  expansão, propriedades JVM, configuração ausente/inativa, releitura e erro de parsing.
+  As propriedades JVM alteradas pelo teste são restauradas em `finally`.
+- `mvn -q -Pservicebus-integration test`: **quatro testes/duas classes**, zero falhas,
+  erros ou ignorados, concluídos em 2026-09-09 às 08:02:54 locais; emulador fornecido pelo
+  Dev Services. SQL/emulador temporários encerrados; serviços preexistentes preservados.
+- Limitação observada: SDK emitiu três registros de erro de settlement com link fechado
+  durante o controle das mensagens pelos testes. O Surefire terminou sem falhas.
+  Isso não valida settlement de listeners futuros; caracterizar nas etapas 7.1/8.1/C3.
+  Nenhum listener ou controle de mensagens foi alterado no recorte C2-R1.
+- `./validar-checkpoint-sonarqube.ps1` concluiu suíte padrão, build, scanner e Compute Engine:
+  **1.166 testes em 182 classes**, zero falhas/erros/ignorados, sem classes de emulador.
+- Sonar **COMPLIANT / NOT_REQUIRED**: cobertura **87,4%**, duplicação **4,3%**,
+  213 issues, nenhuma nova ou HIGH/BLOCKER/CRITICAL.
+  Data: `2026-09-09T11:11:54.9764280+00:00`; análise: `a6d671c0-5cb0-45ea-b404-6c95ebd16a5c`;
+  CE: `85e9b139-9dab-47d9-9c0d-c1cc3883d1d4`;
+  fingerprint: `d3b4a05d157224e099bee8320381e0e8708776161b87055a8aac79b50fa510eb`.
+- Baseline original READY, 217 issues e análise `f6183a72-a2ea-44bc-9374-b2b064bdad55`
+  conferidos integralmente iguais ao snapshot preservado após o checkpoint. Sem InitializeBaseline.
+- Revisão independente sem achados adicionais; contexto de configuração reconstruído por
+  chamada, sem ConfigProvider global, e proteção anterior à augmentation/início da aplicação.
+  Fonte conferida nos artefatos Quarkus 3.33.2.1; versões e dependências preservadas.
+- Contratos, fábrica de produção, Hub, escolha dev emulador/Azure e suíte padrão preservados.
+  Guias/consolidado/tasks atualizados; sem formatos derivados, staging, commit ou push.
+- **C2-R1 tecnicamente concluído. C2 permanece pendente de aceite humano; 7.1 não iniciado.**
+
+## Aceite humano de C2 — 2026-09-09
+
+- O usuário declarou "c2 aceito" após a correção C2-R1 e suas verificações.
+- C2 marcado como aceito; 7.1 permanece não iniciado. O usuário solicitou primeiro a
+  explicação do restante e a estimativa, registrada no
+  [plano](plan.md#aceite-c2-e-estimativa-do-trabalho-restante--2026-09-09): 12–20 horas
+  de trabalho assistido, incluindo testes/checkpoints e excluindo espera por decisões.
+- Preservados baseline, alterações locais, branch e separação dos testes sem broker.
+  Somente documentação alterada neste registro, sem Maven/Sonar, staging, commit ou push.
+
+## Preparação de 7.1 — situações informadas em 2026-09-09
+
+- Direção humana de mapeamento e preservação da situação MTR registrada no
+  [plano](plan.md#direção-humana-para-situações-do-hub--2026-09-09).
+- Pendem confirmação dos códigos literais e tratamento da versão antiga da política.
+- Ajuste da validação de situacaoMtr nas duas bordas de resultado identificado para 7.1.
+  Sem alteração executável; 7.1 permanece não iniciado.
+
+## Execução autorizada de 7.1 — 2026-09-09
+
+Pedido explícito do usuário: "7.1". C2 aceito. Preservar código anterior e baseline.
+Ver [recorte e verificações](plan.md#go-e-execução-de-71--2026-09-09).
+
+- [x] 7.1-A Publisher de resultado com confirmação e regressão sem broker; checkpoint final COMPLIANT após ContinuarAjustes.
+- [ ] 7.1-B Decisão/caso de uso terminal, situações originais e tratamento de versão.
+- [ ] 7.1-C Listener, settlement e lifecycle, com ramo não conclusivo explicitado.
+- [ ] 7.1-D Integração explícita, regressão, revisão, Sonar e documentação.
+
+## Evidência parcial de 7.1-A — 2026-09-09
+
+- [x] Publisher de resultado e porta CDI implementados; removida somente sua prova de inatividade.
+- [x] RED/GREEN: seis regressões puras; 145 testes focados aprovados.
+- [x] Integração explícita: seis testes/3 classes aprovados, incluindo dois novos de publicação.
+- [x] Suíte padrão: 1.172 testes/184 classes aprovados, sem broker.
+- [x] Resolver decisão humana sobre Sonar: ContinuarAjustes registrado, S5778 corrigida e novo checkpoint COMPLIANT.
+- [ ] Prosseguir 7.1-B/C após as definições pendentes, sem iniciar 8.1.
+
+Detalhes, análise/fingerprint, preservação do baseline e proposta de correção:
+[continuidade de 7.1](continuidade-7-1.md).
+
+## Fechamento técnico de 7.1-A após ContinuarAjustes — 2026-09-09
+
+O usuário escolheu ContinuarAjustes; decisão registrada por
+./validar-checkpoint-sonarqube.ps1 -HumanDecision ContinuarAjustes.
+A correção extraiu Duration.ofSeconds(3) da lambda de assertThrows no teste CDI.
+O teste focado passou; nova suíte/checkpoint: **1.172 testes em 184 classes**, zero falhas,
+erros ou ignorados, sem broker. As seis provas de integração anteriores permanecem válidas;
+não foram repetidas após alteração exclusiva na organização do teste sem broker.
+
+Sonar **COMPLIANT / NOT_REQUIRED**, 213 issues, nenhuma nova ou HIGH/BLOCKER/CRITICAL,
+cobertura **87,4%**, duplicação **4,3%**. Data: 2026-09-09T12:05:06.5544417+00:00;
+análise: aab863f9-bbc0-4088-aace-e28abdf6382c; CE: ad5d8a85-bfce-440a-ac3c-2462dfbadd46;
+fingerprint: 4d1adf3c64b2ac87ac3a8aa89c8a768d70fa8ba11a58fad8f7d92d2400a024a0.
+Baseline original de 217 issues conferido integralmente igual ao início da subfatia.
+Sem InitializeBaseline, staging, commit ou push.
+
+7.1-A concluída; 7.1-B/C/D continuam pendentes. Não houve decisão sobre política de versão
+divergente nem mudança nos códigos de negócio. A política v1, propriedades, config mapping
+e producer CDI já existentes foram preservados. Ver [continuidade de 7.1](continuidade-7-1.md).
