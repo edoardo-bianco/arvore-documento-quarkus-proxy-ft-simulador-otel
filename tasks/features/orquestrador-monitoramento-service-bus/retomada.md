@@ -1,5 +1,11 @@
 # Retomada — orquestrador e monitoramento Service Bus
 
+## Marco publicado para retomada
+
+8.2 publicada em `a797114d1dc833499dcc957a881e83f431cae7b9`; push normal confirmado em origin na branch
+`feature/orquestrador-monitoramento-service-bus`. O [registro de publicação](pacote-commit.md#publicação-confirmada--2026-09-10)
+identifica o pacote e as verificações. A primeira pendência funcional continua sendo 9.1.
+
 ## Retomada consolidada antes da etapa 9 — 2026-09-10
 
 **8.2 concluída tecnicamente.** O usuário pediu consolidar, atualizar o guia do desenvolvedor,

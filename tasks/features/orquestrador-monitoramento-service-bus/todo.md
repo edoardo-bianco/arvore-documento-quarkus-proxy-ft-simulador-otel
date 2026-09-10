@@ -11,7 +11,8 @@
   dos testes da fixture real do simulador dev.
 - [x] Separar manifesto histórico de b886bdb e seleção atual de 13 arquivos.
 - [x] Conferir links/âncoras e diff documental; nove documentos, 263 links e 31 âncoras válidos.
-- [ ] Conferir seleção final no índice e executar commit/push autorizados.
+- [x] Conferir seleção final dos 13 arquivos, índice/workspace idênticos, diff sem erros e ausência de padrões de segredo.
+- [x] Executar commit `a797114` e push normal; hash confirmado no remoto. Registrar a publicação nos guias/retomada.
 
 A implementação de 9.1 permanece pendente. [Pacote atual](pacote-commit.md) e
 [roteiro de retomada](retomada.md). Os registros abaixo são históricos da implementação.

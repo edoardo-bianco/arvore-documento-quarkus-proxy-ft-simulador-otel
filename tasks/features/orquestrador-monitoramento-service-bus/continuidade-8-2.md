@@ -87,3 +87,16 @@ consolidação exclusivamente documental. Commit e push normais foram autorizado
 A conferência documental passou com nove documentos, 263 links locais e 31 âncoras válidos,
 diff e whitespace sem erros. A revisão final apontou duas frases antigas no guia Service Bus
 sobre reagendamento pendente; ambas foram alinhadas à implementação e prova de 8.1.
+
+## Publicação confirmada — 2026-09-10
+
+O incremento de 8.2 e sua consolidação foram publicados em
+`a797114d1dc833499dcc957a881e83f431cae7b9` (`feat: ativar listener de monitoramento por configuracao`).
+O push normal para `origin/feature/orquestrador-monitoramento-service-bus` foi concluído
+e `git ls-remote` confirmou o mesmo hash do HEAD local. São 13 arquivos, sem alterações
+de implementação em 9.1. Este complemento documental registra o resultado já confirmado.
+
+Seleção/índice/workspace idênticos, diff sem erros e varredura de padrões de segredo aprovada.
+O fingerprint executável e o baseline permaneceram iguais à evidência de 8.2.
+`.codex-doc-alignment.patch` permaneceu fora do Git; artefatos locais foram preservados.
+A etapa 9.1 continua pendente; não houve encerramento humano da feature.

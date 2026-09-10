@@ -1,6 +1,9 @@
 # Guia de desenvolvimento — orquestrador e monitoramento Service Bus
 
-**Marco consolidado: 8.2 concluída tecnicamente.** O pacote atual acrescenta ativação controlada
+**Marco publicado: 8.2 concluída tecnicamente, commit `a797114`.**
+Publicação confirmada em origin; [registro e hash completo](pacote-commit.md#publicação-confirmada--2026-09-10).
+
+**Estado implementado:** O pacote atual acrescenta ativação controlada
 da entrada ao processamento/reagendamento já publicado em b886bdb. O usuário pediu consolidar,
 preparar commit e publicar esse estado antes da etapa 9. Evidências e seleção dos arquivos no
 [pacote de commit](pacote-commit.md) e na [continuidade de 8.2](continuidade-8-2.md).

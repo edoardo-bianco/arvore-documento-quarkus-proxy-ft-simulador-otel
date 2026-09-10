@@ -1,5 +1,18 @@
 # Pacote de commit — ativação controlada da entrada (8.2)
 
+## Publicação confirmada — 2026-09-10
+
+O incremento de 8.2 e sua consolidação foram publicados em
+`a797114d1dc833499dcc957a881e83f431cae7b9` (`feat: ativar listener de monitoramento por configuracao`).
+O push normal para `origin/feature/orquestrador-monitoramento-service-bus` foi concluído
+e `git ls-remote` confirmou o mesmo hash do HEAD local. São 13 arquivos, sem alterações
+de implementação em 9.1. Este complemento documental registra o resultado já confirmado.
+
+Seleção/índice/workspace idênticos, diff sem erros e varredura de padrões de segredo aprovada.
+O fingerprint executável e o baseline permaneceram iguais à evidência de 8.2.
+`.codex-doc-alignment.patch` permaneceu fora do Git; artefatos locais foram preservados.
+A etapa 9.1 continua pendente; não houve encerramento humano da feature.
+
 ## Escopo autorizado em 2026-09-10
 
 O usuário pediu consolidar tudo até 8.2, atualizar o guia do desenvolvedor para retomada,
@@ -102,7 +115,7 @@ saída. Dev mode interativo e Azure gerenciado não foram executados nesta entre
 Revisar `git diff --cached`, comparar seleção e workspace, conferir links/âncoras e
 `git diff --cached --check`. As revisões do código de 8.2 não encontraram bloqueadores;
 a revisão operacional detectou a fixture inexistente do exemplo, corrigida no guia.
-A publicação está autorizada pelo pedido humano; registrar o hash remoto somente depois
-do resultado real de commit e push normal. Não alterar a main nem antecipar 9.1.
+O commit e o push autorizados foram concluídos; o hash remoto foi confirmado conforme o registro
+no início deste manifesto. A main permanece preservada; 9.1 não foi antecipada.
 
 [Retomada do desenvolvimento](retomada.md).
