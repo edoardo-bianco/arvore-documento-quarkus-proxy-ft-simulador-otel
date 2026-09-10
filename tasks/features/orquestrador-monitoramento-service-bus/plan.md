@@ -1,5 +1,115 @@
 # Plano: implementar orquestração de monitoramento com duas filas do Service Bus
 
+## Consolidação e publicação até 8.2 — 2026-09-10
+
+O usuário pediu consolidar a entrega antes da etapa 9, atualizar o guia para retomada,
+organizar o commit do que foi realizado e publicar. Esse pedido autoriza documentação,
+staging seletivo, commit e push normal nesta branch. A leitura inicial de 9.1 não alterou
+código, testes ou configuração; sua implementação fica suspensa durante esta consolidação.
+
+**Escopo:** publicar a ativação opt-in de 8.2 já testada e sua documentação. Explicar o fluxo
+implementado por package, os comandos Dev Services/Azure, o POST e os resultados observáveis.
+Separar o manifesto histórico de b886bdb do pacote atual e deixar um roteiro de retomada.
+
+**Divergências a corrigir nesta consolidação:** o exemplo manual usa 0007, mas esse ID pertence
+à prova com Hub controlado; a fixture do simulador do Hub é 4324680, com situação Rascunho.
+Há frases antigas de ausência de startup no final dos guias/consolidado e de inexistência
+geral de orquestrador local. Alinhar essas descrições ao código existente, distinguindo os
+packages da demonstração das capacidades atômicas do Hub. Nenhum comportamento muda.
+
+**Critérios/verificação:** guias com comandos completos e resposta esperada; início condicionado
+a monitoramento.service-bus.entrada.consumo-habilitado=true; saída sem consumidor de 9.1.
+Revisar diff, links/âncoras, seleção exata e ausência de artefatos/segredos. O fingerprint deve
+continuar igual ao checkpoint de 8.2 (9b21bd4c4a82e385f1191e905f40a916e6f95055bb74a59f3385a8109d5fcd27).
+Reutilizar suas evidências: 1.297 testes padrão, 23 integrações, build e Sonar COMPLIANT.
+Não repetir Maven/Sonar para alterações exclusivamente Markdown com código idêntico.
+Conferir o hash remoto depois do push; não registrar publicação antes de sua confirmação.
+
+**Arquivos:** os quatro arquivos executáveis de 8.2 já validados, consolidado arquitetural,
+guia Service Bus e tasks/guia/manifestos da feature. Preservar .codex-doc-alignment.patch,
+baseline e artefatos locais fora do índice.
+
+**Fora de escopo:** implementar 9.1/10.1, executar aplicação contra Azure, mudar contratos,
+configuração executável, Hub, dependências, ADRs, formatos derivados ou encerrar a feature.
+
+**Risco para a retomada de 9.1:** o adapter planejado em adaptador.saida.log ainda está inativo;
+a composição JSON tipada atual seleciona somente categorias Service Bus (ADR-0012).
+Definir e validar a emissão do evento aprovado, sua conclusão/falha e ativação da saída na
+própria fatia, com o checkpoint aplicável se houver mudança do limite arquitetural. Nenhuma
+solução ou expansão desse limite foi implementada nesta leitura.
+
+## 8.2 — ativação controlada da entrada — 2026-09-10
+
+O usuário pediu inserir 8.2 antes de 9.1 e confirmou: "vamos fazer isso", após a proposta
+de configuração explícita, startup, validação de início único/falhas/shutdown e prova via POST.
+Esse aceite autoriza a fatia e sua mudança observável de ativação. A 8.1 já está publicada
+em b886bdb8bb079eadcba2ed21c68739cf62ff3356, confirmada em origin; a restrição anterior
+de aguardar o reagendamento transacional foi satisfeita.
+
+**Intenção:** permitir que o dev habilite o consumidor da entrada pela configuração e execute
+REST → processamento → reagendamento/resultado sem uma chamada Java manual ao listener.
+
+**Desenho:** propriedade runtime booleana
+`monitoramento.service-bus.entrada.consumo-habilitado=false`. Um observer de StartupEvent
+no próprio MonitoramentoEntradaListener chama iniciar() somente quando true. Reutilizar
+os clientes da fábrica e seu encerramento existente; nenhuma nova porta ou camada.
+Default e profile de teste ficam false; apenas o profile de integração de ativação usa true.
+A chamada explícita existente continua disponível para as provas controladas de 7.1/8.1.
+
+**Critérios de aceitação:**
+- Desabilitado não resolve receiver nem assina consumo; habilitado inicia uma única vez,
+  sem bloquear o startup para aguardar mensagem. Falha síncrona ao obter cliente mantém
+  a exceção sanitizada existente; falha assíncrona encerra a assinatura e exige reinício
+  da aplicação, sem retry/reconexão adicionais ou alegação de readiness do broker.
+- POST no runtime do teste com emulador e ativação configurada produz resultado terminal
+  e resultado após reagendamento, sem chamada direta/reflexiva a iniciar() no teste.
+  SDK, broker, REST, listener e processamento reais; somente a porta pública do Hub controlada.
+- Default sem broker e ciclo de vida preservados; documentação mostra comando de ativação,
+  mock explícito, escolha emulador/Azure e limite: saída aguarda consumo/log de 9.1.
+
+**Verificações:** RED/GREEN do observer/default/falha no teste do listener; regressão existente
+de início duplicado, falha de consumo e shutdown; integração de startup opt-in em perfil
+isolado e regressão completa com emulador; suíte padrão/build/Sonar no baseline original.
+Revisar correção, simplicidade, arquitetura, segurança, desempenho, testes e escopo do diff.
+Não adicionar dependência para uma nova ferramenta de testes; usar JUnit/Quarkus existentes.
+
+**Arquivos prováveis:** MonitoramentoEntradaListener.java, application.properties,
+MonitoramentoEntradaListenerTest.java, MonitoramentoAtivacaoEmuladorTest.java;
+guia Service Bus, consolidado arquitetural e tasks/guias da feature.
+
+**Fora de escopo:** 9.1/10.1, consumidor/flag da saída, novo endpoint de ativação, sinal de
+readiness, retry, transporte, credenciais, contratos, política, Hub, hooks, dependências e
+publicação de novo commit. Não alterar os defaults funcionais PT30M/PT24H.
+A ativação usa a conexão já escolhida pelo dev; prova local não valida Azure gerenciado.
+
+**Riscos/dependências:** emulador/Docker operacional; isolar o novo profile das provas que
+iniciam manualmente o listener; não disputar o receiver de entrada para receber mensagens
+no teste de startup. Observar remoção via peek e ler somente a saída no harness.
+Configuração false preserva o comportamento anterior. Mudanças de conexão exigem reinício.
+Falhas assíncronas já encerram o consumo sem derrubar o HTTP; esse limite permanece explícito.
+
+**Divergências registradas:** os registros de preparação ainda descrevem ausência de commit,
+mas b886bdb já foi publicado. Guias devem distinguir esse marco da implementação local de 8.2.
+Há frases gerais antigas no consolidado sobre ausência de orquestração, apesar da seção
+dedicada implementada; restringir o alinhamento desta fatia à descrição de ativação, sem
+reescrever silenciosamente a arquitetura do Hub.
+
+**Ordem/checkpoints:** 8.2 (RED → GREEN → integração → revisão/Sonar/documentação), depois 9.1,
+10.1, C3 e 11.1–CF. Não avançar para 9.1 nesta fatia. Apresentar decisão humana somente se
+houver violação Sonar ou necessidade concreta de escopo adicional.
+
+Referências oficiais consultadas e conferidas com pom.xml (Quarkus 3.33.2.1, JDK 25,
+extensão 1.2.5) e API local: [Azure Services](https://docs.quarkiverse.io/quarkus-azure-services/dev/index.html),
+[Service Bus/Dev Services](https://docs.quarkiverse.io/quarkus-azure-services/dev/quarkus-azure-servicebus.html)
+e [ciclo de vida Quarkus](https://quarkus.io/guides/lifecycle/). A documentação dev não
+autoriza atualizar versões ou copiar os exemplos de autenticação/log fora do ADR vigente.
+Evidências desta execução em [continuidade de 8.2](continuidade-8-2.md).
+
+**Fechamento técnico:** 8.2 concluída; 1.297 testes padrão/189 classes e 23 integrações/6 classes
+passaram, build aprovado e Sonar COMPLIANT / NOT_REQUIRED, 87,9% cobertura, 4,3% duplicação,
+nenhuma issue nova/grave. Revisão sem findings e baseline integralmente idêntico.
+Guias, arquitetura e retomada alinhados; sem novo commit/push. 9.1 permanece pendente.
+
 ## Preparação do commit e execução — 2026-09-10
 
 Pedido humano: preparar commit seguro, esclarecer execução/testes e conferir alinhamento dos guias.

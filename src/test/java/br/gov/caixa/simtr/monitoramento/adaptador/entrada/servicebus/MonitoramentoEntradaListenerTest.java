@@ -15,6 +15,7 @@ import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
 import com.azure.messaging.servicebus.ServiceBusReceiverAsyncClient;
 import com.azure.messaging.servicebus.models.DeadLetterOptions;
 import io.quarkus.runtime.ShutdownEvent;
+import io.quarkus.runtime.StartupEvent;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.inject.Instance;
@@ -82,6 +83,42 @@ class MonitoramentoEntradaListenerTest {
         var falha = assertThrows(IllegalStateException.class, listenerCdi::iniciar);
         assertEquals("Falha ao iniciar consumo de monitoramento.", falha.getMessage());
         assertNull(falha.getCause());
+    }
+
+    @Test
+    void deveManterConsumoInativoNoStartupSemOptIn() {
+        listener.iniciarNoStartup(new StartupEvent(), false);
+        verifyNoInteractions(clientes, receiver, processamento, reagendamentos);
+    }
+
+    @Test
+    void deveIniciarUmaUnicaAssinaturaNoStartupComOptIn() {
+        var startup = new StartupEvent();
+        listener.iniciarNoStartup(startup, true);
+        verify(receiver).receiveMessages();
+        verify(receiver).complete(mensagem);
+        assertThrows(IllegalStateException.class, () -> listener.iniciarNoStartup(startup, true));
+        verify(receiver, times(1)).receiveMessages();
+    }
+
+    @Test
+    void devePropagarFalhaSanitizadaAoAtivarSemClienteNoStartup() {
+        when(clientes.get()).thenThrow(new IllegalStateException("credencial-sintetica"));
+        var startup = new StartupEvent();
+        var falha = assertThrows(IllegalStateException.class, () -> listener.iniciarNoStartup(startup, true));
+        assertEquals("Falha ao iniciar consumo de monitoramento.", falha.getMessage());
+        assertNull(falha.getCause());
+        verifyNoInteractions(receiver, processamento);
+    }
+
+    @Test
+    void deveEncerrarSemReassinarAposFalhaDeConsumoIniciadoNoStartup() {
+        when(receiver.receiveMessages()).thenReturn(Flux.error(new IllegalStateException("falha-sintetica")));
+        listener.iniciarNoStartup(new StartupEvent(), true);
+        verify(receiver).receiveMessages();
+        assertThrows(IllegalStateException.class, listener::iniciar);
+        verify(receiver, never()).close();
+        verifyNoInteractions(processamento);
     }
 
     @Test

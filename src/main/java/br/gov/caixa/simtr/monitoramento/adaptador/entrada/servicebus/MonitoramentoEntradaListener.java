@@ -10,6 +10,7 @@ import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
 import com.azure.messaging.servicebus.ServiceBusReceiverAsyncClient;
 import com.azure.messaging.servicebus.models.DeadLetterOptions;
 import io.quarkus.runtime.ShutdownEvent;
+import io.quarkus.runtime.StartupEvent;
 import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -17,6 +18,7 @@ import jakarta.enterprise.event.Observes;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptor;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.publisher.Flux;
@@ -24,7 +26,7 @@ import reactor.core.publisher.Mono;
 
 /**
  * Processa entregas serialmente e executa um settlement depois dos efeitos confirmados.
- * Inicio explicito; reagendamento e Complete usam a mesma transacao da fila de entrada.
+ * Inicio explicito ou por opt-in no startup; reagendamento e Complete usam a mesma transacao.
  * Nao cria/fecha clientes nem renova prazos.
  */
 @ApplicationScoped
@@ -46,7 +48,16 @@ public class MonitoramentoEntradaListener {
         this.reagendamentos = reagendamentos;
     }
 
-    /** Uma inicialização por instância; nenhum observer de startup ativa este recorte. */
+    /** Ativa somente a entrada quando o operador habilita o consumo na configuracao. */
+    void iniciarNoStartup(@Observes StartupEvent evento,
+            @ConfigProperty(name = "monitoramento.service-bus.entrada.consumo-habilitado",
+                    defaultValue = "false") boolean habilitado) {
+        if (habilitado) {
+            iniciar();
+        }
+    }
+
+    /** Uma inicialização por instância, compartilhada pelo startup e pelas provas controladas. */
     public synchronized void iniciar() {
         if (estado != Estado.NOVO) {
             throw new IllegalStateException("Consumo de monitoramento ja iniciado ou encerrado.");

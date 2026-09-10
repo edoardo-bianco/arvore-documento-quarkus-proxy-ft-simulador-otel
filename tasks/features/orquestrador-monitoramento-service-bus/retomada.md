@@ -1,5 +1,77 @@
 # Retomada — orquestrador e monitoramento Service Bus
 
+## Retomada consolidada antes da etapa 9 — 2026-09-10
+
+**8.2 concluída tecnicamente.** O usuário pediu consolidar, atualizar o guia do desenvolvedor,
+organizar commit e publicar antes de prosseguir com 9. A leitura inicial de 9.1 não produziu
+alterações de código, testes ou configuração. Não executar 9.1 durante esta consolidação.
+
+Branch: `feature/orquestrador-monitoramento-service-bus`. Base publicada até 8.1:
+`b886bdb8bb079eadcba2ed21c68739cf62ff3356`. O [manifesto de 8.2](pacote-commit.md)
+identifica os arquivos deste incremento; o [manifesto anterior](pacote-commit-8-1.md) é histórico.
+Consultar `git log -3 --oneline` e `git status -sb` para os hashes e o estado de publicação.
+
+### O que está disponível
+
+- `orquestrador`: POST publica a primeira tentativa na entrada e retorna 202 após confirmação.
+- `monitoramento`: startup ativa a entrada quando
+  `monitoramento.service-bus.entrada.consumo-habilitado=true` (default false); processa,
+  aplica política e limites, reagenda transacionalmente ou publica resultado na saída.
+- Saída do `orquestrador`: listener, caso de uso e adapter de log ainda são estruturas inativas.
+  Implementá-los em 9.1, com validação, registro e settlement. A telemetria ponta a ponta é 10.1.
+- Os packages simulam responsabilidades de microsserviços no mesmo artifact/runtime Quarkus.
+  Hub e `dossie` permanecem preservados.
+
+O [guia do desenvolvedor](guia-desenvolvimento.md#verificação-rápida-do-marco-até-82) tem
+comandos completos de Dev Services/Azure, POST manual com a fixture **4324680/Rascunho**,
+política curta opcional e expectativas. 0007 permanece apenas nos testes com Hub controlado.
+Escolher Azure para o broker não desliga os simuladores do profile dev. O 202 não confirma
+conclusão; a saída ainda não é consumida/logada pela aplicação.
+
+### Evidência preservada e próximos passos
+
+Passaram 1.297 testes padrão/189 classes e 23 integrações/6 classes, sem falhas/erros/ignorados.
+Build e Sonar COMPLIANT / NOT_REQUIRED: 87,9% cobertura, 4,3% duplicação, zero issues novas/graves.
+Código da consolidação idêntico ao checkpoint; detalhes na [continuidade de 8.2](continuidade-8-2.md).
+As correções posteriores são documentais; não foi necessário repetir Maven/Sonar.
+
+1. Conferir branch, Git e alterações locais; preservar `.codex-doc-alignment.patch` e artefatos.
+2. Ler arquitetura/índice de ADRs, [plano](plan.md), [checklist](todo.md) e guia do dev.
+3. No workspace atual, preservar baseline READY/LOCAL_SONAR original; não reinicializar.
+   Cópia final: `.codex/.state/session-after-8-2-checkpoint-20260910.json`.
+   Em checkout novo, seguir AGENTS.md para a própria sessão; esse estado local não vai ao Git.
+4. Retomar **9.1 — consumir saída e registrar resultado**, detalhando sua próxima fatia antes
+   da produção. Reutilizar os contratos/portas existentes, preservar lifecycle e provar falhas,
+   redelivery e conclusão do log antes do Complete. A seleção de categorias do formatter tipado
+   frente ao adapter `adaptador.saida.log` é uma pendência registrada no plano, sem solução aplicada.
+5. Depois: 10.1, revisão C3 e consolidação final 11.1/CF. Não há encerramento humano da feature.
+
+Os registros abaixo conservam a evolução anterior. Seus hashes, contagens e menções de trabalho
+local ou início exclusivamente manual pertencem ao momento em que foram escritos.
+
+## 8.2 — ativação da entrada concluída tecnicamente — 2026-09-10
+
+Pedido humano "vamos fazer isso" registrado para a ativação antes de 9.1.
+Marco publicado: b886bdb8bb079eadcba2ed21c68739cf62ff3356, confirmado em origin.
+A 8.2 está local: observer StartupEvent aciona o listener da entrada quando
+monitoramento.service-bus.entrada.consumo-habilitado=true; default e %test=false.
+O padrão funcional PT30M/PT24H e o baseline local original permanecem preservados.
+
+RED confirmado por ausência do observer; 43 testes do listener e regressões focadas passaram.
+Os dois casos novos de startup → POST → resultado no emulador passaram, incluindo reagendamento,
+sem chamada manual ao listener. Revisões independentes de produção e integração sem findings.
+Regressão completa: 23 integrações/6 classes e 1.297 testes padrão/189 classes, sem falhas,
+erros ou ignorados. Build e Sonar COMPLIANT / NOT_REQUIRED: 87,9% cobertura,
+4,3% duplicação, nenhuma issue nova/grave. Baseline integralmente idêntico.
+Análise 4eb0718a-d90c-4155-8a7f-a5118f3d16c6; fingerprint 9b21bd4c4a82e385f1191e905f40a916e6f95055bb74a59f3385a8109d5fcd27.
+Cópia final: `.codex/.state/session-after-8-2-checkpoint-20260910.json`.
+Próximo item funcional: 9.1. Nenhum comando de trabalho ficou em execução.
+
+[Execução e comando](guia-desenvolvimento.md#verificação-rápida-do-marco-até-82),
+[plano](plan.md#82--ativação-controlada-da-entrada--2026-09-10) e
+[evidências](continuidade-8-2.md). 9.1/10.1 não iniciadas; sem novo commit/push de 8.2.
+As seções abaixo registram estados anteriores, inclusive a preparação anterior à publicação.
+
 ## Preparação do commit — 2026-09-10
 
 O pedido posterior é preparar um commit seguro e esclarecer execução/testes/guias.
@@ -46,8 +118,8 @@ Evidências, IDs das análises e recuperação do baseline na
 1. Conferir branch e alterações com `git status -sb`; preservar arquivos rastreados e não rastreados.
 2. Ler continuidade, checklist, plano, guia do dev e referências exigidas por AGENTS.md.
 3. Conferir `.codex/.state/session.json` antes de qualquer edição executável. O hook de
-   abertura pode apagá-lo; a cópia final validada é
-   `.codex/.state/session-after-commit-preparation-20260910.json`.
+   abertura pode apagá-lo; a cópia final validada após 8.2 é
+   `.codex/.state/session-after-8-2-checkpoint-20260910.json`.
    Usar essa evidência para recuperar o mesmo baseline, sem InitializeBaseline.
 4. Próximo item funcional: **9.1 — consumo e log da saída**, a detalhar e executar em fatia própria.
    Os ajustes Sonar de 8.1 já terminaram; não repetir decisões humanas anteriores.
@@ -63,7 +135,8 @@ não conclusiva encerra por QUARENTENA/MAXIMO_TENTATIVAS. Proteção contra over
 
 Situações originais: FINALIZADO_CONFORME → CONFORME, FINALIZADO_INCONFORME → INCONFORME,
 PENDENTE_INFORMACA → INCONFORME, preservando situacaoMtr.
-Consumo exige iniciar() explícito. O dev escolhe emulador ou Azure para a aplicação;
+Desde 8.2, o consumo pode ser ativado por configuração no startup ou iniciar() explícito.
+O dev escolhe emulador ou Azure para a aplicação;
 testes padrão continuam sem broker. Provas transacionais são locais no emulador.
 Publicação terminal + Complete ainda não é atômica; não há Outbox/idempotência durável.
 

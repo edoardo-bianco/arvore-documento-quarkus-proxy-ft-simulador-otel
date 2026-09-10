@@ -1,5 +1,34 @@
 # Checklist: orquestração de monitoramento com duas filas do Service Bus
 
+## Consolidação para entrega até 8.2 — 2026-09-10
+
+- [x] Registrar o pedido humano de consolidar, organizar commit e publicar antes de 9.
+- [x] Confirmar que 9.1 recebeu somente leitura, sem alteração executável.
+- [x] Conferir fingerprint idêntico ao checkpoint COMPLIANT de 8.2.
+- [x] Consolidar guia com responsabilidades por package, ativação opt-in, Dev Services/Azure,
+  POST 4324680, expectativa de Rascunho/reagendamento e saída ainda sem consumidor.
+- [x] Registrar a revisão independente e corrigir a fixture manual, distinguindo o Hub controlado
+  dos testes da fixture real do simulador dev.
+- [x] Separar manifesto histórico de b886bdb e seleção atual de 13 arquivos.
+- [x] Conferir links/âncoras e diff documental; nove documentos, 263 links e 31 âncoras válidos.
+- [ ] Conferir seleção final no índice e executar commit/push autorizados.
+
+A implementação de 9.1 permanece pendente. [Pacote atual](pacote-commit.md) e
+[roteiro de retomada](retomada.md). Os registros abaixo são históricos da implementação.
+
+## 8.2 — ativação controlada da entrada concluída tecnicamente — 2026-09-10
+
+- [x] Registrar o aceite humano "vamos fazer isso", escopo, configuração e critérios no plano.
+- [x] Conferir o marco publicado b886bdb e o baseline local original preservado.
+- [x] RED/GREEN da ativação por configuração, default inativo e falha de início; 43 testes do listener e regressões focadas passaram.
+- [x] Provar startup → POST → terminal/reagendamento no emulador sem iniciar() no teste; dois cenários passaram.
+- [x] Executar regressões/revisão: 23 integrações/6 classes e 1.297 testes padrão/189 classes, sem falhas; build e Sonar COMPLIANT, 87,9% cobertura, 4,3% duplicação, zero issues novas/graves; baseline integralmente idêntico.
+- [x] Alinhar guias/arquitetura/retomada com comando, request, limites e evidências finais; preservar cópia completa da sessão.
+
+8.2 precede 9.1 por pedido humano. O consumo/log da saída e a telemetria final permanecem
+pendentes. [Desenho](plan.md#82--ativação-controlada-da-entrada--2026-09-10) e
+[evidências](continuidade-8-2.md). Os registros de preparação abaixo antecedem a publicação de b886bdb.
+
 ## Preparação do commit concluída — 2026-09-10
 
 - [x] Registrar pedido, escopo e critérios no plano.
@@ -255,6 +284,7 @@ Detalhes e histórico das verificações no [checklist](todo.md).
 - [x] C2 Revisar contrato, segurança, telemetria e checkpoint Sonar da primeira fatia; aceite humano em 2026-09-09;
 - [x] 7.1 Implementar em `monitoramento` processamento terminal da entrada -> fila de saída; A–D concluídas tecnicamente, com início explícito e integração verificada;
 - [x] 8.1 Implementar em `monitoramento` reagendamento transacional da situação não conclusiva; concluída tecnicamente em 2026-09-10;
+- [x] 8.2 Ativar o listener da entrada por configuração explícita no startup e provar fluxo via POST; concluída tecnicamente em 2026-09-10;
 - [ ] 9.1 Implementar em `orquestrador` listener da saída -> porta/caso de uso -> log estruturado;
 - [ ] 10.1 Fechar e testar correlação OpenTelemetry ponta a ponta;
 - [ ] C3 Executar fluxo com emulador e revisar Complete, Abandon, DLQ, retry e sinais;

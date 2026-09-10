@@ -3,7 +3,7 @@
 ## Como usar este documento
 
 - **Status:** aceito
-- **Última consolidação:** 2026-09-09
+- **Última consolidação:** 2026-09-10
 - **Objetivo:** explicar rapidamente a arquitetura implementada e as restrições que novas features
   devem respeitar.
 
@@ -33,8 +33,11 @@ cliente HTTP
 ```
 
 O caso de uso não conhece Resource, REST Client, URL, DTO MTR, fixture nem o mecanismo CDI que
-seleciona o adapter. Não existem atualmente endpoint único de pré-validação, orquestrador local,
-motor de workflow, MCP Server ou comunicação distribuída entre os domínios.
+seleciona o adapter. As capacidades do Hub continuam atômicas. No mesmo runtime, os packages
+irmãos `orquestrador` e `monitoramento` implementam a demonstração assíncrona descrita abaixo:
+POST, entrada Service Bus, processamento e reagendamento/publicação da saída. O consumo/log da
+saída ainda está pendente. Não existem endpoint único de pré-validação, motor de workflow durável,
+MCP Server ou implantação desses componentes como microsserviços separados.
 
 Além da borda REST, a consulta de documentos do dossiê pode ser iniciada pelo consumidor CDI local
 `br.gov.caixa.simtr.dossie.ConsultaDocumentosDossieProduto`, no mesmo artifact e runtime Quarkus.
@@ -73,6 +76,10 @@ existirem requisitos, contratos e autorização próprios.
 | `POST` | `/simtr-hub/v1/dossie-produto/{id}/capturar` |
 | `POST` | `/simtr-hub/v1/dossie-produto/{id}/workflow` |
 | `POST` | `/simtr-hub/v1/storage/container/credencial` |
+
+Além das doze capacidades do Hub, a borda do package `orquestrador` expõe
+`POST /simtr-hub/v1/monitoramentos-dossie` para iniciar a demonstração de monitoramento.
+Esse endpoint publica a primeira tentativa e responde 202 após confirmação do broker.
 
 Duas operações descritas na especificação de pré-validação ainda não existem no Hub:
 
@@ -215,7 +222,7 @@ A extensão Quarkus Azure Service Bus e o Dev Services são exercitados em integ
 nas duas filas e no caminho REST → publicação inicial. O emulador conserva
 `src/main/azure/servicebus-emulator/config.json`. O endpoint e a preparação local pela ACL já
 funcionam; o processamento por porta e o listener da entrada estão implementados, com consumo
-iniciado somente de forma explícita. O restante está no
+iniciado explicitamente ou por opt-in de configuração no startup (8.2). O restante está no
 [plano da feature](../../tasks/features/orquestrador-monitoramento-service-bus/plan.md).
 
 ### Monitoramento: consultas implementadas
@@ -252,7 +259,7 @@ a classificação terminal, que pertence ao caso de uso de processamento impleme
 
 Os componentes novos são `orquestrador` e `monitoramento`; `br.gov.caixa.simtr.dossie`
 e o Hub permanecem preservados. O orquestrador já publica a primeira tentativa na fila de entrada. O listener do
-monitoramento, iniciado explicitamente, aciona a aplicação/política para consultar as fontes,
+monitoramento, iniciado explicitamente ou por opt-in no startup, aciona a aplicação/política para consultar as fontes,
 decidir no-op, reagendar na entrada ou publicar resultado terminal/quarentena na saída.
 O reagendamento e o Complete da entrega atual compartilham a transação da mesma fila.
 O listener do
@@ -392,7 +399,7 @@ explícita provam a publicação de resultado conclusivo/quarentena e a leitura 
 independente do orquestrador. Nessa prova, Complete ocorre antes do cancelamento da
 assinatura de recebimento. A evidência não representa processamento completo nem
 atomicidade entre publicar a saída e concluir a entrada. O caso de uso está conectado por
-CDI em 7.1-B e o listener da entrada em 7.1-C, sem início automático. Ver [continuidade de 7.1](../../tasks/features/orquestrador-monitoramento-service-bus/continuidade-7-1.md).
+CDI em 7.1-B e o listener da entrada em 7.1-C; a 8.2 permite ativação por configuração no startup. Ver [continuidade de 7.1](../../tasks/features/orquestrador-monitoramento-service-bus/continuidade-7-1.md).
 
 ### Caso de uso de processamento implementado em 7.1-B
 
@@ -423,8 +430,11 @@ O consumo da saída permanece pendente.
 
 ### Listener da entrada implementado em 7.1-C
 
-MonitoramentoEntradaListener é um bean CDI com início explícito por iniciar(), sem consumo
-automático no startup. Usa o receiver FilaEntrada da fábrica em PEEK_LOCK, sem auto-complete
+MonitoramentoEntradaListener é um bean CDI com início explícito por iniciar() e, desde 8.2,
+ativação por configuração no startup. O observer StartupEvent chama iniciar() quando
+monitoramento.service-bus.entrada.consumo-habilitado=true (default e %test=false).
+O opt-in não muda emulador/Azure, credenciais ou simulador. Usa o receiver FilaEntrada
+da fábrica em PEEK_LOCK, sem auto-complete
 e com prefetchCount(0). concatMap com prefetch zero processa uma entrega por vez e aguarda
 o settlement antes de solicitar a próxima. SDK e handles permanecem na borda.
 
@@ -436,7 +446,11 @@ não há segunda tentativa de liquidação nem reinício automático.
 
 ReagendamentoPendente executa a porta associada à entrega atual. O commit confirma o
 agendamento e o Complete juntos; não existe Complete simples adicional nesse ramo.
-O consumo geral permanece com início explícito.
+O consumo permanece inativo sem opt-in. Falha síncrona ao obter cliente impede o startup
+com diagnóstico sanitizado; falha assíncrona mantém HTTP ativo e encerra a assinatura,
+exigindo reinício da aplicação. Não foi acrescentado retry nem readiness do listener.
+A prova de 8.2 usa startup configurado e POST até resultado/reagendamento no emulador,
+sem iniciar() no teste e sem consumir a entrada pelo harness.
 O listener admite uma única inicialização e cancela sua assinatura idempotentemente no
 shutdown, antes da fábrica fechar os clientes. O cancelamento é best effort: interromper
 a cadeia local não comprova a interrupção de uma publicação remota já iniciada.
@@ -498,8 +512,9 @@ Nenhum caminho de produção foi alterado para realizar esta prova.
 Essa evidência local não valida Azure gerenciado, perda de conexão durante publicação,
 atomicidade entre output/Complete ou consumo da saída de 9.1.
 A prova adicional do reagendamento de 8.1 está descrita acima.
-A aplicação continua sem início automático do listener; o dev escolhe emulador ou Azure,
-e a suíte padrão permanece sem broker. Execuções e checkpoint ficam nas tasks da feature.
+Desde 8.2, a aplicação pode iniciar automaticamente o listener da entrada por configuração
+explícita, desabilitada por padrão; o dev escolhe emulador ou Azure. A suíte padrão permanece
+sem broker. Execuções e checkpoint ficam nas tasks da feature.
 
 ### Estrutura inativa de orquestrador e monitoramento
 
@@ -673,7 +688,8 @@ prova negativa que rejeita dependência no caso de uso concreto.
 
 - o Hub não faz upload para Azure Blob Storage;
 - não mantém cache nem renova SAS;
-- não possui workflow ou orquestrador local;
+- o Hub não possui workflow durável; a demonstração local nos packages irmãos possui orquestração
+  de monitoramento até publicação da saída, com consumo/log ainda pendente;
 - não possui MCP Server ou tools;
 - não possui persistência de estado de fluxo;
 - não calcula árvore documental nem executa análise de conformidade;

@@ -2,13 +2,16 @@
 
 ## O que os desenvolvedores recebem nesta branch
 
-**A base até 6.1 está implementada: a solicitação REST publica a primeira tentativa na entrada.**
+**A entrega está consolidada até 8.2: POST, consumo opt-in da entrada, processamento e
+reagendamento/publicação de resultado funcionam. O consumidor/log da saída ainda falta em 9.1.**
+Os parágrafos abaixo situam a evolução já implementada.
 Política/configuração CDI, consultas de pré-validação/Hub, contratos/mappers e logs de erro
 já estavam prontos. Agora também funcionam parâmetros pela ACL, fábrica de clientes, iniciação
 e publisher inicial. Em 7.1-A foi implementado o publisher de resultado na saída.
 O caso de uso de processamento está implementado em 7.1-B e o listener da entrada em 7.1-C,
 com início explícito. A 8.1 conecta o reagendamento transacional e foi exercitada com o fluxo
-até conclusão, teto ou prazo original. O consumo do resultado continua pendente.
+até conclusão, teto ou prazo original. A 8.2 acrescenta ativação da entrada por configuração
+no startup, desabilitada por padrão. O consumo do resultado continua pendente.
 
 | Parte | Estado atual | O que a evidência comprova |
 |---|---|---|
@@ -23,7 +26,8 @@ até conclusão, teto ou prazo original. O consumo do resultado continua pendent
 | Conexões restantes | 8.1 implementada | Das 11 portas, nove estão conectadas (reagendamento por entrega); três esqueletos da saída permanecem inativos |
 
 As evidências da suíte padrão sem broker e do checkpoint vigente estão na
-[continuidade de 8.1](../../tasks/features/orquestrador-monitoramento-service-bus/continuidade-8-1.md).
+[continuidade de 8.2](../../tasks/features/orquestrador-monitoramento-service-bus/continuidade-8-2.md).
+Os números históricos de 7.1/8.1 abaixo permanecem como marcos anteriores.
 7.1-B conecta contrato, catálogo e portas no caso de uso: no-op, limites, classificação literal,
 publicação confirmada e intenção de reagendamento. 7.1-C acrescenta listener CDI com início
 explícito, settlement serial, falhas sem segunda liquidação e shutdown antes da fábrica.
@@ -33,11 +37,15 @@ cenários. A 8.1 acrescenta provas de transação, progressão/repetição, máx
 prazo original com fallback v1, elevando o total a 21 integrações em cinco classes.
 Fluxo com consumo/log da saída e Azure gerenciado ainda não foram verificados.
 
-**C2 foi aceito e 8.1 foi concluída tecnicamente. O próximo item funcional é 9.1, ainda pendente.**
+**C2 aceito, 8.1 publicada e 8.2 concluída tecnicamente. Próximo item: 9.1.**
+A prova de startup passou nos dois cenários via POST; regressão com 1.297 testes padrão e
+23 integrações aprovada, build/Sonar COMPLIANT. Evidências e métricas completas nas tasks.
 Para assumir o trabalho, começar pelo
 [roteiro do desenvolvedor](../../tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md#roteiro-para-assumir-a-entrega).
 O [pacote de commit](../../tasks/features/orquestrador-monitoramento-service-bus/pacote-commit.md)
-descreve os 42 arquivos de 7.1-B/C/D e 8.1 desde d83b689. A preparação do índice não representa commit ou push.
+descreve o incremento de 8.2 autorizado para commit/publicação. O manifesto histórico de
+b886bdb está separado; o guia do dev contém os roteiros completos de Dev Services e filas Azure,
+com fixture 4324680, comandos de ativação e política curta opcional.
 
 ## Escopo e decisões vigentes
 
@@ -48,9 +56,10 @@ O Hub, suas capacidades, contratos, simuladores, logs e erros também permanecem
 
 Os componentes novos são `br.gov.caixa.simtr.orquestrador` e
 `br.gov.caixa.simtr.monitoramento`. O orquestrador publica na fila de entrada e consome a fila
-de saída. O monitoramento consome a entrada, executa os critérios de monitoramento e reagenda
-na própria entrada ou publica um resultado na saída. O orquestrador encerra este demonstrador
-registrando o resultado em log.
+de saída no desenho final. O monitoramento já consome a entrada, executa os critérios e reagenda
+na própria entrada ou publica um resultado na saída. Os dois packages estão no mesmo artifact e
+runtime, simulando responsabilidades de microsserviços. O consumo da saída e o encerramento por
+log no orquestrador ainda serão implementados em 9.1.
 
 A plataforma e a autenticação já estão decididas no
 [ADR-0010 aceito](../adr/0010-extensao-quarkus-service-bus-connection-string-dev-services.md):
@@ -102,7 +111,7 @@ flowchart LR
         ORQ -->|"porta + ACL de parâmetros pronta (6.1)"| MON
         MON -->|"porta + ACL de consulta pronta (5.1)"| HUB
         ORQ -->|"publisher da entrada pronto (6.1)"| SB
-        MON -->|"publisher da saída e listener com início explícito"| SB
+        MON -->|"publisher da saída e listener com opt-in no startup"| SB
         ORQ -->|"logs novos das bordas"| OBS
         MON -->|"logs novos das bordas"| OBS
     end
@@ -222,7 +231,7 @@ reagendamento, validação, DTO ou settlement. Essas responsabilidades continuam
 ## Fluxo completo a implementar
 
 O diagrama representa o fluxo aprovado. REST, iniciação, publicações, consultas, processamento
-e listener da entrada estão implementados; o listener exige início explícito. Integração
+e listener da entrada estão implementados; a 8.2 permite opt-in no startup. Integração
 terminal no emulador está verificada em 7.1-D; a 8.1 conecta reagendamento. Consumo/log da saída continuam pendentes.
 
 ```mermaid
@@ -230,7 +239,7 @@ flowchart TD
     REST["POST REST: orquestrador"] --> INICIAR["IniciarMonitoramentoUseCase"]
     INICIAR --> PUBIN["MonitoramentoEntradaPublisher"]
     PUBIN --> QIN[("q.prevalidacao.monitoramento-mtr.in")]
-    QIN --> LIN["MonitoramentoEntradaListener: início explícito"]
+    QIN --> LIN["MonitoramentoEntradaListener: opt-in no startup"]
     LIN --> PROCESSAR["ProcessarTentativaMonitoramentoUseCase"]
     PROCESSAR --> PRE["Consultar pré-validação simulada"]
     PRE --> ELEGIVEL{"EM_ANALISE_ENVIO_MTR?"}
@@ -280,7 +289,7 @@ estão conectadas; os demais caminhos funcionais permanecem pendentes.
 |---|---|---|
 | Iniciar | `MonitoramentoDossieResource` → `IniciarMonitoramento.executar` → `IniciarMonitoramentoUseCase` | 6.1 implementado |
 | Publicar entrada | `PublicarTentativaMonitoramento.executar` → `MonitoramentoEntradaPublisher` → mapper próprio → sender da entrada | 6.1 implementado |
-| Consumir entrada | `MonitoramentoEntradaListener` → mapper de entrada → `ProcessarTentativaMonitoramento.executar` → caso de uso | Implementado; início explícito e reagendamento conectado em 8.1 |
+| Consumir entrada | `MonitoramentoEntradaListener` → mapper de entrada → `ProcessarTentativaMonitoramento.executar` → caso de uso | Implementado; reagendamento em 8.1 e opt-in no startup em 8.2 |
 | Consultar fontes | `ConsultarPreValidacao` → `PreValidacaoSimuladaAdapter`; `ConsultarSituacaoDossie` → `SituacaoDossieHubAcl` → porta pública `ConsultarDossieProduto` | 5.1 implementado |
 | Reagendar | Decisão da política → modelo limita horário → listener associa entrega → porta no adapter → mapper próprio → fila de entrada | Implementado em 8.1; schedule + Complete com commit confirmado |
 | Publicar resultado | `PublicarResultadoMonitoramento.executar` → `MonitoramentoResultadoPublisher` → mapper próprio → fila de saída | Publisher implementado em 7.1-A e acionado pelo caso de uso de 7.1-B |
@@ -550,21 +559,33 @@ a tag `servicebus-integration`. O checkpoint Sonar usa a suíte padrão. Não ha
 em testes unitários para aumentar cobertura; integração e sua evidência são registradas à parte.
 A flag do mock de pré-validação é uma escolha separada e não é necessária para publicar em 6.1.
 
-Para validar o marco atual, executar `mvn clean verify` (1.293 testes padrão e build) e,
-separadamente, `mvn -q -Pservicebus-integration clean test` (21 integrações em cinco classes).
-Evidências de 10/09 e 09/09, respectivamente, estão nas tasks; não executar as suítes em paralelo.
+Para validar o estado atual, executar `mvn clean verify` e, separadamente,
+`mvn -q -Pservicebus-integration clean test`. A suíte padrão continua sem broker; datas,
+contagens e checkpoint estão na [continuidade de 8.2](../../tasks/features/orquestrador-monitoramento-service-bus/continuidade-8-2.md).
+Não executar as suítes em paralelo.
 
-Subir a aplicação não chama `MonitoramentoEntradaListener.iniciar()`: não existe flag,
-endpoint ou observer de startup para ativar o consumo. Para reproduzir o processamento e o
-reagendamento sem mudar código, executar
-`mvn -q -Pservicebus-integration "-Dtest=MonitoramentoTerminalEmuladorTest" test`.
-Seus 12 cenários iniciam o listener CDI explicitamente e controlam somente a porta pública
-do Hub, usando emulador e SDK reais. O consumo/log do resultado permanece para 9.1.
+A propriedade `monitoramento.service-bus.entrada.consumo-habilitado` tem default false.
+Com true, o observer StartupEvent chama iniciar() no listener da entrada, uma vez por instância.
+O shutdown continua cancelando a assinatura antes de fechar os clientes. Falha síncrona ao
+obter cliente propaga diagnóstico sanitizado; falha assíncrona encerra o consumo sem retry
+adicional. Reiniciar a aplicação após corrigir a falha. Isso não fornece readiness do broker.
 
-O dev mode também exige a configuração existente do Hub por ambiente, conforme o
-[README](../../README.md#execucao-local); escolher o emulador não elimina esses pré-requisitos.
-O [roteiro de execução](../../tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md#verificação-rápida-do-marco-até-81)
-detalha os comandos e seus limites. O startup interativo não foi repetido nesta preparação.
+Para executar com emulador e mock explícito, conforme pré-requisitos do [README](../../README.md#execucao-local):
+
+```powershell
+mvn quarkus:dev -Ddebug=false "-Dmonitoramento.service-bus.entrada.consumo-habilitado=true" "-Dmonitoramento.simulador.prevalidacao.habilitado=true"
+```
+
+A escolha Azure/emulador e as credenciais permanecem externas. A flag não muda conexão nem
+habilita o mock automaticamente. Para Azure já configurado, acrescentar
+"-Dquarkus.profile=dev,azure". O consumo usa as filas desse ambiente.
+
+A prova `mvn -q -Pservicebus-integration "-Dtest=MonitoramentoAtivacaoEmuladorTest" test`
+inicia o runtime por configuração, chama o POST e verifica terminal/reagendamento sem acesso
+ao listener pelo teste. O harness lê/confirma a saída; consumo/log dessa fila continuam em 9.1.
+O [roteiro de execução](../../tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md#verificação-rápida-do-marco-até-82)
+traz o request, os cenários, os limites e os demais testes. Dev mode interativo e Azure real
+não foram executados nesta fatia.
 
 Pontos de entrada oficiais: [Quarkus Azure Services](https://docs.quarkiverse.io/quarkus-azure-services/dev/index.html)
 e [extensão Service Bus/Dev Services](https://docs.quarkiverse.io/quarkus-azure-services/dev/quarkus-azure-servicebus.html).
@@ -586,9 +607,10 @@ event loop. Não criar cliente por mensagem nem usar scheduler local para simula
 | Falha recuperável | Abandon/redelivery conforme classificação; não incrementar tentativa funcional |
 | Contrato permanentemente inválido | DeadLetter com diagnóstico controlado, sem payload ou segredo |
 
-A transação de entidade única `schedule + Complete` ainda precisa de prova no SDK resolvido
-e no emulador; não está implementada. Não afirmar atomicidade entre publicar saída e concluir
-entrada: sem Outbox, uma falha nessa janela pode repetir o resultado. Não criar contexto
+A transação de entidade única `schedule + Complete` está implementada em 8.1 e foi provada
+no SDK resolvido e no emulador, incluindo commit, rollback/redelivery e cancelamento.
+Essa garantia não alcança publicar a saída e concluir a entrada: sem Outbox, uma falha
+nessa janela pode repetir o resultado. Não criar contexto
 mutável de entrega em singleton nem transportar handles Azure ao domínio/aplicação.
 
 O log final previsto usa o evento `orquestrador.monitoramento-dossie.resultado.registrado`
@@ -690,6 +712,7 @@ deverá declarar os métodos/implementações ao executar o item correspondente.
 | 7.1-C implementado | Listener da entrada CDI com início explícito, settlement serial, logs mínimos e lifecycle; testes sem broker |
 | 7.1-D verificado | Nove cenários novos com emulador, incluídos no perfil completo de 15 integrações; checkpoint nas tasks |
 | 8.1 implementada | Agendamento transacional ligado ao listener; cancelamento, teto e prazo original verificados |
+| 8.2 implementada | Ativação da entrada por configuração no startup; evidências atuais nas tasks |
 | 9.1 pendente | Listener da saída e log final |
 | 10.1 em diante pendente | Correlação ponta a ponta, cenários integrados e fechamento do demonstrador |
 
@@ -699,8 +722,9 @@ O RED da pausa permanece registrado como etapa anterior no checklist, junto das 
 
 O item 6.1 está tecnicamente concluído, incluindo o ajuste Sonar autorizado.
 C2 foi aceito pelo usuário em 2026-09-09. 7.1 está concluída tecnicamente, com publisher da
-saída, caso de uso/listener da entrada e integração terminal local verificados. Reagendamento
-e consumo da saída permanecem pendentes. Preservar as entregas concluídas e seguir o checklist.
+saída, caso de uso/listener da entrada e integração terminal local verificados. A 8.1 concluiu
+o reagendamento transacional e a 8.2 acrescentou ativação da entrada no startup por opt-in.
+O consumo/log da saída permanece pendente em 9.1. Preservar as entregas e seguir o checklist.
 Os comandos e critérios de verificação estão no guia de desenvolvimento e no plano.
 
 O [manifesto de commit](../../tasks/features/orquestrador-monitoramento-service-bus/pacote-commit.md)
@@ -724,7 +748,7 @@ ou Hub, sem persistência nova, e encerramento do demonstrador por log.
    C2 está aceito e 7.1 concluída tecnicamente; consultar também a
    [continuidade de 7.1](../../tasks/features/orquestrador-monitoramento-service-bus/continuidade-7-1.md).
 2. Conferir o fechamento de [8.1](../../tasks/features/orquestrador-monitoramento-service-bus/continuidade-8-1.md)
-   e seguir para 9.1 quando autorizado. Reutilizar classificação e resolução de versão de 7.1-B:
+   e a ativação de 8.2 antes de seguir para 9.1 quando autorizado. Reutilizar classificação e resolução de versão de 7.1-B:
    definição recebida quando disponível, v1 padrão quando ausente, sempre com prazo original.
    A fixture `1 / Rascunho` não fornece IDs para os nomes conclusivos.
 3. Ler `ProcessarTentativaMonitoramentoUseCase` e `DecisaoProcessamento` no
@@ -733,8 +757,8 @@ ou Hub, sem persistência nova, e encerramento do demonstrador por log.
    Complete pelo listener; ReagendamentoPendente executa schedule + Complete com o mesmo
    contexto na borda. Situação original e calculada permanecem separadas.
 4. Exercitar `MonitoramentoEntradaListener`, já conectado ao receiver qualificado e à porta,
-   em integração explícita com cenários terminais controlados. O início exige chamada Java a
-   `iniciar()`; não existe flag, endpoint ou observer de startup que ative o consumo geral.
+   em integração com cenários controlados. As provas antigas chamam iniciar(); a prova
+   de 8.2 ativa o consumo por configuração no startup e entra pelo POST. Não há endpoint de ativação.
    O reagendamento só permite avançar após commit confirmado e nunca gera Complete simples
    adicional. O shutdown cancela a operação pendente antes da fábrica; cancelar a espera na
    fronteira de commit não comprova reversão remota nem autoriza segunda liquidação.
@@ -759,6 +783,7 @@ emulador em 7.1-D. A 8.1 conecta o reagendamento. Consumo da saída e verificaç
 | 7.1-C — implementada | Listener da entrada, settlement e lifecycle, sem início automático | Saída confirmada antes de Complete, falhas sem segundo settlement, encerramento antes da fábrica e logs mínimos; evidência sem broker nas tasks |
 | 7.1-D — concluída tecnicamente | Integração terminal e fechamento do item | 15 integrações, 1.268 testes sem broker, revisão e Sonar COMPLIANT; evidências nas tasks |
 | 8.1 — implementada | Reagendamento de situação não conclusiva | Política/versão, prazo, teto, schedule + Complete, rollback/redelivery e cancelamento; fechamento nas tasks |
+| 8.2 | Ativação da entrada por configuração no startup | Default inativo, início único, falhas/shutdown e POST real no emulador |
 | 9.1 | Listener da saída, caso de uso e log final | Registro do resultado e Complete/Abandon/DeadLetter coerentes com a falha |
 | 10.1 e C3 | Correlação e fluxo integrado no emulador | Propagação, sinais sem duplicação, caminhos de sucesso, falha e quarentena |
 | 11.1–CF | Verificação final e revisão do demonstrador | Suíte/checkpoint, documentação e decisão humana de encerramento |
