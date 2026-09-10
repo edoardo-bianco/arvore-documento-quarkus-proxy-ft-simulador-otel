@@ -1,5 +1,110 @@
 # Retomada — orquestrador e monitoramento Service Bus
 
+## Marco publicado de 9.1 e retomada — 2026-09-10
+
+9.1-A/B/C publicada na branch `feature/orquestrador-monitoramento-service-bus`:
+`fcbe38a2a8a857668f0d6fc1377c02783c17ff4c` (implementação/regressões) e
+`2c6c4cde881c3b8e2261e3a615123d58290fe5c4` (integração).
+Push normal e hash remoto confirmados. O [manifesto de 9.1](pacote-commit-9-1.md)
+registra seleção, evidências e limites; o [guia do desenvolvedor](guia-desenvolvimento.md#roteiro-para-assumir-a-entrega)
+permite executar os dois listeners e retomar manualmente o desenvolvimento.
+
+O código continua idêntico ao checkpoint final: 1.345 testes sem broker, 27 integrações,
+build SUCCESS e Sonar COMPLIANT. Baseline e aceite C9.1-L preservados.
+A consolidação acrescenta somente Markdown. Preservar .codex-doc-alignment.patch fora do Git.
+
+O usuário pediu terminar a publicação antes de analisar o problema do startup Quarkus em
+dev mode (avisos JDBC de prelogin do SQL Server). Diagnóstico operacional pendente após
+esta publicação; não declarar execução manual validada nem aplicar correção por suposição.
+**Próximo item funcional: 10.1**; C3 e encerramento humano continuam pendentes.
+Os registros abaixo são históricos dos fechamentos técnicos anteriores à publicação.
+
+## 9.1 concluída tecnicamente — 2026-09-10
+
+9.1-A/B/C implementadas e verificadas no workspace: listener da saída, portas/caso de uso,
+registro final e integração com emulador. Ativação independente por
+`monitoramento.service-bus.saida.consumo-habilitado=true`; ambos os listeners permanecem
+false por padrão. O [guia do desenvolvedor](guia-desenvolvimento.md#prova-integrada-da-saída-em-91-c)
+traz o comando de integração e o roteiro para executar os dois consumidores.
+
+Quatro cenários novos: POST terminal; reagendamento até conclusão; Rascunho até máximo3;
+inválido na DLQ e novo POST válido depois dela. Hub controlado, demais componentes reais.
+Passaram 27 integrações/7 classes e 1.345 testes padrão/192 classes sem broker, zero
+falhas/erros/ignorados. Build SUCCESS; Sonar COMPLIANT / NOT_REQUIRED:
+88,1% cobertura, 4,4% duplicação, 213 issues, nenhuma nova ou HIGH/BLOCKER/CRITICAL.
+
+A prova DLQ teve duas falhas de ACK do receiver auxiliar por detach remoto. Após aguardar
+a própria mensagem visível por peek e a principal vazia, passaram o isolado e a suíte completa,
+incluindo o POST posterior. Produção/SDK não alterados; causa interna do emulador não demonstrada.
+[Diagnóstico e evidências](continuidade-9-1.md#91-concluída-tecnicamente--2026-09-10).
+C9.1-L preservado: Complete após submissão ao logger; falhas internas podem perder o log sem
+Abandon. Não há atomicidade log/Complete. Azure gerenciado e dev interativo não executados.
+
+Análise 3546ec18-65c4-4e5b-a382-ed897f69f7b5; checkpoint 2026-09-10T15:27:27.592153-03:00.
+Fingerprint 5d84ce454d3e4ab5ba5aabb5b8148e0076ab4ef3a22a0c91c873a211719afd0d.
+Baseline original e baselineAssessment integralmente preservados, sem reinicialização.
+Cópia final: .codex/.state/session-after-9-1-c-compliant-20260910.json.
+Não reabrir C9.1-L nem reinicializar baseline.
+
+**Próximo item: 10.1**, detalhar/caracterizar correlação OpenTelemetry antes de implementar.
+10.1/C3 não iniciados; encerramento da feature continua humano. Guias, arquitetura e checklist
+alinhados. Sem novo staging/commit/push; branch feature/orquestrador-monitoramento-service-bus
+e marco publicado d5df6b6 preservados. Conservar alterações locais e .codex-doc-alignment.patch.
+Nenhum comando do agente em execução ao concluir a subfatia. Registros abaixo são históricos.
+
+## 9.1-B concluída tecnicamente — 2026-09-10
+
+Listener da saída implementado e conectado por CDI ao mapper, ao caso de uso e ao log.
+Ativar com `monitoramento.service-bus.saida.consumo-habilitado=true`, independente da entrada;
+ambos os listeners permanecem false por padrão. O [guia de execução](guia-desenvolvimento.md#listener-da-saída-em-91-b)
+mostra o comando dos dois consumidores para Dev Services e a variante Azure.
+
+Complete após conclusão da porta/submissão ao logger; falha técnica propagada gera Abandon,
+contrato inválido gera DLQ. Falha de settlement encerra a assinatura sem segundo settlement
+ou reinício automático. Shutdown cancela antes da factory, sem fechar o cliente compartilhado.
+C9.1-L já aceito: falhas internas de escrita/filtro podem perder o log e não geram Abandon.
+HTTP disponível não confirma consumidor ativo.
+
+Passaram 123 testes focados, incluindo 36 do listener e três provas CDI; 23 integrações
+existentes/6 classes com saída desabilitada; 1.345 testes padrão/192 classes sem broker.
+Zero falhas/erros/ignorados, build SUCCESS. Sonar COMPLIANT / NOT_REQUIRED:
+88,1% cobertura, 4,4% duplicação, 213 issues, nenhuma nova ou HIGH/BLOCKER/CRITICAL.
+Análise 358f8528-6bde-4c8c-92bd-0d27dc8a50aa; checkpoint 2026-09-10T14:20:35.1083771-03:00;
+fingerprint 17fea85859935f12aed57ec6a83070b9c5f80696ea281add4bd74003047e1ac5.
+Baseline original e baselineAssessment integralmente preservados, sem reinicialização.
+Cópia final local: .codex/.state/session-after-9-1-b-compliant-20260910.json.
+[Comandos, revisão e evidências](continuidade-9-1.md#verificação-e-fechamento-técnico-de-91-b).
+
+**Próxima subfatia: 9.1-C**, nova prova no emulador com ativação da saída, POST, log e Complete,
+seguida de fechamento de 9.1. Essa prova integrada ainda não foi executada; 10.1 não iniciada.
+Guias, arquitetura e checklist alinhados. Nenhum comando do agente em execução.
+Branch feature/orquestrador-monitoramento-service-bus; HEAD e origin preservados em
+d5df6b6e309842460427df290895f5064d00b5d1. 9.1-A/B permanecem locais, sem novo staging/commit/push.
+Preservar alterações locais e .codex-doc-alignment.patch. Não reabrir C9.1-L nem reinicializar baseline.
+
+Os registros abaixo são históricos; a retomada atual é a indicada nesta seção.
+
+## 9.1-A concluída tecnicamente — Sonar conforme
+
+O usuário aceitou Complete após submissão ao logger. Foi esclarecido que falha interna de
+escrita/filtro pode deixar o resultado sem log e não gera Abandon/reentrega após Complete.
+[Evidência, decisão e limites](continuidade-9-1.md).
+
+Caso de uso e adapter de log implementados localmente, com duas portas conectadas por CDI.
+A emissão é lazy, uma vez por invocação, com campos textuais em mdc e contexto preservado.
+O listener da saída continua inativo nesta subfatia. Passaram 42 testes focados e 1.307 testes
+padrão/191 classes, sem falhas, erros ou ignorados; build SUCCESS.
+O usuário decidiu ContinuarAjustes. Variável renomeada para registroJson e S1117 confirmada
+CLOSED/FIXED; novo checkpoint COMPLIANT / NOT_REQUIRED, cobertura 88%, duplicação 4,3%,
+nenhuma issue nova/grave. Baseline original e baselineAssessment integralmente preservados.
+Análise a99ebf50-6eed-4f06-b02b-ff3375817eed; fingerprint
+0e6e88d3f5c2f750ef0957596002fa3e2a52f4bfb69002d1d3679887a6b561ef.
+Sem novo commit/push ou início de 10.1. Próximo passo: 9.1-B, listener/ativação da saída,
+seguido de integração/fechamento em 9.1-C. A definição de submissão best-effort já foi aceita;
+não reabrir esse checkpoint nem reinicializar baseline.
+Guias, arquitetura e links alinhados. Cópia final local:
+.codex/.state/session-after-9-1-a-compliant-20260910.json. Nenhum comando do agente em execução.
+
 ## Marco publicado para retomada
 
 8.2 publicada em `a797114d1dc833499dcc957a881e83f431cae7b9`; push normal confirmado em origin na branch

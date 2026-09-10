@@ -1,5 +1,71 @@
 # Checklist: orquestração de monitoramento com duas filas do Service Bus
 
+## Consolidação para publicação de 9.1 — 2026-09-10
+
+- [x] Registrar o pedido humano de organizar commit/push e confirmar o guia para retomada manual.
+- [x] Definir separação entre implementação/regressões, integração e documentação.
+- [x] Conferir guia manual, links, diff, manifesto e fingerprint idêntico ao checkpoint de 9.1-C.
+- [x] Publicar implementação/regressões em fcbe38a e integração em 2c6c4cd; confirmar hash remoto/local.
+- [x] Consolidar registro de publicação e roteiro manual em Markdown para o complemento documental.
+- [x] Preservar baseline, aceite C9.1-L e arquivos locais fora do pacote.
+- [ ] Após publicação documental, analisar o problema de startup Quarkus em dev mode relatado pelo usuário.
+- [ ] Próximo item funcional: 10.1; C3 e encerramento humano permanecem pendentes.
+
+[Manifesto de 9.1](pacote-commit-9-1.md). Os checkpoints abaixo conservam a evidência de cada subfatia.
+
+## 9.1-C concluída tecnicamente — 9.1-A/B/C verificadas
+
+- [x] Registrar pedido humano, desenho e revisão; conferir baseline e fingerprint preservados.
+- [x] Controle negativo: saída desabilitada no novo profile impediu o log final.
+- [x] GREEN: startup/POST terminal, reagendamento até conclusão/limite e DLQ da saída.
+- [x] Diagnosticar duas falhas do receiver auxiliar; sincronizar por peek e provar POST válido após DLQ, sem alterar produção.
+- [x] Revisão independente sem bloqueadores; 27 integrações/7 classes, zero falhas/erros/ignorados.
+- [x] Suíte padrão: 1.345 testes/192 classes sem broker, zero falhas/erros/ignorados; build SUCCESS.
+- [x] Sonar COMPLIANT / NOT_REQUIRED: 88,1% cobertura, 4,4% duplicação, nenhuma issue nova/grave; baseline idêntico.
+- [x] Alinhar guias, arquitetura, evidências e retomada; preservar cópia final do checkpoint.
+- [ ] 10.1: detalhar e verificar correlação OpenTelemetry; C3 e encerramento final permanecem pendentes.
+
+[Fechamento e diagnóstico](continuidade-9-1.md#91-concluída-tecnicamente--2026-09-10).
+9.1 permanece local, sem novo staging/commit/push. Os marcos abaixo são históricos.
+
+## 9.1-B concluída tecnicamente — listener/ativação da saída
+
+- [x] Registrar pedido humano, desenho, limites e verificações antes da alteração de código.
+- [x] Conferir baseline e fingerprint iguais ao fechamento de 9.1-A.
+- [x] RED/GREEN do listener, ativação, falhas e lifecycle; 36 testes específicos.
+- [x] Substituir inventário do último esqueleto por três provas positivas CDI.
+- [x] Revisão independente sem bloqueadores; 123 testes focados passaram.
+- [x] Regressão com emulador existente: 23 testes/6 classes; default da saída não disputa o consumo.
+- [x] Suíte padrão: 1.345 testes/192 classes, zero falhas/erros/ignorados; build SUCCESS.
+- [x] Sonar COMPLIANT / NOT_REQUIRED: cobertura 88,1%, duplicação 4,4%, nenhuma issue nova/grave; baseline integralmente preservado.
+- [x] Alinhar guias/arquitetura e retomada; preservar cópia final do checkpoint.
+- [x] 9.1-C: ativação da saída até log/Complete/DLQ no emulador; fechamento técnico de 9.1 acima.
+
+[Evidências finais](continuidade-9-1.md#verificação-e-fechamento-técnico-de-91-b).
+Sem novo commit/push ou início de 10.1. Os checklists abaixo registram os marcos anteriores.
+
+## 9.1-A concluída: caso de uso e log final — 2026-09-10
+
+- [x] Registrar GO humano para prosseguir e conferir branch/baseline preservados.
+- [x] Inspecionar portas/esqueletos, contrato, formatter e fontes do logger efetivo.
+- [x] Obter revisão independente do limite de propagação de falha de logging.
+- [x] Provar retorno normal do logger apesar da falha de handler e de filtro em processo Java isolado; exit 0, evidência na continuidade.
+- [x] C9.1-L: usuário aceitou Complete após submissão ao logger e ausência de Abandon por falhas internas de escrita; possibilidade de log ausente esclarecida.
+- [x] Detalhar 9.1-A: adapter/caso de uso, provas de conclusão/contexto/falha e cinco arquivos funcionais, com Javadocs das portas alinhados.
+- [x] RED de compilação por APIs ausentes; implementar caso de uso/adapter e conectar as duas portas.
+- [x] Revisar código independentemente; sem bloqueadores de produção. Ajustar teste ao JSON real em mdc.
+- [x] 9.1-A GREEN: 42 testes focados e 1.307 padrão/191 classes, zero falhas/erros/ignorados, build SUCCESS.
+- [x] Checkpoint executado: NON_COMPLIANT, 88% cobertura, 4,3% duplicação, uma issue nova S1117 no teste, nenhuma grave; baseline idêntico.
+- [x] Registrar ContinuarAjustes escolhido pelo usuário; corrigir S1117, confirmada CLOSED/FIXED.
+- [x] Reexecutar checkpoint: 1.307 testes padrão/191 classes, zero falhas/erros/ignorados, build SUCCESS.
+- [x] Sonar COMPLIANT / NOT_REQUIRED: 88% cobertura, 4,3% duplicação, nenhuma issue nova/grave; baseline idêntico.
+- [x] Fechar 9.1-A e alinhar guias/retomada; preservar cópia final da sessão.
+- [x] 9.1-B: listener/ativação da saída, com validação, Complete/Abandon/DLQ e lifecycle; fechamento técnico e evidências acima.
+- [x] 9.1-C: integração do consumo/log no emulador e fechamento técnico de 9.1; 10.1 não iniciada.
+
+[Evidências e proposta](continuidade-9-1.md). Não interpretar falha de handler como falha
+propagada pelo Uni sem uma API que ofereça essa confirmação. 10.1 não iniciada.
+
 ## Consolidação para entrega até 8.2 — 2026-09-10
 
 - [x] Registrar o pedido humano de consolidar, organizar commit e publicar antes de 9.
@@ -286,7 +352,7 @@ Detalhes e histórico das verificações no [checklist](todo.md).
 - [x] 7.1 Implementar em `monitoramento` processamento terminal da entrada -> fila de saída; A–D concluídas tecnicamente, com início explícito e integração verificada;
 - [x] 8.1 Implementar em `monitoramento` reagendamento transacional da situação não conclusiva; concluída tecnicamente em 2026-09-10;
 - [x] 8.2 Ativar o listener da entrada por configuração explícita no startup e provar fluxo via POST; concluída tecnicamente em 2026-09-10;
-- [ ] 9.1 Implementar em `orquestrador` listener da saída -> porta/caso de uso -> log estruturado;
+- [x] 9.1 Implementar em `orquestrador` listener da saída -> porta/caso de uso -> log estruturado; A/B/C concluídas tecnicamente, com integração verificada em 2026-09-10;
 - [ ] 10.1 Fechar e testar correlação OpenTelemetry ponta a ponta;
 - [ ] C3 Executar fluxo com emulador e revisar Complete, Abandon, DLQ, retry e sinais;
 - [ ] 11.1 Executar suíte completa e checkpoint SonarQube final;

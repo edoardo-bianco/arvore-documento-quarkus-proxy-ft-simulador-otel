@@ -2,8 +2,9 @@
 
 ## O que os desenvolvedores recebem nesta branch
 
-**A entrega está consolidada até 8.2: POST, consumo opt-in da entrada, processamento e
-reagendamento/publicação de resultado funcionam. O consumidor/log da saída ainda falta em 9.1.**
+**O workspace implementa o fluxo até 9.1: POST, consumo opt-in da entrada, processamento,
+reagendamento/publicação e consumo/log da saída, com prova funcional no emulador.**
+9.1-A/B/C já está publicada; correlação/telemetria e revisão final continuam nas próximas etapas.
 Os parágrafos abaixo situam a evolução já implementada.
 Política/configuração CDI, consultas de pré-validação/Hub, contratos/mappers e logs de erro
 já estavam prontos. Agora também funcionam parâmetros pela ACL, fábrica de clientes, iniciação
@@ -11,7 +12,8 @@ e publisher inicial. Em 7.1-A foi implementado o publisher de resultado na saíd
 O caso de uso de processamento está implementado em 7.1-B e o listener da entrada em 7.1-C,
 com início explícito. A 8.1 conecta o reagendamento transacional e foi exercitada com o fluxo
 até conclusão, teto ou prazo original. A 8.2 acrescenta ativação da entrada por configuração
-no startup, desabilitada por padrão. O consumo do resultado continua pendente.
+no startup, desabilitada por padrão. A 9.1-B conecta o consumo da saída com opt-in independente;
+a 9.1-C comprova startup/log/Complete e DLQ da saída no emulador, com o Hub controlado.
 
 | Parte | Estado atual | O que a evidência comprova |
 |---|---|---|
@@ -23,10 +25,10 @@ no startup, desabilitada por padrão. O consumo do resultado continua pendente.
 | Logging técnico e fronteiras | Implementados | Campos JSON tipados, diagnóstico seguro, isolamento de bordas e ACLs |
 | Consultas de 5.1 | Implementadas e injetáveis | Mock com ativação explícita, DTO/mapper próprios e ACL pela porta pública do Hub; resultados mínimos e falhas verificados |
 | Clientes Service Bus | Implementados em 6.1 | Quatro clientes duradouros, qualifiers por fila e fechamento completo/idempotente |
-| Conexões restantes | 8.1 implementada | Das 11 portas, nove estão conectadas (reagendamento por entrega); três esqueletos da saída permanecem inativos |
+| Conexões funcionais | Até 9.1-B implementado | Onze portas conectadas, incluindo reagendamento por entrega e consumo/log da saída; não restam esqueletos inativos |
 
 As evidências da suíte padrão sem broker e do checkpoint vigente estão na
-[continuidade de 8.2](../../tasks/features/orquestrador-monitoramento-service-bus/continuidade-8-2.md).
+[continuidade de 9.1](../../tasks/features/orquestrador-monitoramento-service-bus/continuidade-9-1.md).
 Os números históricos de 7.1/8.1 abaixo permanecem como marcos anteriores.
 7.1-B conecta contrato, catálogo e portas no caso de uso: no-op, limites, classificação literal,
 publicação confirmada e intenção de reagendamento. 7.1-C acrescenta listener CDI com início
@@ -35,17 +37,19 @@ explícito, settlement serial, falhas sem segunda liquidação e shutdown antes 
 incluindo as seis provas anteriores. Somente a porta pública do Hub é controlada nesses nove
 cenários. A 8.1 acrescenta provas de transação, progressão/repetição, máximo de tentativas e
 prazo original com fallback v1, elevando o total a 21 integrações em cinco classes.
-Fluxo com consumo/log da saída e Azure gerenciado ainda não foram verificados.
+Essas provas anteriores não exercitavam o consumo/log da saída; a 9.1-C acrescentou essa
+verificação no emulador. Azure gerenciado permanece sem validação.
 
-**C2 aceito, 8.1 publicada e 8.2 concluída tecnicamente. Próximo item: 9.1.**
-A prova de startup passou nos dois cenários via POST; regressão com 1.297 testes padrão e
-23 integrações aprovada, build/Sonar COMPLIANT. Evidências e métricas completas nas tasks.
+**C2 aceito e 9.1-A/B/C publicadas. Próximo item funcional: 10.1.**
+A prova atual cobre ambos os listeners pelo startup; passaram 1.345 testes padrão e
+27 integrações, com build/Sonar COMPLIANT. Evidências e métricas completas nas tasks.
 Para assumir o trabalho, começar pelo
 [roteiro do desenvolvedor](../../tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md#roteiro-para-assumir-a-entrega).
-O [pacote de commit](../../tasks/features/orquestrador-monitoramento-service-bus/pacote-commit.md)
-descreve o incremento de 8.2 autorizado para commit/publicação. O manifesto histórico de
-b886bdb está separado; o guia do dev contém os roteiros completos de Dev Services e filas Azure,
-com fixture 4324680, comandos de ativação e política curta opcional.
+O [pacote de 9.1](../../tasks/features/orquestrador-monitoramento-service-bus/pacote-commit-9-1.md)
+registra os commits fcbe38a e 2c6c4cd, confirmados no remoto. Os manifestos de 8.1/8.2 são históricos.
+O guia do dev contém os roteiros completos de Dev Services e filas Azure, com fixture 4324680,
+comandos de ativação e política curta opcional. A validação manual em dev mode continua pendente;
+o problema de startup relatado será analisado após a publicação, por orientação do usuário.
 
 ## Escopo e decisões vigentes
 
@@ -56,10 +60,10 @@ O Hub, suas capacidades, contratos, simuladores, logs e erros também permanecem
 
 Os componentes novos são `br.gov.caixa.simtr.orquestrador` e
 `br.gov.caixa.simtr.monitoramento`. O orquestrador publica na fila de entrada e consome a fila
-de saída no desenho final. O monitoramento já consome a entrada, executa os critérios e reagenda
+de saída quando seu listener está habilitado. O monitoramento consome a entrada, executa os critérios e reagenda
 na própria entrada ou publica um resultado na saída. Os dois packages estão no mesmo artifact e
 runtime, simulando responsabilidades de microsserviços. O consumo da saída e o encerramento por
-log no orquestrador ainda serão implementados em 9.1.
+log no orquestrador estão implementados e verificados em 9.1.
 
 A plataforma e a autenticação já estão decididas no
 [ADR-0010 aceito](../adr/0010-extensao-quarkus-service-bus-connection-string-dev-services.md):
@@ -169,7 +173,7 @@ nulo, e nome original não vazio, sem normalizar ou transportar data, matrícula
 completo do Hub. A fixture existente `4324680` retorna `1 / Rascunho`; não fornece IDs
 para os nomes conclusivos informados. Esses nomes já são aceitos literalmente no contrato
 de resultado. A ACL preserva situações desconhecidas; a classificação do caso de uso
-continua pendente e não é inferida da fixture.
+está implementada em 7.1-B e usa os nomes originais do Hub; não é inferida da fixture.
 
 Pelo ADR-0004, o simulador possui `PreValidacaoSimuladaDto` e
 `PreValidacaoSimuladaMapper` próprios. Sua porta retorna
@@ -232,7 +236,8 @@ reagendamento, validação, DTO ou settlement. Essas responsabilidades continuam
 
 O diagrama representa o fluxo aprovado. REST, iniciação, publicações, consultas, processamento
 e listener da entrada estão implementados; a 8.2 permite opt-in no startup. Integração
-terminal no emulador está verificada em 7.1-D; a 8.1 conecta reagendamento. Consumo/log da saída continuam pendentes.
+terminal no emulador está verificada em 7.1-D; a 8.1 conecta reagendamento. Consumo/log da saída
+estão conectados em 9.1-A/B, com integração verificada no emulador em 9.1-C.
 
 ```mermaid
 flowchart TD
@@ -256,7 +261,7 @@ flowchart TD
     QUARENTENA --> PUBOUT
     PUBOUT --> QOUT[("q.prevalidacao.monitoramento-mtr.out")]
     PUBOUT -->|"Após confirmação do broker"| COMPLETEIN["Concluir entrada"]
-    QOUT --> LOUT["MonitoramentoResultadoListener do orquestrador"]
+    QOUT --> LOUT["MonitoramentoResultadoListener: opt-in no startup"]
     LOUT --> RECEBER["ReceberResultadoMonitoramentoUseCase"]
     RECEBER --> LOG["ResultadoMonitoramentoLogAdapter"]
     LOG --> FIM["Concluir saída: fim do demonstrador"]
@@ -282,8 +287,8 @@ por `adaptador.saida.servicebus` e lê a fila de saída por `adaptador.entrada.s
 
 ### Caminhos de aplicação e arquivos
 
-Todos os nomes abaixo existem no código. Consultas de 5.1 e iniciação/publicação de 6.1
-estão conectadas; os demais caminhos funcionais permanecem pendentes.
+Todos os nomes abaixo existem no código e os caminhos estão conectados até 9.1-B.
+A verificação integrada da saída foi concluída em 9.1-C.
 
 | Etapa | Caminho no componente | Item |
 |---|---|---|
@@ -306,7 +311,8 @@ lifecycle dos clientes da extensão; não contém política, DTO de negócio ou 
 A coordenação funcional abaixo está implementada no caso de uso de 7.1-B.
 A política calcula limites/intervalos; o caso de uso consulta e publica pelas portas.
 Registro do no-op e settlement estão implementados em 7.1-C. Agendamento efetivo está conectado em 8.1;
-a intenção pendente encerra a assinatura atual sem settlement, mantendo o consumo geral inativo.
+o listener associa a intenção de reagendamento à entrega e espera o commit antes da próxima entrega.
+Os dois listeners são ativados por flags independentes, desabilitadas por padrão.
 
 | Condição, na ordem de avaliação | Comportamento esperado |
 |---|---|
@@ -425,8 +431,8 @@ do adapter futuro de reagendamento.
 Os modelos, DTOs e mappers independentes das duas bordas de resultado estão **implementados
 e verificados em 4.1**. O produtor serializa e monta o envelope; o consumidor valida e produz
 o modelo próprio do orquestrador. O publisher de 7.1-A é acionado pelo caso de uso de 7.1-B;
-o listener da entrada de 7.1-C aguarda essa confirmação antes de Complete. O consumo da saída
-continua pendente em 9.1.
+o listener da entrada de 7.1-C aguarda essa confirmação antes de Complete. O consumidor da saída
+está conectado em 9.1-B: valida, chama a porta e liquida a entrega conforme o resultado da operação.
 
 Exemplo conclusivo com os 13 campos do contrato v1 anteriormente publicado, que continua
 aceito pelos mappers. As duas bordas também aceitam os três nomes originais informados
@@ -603,7 +609,7 @@ event loop. Não criar cliente por mensagem nem usar scheduler local para simula
 | Resultado terminal/quarentena | Depois da confirmação da publicação na saída |
 | Reagendamento | No mesmo efeito transacional que agenda a próxima mensagem na entrada, após prova de API/emulador |
 | No-op | Depois de confirmar a condição e registrar a decisão |
-| Consumo da saída | Depois que o registro do resultado pelo orquestrador concluir |
+| Consumo da saída | Depois da submissão ao logger; não confirma escrita no destino (C9.1-L) |
 | Falha recuperável | Abandon/redelivery conforme classificação; não incrementar tentativa funcional |
 | Contrato permanentemente inválido | DeadLetter com diagnóstico controlado, sem payload ou segredo |
 
@@ -613,8 +619,19 @@ Essa garantia não alcança publicar a saída e concluir a entrada: sem Outbox, 
 nessa janela pode repetir o resultado. Não criar contexto
 mutável de entrega em singleton nem transportar handles Azure ao domínio/aplicação.
 
-O log final previsto usa o evento `orquestrador.monitoramento-dossie.resultado.registrado`
-e correlação por `monitoramentoId`/`orquestracaoId`. Erros do novo desenvolvimento usam
+O adapter de log implementado usa o evento `orquestrador.monitoramento-dossie.resultado.registrado`
+com os campos textuais `monitoramento_id`/`orquestracao_id` no objeto `mdc` do JSON.
+A porta confirma submissão ao logger padrão, sem confirmação de escrita: falhas internas
+ou filtros podem perder esse log sem provocar Abandon após Complete. Falhas anteriores
+à submissão propagadas pela porta continuam recuperáveis; redelivery pode duplicar o log.
+O caso de uso, adapter e listener estão conectados por CDI. A flag
+monitoramento.service-bus.saida.consumo-habilitado=true ativa a saída no startup, independentemente
+da entrada. Default false; falha de settlement encerra a assinatura sem nova liquidação.
+Shutdown cancela antes da fábrica, sem fechar o cliente. A integração de 9.1-C confirma
+POST terminal, reagendamento até conclusão/limite, DLQ e consumo de novo resultado após DLQ.
+O receiver auxiliar da prova aguarda a movimentação visível por peek antes de receber/concluir
+a DLQ, preservando o consumo principal. Detalhes e limites do diagnóstico ficam nas tasks.
+Erros do novo desenvolvimento usam
 o padrão JSON aprovado no [ADR-0012](../adr/0012-campos-json-tipados-logs-service-bus.md):
 `recurso`, `id_erro`, `codigo_erro`, `erros: [{mensagem}]`, `detalhe` e,
 quando técnico, `stacktrace` sanitizado. `codigo_http` é omitido em AMQP.
@@ -702,8 +719,8 @@ deverá declarar os métodos/implementações ao executar o item correspondente.
 | Estado | Entrega |
 |---|---|
 | Implementado e verificado anteriormente | Extensão, configuração/Dev Services, política, configuração tipada/producer CDI, contratos REST e da entrada, mappers e logs das bordas da entrada |
-| Estrutura restante | Onze portas (nove conectadas, incluindo reagendamento por entrega), parâmetros/decisão e listener da entrada funcionais, com três classes `@Vetoed`, ainda sem fluxo completo |
-| Reagendamento implementado | DTO/mapper v1 próprios, validação, envelope e log de erro JSON; sem publicar ou agendar |
+| Estrutura restante | Onze portas e os dois listeners conectados, com flags independentes; nenhum @Vetoed restante; prova integrada da saída concluída em 9.1-C |
+| Contratos de reagendamento (4.1) | DTO/mapper v1 próprios, validação, envelope e log de erro JSON; agendamento executado pelo adapter de 8.1 |
 | 4.1 tecnicamente concluído | Contratos/mappers de resultado, validação confirmada de quarentena/conclusivo e guardrails verificados |
 | 5.1 tecnicamente concluído | Consulta simulada de pré-validação, DTO/mapper próprios e ACL do Hub com testes de comportamento, CDI e fronteiras |
 | 6.1 implementado | Parâmetros locais, factory, POST, caso de uso e publisher inicial; integração explícita comprovada |
@@ -713,7 +730,7 @@ deverá declarar os métodos/implementações ao executar o item correspondente.
 | 7.1-D verificado | Nove cenários novos com emulador, incluídos no perfil completo de 15 integrações; checkpoint nas tasks |
 | 8.1 implementada | Agendamento transacional ligado ao listener; cancelamento, teto e prazo original verificados |
 | 8.2 implementada | Ativação da entrada por configuração no startup; evidências atuais nas tasks |
-| 9.1 pendente | Listener da saída e log final |
+| 9.1 implementada e verificada | Caso de uso/log e listener/ativação conectados; integração da saída concluída em 9.1-C |
 | 10.1 em diante pendente | Correlação ponta a ponta, cenários integrados e fechamento do demonstrador |
 
 O mapper de reagendamento já está implementado. Os testes preservados provaram JSON/envelope,
@@ -724,11 +741,12 @@ O item 6.1 está tecnicamente concluído, incluindo o ajuste Sonar autorizado.
 C2 foi aceito pelo usuário em 2026-09-09. 7.1 está concluída tecnicamente, com publisher da
 saída, caso de uso/listener da entrada e integração terminal local verificados. A 8.1 concluiu
 o reagendamento transacional e a 8.2 acrescentou ativação da entrada no startup por opt-in.
-O consumo/log da saída permanece pendente em 9.1. Preservar as entregas e seguir o checklist.
+O consumo/log da saída está conectado em 9.1-A/B, com opt-in, e foi verificado no emulador
+em 9.1-C. Preservar as entregas e seguir para o detalhamento de 10.1 no checklist.
 Os comandos e critérios de verificação estão no guia de desenvolvimento e no plano.
 
 O [manifesto de commit](../../tasks/features/orquestrador-monitoramento-service-bus/pacote-commit.md)
-descreve o pacote proposto até 7.1-A, incluindo 5.1, 6.1 e C2-R1 desde a base publicada de 4.1.
+descreve o marco publicado de 8.2. A implementação de 9.1 permanece local.
 O checklist registra a evidência executável e as pendências; a preparação documental não executa publicação Git.
 Preservar arquivos rastreados e não rastreados ao materializar novas entregas.
 
@@ -767,13 +785,14 @@ ou Hub, sem persistência nova, e encerramento do demonstrador por log.
    Provar no-op, limites, falha, contratos inválidos e ausência de Complete antecipado. Sem Outbox,
    publicação na saída e Complete da entrada não são uma operação atômica.
 6. Executar testes locais sem broker e integração explícita para o trecho conectado.
-   Atualizar inventário de inatividade, Javadocs, documentação e checkpoint Sonar com o baseline
+   Atualizar provas CDI, Javadocs, documentação e checkpoint Sonar com o baseline
    original. Preservar prazo/versão/IDs e as provas de `schedule + Complete`, rollback,
    redelivery e cancelamento; falha de commit nunca tenta rollback ou nova publicação.
 
 **6.1 entrega a publicação inicial confirmada e C2 está aceito.** 7.1-A entrega o publisher
 da saída; 7.1-B/C conectam o processamento e o listener com início explícito, verificados no
-emulador em 7.1-D. A 8.1 conecta o reagendamento. Consumo da saída e verificação do demonstrador completo permanecem pendentes.
+emulador em 7.1-D. A 8.1 conecta o reagendamento; 9.1-A/B conectam consumo/log da saída.
+A verificação do demonstrador completo permanece pendente.
 
 ### Ordem das entregas restantes
 
@@ -783,23 +802,24 @@ emulador em 7.1-D. A 8.1 conecta o reagendamento. Consumo da saída e verificaç
 | 7.1-C — implementada | Listener da entrada, settlement e lifecycle, sem início automático | Saída confirmada antes de Complete, falhas sem segundo settlement, encerramento antes da fábrica e logs mínimos; evidência sem broker nas tasks |
 | 7.1-D — concluída tecnicamente | Integração terminal e fechamento do item | 15 integrações, 1.268 testes sem broker, revisão e Sonar COMPLIANT; evidências nas tasks |
 | 8.1 — implementada | Reagendamento de situação não conclusiva | Política/versão, prazo, teto, schedule + Complete, rollback/redelivery e cancelamento; fechamento nas tasks |
-| 8.2 | Ativação da entrada por configuração no startup | Default inativo, início único, falhas/shutdown e POST real no emulador |
-| 9.1 | Listener da saída, caso de uso e log final | Registro do resultado e Complete/Abandon/DeadLetter coerentes com a falha |
+| 8.2 — implementada | Ativação da entrada por configuração no startup | Default inativo, início único, falhas/shutdown e POST real no emulador |
+| 9.1-A/B/C — concluídas tecnicamente | Listener da saída, caso de uso e log final | Comportamento sem broker e ativação real até log/Complete/DLQ no emulador; limites em C9.1-L |
 | 10.1 e C3 | Correlação e fluxo integrado no emulador | Propagação, sinais sem duplicação, caminhos de sucesso, falha e quarentena |
 | 11.1–CF | Verificação final e revisão do demonstrador | Suíte/checkpoint, documentação e decisão humana de encerramento |
 
-Ao assumir uma fatia, seguir o [inventário Java](../../tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md):
-implementar a porta no adapter/caso de uso correspondente, retirar `@Vetoed` apenas quando
-funcional e remover o tipo do inventário de inatividade junto dos testes. Não ligar todos os
-esqueletos ao CDI para aparentar fluxo pronto. Reutilizar contratos/mappers já verificados.
+Ao assumir uma fatia, seguir o [inventário Java](../../tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md)
+e o próximo item do checklist. As onze portas estão conectadas e não há esqueleto `@Vetoed`
+restante nesse inventário. Preservar as provas positivas CDI dos três componentes de resultado,
+os guardrails arquiteturais e os contratos/mappers já verificados.
 
-As definições de arquitetura já estão aceitas, mas permanecem pontos técnicos a resolver nas
-fatias correspondentes: tratamento do intervalo/prazo restante e do contador no limite inteiro;
-acoplamento da entrega à transação de reagendamento; comprovação de atomicidade no SDK/emulador;
-integração do encerramento antes da factory e caracterização da telemetria automática.
-A recuperação v1 autorizada é explícita no modelo de resolução; não introduzir outras recuperações.
+O tratamento de prazo/contador e a associação da entrega à transação foram implementados em
+8.1, com prova de commit, rollback e redelivery no emulador. Os listeners cancelam antes da
+factory, com provas de lifecycle; a 9.1-C acrescentou a prova integrada da saída. Caracterização
+da telemetria automática e correlação permanecem em 10.1/C3. A recuperação v1 autorizada é
+explícita no modelo de resolução; não introduzir outras recuperações.
 
-O histórico de execução e publicação permanece nas tasks. O estado preparado inclui a base até 7.1-A;
-o demonstrador completo e a entrega produtiva dependem das etapas restantes.
+O histórico de execução e publicação permanece nas tasks. O workspace inclui as implementações
+até 9.1 e sua prova funcional com emulador; telemetria, revisão final e entrega produtiva
+dependem das etapas restantes.
 Persistência, Cosmos DB, Outbox, idempotência durável, workflow durável, métricas e novas
 integrações ficam fora deste recorte.

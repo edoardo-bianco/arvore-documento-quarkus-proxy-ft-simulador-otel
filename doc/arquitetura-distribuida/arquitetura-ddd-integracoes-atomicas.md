@@ -35,8 +35,10 @@ cliente HTTP
 O caso de uso não conhece Resource, REST Client, URL, DTO MTR, fixture nem o mecanismo CDI que
 seleciona o adapter. As capacidades do Hub continuam atômicas. No mesmo runtime, os packages
 irmãos `orquestrador` e `monitoramento` implementam a demonstração assíncrona descrita abaixo:
-POST, entrada Service Bus, processamento e reagendamento/publicação da saída. O consumo/log da
-saída ainda está pendente. Não existem endpoint único de pré-validação, motor de workflow durável,
+POST, entrada Service Bus, processamento, reagendamento/publicação e consumo/log da saída.
+Ambos os listeners têm ativação independente por configuração; a prova funcional integrada
+até log/Complete e DLQ está implementada em 9.1-C com emulador e Hub controlado.
+Não existem endpoint único de pré-validação, motor de workflow durável,
 MCP Server ou implantação desses componentes como microsserviços separados.
 
 Além da borda REST, a consulta de documentos do dossiê pode ser iniciada pelo consumidor CDI local
@@ -262,8 +264,8 @@ e o Hub permanecem preservados. O orquestrador já publica a primeira tentativa 
 monitoramento, iniciado explicitamente ou por opt-in no startup, aciona a aplicação/política para consultar as fontes,
 decidir no-op, reagendar na entrada ou publicar resultado terminal/quarentena na saída.
 O reagendamento e o Complete da entrega atual compartilham a transação da mesma fila.
-O listener do
-orquestrador consumirá a saída e concluirá o demonstrador após o log do resultado.
+O listener do orquestrador consome a saída quando habilitado e executa Complete depois da
+submissão do log do resultado, sem garantia de escrita no destino.
 
 A autenticação aprovada é connection string/SAS externa nos ambientes reais e connection string
 do emulador via Dev Services em dev/test habilitados. O builder pertence à extensão Quarkus
@@ -271,7 +273,7 @@ Azure Service Bus; a fábrica técnica do ADR-0011 já cria os quatro clientes c
 Entra ID/SDK direto do ADR-0009 são históricos. O
 [guia Service Bus](../guias/guia-service-bus-amqp-dossie.md) detalha fluxo, critérios,
 contratos e configuração. O trecho inicial REST → entrada está funcional; o diagrama do fluxo
-completo inclui o consumo da saída ainda pendente. O publisher de resultado
+completo inclui o consumo da saída implementado e verificado no emulador em 9.1-C. O publisher de resultado
 foi implementado em 7.1-A, é acionado pelo caso de uso de 7.1-B e pelo listener de 7.1-C;
 a integração terminal local foi verificada em 7.1-D.
 
@@ -309,7 +311,7 @@ assíncronos duradouros das duas filas, com qualifiers `FilaEntrada`/`FilaSaida`
 usam `PEEK_LOCK` e auto-complete desabilitado. Não inicia consumo ao criar os clientes.
 A fábrica fecha todos em ordem inversa, inclusive após falha parcial, sem repetir fechamento.
 O observer de shutdown usa `PLATFORM_AFTER`; o listener da entrada cancela sua assinatura
-em `PLATFORM_BEFORE`. O futuro listener da saída deve preservar essa ordem.
+em `PLATFORM_BEFORE`. O listener da saída usa a mesma prioridade e preserva essa ordem.
 `@PreDestroy` usa a mesma rotina idempotente.
 
 A fábrica acompanha a ativação da extensão por `IfBuildProperty` e exige connection string,
@@ -426,7 +428,7 @@ da avaliação. PoliticaAplicada registra versões solicitada/efetiva e indicado
 sem transportar a estratégia executável. Essa decisão não agenda nem conclui entregas.
 ReagendamentoMonitoramento transforma a decisão em próxima tentativa e horário limitado
 ao prazo original. O listener associa a entrega ao adapter transacional, mantendo o SDK na borda.
-O consumo da saída permanece pendente.
+O consumo da saída está conectado ao caso de uso de recebimento e ao log, com opt-in próprio.
 
 ### Listener da entrada implementado em 7.1-C
 
@@ -487,7 +489,8 @@ além da perda controlada de confirmação local após commit real. Não simula 
 As verificações de efeitos usam peek com cursor explícito antes de cancelar a assinatura.
 Uma mensagem agendada ganha nova sequência ao ser ativada; rollback não promete incremento
 de DeliveryCount. O fluxo CDI real também verifica progressão/repetição, teto e prazo original.
-A suíte padrão continua sem broker. Azure gerenciado e consumo da saída permanecem pendentes.
+A suíte padrão continua sem broker. O consumo da saída é verificado separadamente em 9.1-C;
+Azure gerenciado permanece sem validação.
 
 ### Integração terminal verificada em 7.1-D
 
@@ -510,34 +513,77 @@ a recepção. O profile reaproveita a proteção de configuração externa de C2
 Nenhum caminho de produção foi alterado para realizar esta prova.
 
 Essa evidência local não valida Azure gerenciado, perda de conexão durante publicação,
-atomicidade entre output/Complete ou consumo da saída de 9.1.
+atomicidade entre output/Complete ou consumo automático da saída; este último tem prova própria em 9.1-C.
 A prova adicional do reagendamento de 8.1 está descrita acima.
 Desde 8.2, a aplicação pode iniciar automaticamente o listener da entrada por configuração
 explícita, desabilitada por padrão; o dev escolhe emulador ou Azure. A suíte padrão permanece
 sem broker. Execuções e checkpoint ficam nas tasks da feature.
 
-### Estrutura inativa de orquestrador e monitoramento
+### Recebimento e registro local do resultado
 
-Os packages definitivos também contêm a representação antecipada das capacidades planejadas:
-11 portas de aplicação (nove conectadas, incluindo a porta de reagendamento associada por
-entrega), parâmetros iniciais, decisão e modelo de reagendamento funcionais e três classes
-ainda pendentes. O caso de uso e os adapters da saída do orquestrador possuem Javadoc com
-responsabilidade e dependências previstas. As classes pendentes usam `@Vetoed`; não são beans,
-não expõem endpoint e não executam operações. Referências `@see` descrevem ligações previstas,
-sem constituir injeção ou implementação de interface.
+A porta ReceberResultadoMonitoramento resolve para ReceberResultadoMonitoramentoUseCase,
+que delega a RegistrarResultadoMonitoramento e espera sua conclusão. ResultadoMonitoramentoLogAdapter
+implementa a saída com o logger padrão. Cada invocação é lazy e compartilha a conclusão entre
+assinantes; invocações distintas podem produzir novo registro, sem idempotência durável.
 
-Essa representação foi antecipada explicitamente para revisão da arquitetura com desenvolvedores.
-Ela não constitui entrega das capacidades nem regra geral de criação de abstrações futuras.
-Tipos vazios ainda precisam de campos e invariantes; os records de parâmetros já participam
-do cálculo e tradução locais. Os contratos e a política funcionais permanecem preservados.
+O evento INFO orquestrador.monitoramento-dossie.resultado.registrado mantém os campos textuais
+evento, camada, componente, operacao, monitoramento_id e orquestracao_id no objeto mdc do JSON.
+ExtLogRecord captura o contexto corrente e acrescenta IDs somente à cópia daquele registro.
+Não emite payload, Throwable, status/motivo ou identificadores de negócio. O formatter original
+é preservado; a categoria do adapter de log não usa a composição tipada de erros do ADR-0012.
 
-Testes verificam a inatividade no CDI e as fronteiras entre núcleo, bordas, SDK e infraestrutura,
-com provas positiva de Quarkus/Mutiny/CDI e negativa de SDK no núcleo. As regras de acesso
-público pelas ACLs já verificam a consulta funcional ao Hub; o isolamento de DTOs inclui a borda
-do simulador de pré-validação. Novas provas positivas/negativas restringem o builder à fábrica
-e o acesso à infraestrutura Service Bus às bordas correspondentes. Preservar essas regras.
-O [guia de desenvolvimento](../../tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md)
-mapeia cada arquivo para o item que implementará seu comportamento.
+A conclusão da porta representa submissão ao pipeline de logging, sem confirmação de escrita.
+O consumo da saída executa Complete após essa submissão; falhas internas ou
+filtros podem perder o log sem provocar Abandon/reentrega. Falhas anteriores propagadas pela
+porta continuam sendo falhas da operação. Não há atomicidade entre logging e settlement.
+O listener da saída aciona esse caso de uso quando habilitado; a integração com emulador foi verificada em 9.1-C.
+
+### Listener da saída e guardrails
+
+MonitoramentoResultadoListener recebe o cliente @FilaSaida pela fábrica e usa o mapper próprio
+antes de chamar ReceberResultadoMonitoramento. O consumo inicia explicitamente ou no startup
+quando monitoramento.service-bus.saida.consumo-habilitado=true; default false, independente da
+flag da entrada. Cada instância inicia uma vez; conclusão ou falha da fonte impede reinício.
+
+O fluxo serial espera a porta de recebimento e então executa Complete. Somente contrato
+rejeitado pelo mapper vai à DLQ, com MONITORAMENTO_SAIDA_INVALIDA e descrição fixa.
+Falhas técnicas da leitura/porta produzem Abandon, sem alterar o resultado na reentrega.
+Falha de qualquer settlement encerra a assinatura sem executar outro; falha da fonte também
+encerra o consumo. HTTP pode continuar ativo, sem readiness específica nem retry da aplicação.
+Shutdown cancela a assinatura antes da fábrica; o listener não fecha clientes.
+
+O erro orquestrador.monitoramento-dossie.resultado.falhou contém somente constantes técnicas
+e não transporta Throwable, payload ou identificadores não validados. Contrato inválido
+mantém o erro próprio já emitido pelo mapper, sem segundo erro de processamento.
+
+As onze portas de aplicação estão conectadas, incluindo reagendamento por entrega e
+recebimento/registro. O último esqueleto foi implementado: não restam classes @Vetoed nesses
+dois componentes. ComponentesResultadoMonitoramento e ResultadoMonitoramentoCdiTest verificam
+a resolução única dos três beans de resultado sem endpoint adicional.
+As fronteiras de núcleo, bordas, SDK/fábrica e ACLs continuam protegidas por ArchUnit.
+A prova integrada de ativação da saída e log final no emulador está implementada e verificada em 9.1-C.
+
+### Integração da saída verificada em 9.1-C
+
+O profile opt-in inicia os dois listeners pelo startup, sem chamada explícita no teste.
+A prova percorre REST → entrada → processamento/publicação → saída → mapper → caso de uso
+→ log real, conferindo depois a remoção das mensagens por Complete. Somente a porta pública
+do Hub tem respostas controladas; consultas pendentes permitem observar por peek as sequências
+reais e a progressão das tentativas antes de liberar conclusão ou reagendamento.
+
+Os cenários cobrem terminal direto, reagendamento até conclusão e até o máximo de três
+consultas, além de contrato inválido na DLQ da saída. Após a DLQ, um novo POST válido confirma
+que o listener principal continua consumindo. A prova da subfila aguarda a mensagem própria
+visível por peek e a ausência na principal antes de receber/concluir a DLQ. Não acrescenta
+retry de settlement nem consumidor concorrente na saída principal.
+
+O teste valida o JSON final e os IDs em mdc, sem payload. Cada cenário começa com filas
+vazias; o receiver auxiliar pertence somente à DLQ da prova e é fechado pelo teste.
+Reutiliza a proteção contra conexão externa do profile existente. Defaults de produção
+permanecem false, com flags independentes. Esse resultado local não confirma escrita durável
+do log, atomicidade log/Complete, idempotência ou comportamento no Azure gerenciado.
+Falhas técnicas/Abandon permanecem caracterizadas sem broker; telemetria e revisão geral
+de sinais/redelivery são etapas seguintes. Execuções, diagnóstico da DLQ e checkpoint ficam nas tasks.
 
 ### Consumidor CDI local da consulta de documentos
 
@@ -689,7 +735,8 @@ prova negativa que rejeita dependência no caso de uso concreto.
 - o Hub não faz upload para Azure Blob Storage;
 - não mantém cache nem renova SAS;
 - o Hub não possui workflow durável; a demonstração local nos packages irmãos possui orquestração
-  de monitoramento até publicação da saída, com consumo/log ainda pendente;
+  de monitoramento com consumo/log da saída implementado e prova funcional integrada no emulador;
+  correlação/telemetria e revisão final da demonstração permanecem nas etapas seguintes;
 - não possui MCP Server ou tools;
 - não possui persistência de estado de fluxo;
 - não calcula árvore documental nem executa análise de conformidade;
