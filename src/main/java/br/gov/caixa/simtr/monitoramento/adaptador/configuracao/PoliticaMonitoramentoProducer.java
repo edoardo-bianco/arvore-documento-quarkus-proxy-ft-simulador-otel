@@ -3,6 +3,7 @@ package br.gov.caixa.simtr.monitoramento.adaptador.configuracao;
 import java.util.HashMap;
 import java.util.Map;
 
+import br.gov.caixa.simtr.monitoramento.dominio.politica.CatalogoPoliticasMonitoramento;
 import br.gov.caixa.simtr.monitoramento.dominio.politica.PoliticaMonitoramento;
 import br.gov.caixa.simtr.monitoramento.dominio.politica.PoliticaMonitoramentoProgressiva;
 import io.quarkus.runtime.Startup;
@@ -18,6 +19,7 @@ import jakarta.inject.Singleton;
 public class PoliticaMonitoramentoProducer {
 
     private final PoliticaMonitoramento politicaSelecionada;
+    private final CatalogoPoliticasMonitoramento catalogo;
 
     @Inject
     public PoliticaMonitoramentoProducer(PoliticasMonitoramentoConfig config) {
@@ -32,11 +34,18 @@ public class PoliticaMonitoramentoProducer {
                     definicao.maxTentativas(), definicao.duracaoMaxima());
         }));
         politicaSelecionada = politicas.get(config.ativa());
+        catalogo = new CatalogoPoliticasMonitoramento(politicas.values());
     }
 
     @Produces
     @Singleton
     PoliticaMonitoramento politica() {
         return politicaSelecionada;
+    }
+
+    @Produces
+    @Singleton
+    CatalogoPoliticasMonitoramento catalogo() {
+        return catalogo;
     }
 }

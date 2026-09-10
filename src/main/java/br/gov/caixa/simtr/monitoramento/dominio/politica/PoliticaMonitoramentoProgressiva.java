@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.OptionalInt;
+import java.util.Optional;
 
 public final class PoliticaMonitoramentoProgressiva implements PoliticaMonitoramento {
 
@@ -42,21 +43,33 @@ public final class PoliticaMonitoramentoProgressiva implements PoliticaMonitoram
         if (tentativaAtual < 1) {
             throw new IllegalArgumentException("tentativaAtual deve ser maior que zero");
         }
-        Objects.requireNonNull(processadoEm, "processadoEm");
-        Objects.requireNonNull(limiteEm, "limiteEm");
-
-        if (!processadoEm.isBefore(limiteEm)) {
-            return new Decisao.Encerrar(MotivoEncerramento.PRAZO_MAXIMO);
-        }
-        if (maximoTentativas.isPresent()
-                && tentativaAtual >= maximoTentativas.getAsInt()) {
-            return new Decisao.Encerrar(MotivoEncerramento.MAXIMO_TENTATIVAS);
+        var motivo = motivoEncerramento(tentativaAtual, processadoEm, limiteEm);
+        if (motivo.isPresent()) {
+            return new Decisao.Encerrar(motivo.get());
         }
 
         int indiceIntervalo = Math.min(tentativaAtual - 1, intervalos.size() - 1);
         return new Decisao.Reagendar(
                 Math.addExact(tentativaAtual, 1),
                 intervalos.get(indiceIntervalo));
+    }
+
+    @Override
+    public Optional<MotivoEncerramento> motivoEncerramento(
+            int tentativasRealizadas, Instant processadoEm, Instant limiteEm) {
+        if (tentativasRealizadas < 0) {
+            throw new IllegalArgumentException("tentativasRealizadas nao pode ser negativo");
+        }
+        Objects.requireNonNull(processadoEm, "processadoEm");
+        Objects.requireNonNull(limiteEm, "limiteEm");
+        if (!processadoEm.isBefore(limiteEm)) {
+            return Optional.of(MotivoEncerramento.PRAZO_MAXIMO);
+        }
+        if (tentativasRealizadas == Integer.MAX_VALUE
+                || (maximoTentativas.isPresent() && tentativasRealizadas >= maximoTentativas.getAsInt())) {
+            return Optional.of(MotivoEncerramento.MAXIMO_TENTATIVAS);
+        }
+        return Optional.empty();
     }
 
     private static String validarVersao(String versao) {

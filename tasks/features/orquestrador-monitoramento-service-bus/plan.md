@@ -1,5 +1,534 @@
 # Plano: implementar orquestração de monitoramento com duas filas do Service Bus
 
+## Preparação do commit e execução — 2026-09-10
+
+Pedido humano: preparar commit seguro, esclarecer execução/testes e conferir alinhamento dos guias.
+Escopo: manifesto do incremento 7.1-B/C/D + 8.1 desde d83b689, mensagem, seleção explícita de
+42 arquivos no índice, revisão e orientação de execução. Corrigir referências documentais antigas
+do manifesto/guia; preservar código e evidências já aprovados. Commit e push não são executados.
+
+Critérios: incluir produção/testes/documentação correspondentes; excluir patch temporário,
+estado Sonar, credenciais, build e formatos derivados; índice igual ao manifesto e conteúdo
+de código igual ao verificado. Explicar início explícito e distinguir suíte padrão (1.293),
+integração (21) e aplicação dev. Revisar diff e links; não repetir Maven/Sonar para Markdown.
+
+Riscos: pacote acumulado amplo, ambiente dev exige configuração própria e startup não ativa
+consumo. O guia ainda mencionava 15 integrações em uma seção atual, e o manifesto descrevia
+a entrega antiga até 7.1-A; divergências tratadas nesta preparação documental.
+9.1, 10.1, ativação automática, dependências, hooks e mudanças de comportamento ficam fora do escopo.
+Resultado revisável no [pacote de commit](pacote-commit.md).
+
+### Ajuste de formatação revelado pelo índice
+
+A conferência de git diff --cached --check encontrou linhas vazias extras no EOF de seis
+testes novos e da continuidade de 8.1, antes não rastreados. O preparo seguro inclui remover
+somente essas linhas, sem alterar lógica, assertions, imports ou configuração. Antes da edição,
+o baseline READY original e o checkpoint anterior foram conferidos. Não reinicializar baseline.
+
+Ajustar os seis testes listados pela conferência e o Markdown; comparar conteúdos ignorando
+apenas os terminadores finais para provar o escopo. A alteração de fingerprint exige novo
+checkpoint completo no mesmo baseline; não adicionar testes para formatação nem repetir
+integração de broker. Atualizar manifesto/índice e registrar o resultado real antes de concluir.
+
+## Fechamento técnico de 8.1 — 2026-09-10
+
+O pedido de retomada autorizou as cinco correções Sonar e o novo checkpoint antes de 9.1,
+mantendo o ContinuarAjustes já registrado. S6878, S1905 e três S5778 corrigidas, com
+equivalência de comportamento confirmada por revisão independente e testes existentes.
+
+Passaram 68 testes focados e 1.293 testes padrão/189 classes sem broker.
+Build e checkpoint **COMPLIANT / NOT_REQUIRED**: cobertura 87,9%, duplicação 4,3%,
+213 issues abertas, nenhuma nova ou grave. As cinco issues estão CLOSED/FIXED.
+As 21 integrações aprovadas em 09/09 não foram repetidas neste ajuste sem mudança funcional.
+
+Divergência operacional encontrada: o hook de abertura havia apagado o baseline em session.json.
+O baseline original foi recuperado de cópia validada antes da edição e comparado integralmente
+após o checkpoint. A correção do hook fica fora do escopo; risco e cópia final de recuperação
+estão na [continuidade de 8.1](continuidade-8-1.md). Nenhum InitializeBaseline foi executado.
+
+8.1 concluída tecnicamente; 9.1 e 10.1 permanecem pendentes e não foram iniciadas.
+Branch, alterações locais e HEAD d83b689 preservados, sem staging/commit/push.
+Não há encerramento humano da feature. Evidências e próximo item no
+[ponto seguro](retomada.md) e no [checklist](todo.md).
+
+## Execução autorizada de 8.1 — reagendamento transacional
+
+Pedido humano: "Próxima etapa: 8.1 — reagendamento transacional". Preservar branch,
+alterações locais e baseline READY original. A evidência anterior permanece COMPLIANT
+(1.268 testes padrão sem broker, 87,8% cobertura, 4,3% duplicação).
+
+Primeira subfatia: prova obrigatória com SDK 7.17.12/extensão 1.2.5 e emulador do perfil
+servicebus-integration, reutilizando os clientes CDI da mesma fila e do mesmo builder.
+Verificar createTransaction, scheduleMessage com contexto, CompleteOptions com o mesmo
+contexto, commit, rollback e redelivery da mensagem original. Incluir perda controlada
+da confirmação local após commit real para distinguir resultado incerto de rollback
+confirmado. Não apresentar essa simulação como falha real de rede.
+
+Critérios da prova: commit remove a entrada e disponibiliza somente a próxima mensagem
+no instante agendado; rollback não publica a próxima e permite reentrega com mesmo
+corpo/identidade e novo lock. Rollback não promete incremento de DeliveryCount (a API
+associa esse incremento a Abandon/expiração de lock). Manter assinatura durante a transação; leituras
+com cursor explícito, filas vazias verificadas, esperas limitadas e sem purge/skip.
+Os testes de integração continuam opt-in; suíte padrão não inicia broker.
+
+A prova precede a implementação produtiva da porta/modelo/adapter e sua conexão ao
+listener. Se a API ou o emulador rejeitar a transação, registrar causa/evidência e
+apresentar a decisão concreta ao usuário conforme ADR-0010; não trocar tecnologia,
+ativar consumo ou declarar atomicidade por suposição. O desenho subsequente detalhará
+associação da entrega sem SDK no núcleo/mapa singleton, prazo original versus próximo
+intervalo e contador Integer.MAX_VALUE antes da edição produtiva.
+
+Verificações: teste opt-in focado, revisão independente, regressão adequada e checkpoint
+completo no mesmo baseline após a subfatia coerente. Arquivos prováveis desta prova:
+um teste de integração e tasks da feature. Riscos: diferenças emulador/Azure gerenciado;
+confirmação local perdida não determina o resultado remoto. Fora de escopo: nova
+dependência, contrato externo, startup automático, 9.1, 10.1 e commit/push.
+Referências oficiais: Quarkiverse Azure Services/Service Bus, transações Service Bus,
+API Java sender/receiver e visão geral do emulador; assinaturas conferidas por javap.
+Evidências e continuidade serão registradas em [continuidade de 8.1](continuidade-8-1.md).
+
+## Desenho de 8.1 após a prova do broker
+
+Aplicar somente se a prova transacional passar. Revisão independente do desenho concluída.
+A reafirmação humana dos limites está na [continuidade](continuidade-8-1.md).
+
+- ReagendamentoMonitoramento representa próxima tentativa e instante. A construção a partir
+  da decisão preserva IDs, início, prazo e versão recebida; altera somente o contador.
+  Calcular min(processadoEm + intervalo, limiteEm), comparando primeiro a duração restante
+  para evitar overflow. A entrega no prazo encerra por PRAZO_MAXIMO antes de consultar o Hub.
+- A política mantém max-tentativas opcional e verifica o máximo configurado antes do incremento.
+  Também encerra a tentativa não conclusiva no maior inteiro representável por MAXIMO_TENTATIVAS,
+  preservando consulta conclusiva nessa tentativa e prioridade do prazo quando ambos vencem.
+- MonitoramentoReagendamentoAdapter CDI sem estado de entrega; método técnico associar(receiver,
+  mensagem) cria implementação local da porta ReagendarTentativaMonitoramento, capturando
+  os handles somente na borda. Nenhum mapa singleton, ThreadLocal, callback SDK no domínio
+  ou alteração do contrato da porta. Reutilizar mapper/DTO próprios já implementados.
+- Serializar antes de abrir transação. No mesmo receiver da entrega: createTransaction;
+  sender FilaEntrada agenda com contexto; Complete usa esse contexto; commit confirma ambos.
+  Falha em schedule/Complete tenta rollback. O tratamento anterior ao commit não envolve
+  commit: falha de commit é resultado incerto, sem rollback nem nova ação. Rollback confirmado
+  ou incerto também propaga falha; não reaproveitar o handle settled em Abandon.
+- O listener executa a porta associada no ramo de liquidação, fora do recovery de processamento.
+  Sucesso transacional não gera Complete simples adicional. Falha encerra a assinatura,
+  sem retry local, segundo settlement ou avanço para a próxima entrega. Cada entrega aguarda
+  confirmação antes da seguinte; cancelamento é melhor esforço, sem prometer desfazer efeito remoto.
+- Reutilizar logs mínimos sanitizados de decisão/settlement, confirmação transacional somente
+  após commit; sem Throwable/payload/IDs não validados. Instrumentação completa fica em 10.1.
+- Consumo segue com iniciar() explícito; nenhum startup automático ou flag nova. A aplicação
+  continua admitindo emulador ou Azure conforme configuração, e testes padrão sem broker.
+
+RED/GREEN por subfatia: modelo/política (limites, janela original, repetição);
+adapter (ordem, contexto, confirmação, falhas síncronas/assíncronas e resultado incerto);
+listener (mesma entrega, serialização, nenhuma liquidação adicional);
+integração real do adapter/listener (reagendamento, prazo e teto sem consulta excedente).
+Revisão final, suíte padrão, integração opt-in e checkpoint completo no mesmo baseline.
+
+Arquivos prováveis: modelo, política, adapter, listener, Javadocs da porta/decisão,
+inventário de esqueletos, testes diretamente relacionados, arquitetura/guias/tasks.
+Entregar em subfatias verificáveis; não adicionar endpoint, dependência ou consumidor de saída.
+
+## Estado anterior — 7.1 concluída tecnicamente após 7.1-D
+
+Nove cenários terminais novos; perfil completo com 15 integrações/4 classes aprovado.
+1.268 testes padrão/187 classes sem broker; Sonar COMPLIANT, 87,8% de cobertura,
+4,3% de duplicação, nenhuma issue nova/grave e baseline original preservado.
+Revisão sem findings; evidência completa na [continuidade](continuidade-7-1.md).
+Próximo item 8.1; consumo geral segue inativo, sem transação ou execução da saída antecipados.
+Sem novo staging/commit/push. A integração não exigiu alteração de produção.
+
+## Execução autorizada de 7.1-D — integração terminal
+
+Pedido humano: "7.1-D — integração terminal". Executar apenas a integração explícita e o
+fechamento técnico de 7.1, preservando o baseline READY original e todas as alterações locais.
+
+Intenção/escopo: provar o caminho terminal com SDK/emulador reais e listener/caso de uso,
+catálogo, pré-validação simulada habilitada, ACL e publishers reais CDI. Controlar somente
+a porta pública ConsultarDossieProduto nos testes; não alterar o Hub nem inventar IDs de
+situação. Reutilizar ServiceBusEmuladorTestProfile por composição, preservando o bloqueio
+de configuração externa; habilitar pré-validação e uma política com max=1 só nesse profile.
+
+Critérios: três classificações originais via REST; no-op sem Hub/saída; prazo original
+expirado (versão removida); política configurada inativa com max=1; versão ausente dentro
+do prazo continua por v1; falha transitória com Abandon/redelivery e contagem funcional
+preservada; contrato inválido na DLQ com motivo fixo. Validar saída pelo mapper independente
+do orquestrador, IDs, MTR original, contador e sequência real da entrada.
+
+Controles da prova: início explícito, um listener CDI por teste; encerramento pelo handle CDI
+após settlement, sem modificar API de produção. Publicar antes de iniciar e observar via
+peek com sequência explícita; não usar avanço implícito do cursor como prova de remoção.
+Leitura da saída/DLQ confirma Complete antes de cancelar a assinatura. Esperas limitadas,
+sem sleeps fixos ou descarte de mensagens estranhas. Somente clientes extras de teste são
+fechados pelo teste; a fábrica continua dona dos clientes CDI.
+Controle negativo inicial: sem iniciar listener, o resultado não deve aparecer; ativar o
+acionamento no teste e executar a suíte de integração. Não retirar código funcional para
+fabricar RED. Eventuais defeitos reais descobertos recebem regressão antes da correção.
+
+Verificações: perfil opt-in servicebus-integration (incluindo seis provas anteriores),
+suíte padrão sem broker, revisão independente e checkpoint completo no mesmo baseline.
+Confirmados artefatos efetivos: extensão 1.2.5, SDK 7.17.12, Reactor 3.4.41 e Quarkus 3.33.2.1.
+Referências: guia Quarkiverse Azure Services/Service Bus, API oficial do receiver e CDI/ArC,
+conferidas contra os binários efetivos. Sem dependência/configuração produtiva nova.
+
+Arquivos prováveis: novo teste de integração terminal, eventual apoio restrito a src/test,
+guia do dev, guia Service Bus, arquitetura e tasks da feature.
+Riscos: teste local não valida Azure gerenciado; output/Complete não são atômicos; efeito
+remoto já iniciado pode continuar após cancelamento. Filas do emulador devem estar vazias
+no início; resíduos falham a prova, não são purgados silenciosamente.
+Fora de escopo: consumo automático/geral, transação de 8.1, listener da saída de 9.1,
+instrumentação de 10.1, persistência, Outbox, contratos externos e commit/push.
+Após 7.1-D, próximo item funcional: 8.1, com prazo/contador/transação ainda a detalhar.
+
+## Estado anterior — 7.1-C concluída tecnicamente
+
+Listener, settlement e lifecycle implementados no recorte autorizado. As 13 S8924 MINOR
+foram corrigidas após ContinuarAjustes humano; 1.268 testes/187 classes sem broker,
+COMPLIANT, cobertura 87,8%, duplicação 4,3% e nenhuma issue nova/grave. Baseline preservado.
+Evidência completa na [continuidade](continuidade-7-1.md); próximo item funcional 7.1-D.
+Consumo automático permanece inativo e 8.1 não foi antecipada. Sem commit/push adicional.
+
+## Execução autorizada de 7.1-C — listener e settlement
+
+Pedido humano: "7.1-C". Implementar somente o próximo item: listener da entrada, controle
+da assinatura, ordem do settlement e shutdown. Preservar branch/alterações/baseline READY.
+Não implementar 7.1-D, reagendamento/transação de 8.1, consumo da saída ou telemetria completa.
+
+Desenho e critérios:
+- Listener @ApplicationScoped funcional, com Instance do receiver FilaEntrada, mapper existente
+  e porta ProcessarTentativaMonitoramento. iniciar() explícito, sem observer StartupEvent,
+  configuração nova ou chamada automática. CDI ativo não significa consumo ativo.
+- Uma única inicialização por instância; estado NOVO/INICIADO/ENCERRADO sincronizado e
+  Disposable.Swap protegem emissão síncrona e disputa com shutdown. Reinício é rejeitado.
+- Usar concatMap(..., 0): uma entrega processada/liquidada de cada vez e nenhum prefetch do
+  operador. Confirmado no bytecode Reactor efetivo 3.4.41. Explicitar prefetchCount(0) somente
+  no receiver de entrada; preservar PEEK_LOCK/disableAutoComplete e fábrica dona dos clientes.
+- O mapper valida antes da porta; passar tentativa e inputSequenceNumber escalar.
+  Ignorar registra decisão e gera Complete. ResultadoPublicado gera Complete somente após
+  a porta confirmar a publicação. Contrato inválido no mapper gera DeadLetter com opções
+  novas por entrega e motivo/descrição fixos. Falha técnica de leitura/mapper/porta gera Abandon.
+- Separar escolha da ação de sua execução: handlers técnicos não podem capturar falha de
+  Complete/Abandon/DeadLetter e tentar outro settlement. Falha de settlement termina assinatura.
+- ReagendamentoPendente termina assinatura sem settlement ou reinício; não gerar sucesso,
+  descarte ou Abandon repetido. Liberação/redelivery da entrega depende de SDK/broker; não
+  prometer que o lock só será liberado ao expirar.
+- ShutdownEvent PLATFORM_BEFORE e PreDestroy cancelam a assinatura idempotentemente, antes
+  do fechamento da fábrica PLATFORM_AFTER. Cancelar espera corrente sem fechar o cliente.
+- Logs mínimos reutilizam eventos aprovados doctree.monitoramento-mtr.decisao.tomada,
+  processamento.falhou e settlement.executado; campos locais constantes, sem Throwable,
+  mensagem original, corpo ou identificadores não validados. Não adicionar spans/propagação
+  antes da caracterização de 10.1. Reutilizar o marcador JSON existente, sem alterar o Hub.
+
+TDD/verificação: mapper real e SDK simulado; inatividade CDI; ordem da publicação/Complete;
+contratos inválidos; falhas síncronas/assíncronas; ausência de segundo settlement; avanço da
+segunda entrega só após a primeira; pending sem settlement; encerramento síncrono, cancelamento,
+início duplicado/pós-shutdown e corrida de lifecycle. Provar JSON mínimo sanitizado em runtime.
+Guardrails, revisão independente e checkpoint completo com testes padrão sem broker.
+Integração terminal com fila fica em 7.1-D; aplicação futura admite emulador ou filas Azure.
+
+Arquivos prováveis: listener, log local se necessário, ClientesServiceBus (prefetch de entrada),
+testes da borda/fábrica/CDI e inventário de esqueletos; arquitetura/guias/tasks.
+Riscos: Abandon técnico pode redeliver até MaxDeliveryCount; sem retry/backoff local novo.
+Publicação confirmada e Complete não são atômicos; saída pode duplicar após redelivery.
+Pendências de 8.1: data agendada versus prazo, contador limite e transação da mesma entrega.
+Referências consultadas: Quarkiverse Azure Services/Service Bus, receiver SDK e Reactor;
+binários efetivos confirmados: SDK 7.17.12, Reactor 3.4.41, Quarkus 3.33.2.1/extensão 1.2.5.
+Sem mudança de dependências, configuração de conexão, profiles, contratos ou commit/push.
+
+## Fechamento técnico de 7.1-B — caso de uso implementado
+
+GO humano "go" executado nesta fatia. ProcessarTentativaMonitoramentoUseCase está conectado
+por CDI, com catálogo por versão, consulta de pré-validação primeiro, limites, classificação
+literal do Hub e publicação terminal confirmada. DecisaoProcessamento é funcional e distingue
+Ignorar, ResultadoPublicado e ReagendamentoPendente. O núcleo recebe apenas a sequência escalar;
+SDK/settlement permanecem na borda. Oito das onze portas estão conectadas; seis esqueletos inativos.
+
+Mantidos: PT30M repetido sem teto no padrão; listas como PT3H,PT4H,PT6H com repetição de PT6H;
+max-tentativas opcional em outras definições; versão configurada prevalece, ausente usa v1 interna.
+Nenhum fallback renova iniciadoEm/limiteEm/versão ou IDs. Antes do Hub, contagem = atual - 1;
+após consulta, atual. max-tentativas=1 permite uma consulta. Os três nomes originais do Hub
+geram CONFORME/INCONFORME conforme a tabela humana, preservando situacaoMtr.
+Consulta conclusiva iniciada no prazo prevalece sobre expiração durante a consulta.
+
+RED confirmou porta/decisões/construtor ainda ausentes. GREEN: 128 testes focados em nove classes
+sem broker. Revisão independente encontrou três lacunas de teste, corrigidas e reconferidas:
+prazo recebido de 2 h diferente da v1 de 24 h, record completo/seqüência da quarentena e consulta
+explícita no no-op. Nova execução dos 32 testes do caso de uso passou; revisão final sem findings.
+
+Primeiro checkpoint: 1.232 testes/186 classes passaram, cobertura 87,7%, duplicação 4,3%;
+NON_COMPLIANT somente por duas java:S6878 no switch, sem issues graves.
+O usuário escolheu "ContinuarAjustes", registrado pelo script. Os dois ramos foram alterados
+para record patterns sem mudar comportamento; checkpoint completo repetido.
+
+**Evidência final:** 1.232 testes padrão/186 classes, zero falhas, erros ou ignorados, sem broker.
+**COMPLIANT / NOT_REQUIRED**: cobertura 87,6%, duplicação 4,3%,
+213 issues abertas, nenhuma nova ou HIGH/BLOCKER/CRITICAL.
+Checkpoint: 2026-09-09T14:34:10.3274763-03:00.
+Análise: 710fa75b-0379-4ad9-b0e2-5f5cbfaf955c; CE: 99069941-4ef8-45df-a97d-c40580442c78.
+Fingerprint: 3e33f51117f8317730ddc5bcea590f8ebed8ff64327896b332d2f7adcaebeaaa.
+Baseline READY original de 217 issues integralmente preservado, sem reinicialização.
+As seis integrações de 7.1-A são evidência anterior e não foram repetidas nesta fatia.
+
+7.1-B tecnicamente concluída; 7.1 completo permanece pendente. Próxima fatia: 7.1-C,
+listener/settlement/lifecycle, com integração terminal em 7.1-D. Antes de ativar consumo geral,
+8.1 deve coordenar reagendamento com a mesma entrega e provar transação/rollback/redelivery.
+ReagendamentoPendente não comprova envio nem permite presumir Complete. Permanecem para 8.1
+o intervalo que atinge/ultrapassa o prazo e o contador Integer.MAX_VALUE, cujo incremento
+atual falha por overflow. Sem Outbox, publicação confirmada seguida de redelivery pode duplicar saída.
+
+Arquitetura, guia Service Bus, guia do dev, inventário e retomada atualizados.
+Mesma branch e alterações locais preservadas, inclusive .codex-doc-alignment.patch.
+Sem novo staging/commit/push; d83b689 continua sendo o marco publicado até 7.1-A.
+Nenhum comando do agente permanece em execução.
+Os registros abaixo são históricos e não alteram este estado vigente.
+
+## Caso de uso 7.1-B — execução autorizada
+
+GO humano: "go", após revisão de alinhamento. Implementar o próximo recorte de 7.1-B:
+conectar catálogo/portas existentes no caso de uso e tornar DecisaoProcessamento funcional.
+Preservar alterações e baseline READY; listeners e transação de 8.1 continuam inativos.
+
+Critérios e fluxo:
+- Consultar pré-validação primeiro; fora de EM_ANALISE_ENVIO_MTR, Ignorar sem Hub/publicação.
+- Resolver versão recebida; ausente usa v1 interna sem renovar janela ou substituir dados recebidos.
+- Antes do Hub, avaliar prazo e quantidade já realizada (tentativaAtual - 1). Acrescentar à
+  política consulta de motivo de encerramento que aceita zero, sem calcular reagendamento.
+  max-tentativas=1 permite a primeira consulta. Após resposta não conclusiva, avaliar com
+  tentativaAtual. Quarentena anterior ao Hub informa contador anterior e MTR ausente.
+- Classificar somente FINALIZADO_CONFORME -> CONFORME, FINALIZADO_INCONFORME -> INCONFORME,
+  PENDENTE_INFORMACA -> INCONFORME; preservar MTR original, IDs, início e sequência.
+- Terminal publica motivo SITUACAO_CONCLUSIVA_MTR; quarentena publica PRAZO_MAXIMO ou
+  MAXIMO_TENTATIVAS e situação calculada QUARENTENA. ResultadoPublicado exige confirmação
+  da porta de publicação. Falhas técnicas propagam sem sucesso fictício ou retry adicional.
+- Consulta iniciada dentro do prazo pode concluir terminal após o prazo. Para não conclusivo,
+  reler relógio e avaliar prazo/contador: publicar quarentena se esgotado, preservando MTR
+  consultado; senão devolver ReagendamentoPendente com tentativa original, resolução,
+  contador/intervalo e instante da avaliação. A intenção não comprova agendamento.
+- Porta recebe inputSequenceNumber escalar long; SDK/settlement ficam na borda. Uni adiado
+  e memorizado por invocação; nova invocação representa novo processamento/redelivery.
+- Relógio segue IniciarMonitoramentoUseCase, com instante controlado nos testes.
+
+Verificar TDD: ordem, elegibilidade, três mapeamentos, versões presentes/inativas/ausentes,
+limites, falhas por porta, confirmação pendente e assinaturas repetidas. Testes CDI/ArchUnit
+sem broker, revisão independente e checkpoint Sonar completo ao final do incremento.
+
+Arquivos prováveis: porta/caso de uso/modelo de decisão, política, testes/inventário de
+esqueletos; arquitetura, guias e tasks. Dependências: consultas 5.1, publisher 7.1-A, catálogo.
+Riscos mantidos: duplicação em redelivery após publicação; sem Outbox. Intervalo que alcança
+ou ultrapassa o prazo continua pendente de decisão/teste em 8.1. Sem commit/push neste recorte.
+Guias oficiais Quarkiverse Azure Services/Service Bus consultadas; stack existente confirmado
+no pom: Quarkus 3.33.2.1 e extensão 1.2.5; SDK/transporte/profiles permanecem fora do recorte.
+
+## Revisão de alinhamento dos critérios — 2026-09-09
+
+Pedido humano: confirmar se tudo está alinhado à direção mais recente. Revisão por leitura
+do código/configuração, testes e documentação vigente; sem alteração executável ou nova
+execução de Maven/Sonar. A evidência anterior permanece 1.200 testes/185 classes e COMPLIANT,
+checkpoint 2026-09-09T11:39:14.852554-03:00.
+
+Confirmado: application.properties e recuperação interna usam PT30M, PT24H e sem teto
+por contagem; lista unitária repete o intervalo; PT3H,PT4H,PT6H aplica a ordem e repete PT6H;
+max-tentativas continua opcional para outras configurações; versão configurada prevalece,
+e versão ausente resolve para v1 padrão sem reiniciar o prazo recebido.
+Os guias/ADR descrevem essas regras e delimitam valores antigos como históricos.
+
+Limite da confirmação: ProcessarTentativaMonitoramentoUseCase e
+MonitoramentoReagendamentoAdapter continuam inativos. A política encerra quando processadoEm
+atinge limiteEm, mas não compara processadoEm + intervalo com limiteEm. Por inspeção,
+faltando 5 minutos e sendo o intervalo PT30M, a decisão ainda devolve PT30M. Portanto a
+garantia operacional de encerramento/agendamento no prazo não está demonstrada.
+
+Registrar no recorte de 8.1, antes de ativar consumo: definir e testar o tratamento quando
+o próximo intervalo alcança ou ultrapassa limiteEm, preservando o prazo original e a
+verificação de expiração no consumo. Não tratar o intervalo retornado como garantia de
+que a próxima data agendada está dentro do prazo. Nenhuma solução desse limite foi
+implementada ou registrada como decisão humana nesta revisão.
+
+Divergência documental já prevista para 7.1-B: o Javadoc do caso de uso inativo ainda
+pede definição de versão antiga; alinhar ao catálogo e à decisão recebida quando implementar
+o caso de uso, junto da classificação já aprovada. Não modificar Java nesta revisão.
+
+
+## Ajuste solicitado — intervalo padrão de 30 minutos
+
+Direção humana de 2026-09-09: padrão com apenas 30 minutos repete esse intervalo até o
+tempo máximo; uma lista configurada (por exemplo 3 h, 4 h e 6 h) aplica os períodos em ordem
+e depois repete o último. Não aplicar teto adicional de tentativas no padrão.
+
+Próximo recorte de 7.1-B: alterar application.properties e a v1 interna de recuperação
+para uma lista unitária PT30M, mantendo duração PT24H e prazo original das tentativas.
+A política já repete lista unitária/último elemento; confirmar a regra com testes da
+configuração tipada, progressão PT3H/PT4H/PT6H e encerramento pelo prazo.
+A primeira execução continua imediata; os períodos são intervalos entre tentativas,
+não horários absolutos desde o início. Não antecipar listener/transação de 8.1.
+
+Resposta humana: "Somente o padrão: manter max-tentativas como opção para outras configurações".
+A opção e seu comportamento permanecem íntegros. Não há teto por contagem na v1 padrão;
+outras definições podem configurá-lo explicitamente. Esta resposta encerra a clarificação.
+
+Critérios: ativa e recuperação retornam 30 min nas tentativas 1, 2, 3, 4, 5 e 100;
+lista PT3H,PT4H,PT6H retorna 3 h, 4 h, 6 h e repete 6 h; prazo máximo continua obrigatório;
+IDs, contador, início, limite e versão preservados. Default sem teto por contagem.
+Arquivos prováveis: application.properties, CatalogoPoliticasMonitoramento.java,
+seus testes, testes de config/producer/política; ADR-0011/índice, arquitetura e guias/tasks.
+Verificação: RED dos novos defaults, GREEN/regressão sem broker, revisão independente
+e checkpoint Sonar completo. Baseline READY original integralmente preservado.
+Guias oficiais Quarkus Azure Services/Service Bus e Config Mapping reconferidas.
+Escopo externo inalterado: Hub, DTOs/JSON, SDK/dependências, profiles e broker.
+
+
+### Verificação do ajuste de 30 minutos
+
+Ajuste concluído: application.properties e a recuperação v1 interna usam somente PT30M,
+repetido até o prazo máximo (PT24H no padrão), sem teto por contagem. O usuário confirmou
+que max-tentativas permanece opcional para outras configurações. A política já aplica
+listas ordenadas e repete o último intervalo; PT3H,PT4H,PT6H foi provado pela configuração.
+
+RED: 48 testes, seis falhas esperadas nos defaults antigos. GREEN/regressão: 96 testes em
+oito classes, sem falhas/erros/ignorados e sem broker. Revisão executável sem findings;
+finding documental corrigido e reconferido, com valores anteriores delimitados como histórico.
+Checkpoint completo: 1.200 testes em 185 classes, zero falhas/erros/ignorados, sem broker.
+COMPLIANT / NOT_REQUIRED: cobertura 87,4%, duplicação 4,3%, 213 issues, nenhuma nova ou grave.
+Data: 2026-09-09T11:39:14.852554-03:00.
+Análise: 2e4040f9-882c-4634-8e86-e3ec246f3728; CE: cefd5805-df18-43ad-a76a-33a565855be2.
+Fingerprint: 9ea895778d29140c6a585525f326bf19296dd5ff1fbdd9f9f1eafe84295d9c64.
+Baseline READY original de 217 issues integralmente preservado, sem reinicialização.
+As seis integrações de 7.1-A não foram repetidas; este ajuste não muda operação no broker.
+
+7.1-B continua em andamento: conectar catálogo e classificação ao caso de uso terminal
+é o próximo recorte. Listeners/8.1 continuam inativos; testes padrão seguem sem emulador.
+Alterações locais preservadas, sem novo staging/commit/push depois de d83b689.
+
+## Evidência anterior — recuperação da política por v1 padrão
+
+Recorte de resolução de políticas concluído em 2026-09-09. Por decisão explícita do usuário,
+uma definição ausente usa v1 padrão, sem QUARENTENA por esse motivo. A definição configurada
+continua tendo precedência, inclusive inativa. Catálogo imutável e producer CDI implementados;
+a política ativa segue destinada a novos inícios. A resolução distingue versão solicitada,
+política efetiva e padrão aplicado. Não escreve propriedades nem altera a mensagem.
+
+Padrões: PT30M, PT3H, PT4H, PT6H (último repetido), PT24H e sem máximo opcional de tentativas.
+O processamento deve usar o prazo recebido, sem recalcular a janela. Configuração inválida
+presente, seleção inválida e versões repetidas continuam falhando na inicialização.
+
+RED comprovado por ausência do catálogo. GREEN/regressão: 89 testes em oito classes, zero
+falhas/erros/ignorados, sem broker. Revisão independente sem findings.
+Checkpoint completo: 1.193 testes em 185 classes, zero falhas/erros/ignorados; COMPLIANT /
+NOT_REQUIRED, cobertura 87,4%, duplicação 4,3%, 213 issues, nenhuma nova ou HIGH/BLOCKER/CRITICAL.
+Data: 2026-09-09T11:15:55.2842506-03:00.
+Análise: 94d5935f-751f-4b82-acab-eb535d017fb4; CE: b2eab3ae-924a-4582-a219-2772bf2e4fb3.
+Fingerprint: feb530374023662d511d1c84f455ac0c44c0fbc7487464463276bd4b930995fb.
+Baseline READY original de 217 issues integralmente preservado, sem reinicialização.
+Testes com broker não executados; as seis integrações anteriores são evidência de 7.1-A.
+
+7.1-B permanece em andamento: próximo recorte é conectar catálogo e classificação ao caso
+de uso terminal, usando o GO vigente. A decisão de versão está resolvida; não perguntar de novo.
+Listeners e 8.1 não foram ativados. Alterações locais, sem novo commit/push após d83b689.
+
+Os registros seguintes preservam o planejamento e as evidências anteriores.
+
+## Decisão humana de recuperação da política ausente — 2026-09-09
+
+O usuário definiu: "vamos evitar a quarantena e dexiar o monitoramento que tinhamos iniciado -
+se a configuração não existe consiguramos uma configuração v1 com valores dadrões".
+Esta decisão substitui a proposta de QUARENTENA por definição ausente. O GO de 7.1 continua
+válido; não solicitar novamente a escolha de versão.
+
+Próximo recorte de 7.1-B: resolução de políticas por versão, com recuperação por v1 padrão.
+Quando a versão recebida estiver configurada, usar essa definição, mesmo inativa. Quando
+ausente, fornecer uma política progressiva v1 interna: PT30M, PT3H, PT4H, PT6H (último
+intervalo repetido), PT24H de duração e máximo de tentativas ausente. Esses padrões são os
+valores atuais de application.properties; não são valores recuperados de uma configuração
+removida. A aplicação deve preservar IDs, tentativa, iniciadoEm, limiteEm e versão recebida,
+usando o limite original ao avaliar continuidade. A recuperação não reinicia as 24 horas.
+A resolução expõe versão solicitada, política efetiva e indicador de padrão aplicado.
+
+Escopo: catálogo imutável no domínio de monitoramento, composto pelo producer CDI existente,
+e provas de resolução, configuração e injeção sem broker. A política ativa continua destinada
+a novas iniciações. Definições presentes inválidas, seleção ativa inválida e versões duplicadas
+falham no bootstrap; recuperação se aplica à versão ausente de uma mensagem válida.
+Sem novas propriedades, logs, DTOs de transporte, SDK, dependências ou mudança do Hub.
+Não ativar listeners nem implementar o agendamento transacional de 8.1 neste recorte.
+A ligação ao caso de uso terminal é o recorte seguinte de 7.1-B, já autorizado pelo GO vigente.
+
+Critérios: versão configurada tem precedência; ausente usa padrões fixos independentemente
+da ativa; os cinco passos da progressão e ausência de teto opcional são demonstrados;
+prazo recebido é respeitado sem mutação da tentativa; versões vazias não viram fallback.
+Provar CDI e rejeição de ambiguidades, mantendo a regressão de configuração inválida.
+
+Arquivos prováveis: CatalogoPoliticasMonitoramento.java e seu teste;
+PoliticaMonitoramentoProducer.java, PoliticasMonitoramentoConfigTest.java e
+PoliticaMonitoramentoProducerTest.java; ADR-0011/índice, arquitetura, guias e tasks.
+Sequência: registrar plano/decisão; RED; GREEN; revisão independente; regressão focada;
+checkpoint completo; atualizar evidência e guia do dev. Baseline READY original conferido
+integralmente preservado, análise f6183a72-a2ea-44bc-9374-b2b064bdad55; não reinicializar.
+Guias oficiais Quarkus Azure Services/Service Bus e Config Mapping reconferidas no stack
+existente. Nenhuma alteração de extensão/configuração Azure entra no recorte.
+
+Risco assumido pela direção humana: sem a definição antiga, não é possível reconstruir
+eventuais intervalos e teto de tentativas personalizados; aplicam-se os padrões declarados.
+O prazo já transportado permanece a autoridade para o monitoramento em curso.
+
+
+## Evidência do recorte de contrato de 7.1-B
+
+Recorte de contrato de 7.1-B concluído em 2026-09-09. As duas bordas de resultado aceitam
+FINALIZADO_CONFORME, FINALIZADO_INCONFORME e PENDENTE_INFORMACA literalmente, preservando
+os três valores anteriores por compatibilidade. A situação calculada é transportada em campo
+independente; o caso de uso ainda não executa a classificação.
+
+RED: três cenários novos rejeitados no produtor, 123 casos no total. GREEN e regressão:
+181 testes em sete classes, zero falhas/erros/ignorados, sem broker. Revisão independente
+sem bloqueadores. Checkpoint completo: 1.175 testes em 184 classes, zero falhas/erros/ignorados,
+sem testes com broker; COMPLIANT / NOT_REQUIRED, cobertura 87,4%, duplicação 4,3%,
+213 issues, nenhuma nova ou HIGH/BLOCKER/CRITICAL.
+
+Checkpoint: 2026-09-09T10:16:03.4607778-03:00.
+Análise: 32307360-2efd-4bea-a5e3-9cf559738ac6; CE: 37d9990a-47fd-407d-b3dd-abf9e64524a5.
+Fingerprint: 365d3b7545e39eb6cad8ace405c3f1f9fbb22c74253efaefed30c308a1744f81.
+Baseline READY original de 217 issues integralmente preservado, sem reinicialização.
+As seis integrações anteriores pertencem à entrega 7.1-A; não foram repetidas neste recorte
+de validação/JSON, que não modifica envio, recebimento ou agendamento no broker.
+
+Código alterado somente nos dois DTOs ResultadoMonitoramentoDossieMtrV1 e no teste
+ResultadoMonitoramentoContratoTest. Configuração/política v1, Hub, dossie, fábrica,
+publishers e listeners preservados. Nenhum novo commit/push após d83b689.
+
+**7.1-B permanece em andamento.** O caso de uso depende da escolha de tratamento para
+versão divergente. A pergunta foi reapresentada; nenhuma alternativa foi escolhida ou
+implementada por suposição. 7.1-C/D e 8.1 permanecem pendentes.
+
+## Retomada de 7.1-B — compatibilidade das situações originais
+
+O usuário solicitou "continuar desenvolvimento" após a publicação de d83b689, em 2026-09-09.
+Retomar somente 7.1-B. A direção humana anterior já informa literalmente
+FINALIZADO_CONFORME -> CONFORME, FINALIZADO_INCONFORME -> INCONFORME e
+PENDENTE_INFORMACA -> INCONFORME, preservando a situação MTR. Usar esses textos exatos,
+sem inferir IDs nem normalizar PENDENTE_INFORMACA. Não é necessária nova autorização
+para a direção já dada; a estratégia de versão divergente permanece sem escolha.
+
+Primeiro recorte independente: permitir esses três nomes originais em CONCLUSIVO nos
+dois DTOs próprios de resultado. Preservar os três valores anteriormente aceitos por
+compatibilidade com a entrega publicada, a exigência de consulta/contador positivo,
+quarentena null/zero, JSON e erros existentes. O mapper continua sem classificar situações.
+
+Arquivos executáveis: os dois ResultadoMonitoramentoDossieMtrV1.java e
+ResultadoMonitoramentoContratoTest.java. RED: acrescentar os três pares informados à
+prova entre produtor/consumidor independentes. GREEN: ampliar somente a validação
+das situações conclusivas. Regressão: contrato, logs, publisher e fronteiras; depois
+checkpoint completo com baseline preservado. Não ativar listener ou agendamento.
+
+Baseline READY original de 217 issues conferido integralmente igual ao final de 7.1-A,
+análise f6183a72-a2ea-44bc-9374-b2b064bdad55. Credencial herdada disponível, sem exposição.
+Fingerprint anterior: 4d1adf3c64b2ac87ac3a8aa89c8a768d70fa8ba11a58fad8f7d92d2400a024a0.
+As guias oficiais Quarkus Azure Services e Service Bus foram reconferidas; extensão 1.2.5,
+builder da extensão e Dev Services permanecem iguais. Nenhum novo serviço Azure entra
+neste recorte. A política/configuração v1 existente permanece preservada.
+
+A pergunta sobre versão foi reapresentada: usar a definição recebida quando configurada
+e quarentena se ausente, ou quarentena para qualquer divergência da ativa. A parte do
+processamento dependente dessa decisão será implementada somente após a resposta.
+Este recorte de contrato não conclui 7.1-B nem representa classificação funcional.
+
+
 ## Preparação documental da entrega até 7.1-A — 2026-09-09
 
 Pedido humano: atualizar o pacote de commit e os guias que o desenvolvedor seguirá.

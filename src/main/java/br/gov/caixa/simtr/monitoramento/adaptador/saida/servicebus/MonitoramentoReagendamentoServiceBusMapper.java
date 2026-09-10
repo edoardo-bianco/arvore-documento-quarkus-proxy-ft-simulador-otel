@@ -16,8 +16,8 @@ import static br.gov.caixa.simtr.monitoramento.adaptador.saida.servicebus.LogErr
  * Valida e serializa a tentativa decidida pelo monitoramento no contrato v1 da fila de entrada.
  *
  * <p>Preserva identificadores, contador, inicio, limite e versao recebidos. Monta somente o
- * JSON e o envelope AMQP; publicacao, agendamento e calculo da proxima tentativa pertencem
- * aos incrementos posteriores. Falhas reconhecidas geram um log JSON sanitizado e uma
+ * JSON e o envelope AMQP; o modelo calcula a proxima tentativa e o adapter executa a
+ * transacao de reagendamento. Falhas reconhecidas geram um log JSON sanitizado e uma
  * excecao local com a mesma identidade, conforme o item 4.1.
  */
 @ApplicationScoped

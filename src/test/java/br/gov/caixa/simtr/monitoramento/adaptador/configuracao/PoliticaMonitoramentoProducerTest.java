@@ -1,6 +1,7 @@
 package br.gov.caixa.simtr.monitoramento.adaptador.configuracao;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -9,6 +10,7 @@ import java.time.Instant;
 
 import org.junit.jupiter.api.Test;
 
+import br.gov.caixa.simtr.monitoramento.dominio.politica.CatalogoPoliticasMonitoramento;
 import br.gov.caixa.simtr.monitoramento.dominio.politica.PoliticaMonitoramento;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.enterprise.inject.Instance;
@@ -23,6 +25,22 @@ class PoliticaMonitoramentoProducerTest {
     @Inject
     PoliticasMonitoramentoConfig config;
 
+    @Inject
+    CatalogoPoliticasMonitoramento catalogo;
+
+    @Test
+    void injetaCatalogoComPoliticaConfiguradaERecuperacaoPadrao() {
+        var configurada = catalogo.resolver("v1");
+        var recuperada = catalogo.resolver("removida");
+
+        assertSame(politicas.get(), configurada.politica());
+        assertFalse(configurada.padraoAplicado());
+        assertTrue(recuperada.padraoAplicado());
+        assertEquals("removida", recuperada.versaoSolicitada());
+        assertEquals("v1", recuperada.politica().versao());
+        assertEquals("v1", politicas.get().versao());
+    }
+
     @Test
     void injetaUmaUnicaPoliticaComValoresDeApplicationProperties() {
         assertTrue(politicas.isResolvable());
@@ -33,7 +51,7 @@ class PoliticaMonitoramentoProducerTest {
         var inicio = Instant.parse("2026-09-06T12:00:00Z");
         var limite = politica.calcularLimite(inicio);
         assertEquals(inicio.plus(Duration.ofHours(24)), limite);
-        assertEquals(new PoliticaMonitoramento.Decisao.Reagendar(101, Duration.ofHours(6)),
+        assertEquals(new PoliticaMonitoramento.Decisao.Reagendar(101, Duration.ofMinutes(30)),
                 politica.avaliarTentativaNaoConclusiva(100, inicio, limite));
     }
 }

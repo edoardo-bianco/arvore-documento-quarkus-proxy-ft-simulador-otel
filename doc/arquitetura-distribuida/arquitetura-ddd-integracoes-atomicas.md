@@ -193,6 +193,19 @@ A classe produtora usa `@Startup` e valida no construtor com injeção da config
 O método `@Produces @Singleton` fornece a política já validada; o bootstrap não depende da
 existência de um consumidor que a injete.
 
+O producer também fornece `CatalogoPoliticasMonitoramento`, imutável e indexado por versão.
+A definição recebida tem precedência, inclusive inativa; versões repetidas falham no bootstrap.
+Na ausência da definição, o catálogo resolve para v1 interna com intervalo único PT30M,
+repetido até o prazo, duração PT24H e máximo de tentativas ausente. A configuração padrão
+em application.properties também usa PT30M. A resolução não altera propriedades ou seleção ativa. A resolução expõe versão solicitada, política efetiva e indicador de padrão aplicado.
+
+A recuperação por valores padrão está definida no
+[ADR-0011](../adr/0011-composicao-local-monitoramento-e-fabrica-service-bus.md).
+Não produz quarentena por ausência de versão. O chamador preserva os dados da tentativa e
+usa o prazo recebido; os padrões não reabrem uma janela de 24 horas. Configuração presente
+inválida continua rejeitada. O catálogo e sua composição CDI estão implementados e testados;
+o caso de uso de processamento resolve e aplica esse catálogo em 7.1-B.
+
 Os intervalos são ordenados e o último se repete; lista unitária produz intervalo fixo. Máximo de
 tentativas é opcional e duração máxima é obrigatória. A política não usa `DeliveryCount`.
 Quarkus reativo/Mutiny e CDI continuam permitidos no domínio e na aplicação; SDK e contratos de
@@ -201,7 +214,8 @@ borda não migram para o núcleo por essa permissão.
 A extensão Quarkus Azure Service Bus e o Dev Services são exercitados em integração explícita
 nas duas filas e no caminho REST → publicação inicial. O emulador conserva
 `src/main/azure/servicebus-emulator/config.json`. O endpoint e a preparação local pela ACL já
-funcionam; listeners e processamento das filas permanecem pendentes. O restante está no
+funcionam; o processamento por porta e o listener da entrada estão implementados, com consumo
+iniciado somente de forma explícita. O restante está no
 [plano da feature](../../tasks/features/orquestrador-monitoramento-service-bus/plan.md).
 
 ### Monitoramento: consultas implementadas
@@ -230,15 +244,18 @@ O resultado `SituacaoDossieConsultada(Integer id, String nome)` preserva id, inc
 e nome original não vazio; não transporta data/matrícula nem normaliza ou classifica a
 situação. Resposta/situação ausente ou nome vazio falha explicitamente. Falhas locais têm
 texto fixo sem o valor rejeitado; falhas do Hub seguem pelo mesmo `Uni`, sem nova interpretação.
-O mapeamento entre id/nome do Hub e estados conclusivos precisa ser confirmado antes do
-processamento terminal; as consultas prontas não resolvem essa regra.
+Os nomes originais informados pelo usuário já são aceitos nas duas bordas de resultado,
+sem normalização ou IDs inventados. As consultas prontas e essa validação não executam
+a classificação terminal, que pertence ao caso de uso de processamento implementado em 7.1-B.
 
 ### Fluxo aprovado das duas filas
 
 Os componentes novos são `orquestrador` e `monitoramento`; `br.gov.caixa.simtr.dossie`
 e o Hub permanecem preservados. O orquestrador já publica a primeira tentativa na fila de entrada. O listener do
-monitoramento acionará a aplicação/política para consultar as fontes, decidir no-op,
-reagendar na entrada ou publicar resultado terminal/quarentena na saída. O listener do
+monitoramento, iniciado explicitamente, aciona a aplicação/política para consultar as fontes,
+decidir no-op, reagendar na entrada ou publicar resultado terminal/quarentena na saída.
+O reagendamento e o Complete da entrega atual compartilham a transação da mesma fila.
+O listener do
 orquestrador consumirá a saída e concluirá o demonstrador após o log do resultado.
 
 A autenticação aprovada é connection string/SAS externa nos ambientes reais e connection string
@@ -247,8 +264,9 @@ Azure Service Bus; a fábrica técnica do ADR-0011 já cria os quatro clientes c
 Entra ID/SDK direto do ADR-0009 são históricos. O
 [guia Service Bus](../guias/guia-service-bus-amqp-dossie.md) detalha fluxo, critérios,
 contratos e configuração. O trecho inicial REST → entrada está funcional; o diagrama do fluxo
-completo não implica que listeners e processamento estejam prontos. O publisher de resultado
-foi implementado em 7.1-A; ainda não há caso de uso de processamento conectado a ele.
+completo inclui o consumo da saída ainda pendente. O publisher de resultado
+foi implementado em 7.1-A, é acionado pelo caso de uso de 7.1-B e pelo listener de 7.1-C;
+a integração terminal local foi verificada em 7.1-D.
 
 ### Orquestrador: iniciação REST e publicação inicial implementadas
 
@@ -283,8 +301,9 @@ Somente `ClientesServiceBus` injeta/configura o builder da extensão. Cria sende
 assíncronos duradouros das duas filas, com qualifiers `FilaEntrada`/`FilaSaida`; os receivers
 usam `PEEK_LOCK` e auto-complete desabilitado. Não inicia consumo ao criar os clientes.
 A fábrica fecha todos em ordem inversa, inclusive após falha parcial, sem repetir fechamento.
-O observer de shutdown usa `PLATFORM_AFTER`; futuros listeners devem cancelar suas assinaturas
-antes dele. `@PreDestroy` usa a mesma rotina idempotente.
+O observer de shutdown usa `PLATFORM_AFTER`; o listener da entrada cancela sua assinatura
+em `PLATFORM_BEFORE`. O futuro listener da saída deve preservar essa ordem.
+`@PreDestroy` usa a mesma rotina idempotente.
 
 A fábrica acompanha a ativação da extensão por `IfBuildProperty` e exige connection string,
 fornecida por Dev Services ou pelo ambiente externo. O publisher resolve o cliente qualificado
@@ -348,8 +367,11 @@ em cada borda. O consumidor diferencia parsing, envelope e contrato; o produtor 
 contrato e serialização. Logs incluem somente diagnóstico sanitizado e trace válido.
 A validação local das duas bordas admite `situacaoMtr` nula e contador zero em QUARENTENA
 antes de consulta. Contadores negativos são rejeitados; CONCLUSIVO exige pelo menos uma
-tentativa e situação MTR CONFORME, NAO_CONFORME ou PENDENTE_INFORMACAO. A propriedade
-auxiliar de validação não integra o JSON. O mapper não recalcula nem persiste as situações.
+tentativa e aceita os nomes originais FINALIZADO_CONFORME, FINALIZADO_INCONFORME e
+PENDENTE_INFORMACA, preservados literalmente. CONFORME, NAO_CONFORME e PENDENTE_INFORMACAO
+continuam aceitos por compatibilidade com o contrato publicado. A propriedade auxiliar
+de validação não integra o JSON. O mapper não recalcula nem persiste as situações; a
+classificação funcional é executada pelo caso de uso de 7.1-B.
 
 Os guardrails agora verificam isolamento de DTOs por componente/borda, domínio sem dependência
 de aplicação, portas de entrada sem acesso a implementações/portas de saída e ACLs limitadas
@@ -369,15 +391,122 @@ Testes sem broker cobrem confirmação, falhas e composição CDI. Dois casos de
 explícita provam a publicação de resultado conclusivo/quarentena e a leitura pelo contrato
 independente do orquestrador. Nessa prova, Complete ocorre antes do cancelamento da
 assinatura de recebimento. A evidência não representa processamento completo nem
-atomicidade entre publicar a saída e concluir a entrada. O caso de uso e os listeners
-continuam pendentes; ver [continuidade de 7.1](../../tasks/features/orquestrador-monitoramento-service-bus/continuidade-7-1.md).
+atomicidade entre publicar a saída e concluir a entrada. O caso de uso está conectado por
+CDI em 7.1-B e o listener da entrada em 7.1-C, sem início automático. Ver [continuidade de 7.1](../../tasks/features/orquestrador-monitoramento-service-bus/continuidade-7-1.md).
+
+### Caso de uso de processamento implementado em 7.1-B
+
+A porta ProcessarTentativaMonitoramento recebe a tentativa e inputSequenceNumber escalar.
+O caso de uso consulta a pré-validação primeiro; fora de EM_ANALISE_ENVIO_MTR devolve Ignorar.
+Se elegível, resolve a versão recebida e verifica o prazo original e a quantidade já realizada
+(tentativaAtual - 1), sem consultar o Hub quando esgotados. A consulta de limites aceita zero;
+max-tentativas=1 permite a primeira consulta e encerra após ela se não conclusiva.
+
+O Hub é classificado pelos nomes exatos: FINALIZADO_CONFORME -> CONFORME,
+FINALIZADO_INCONFORME -> INCONFORME e PENDENTE_INFORMACA -> INCONFORME.
+O resultado preserva a situação MTR, IDs, início e sequência; situação calculada não comprova
+persistência. Uma consulta iniciada no prazo pode concluir terminal após o prazo.
+Para resposta não conclusiva, o caso de uso relê o relógio e verifica prazo/contador novamente.
+
+DecisaoProcessamento distingue Ignorar, ResultadoPublicado e ReagendamentoPendente.
+ResultadoPublicado só é emitido após a confirmação da porta de publicação. Quarentena anterior
+ao Hub usa contador anterior e MTR ausente; posterior ao Hub usa tentativaAtual e MTR consultado.
+O motivo é PRAZO_MAXIMO ou MAXIMO_TENTATIVAS; falta de versão continua usando v1 padrão.
+O Uni é adiado e memorizado por invocação; falhas propagam sem retry adicional.
+
+ReagendamentoPendente contém a tentativa original, contador/intervalo calculados e instante
+da avaliação. PoliticaAplicada registra versões solicitada/efetiva e indicador de padrão,
+sem transportar a estratégia executável. Essa decisão não agenda nem conclui entregas.
+ReagendamentoMonitoramento transforma a decisão em próxima tentativa e horário limitado
+ao prazo original. O listener associa a entrega ao adapter transacional, mantendo o SDK na borda.
+O consumo da saída permanece pendente.
+
+### Listener da entrada implementado em 7.1-C
+
+MonitoramentoEntradaListener é um bean CDI com início explícito por iniciar(), sem consumo
+automático no startup. Usa o receiver FilaEntrada da fábrica em PEEK_LOCK, sem auto-complete
+e com prefetchCount(0). concatMap com prefetch zero processa uma entrega por vez e aguarda
+o settlement antes de solicitar a próxima. SDK e handles permanecem na borda.
+
+Ignorar registra a decisão e executa Complete. ResultadoPublicado executa Complete após
+a confirmação da publicação pelo caso de uso. Contrato inválido identificado pelo mapper
+gera DeadLetter com motivo/descrição fixos e opções próprias por entrega. Falha técnica
+anterior ao settlement gera Abandon. Falha de qualquer settlement encerra a assinatura;
+não há segunda tentativa de liquidação nem reinício automático.
+
+ReagendamentoPendente executa a porta associada à entrega atual. O commit confirma o
+agendamento e o Complete juntos; não existe Complete simples adicional nesse ramo.
+O consumo geral permanece com início explícito.
+O listener admite uma única inicialização e cancela sua assinatura idempotentemente no
+shutdown, antes da fábrica fechar os clientes. O cancelamento é best effort: interromper
+a cadeia local não comprova a interrupção de uma publicação remota já iniciada.
+
+Logs mínimos usam os eventos aprovados de decisão, falha de processamento e settlement,
+com campos locais constantes, sem corpo, identificadores externos ou Throwable. Propagação
+e caracterização completa do SDK permanecem em 10.1. Testes sem broker cobrem ordem,
+falhas, concorrência de lifecycle, inatividade automática e JSON sanitizado. A integração
+terminal com emulador foi verificada em 7.1-D. Publicação da saída e Complete ainda não são atômicos.
+
+### Reagendamento transacional implementado em 8.1
+
+ReagendamentoMonitoramento preserva IDs, iniciadoEm, limiteEm e versão recebida ao construir
+a próxima tentativa. O horário é o menor entre processadoEm + intervalo e limiteEm, comparando
+a duração restante antes de somar. A entrega no prazo publica QUARENTENA/PRAZO_MAXIMO sem
+nova consulta ao Hub. max-tentativas, quando configurado, também encerra sem novo agendamento;
+o maior inteiro representável é verificado antes do incremento. O padrão mantém PT30M/PT24H
+sem teto operacional configurado. Resultado conclusivo da última consulta continua conclusivo.
+
+MonitoramentoReagendamentoAdapter não guarda entrega no singleton. associar(receiver, mensagem)
+devolve uma implementação local de ReagendarTentativaMonitoramento com handles capturados
+somente na borda. Serializa pelo mapper próprio antes de abrir transação; o receiver cria
+o contexto, o sender FilaEntrada agenda e o mesmo receiver executa Complete com esse contexto.
+Falhas antes do commit tentam rollback; falha de commit não tenta rollback nem outra liquidação.
+Qualquer falha transacional encerra a assinatura, mantendo recuperação/redelivery a cargo do broker.
+
+Cada invocação compartilha o mesmo CompletableFuture, com a espera fora da memorização.
+Cancelar alcança a operação pendente do SDK e uma nova assinatura não repete a transação.
+Assinantes da mesma invocação compartilham o cancelamento. Na fronteira do commit, cancelar
+a espera não prova reversão remota; não há rollback ou Complete/Abandon adicional.
+
+A prova no emulador valida commit, rollback com nova entrega e ausência de ativação posterior,
+além da perda controlada de confirmação local após commit real. Não simula falha real de rede.
+As verificações de efeitos usam peek com cursor explícito antes de cancelar a assinatura.
+Uma mensagem agendada ganha nova sequência ao ser ativada; rollback não promete incremento
+de DeliveryCount. O fluxo CDI real também verifica progressão/repetição, teto e prazo original.
+A suíte padrão continua sem broker. Azure gerenciado e consumo da saída permanecem pendentes.
+
+### Integração terminal verificada em 7.1-D
+
+A prova opt-in do emulador percorre REST → publicação da entrada → listener CDI iniciado
+explicitamente → caso de uso/catálogo → ACL → publicação da saída. A pré-validação usa
+o simulador existente habilitado apenas no profile do teste; somente a porta pública
+ConsultarDossieProduto é controlada para fornecer os três nomes originais, sem IDs inventados.
+O resultado é lido e validado pelo mapper independente do orquestrador.
+
+Os cenários também verificam no-op, prazo recebido expirado, versão removida com recuperação
+v1, política inativa com max=1, falha transitória com Abandon/redelivery e contrato inválido
+na DLQ. IDs, situação MTR, contador funcional e sequência da entrada são preservados.
+A prova de redelivery mantém a segunda consulta pendente para conferir mesma sequência/corpo,
+crescimento de DeliveryCount e ausência de saída antecipada; só então libera a resposta terminal.
+
+Cada cenário começa com filas do emulador vazias, usa identidades próprias e destrói apenas
+o listener contextual ao terminar. Peek com sequência explícita comprova a remoção da entrada
+sem confundir avanço de cursor com settlement. O teste conclui saída/DLQ antes de cancelar
+a recepção. O profile reaproveita a proteção de configuração externa de C2-R1.
+Nenhum caminho de produção foi alterado para realizar esta prova.
+
+Essa evidência local não valida Azure gerenciado, perda de conexão durante publicação,
+atomicidade entre output/Complete ou consumo da saída de 9.1.
+A prova adicional do reagendamento de 8.1 está descrita acima.
+A aplicação continua sem início automático do listener; o dev escolhe emulador ou Azure,
+e a suíte padrão permanece sem broker. Execuções e checkpoint ficam nas tasks da feature.
 
 ### Estrutura inativa de orquestrador e monitoramento
 
 Os packages definitivos também contêm a representação antecipada das capacidades planejadas:
-11 portas de aplicação (sete com implementação conectada), dois records independentes de
-parâmetros iniciais funcionais e oito classes ainda pendentes. Modelos de decisão, casos de uso
-e adapters futuros possuem Javadoc com
+11 portas de aplicação (nove conectadas, incluindo a porta de reagendamento associada por
+entrega), parâmetros iniciais, decisão e modelo de reagendamento funcionais e três classes
+ainda pendentes. O caso de uso e os adapters da saída do orquestrador possuem Javadoc com
 responsabilidade e dependências previstas. As classes pendentes usam `@Vetoed`; não são beans,
 não expõem endpoint e não executam operações. Referências `@see` descrevem ligações previstas,
 sem constituir injeção ou implementação de interface.

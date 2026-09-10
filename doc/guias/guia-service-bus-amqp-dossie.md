@@ -6,31 +6,38 @@
 Política/configuração CDI, consultas de pré-validação/Hub, contratos/mappers e logs de erro
 já estavam prontos. Agora também funcionam parâmetros pela ACL, fábrica de clientes, iniciação
 e publisher inicial. Em 7.1-A foi implementado o publisher de resultado na saída.
-Listeners, processamento, reagendamento e consumo do resultado continuam pendentes.
+O caso de uso de processamento está implementado em 7.1-B e o listener da entrada em 7.1-C,
+com início explícito. A 8.1 conecta o reagendamento transacional e foi exercitada com o fluxo
+até conclusão, teto ou prazo original. O consumo do resultado continua pendente.
 
 | Parte | Estado atual | O que a evidência comprova |
 |---|---|---|
 | Extensão Azure Service Bus e Dev Services | Implementados | Builder CDI e envio/recebimento/Complete nas duas filas em teste de infraestrutura |
-| Política progressiva e seleção por configuração | Implementadas | Intervalos, limites, versão e rejeição de configuração inválida no bootstrap |
+| Política progressiva, configuração e catálogo por versão | Implementados | Intervalos, limites, resolução da versão recebida com v1 padrão se ausente e rejeição de configuração inválida/ambígua |
 | REST e publicação inicial | Implementados em 6.1 | Validação, parâmetros pela política, IDs no servidor e `202` somente após confirmação da publicação |
-| Reagendamento | Mapper e erro implementados | JSON/envelope compatíveis com a entrada; não agenda nem incrementa tentativa |
-| Resultado | Modelos, DTOs, mappers, erros e publisher implementados | Compatibilidade entre bordas, validação e publicação confirmada de conclusivo/quarentena; sem processamento conectado |
+| Reagendamento | Implementado em 8.1 | Próxima tentativa dentro do prazo original; schedule + Complete na mesma transação e preservação de IDs/versão |
+| Resultado | Modelos, DTOs, mappers, erros e publisher implementados | Compatibilidade entre bordas, validação e publicação confirmada de conclusivo/quarentena, acionada pelo caso de uso de 7.1-B |
 | Logging técnico e fronteiras | Implementados | Campos JSON tipados, diagnóstico seguro, isolamento de bordas e ACLs |
 | Consultas de 5.1 | Implementadas e injetáveis | Mock com ativação explícita, DTO/mapper próprios e ACL pela porta pública do Hub; resultados mínimos e falhas verificados |
 | Clientes Service Bus | Implementados em 6.1 | Quatro clientes duradouros, qualifiers por fila e fechamento completo/idempotente |
-| Conexões restantes | 7.1 em andamento | Das 11 portas, sete têm implementação conectada; dois records de parâmetros funcionais e oito esqueletos inativos |
+| Conexões restantes | 8.1 implementada | Das 11 portas, nove estão conectadas (reagendamento por entrega); três esqueletos da saída permanecem inativos |
 
-A referência atual está na [continuidade de 7.1](../../tasks/features/orquestrador-monitoramento-service-bus/continuidade-7-1.md):
-**1.172 testes padrão aprovados**, cobertura **87,4%**, duplicação **4,3%** e seis testes
-explícitos de integração aprovados. Após ContinuarAjustes e correção do teste, o checkpoint
-está **COMPLIANT / NOT_REQUIRED**, sem issues novas ou HIGH/BLOCKER/CRITICAL. A execução
-padrão permanece sem broker; o fluxo completo e o ambiente Azure real ainda não foram verificados.
+As evidências da suíte padrão sem broker e do checkpoint vigente estão na
+[continuidade de 8.1](../../tasks/features/orquestrador-monitoramento-service-bus/continuidade-8-1.md).
+7.1-B conecta contrato, catálogo e portas no caso de uso: no-op, limites, classificação literal,
+publicação confirmada e intenção de reagendamento. 7.1-C acrescenta listener CDI com início
+explícito, settlement serial, falhas sem segunda liquidação e shutdown antes da fábrica.
+7.1-D acrescenta nove cenários terminais com emulador; o perfil completo passou com 15 testes,
+incluindo as seis provas anteriores. Somente a porta pública do Hub é controlada nesses nove
+cenários. A 8.1 acrescenta provas de transação, progressão/repetição, máximo de tentativas e
+prazo original com fallback v1, elevando o total a 21 integrações em cinco classes.
+Fluxo com consumo/log da saída e Azure gerenciado ainda não foram verificados.
 
-**C2 foi aceito em 2026-09-09; 7.1-A está concluída e 7.1-B é a próxima subfatia.**
+**C2 foi aceito e 8.1 foi concluída tecnicamente. O próximo item funcional é 9.1, ainda pendente.**
 Para assumir o trabalho, começar pelo
 [roteiro do desenvolvedor](../../tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md#roteiro-para-assumir-a-entrega).
 O [pacote de commit](../../tasks/features/orquestrador-monitoramento-service-bus/pacote-commit.md)
-descreve a entrega parcial até 7.1-A. Sua preparação documental não representa commit ou push.
+descreve os 42 arquivos de 7.1-B/C/D e 8.1 desde d83b689. A preparação do índice não representa commit ou push.
 
 ## Escopo e decisões vigentes
 
@@ -95,14 +102,14 @@ flowchart LR
         ORQ -->|"porta + ACL de parâmetros pronta (6.1)"| MON
         MON -->|"porta + ACL de consulta pronta (5.1)"| HUB
         ORQ -->|"publisher da entrada pronto (6.1)"| SB
-        MON -. "somente adapters Service Bus" .-> SB
+        MON -->|"publisher da saída e listener com início explícito"| SB
         ORQ -->|"logs novos das bordas"| OBS
         MON -->|"logs novos das bordas"| OBS
     end
 ```
 
-As setas pontilhadas são conexões aprovadas ainda não implementadas. O fluxo assíncrono pelas
-duas filas está no diagrama seguinte; a colaboração local não substitui esse fluxo.
+O diagrama mostra as conexões locais implementadas. O fluxo assíncrono pelas duas filas está
+no diagrama seguinte; a colaboração local não substitui esse fluxo nem ativa o listener.
 
 ### Hexagonal pragmática e contratos por borda
 
@@ -150,9 +157,10 @@ inválido, zero e overflow antes de chamar o Hub. A seleção MTR/simulador perm
 
 O retorno é `SituacaoDossieConsultada(Integer id, String nome)`: preserva id, inclusive
 nulo, e nome original não vazio, sem normalizar ou transportar data, matrícula ou objeto
-completo do Hub. A fixture existente `4324680` retorna `1 / Rascunho`. **Ainda falta confirmar
-a tabela oficial de id/nome para os estados conclusivos antes de 7.1.** Uma situação
-desconhecida é preservada; não se inventa classificação.
+completo do Hub. A fixture existente `4324680` retorna `1 / Rascunho`; não fornece IDs
+para os nomes conclusivos informados. Esses nomes já são aceitos literalmente no contrato
+de resultado. A ACL preserva situações desconhecidas; a classificação do caso de uso
+continua pendente e não é inferida da fixture.
 
 Pelo ADR-0004, o simulador possui `PreValidacaoSimuladaDto` e
 `PreValidacaoSimuladaMapper` próprios. Sua porta retorna
@@ -182,7 +190,7 @@ pré-validação produz falha, distinta de situação não elegível; resposta/s
 ausente ou nome vazio também falha. Não há retorno fictício, retry ou log adicional.
 Falhas locais usam mensagens fixas sem o valor rejeitado; falhas do Hub seguem pelo mesmo
 fluxo assíncrono, preservando o comportamento existente. Classificação de erro e settlement
-serão tratados na borda consumidora de 7.1.
+são tratados na borda consumidora implementada em 7.1-C, com início explícito.
 
 Esses detalhes foram aprovados no [C5.1](../../tasks/features/orquestrador-monitoramento-service-bus/preparacao-consultas-5-1.md).
 Os 70 testes novos cobrem comportamento e CDI; as seis classes implementadas têm 100% das
@@ -213,16 +221,16 @@ reagendamento, validação, DTO ou settlement. Essas responsabilidades continuam
 
 ## Fluxo completo a implementar
 
-O diagrama representa o fluxo aprovado. O trecho REST → iniciação → publicação na entrada
-já funciona. As consultas também estão implementadas, mas sua coordenação pelo processamento,
-os listeners e os efeitos na saída/reagendamento continuam pendentes.
+O diagrama representa o fluxo aprovado. REST, iniciação, publicações, consultas, processamento
+e listener da entrada estão implementados; o listener exige início explícito. Integração
+terminal no emulador está verificada em 7.1-D; a 8.1 conecta reagendamento. Consumo/log da saída continuam pendentes.
 
 ```mermaid
 flowchart TD
     REST["POST REST: orquestrador"] --> INICIAR["IniciarMonitoramentoUseCase"]
     INICIAR --> PUBIN["MonitoramentoEntradaPublisher"]
     PUBIN --> QIN[("q.prevalidacao.monitoramento-mtr.in")]
-    QIN --> LIN["MonitoramentoEntradaListener"]
+    QIN --> LIN["MonitoramentoEntradaListener: início explícito"]
     LIN --> PROCESSAR["ProcessarTentativaMonitoramentoUseCase"]
     PROCESSAR --> PRE["Consultar pré-validação simulada"]
     PRE --> ELEGIVEL{"EM_ANALISE_ENVIO_MTR?"}
@@ -233,7 +241,7 @@ flowchart TD
     HUB --> CONCLUSIVO{"Situação conclusiva?"}
     CONCLUSIVO -->|Não| POLITICA["Política calcula próxima tentativa e intervalo"]
     POLITICA --> REAGENDAR["MonitoramentoReagendamentoAdapter"]
-    REAGENDAR -->|"Agendar próxima e concluir atual na mesma transação a comprovar"| QIN
+    REAGENDAR -->|"Agendar próxima e concluir atual na mesma transação"| QIN
     CONCLUSIVO -->|Sim| RESULTADO["Calcular resultado terminal"]
     RESULTADO --> PUBOUT["MonitoramentoResultadoPublisher"]
     QUARENTENA --> PUBOUT
@@ -248,8 +256,10 @@ flowchart TD
 O listener inicia o processamento pela porta de entrada. A aplicação do monitoramento coordena
 as consultas e a política; o listener não passa a ser dono das regras de negócio. A decisão
 semântica orienta os efeitos das portas de saída. Serialização, clientes e settlement ficam
-nos adapters. A coordenação da mesma entrega com a transação de reagendamento ainda será
-detalhada antes de 8.1, conforme [ADR-0011](../adr/0011-composicao-local-monitoramento-e-fabrica-service-bus.md).
+nos adapters. Em 8.1, o listener chama associar(receiver, mensagem) no adapter sem estado;
+a porta devolvida captura os handles somente na borda. O domínio fornece próxima tentativa
+e horário, sem SDK ou contexto transacional. A fábrica do [ADR-0011](../adr/0011-composicao-local-monitoramento-e-fabrica-service-bus.md)
+continua dona dos clientes.
 
 ### Quem escreve e quem lê
 
@@ -270,10 +280,10 @@ estão conectadas; os demais caminhos funcionais permanecem pendentes.
 |---|---|---|
 | Iniciar | `MonitoramentoDossieResource` → `IniciarMonitoramento.executar` → `IniciarMonitoramentoUseCase` | 6.1 implementado |
 | Publicar entrada | `PublicarTentativaMonitoramento.executar` → `MonitoramentoEntradaPublisher` → mapper próprio → sender da entrada | 6.1 implementado |
-| Consumir entrada | `MonitoramentoEntradaListener` → mapper de entrada → `ProcessarTentativaMonitoramento.executar` → caso de uso | 7.1/8.1 |
+| Consumir entrada | `MonitoramentoEntradaListener` → mapper de entrada → `ProcessarTentativaMonitoramento.executar` → caso de uso | Implementado; início explícito e reagendamento conectado em 8.1 |
 | Consultar fontes | `ConsultarPreValidacao` → `PreValidacaoSimuladaAdapter`; `ConsultarSituacaoDossie` → `SituacaoDossieHubAcl` → porta pública `ConsultarDossieProduto` | 5.1 implementado |
-| Reagendar | Caso de uso/política → `ReagendarTentativaMonitoramento.executar` → `MonitoramentoReagendamentoAdapter` → mapper próprio → fila de entrada | 8.1 |
-| Publicar resultado | `PublicarResultadoMonitoramento.executar` → `MonitoramentoResultadoPublisher` → mapper próprio → fila de saída | Publisher implementado em 7.1-A; caso de uso pendente |
+| Reagendar | Decisão da política → modelo limita horário → listener associa entrega → porta no adapter → mapper próprio → fila de entrada | Implementado em 8.1; schedule + Complete com commit confirmado |
+| Publicar resultado | `PublicarResultadoMonitoramento.executar` → `MonitoramentoResultadoPublisher` → mapper próprio → fila de saída | Publisher implementado em 7.1-A e acionado pelo caso de uso de 7.1-B |
 | Consumir resultado | `MonitoramentoResultadoListener` → mapper próprio → `ReceberResultadoMonitoramento.executar` → caso de uso | 9.1 |
 | Finalizar recorte | `RegistrarResultadoMonitoramento.executar` → `ResultadoMonitoramentoLogAdapter` → conclusão da saída pelo listener | 9.1 |
 
@@ -284,22 +294,25 @@ lifecycle dos clientes da extensão; não contém política, DTO de negócio ou 
 
 ## Critérios de monitoramento
 
-A ordem abaixo corresponde à estratégia do plano; a coordenação funcional será implementada
-em 7.1/8.1. A política de intervalos/prazo já existe, mas não consulta as fontes nem publica.
+A coordenação funcional abaixo está implementada no caso de uso de 7.1-B.
+A política calcula limites/intervalos; o caso de uso consulta e publica pelas portas.
+Registro do no-op e settlement estão implementados em 7.1-C. Agendamento efetivo está conectado em 8.1;
+a intenção pendente encerra a assinatura atual sem settlement, mantendo o consumo geral inativo.
 
 | Condição, na ordem de avaliação | Comportamento esperado |
 |---|---|
-| Envelope/JSON inválido | Classificar e registrar erro; a borda futura decide DeadLetter conforme falha permanente |
+| Envelope/JSON inválido | Mapper registra erro de contrato; listener executa DeadLetter com motivo/descrição fixos |
 | Pré-validação diferente de `EM_ANALISE_ENVIO_MTR` | Registrar no-op e concluir a entrada; não consultar MTR, reagendar ou produzir novo resultado |
 | Prazo ou máximo de tentativas atingido | Calcular `QUARENTENA`, publicar resultado e concluir entrada após confirmação |
-| Situação do Hub conclusiva conforme a direção humana de 2026-09-09 | Resultado terminal preserva `situacaoMtr` e calcula `situacaoPreValidacao` separadamente; grafias e validação devem ser fechadas em 7.1-B |
-| Outra situação do MTR, ainda dentro dos limites | Calcular próxima tentativa e intervalo; reagendar na fila de entrada |
+| Situação do Hub conclusiva conforme a direção humana de 2026-09-09 | Resultado terminal preserva `situacaoMtr` e calcula `situacaoPreValidacao` separadamente; contrato e classificação funcional de 7.1-B usam os nomes originais |
+| Outra situação do MTR, ainda dentro dos limites | Calcular próxima tentativa/intervalo; limitar horário ao prazo original e executar a transação de reagendamento |
 | Falha técnica recuperável | Propagar/classificar falha para Abandon/redelivery; não incrementar tentativa funcional |
 
 A [tabela informada pelo usuário e a diferença para o contrato atual](../../tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md#situações-informadas-e-diferença-para-o-contrato-atual)
 orientam 7.1-B: FINALIZADO_CONFORME → CONFORME, FINALIZADO_INCONFORME → INCONFORME e
-PENDENTE_INFORMACA → INCONFORME, preservando a situação MTR. As confirmações de grafia
-registradas no plano permanecem pendentes. Não inferir IDs numéricos a partir da fixture.
+PENDENTE_INFORMACA → INCONFORME, preservando a situação MTR. As duas bordas já aceitam
+esses nomes exatos por direção humana, sem corrigir grafias nem inferir IDs numéricos.
+Os valores anteriormente publicados continuam aceitos por compatibilidade.
 
 `QUARENTENA` é resultado funcional na saída. DLQ é tratamento técnico de uma entrega e não
 substitui a quarentena. Esta feature não persiste a situação da pré-validação: ela é calculada
@@ -308,21 +321,39 @@ workflow durável.
 
 A [política implementada](../../src/main/java/br/gov/caixa/simtr/monitoramento/dominio/politica/PoliticaMonitoramentoProgressiva.java)
 usa intervalos ordenados; após a lista, repete o último. Lista unitária equivale a intervalo
-fixo. A configuração atual é `PT30M,PT3H,PT4H,PT6H`, duração máxima `PT24H`, versão
+fixo. A configuração padrão atual é `PT30M`, duração máxima `PT24H`, versão
 `v1` e máximo de tentativas opcional, ausente por padrão. O prazo encerra quando o instante
 de processamento é igual ou posterior a `limiteEm`; tem precedência sobre o máximo de
-tentativas. A política fornece a próxima tentativa e o intervalo, não agenda a mensagem.
+tentativas. Uma lista configurada como `PT3H,PT4H,PT6H` produz esperas de 3 h, 4 h, 6 h
+e repete 6 h enquanto o monitoramento estiver dentro do prazo. São intervalos entre tentativas,
+não horários desde o início. A ausência de teto por contagem vale para o padrão;
+`max-tentativas` permanece disponível para outras configurações. A política fornece a próxima
+tentativa e o intervalo, não agenda a mensagem.
 Todas as definições são validadas no bootstrap, inclusive as não selecionadas; o producer
 entrega a instância escolhida por nome. A [configuração v1 e seus arquivos](../../tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md#configuração-v1-já-implementada)
-estão prontos desde 4.1. Não há ainda resolução automática da política por versão da mensagem.
+estão prontos desde 4.1. A resolução por versão da mensagem está conectada ao caso de uso em 7.1-B.
 
 No início, o orquestrador gera IDs e `iniciadoEm` no servidor. Antes de publicar, obtém
 `limiteEm` e `politicaMonitoramentoVersao` por `ObterParametrosMonitoramento` →
 `ParametrosMonitoramentoAcl` → `PrepararMonitoramento`. Essa colaboração síncrona calcula
 parâmetros em memória; não substitui a fila para processar tentativas.
-Reagendamentos preservam instante inicial, prazo, versão e IDs. Uma versão antiga de política
-não pode ser trocada silenciosamente pela seleção atual; seu tratamento ainda será detalhado
-antes de 7.1/8.1. `DeliveryCount` não é `tentativaAtual`.
+Reagendamentos preservam instante inicial, prazo, versão e IDs.
+`CatalogoPoliticasMonitoramento` resolve a definição da versão recebida, inclusive inativa.
+Se ausente, fornece v1 padrão em memória: PT30M repetido, PT24H e máximo de tentativas ausente. Não gera QUARENTENA por falta de definição.
+A seleção ativa e as propriedades permanecem iguais; novos monitoramentos usam a ativa.
+
+A resolução diferencia versão solicitada, política efetiva e padrão aplicado. O caso de uso
+avalia a política com o limite recebido, preservando a versão e sem reiniciar as 24 horas.
+Definições presentes inválidas, seleção ativa inválida e versões duplicadas falham no bootstrap.
+O catálogo, a composição CDI e sua conexão ao caso de uso estão implementados.
+Antes da consulta são contadas as tentativas anteriores; após resposta não conclusiva, a atual.
+max-tentativas=1 permite uma consulta. Prazo tem precedência sobre contagem no encerramento;
+resposta conclusiva de consulta iniciada no prazo prevalece sobre expiração durante a consulta.
+O próximo horário é min(processadoEm + intervalo, limiteEm). A entrega no prazo original
+publica QUARENTENA/PRAZO_MAXIMO sem nova consulta. O teto de tentativas e o maior inteiro
+representável são verificados antes do incremento; o padrão segue sem teto operacional configurado.
+`DeliveryCount` não é `tentativaAtual`; rollback não promete seu incremento.
+Ver [ADR-0011](../adr/0011-composicao-local-monitoramento-e-fabrica-service-bus.md).
 
 ## Contratos de borda
 
@@ -384,12 +415,14 @@ do adapter futuro de reagendamento.
 
 Os modelos, DTOs e mappers independentes das duas bordas de resultado estão **implementados
 e verificados em 4.1**. O produtor serializa e monta o envelope; o consumidor valida e produz
-o modelo próprio do orquestrador. O publisher foi implementado em 7.1-A; processamento
-e listener da saída continuam pendentes em 7.1-B/C e 9.1.
+o modelo próprio do orquestrador. O publisher de 7.1-A é acionado pelo caso de uso de 7.1-B;
+o listener da entrada de 7.1-C aguarda essa confirmação antes de Complete. O consumo da saída
+continua pendente em 9.1.
 
-Exemplo conclusivo com os 13 campos do contrato v1 **atualmente aceito pelos mappers**.
-Ele não representa a nova classificação por nomes do Hub, cujo ajuste de validação
-nas duas bordas pertence a 7.1-B:
+Exemplo conclusivo com os 13 campos do contrato v1 anteriormente publicado, que continua
+aceito pelos mappers. As duas bordas também aceitam os três nomes originais informados
+pelo Hub, com situação de pré-validação independente. O caso de uso de 7.1-B classifica
+somente os três nomes originais do Hub; os nomes antigos abaixo são compatibilidade de transporte:
 
 ```json
 {
@@ -414,7 +447,7 @@ nas duas bordas pertence a 7.1-B:
 | `schemaVersion` | Exatamente 1 |
 | Identificadores | Strings obrigatórias; MTR no mesmo intervalo decimal positivo da entrada, preservando zeros |
 | `tentativasRealizadas` | Inteiro não negativo; em CONCLUSIVO, pelo menos 1 |
-| `situacaoMtr` em CONCLUSIVO | CONFORME, NAO_CONFORME ou PENDENTE_INFORMACAO |
+| `situacaoMtr` em CONCLUSIVO | FINALIZADO_CONFORME, FINALIZADO_INCONFORME ou PENDENTE_INFORMACA; também CONFORME, NAO_CONFORME e PENDENTE_INFORMACAO por compatibilidade |
 | QUARENTENA sem consulta | Admite `situacaoMtr=null` e zero tentativas; consumidor também aceita ausência do campo de situação |
 | Datas | Ambas obrigatórias; `concluidoEm` pode coincidir com `iniciadoEm`, mas não precedê-lo |
 | `inputSequenceNumber` | Inteiro representável como long, inclusive zero/negativo; sequência técnica não é contador funcional |
@@ -517,6 +550,22 @@ a tag `servicebus-integration`. O checkpoint Sonar usa a suíte padrão. Não ha
 em testes unitários para aumentar cobertura; integração e sua evidência são registradas à parte.
 A flag do mock de pré-validação é uma escolha separada e não é necessária para publicar em 6.1.
 
+Para validar o marco atual, executar `mvn clean verify` (1.293 testes padrão e build) e,
+separadamente, `mvn -q -Pservicebus-integration clean test` (21 integrações em cinco classes).
+Evidências de 10/09 e 09/09, respectivamente, estão nas tasks; não executar as suítes em paralelo.
+
+Subir a aplicação não chama `MonitoramentoEntradaListener.iniciar()`: não existe flag,
+endpoint ou observer de startup para ativar o consumo. Para reproduzir o processamento e o
+reagendamento sem mudar código, executar
+`mvn -q -Pservicebus-integration "-Dtest=MonitoramentoTerminalEmuladorTest" test`.
+Seus 12 cenários iniciam o listener CDI explicitamente e controlam somente a porta pública
+do Hub, usando emulador e SDK reais. O consumo/log do resultado permanece para 9.1.
+
+O dev mode também exige a configuração existente do Hub por ambiente, conforme o
+[README](../../README.md#execucao-local); escolher o emulador não elimina esses pré-requisitos.
+O [roteiro de execução](../../tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md#verificação-rápida-do-marco-até-81)
+detalha os comandos e seus limites. O startup interativo não foi repetido nesta preparação.
+
 Pontos de entrada oficiais: [Quarkus Azure Services](https://docs.quarkiverse.io/quarkus-azure-services/dev/index.html)
 e [extensão Service Bus/Dev Services](https://docs.quarkiverse.io/quarkus-azure-services/dev/quarkus-azure-servicebus.html).
 Conferir exemplos contra as versões fixadas no projeto; este guia não autoriza upgrade.
@@ -557,8 +606,11 @@ Armazenamento e ações automáticas a partir desses registros continuam fora do
 
 A validação local das duas bordas admite `situacaoMtr` nula e contador zero em QUARENTENA
 antes de consulta. Contadores negativos são rejeitados; CONCLUSIVO exige pelo menos uma
-tentativa e situação MTR CONFORME, NAO_CONFORME ou PENDENTE_INFORMACAO. A propriedade
-auxiliar de validação não integra o JSON. O mapper não recalcula nem persiste as situações.
+tentativa e aceita os nomes originais FINALIZADO_CONFORME, FINALIZADO_INCONFORME e
+PENDENTE_INFORMACA, preservados literalmente. CONFORME, NAO_CONFORME e PENDENTE_INFORMACAO
+continuam aceitos por compatibilidade com o contrato publicado. A propriedade auxiliar
+de validação não integra o JSON. O mapper não recalcula nem persiste as situações; a
+classificação funcional é executada pelo caso de uso de 7.1-B.
 
 ### Como o erro JSON é emitido sem alterar o Hub
 
@@ -628,13 +680,17 @@ deverá declarar os métodos/implementações ao executar o item correspondente.
 | Estado | Entrega |
 |---|---|
 | Implementado e verificado anteriormente | Extensão, configuração/Dev Services, política, configuração tipada/producer CDI, contratos REST e da entrada, mappers e logs das bordas da entrada |
-| Estrutura restante | Onze portas (sete implementações conectadas), dois records de parâmetros funcionais e oito classes `@Vetoed`, ainda sem fluxo completo |
+| Estrutura restante | Onze portas (nove conectadas, incluindo reagendamento por entrega), parâmetros/decisão e listener da entrada funcionais, com três classes `@Vetoed`, ainda sem fluxo completo |
 | Reagendamento implementado | DTO/mapper v1 próprios, validação, envelope e log de erro JSON; sem publicar ou agendar |
 | 4.1 tecnicamente concluído | Contratos/mappers de resultado, validação confirmada de quarentena/conclusivo e guardrails verificados |
 | 5.1 tecnicamente concluído | Consulta simulada de pré-validação, DTO/mapper próprios e ACL do Hub com testes de comportamento, CDI e fronteiras |
 | 6.1 implementado | Parâmetros locais, factory, POST, caso de uso e publisher inicial; integração explícita comprovada |
 | 7.1-A implementado | Publisher da saída com confirmação, falhas seguras e testes sem broker/integração explícita |
-| Restante de 7.1–9.1 pendente | Listeners, processamento, agendamento e log final |
+| 7.1-B implementado | Caso de uso CDI, no-op, limites, classificação, confirmação da publicação e intenção pendente de reagendamento |
+| 7.1-C implementado | Listener da entrada CDI com início explícito, settlement serial, logs mínimos e lifecycle; testes sem broker |
+| 7.1-D verificado | Nove cenários novos com emulador, incluídos no perfil completo de 15 integrações; checkpoint nas tasks |
+| 8.1 implementada | Agendamento transacional ligado ao listener; cancelamento, teto e prazo original verificados |
+| 9.1 pendente | Listener da saída e log final |
 | 10.1 em diante pendente | Correlação ponta a ponta, cenários integrados e fechamento do demonstrador |
 
 O mapper de reagendamento já está implementado. Os testes preservados provaram JSON/envelope,
@@ -642,8 +698,9 @@ validação equivalente à entrada, compatibilidade com o consumidor e erro JSON
 O RED da pausa permanece registrado como etapa anterior no checklist, junto das evidências atuais.
 
 O item 6.1 está tecnicamente concluído, incluindo o ajuste Sonar autorizado.
-C2 foi aceito pelo usuário em 2026-09-09. 7.1 está em andamento, com o publisher da saída
-implementado; caso de uso, decisões de negócio e listener permanecem pendentes. Preservar as entregas concluídas e seguir o checklist.
+C2 foi aceito pelo usuário em 2026-09-09. 7.1 está concluída tecnicamente, com publisher da
+saída, caso de uso/listener da entrada e integração terminal local verificados. Reagendamento
+e consumo da saída permanecem pendentes. Preservar as entregas concluídas e seguir o checklist.
 Os comandos e critérios de verificação estão no guia de desenvolvimento e no plano.
 
 O [manifesto de commit](../../tasks/features/orquestrador-monitoramento-service-bus/pacote-commit.md)
@@ -664,43 +721,44 @@ ou Hub, sem persistência nova, e encerramento do demonstrador por log.
    [plano](../../tasks/features/orquestrador-monitoramento-service-bus/plan.md),
    [checklist](../../tasks/features/orquestrador-monitoramento-service-bus/todo.md) e
    [evidência de 6.1](../../tasks/features/orquestrador-monitoramento-service-bus/continuidade-6-1.md).
-   C2 está aceito e 7.1-A implementado; consultar também a
+   C2 está aceito e 7.1 concluída tecnicamente; consultar também a
    [continuidade de 7.1](../../tasks/features/orquestrador-monitoramento-service-bus/continuidade-7-1.md).
-2. Retomar em 7.1-B: conferir a direção humana de situações, fechar as grafias pendentes e
-   ajustar a validação das duas bordas com regressão. A fixture `1 / Rascunho` não fornece
-   IDs para os nomes conclusivos. Definir também o tratamento de versão de política diferente,
-   sem substituição silenciosa; o cálculo/configuração v1 existente será reutilizado.
-3. Abrir `ProcessarTentativaMonitoramentoUseCase` e `DecisaoProcessamento` no
+2. Conferir o fechamento de [8.1](../../tasks/features/orquestrador-monitoramento-service-bus/continuidade-8-1.md)
+   e seguir para 9.1 quando autorizado. Reutilizar classificação e resolução de versão de 7.1-B:
+   definição recebida quando disponível, v1 padrão quando ausente, sempre com prazo original.
+   A fixture `1 / Rascunho` não fornece IDs para os nomes conclusivos.
+3. Ler `ProcessarTentativaMonitoramentoUseCase` e `DecisaoProcessamento` no
    [inventário Java](../../tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md).
-   Definir a decisão semântica e implementar pela porta existente: pré-validação primeiro;
-   situação não elegível → no-op; limite atingido → quarentena; caso contrário → consulta do Hub
-   e classificação pela tabela confirmada. Preservar situação original e calculada separadas.
-4. Conectar `MonitoramentoEntradaListener` ao receiver qualificado e à porta de processamento.
-   Reutilizar o mapper da entrada, manter handles Azure na borda, sem contexto de entrega mutável
-   em singleton. O listener controla assinatura, concorrência e settlement, sem absorver a regra.
-   Seu shutdown deve cancelar consumo antes do fechamento dos clientes. Antes de ativar
-   consumo geral, detalhar o ramo não conclusivo, cujo reagendamento pertence a 8.1.
-   A proposta de manter consumo inativo até essa prova está na continuidade; não foi aplicada.
+   A porta recebe tentativa e sequência escalar. Ignorar e ResultadoPublicado resultam em
+   Complete pelo listener; ReagendamentoPendente executa schedule + Complete com o mesmo
+   contexto na borda. Situação original e calculada permanecem separadas.
+4. Exercitar `MonitoramentoEntradaListener`, já conectado ao receiver qualificado e à porta,
+   em integração explícita com cenários terminais controlados. O início exige chamada Java a
+   `iniciar()`; não existe flag, endpoint ou observer de startup que ative o consumo geral.
+   O reagendamento só permite avançar após commit confirmado e nunca gera Complete simples
+   adicional. O shutdown cancela a operação pendente antes da fábrica; cancelar a espera na
+   fronteira de commit não comprova reversão remota nem autoriza segunda liquidação.
 5. Usar `MonitoramentoResultadoPublisher`, já implementado pela porta e pelo sender da
    saída. O adapter reutiliza seu mapper; concluir a entrada somente após confirmação do envio.
    Provar no-op, limites, falha, contratos inválidos e ausência de Complete antecipado. Sem Outbox,
    publicação na saída e Complete da entrada não são uma operação atômica.
 6. Executar testes locais sem broker e integração explícita para o trecho conectado.
    Atualizar inventário de inatividade, Javadocs, documentação e checkpoint Sonar com o baseline
-   original. Detalhar 8.1 antes de implementar o ramo não conclusivo: preservar prazo/versão/IDs
-   e comprovar `schedule + Complete`, rollback e redelivery no SDK/emulador.
+   original. Preservar prazo/versão/IDs e as provas de `schedule + Complete`, rollback,
+   redelivery e cancelamento; falha de commit nunca tenta rollback ou nova publicação.
 
 **6.1 entrega a publicação inicial confirmada e C2 está aceito.** 7.1-A entrega o publisher
-da saída; o processamento das filas e a verificação do demonstrador completo permanecem pendentes.
+da saída; 7.1-B/C conectam o processamento e o listener com início explícito, verificados no
+emulador em 7.1-D. A 8.1 conecta o reagendamento. Consumo da saída e verificação do demonstrador completo permanecem pendentes.
 
 ### Ordem das entregas restantes
 
 | Item | Entrega a implementar | Verificação para considerar pronta |
 |---|---|---|
-| **7.1-B — próximo trabalho** | Decisão/caso de uso terminal e adequação das situações | Códigos/versão definidos, ordem de no-op/limites/consulta e regressão das duas bordas |
-| 7.1-C | Listener da entrada, settlement e lifecycle | Ramo não conclusivo explicitado antes de ativar consumo; saída confirmada antes de Complete, falhas e shutdown |
-| 7.1-D | Integração terminal e fechamento do item | Prova do fluxo conectado, regressão sem broker, revisão, Sonar e documentação |
-| 8.1 | Reagendamento de situação não conclusiva | Política/versão, preservação dos valores, prova de `schedule + Complete`, rollback e redelivery |
+| 7.1-B — implementada | Caso de uso conectado ao catálogo, consultas e publisher | Ver evidência local sem broker e checkpoint nas tasks |
+| 7.1-C — implementada | Listener da entrada, settlement e lifecycle, sem início automático | Saída confirmada antes de Complete, falhas sem segundo settlement, encerramento antes da fábrica e logs mínimos; evidência sem broker nas tasks |
+| 7.1-D — concluída tecnicamente | Integração terminal e fechamento do item | 15 integrações, 1.268 testes sem broker, revisão e Sonar COMPLIANT; evidências nas tasks |
+| 8.1 — implementada | Reagendamento de situação não conclusiva | Política/versão, prazo, teto, schedule + Complete, rollback/redelivery e cancelamento; fechamento nas tasks |
 | 9.1 | Listener da saída, caso de uso e log final | Registro do resultado e Complete/Abandon/DeadLetter coerentes com a falha |
 | 10.1 e C3 | Correlação e fluxo integrado no emulador | Propagação, sinais sem duplicação, caminhos de sucesso, falha e quarentena |
 | 11.1–CF | Verificação final e revisão do demonstrador | Suíte/checkpoint, documentação e decisão humana de encerramento |
@@ -711,9 +769,10 @@ funcional e remover o tipo do inventário de inatividade junto dos testes. Não 
 esqueletos ao CDI para aparentar fluxo pronto. Reutilizar contratos/mappers já verificados.
 
 As definições de arquitetura já estão aceitas, mas permanecem pontos técnicos a resolver nas
-fatias correspondentes: tabela de estados do Hub antes de 7.1; versão de política de mensagens antigas; acoplamento da entrega à
-transação de reagendamento; comprovação de atomicidade no SDK/emulador; encerramento de assinaturas antes da factory;
-caracterização da telemetria automática. Não aplicar fallback silencioso.
+fatias correspondentes: tratamento do intervalo/prazo restante e do contador no limite inteiro;
+acoplamento da entrega à transação de reagendamento; comprovação de atomicidade no SDK/emulador;
+integração do encerramento antes da factory e caracterização da telemetria automática.
+A recuperação v1 autorizada é explícita no modelo de resolução; não introduzir outras recuperações.
 
 O histórico de execução e publicação permanece nas tasks. O estado preparado inclui a base até 7.1-A;
 o demonstrador completo e a entrega produtiva dependem das etapas restantes.

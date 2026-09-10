@@ -4,10 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -42,6 +45,10 @@ class ClientesServiceBusTest {
         verify(fixture.builder).transportType(transporte);
         verify(fixture.builder, times(2)).sender();
         verify(fixture.builder, times(2)).receiver();
+        verify(fixture.builder.receiver().queueName("entrada").receiveMode(ServiceBusReceiveMode.PEEK_LOCK)
+                .disableAutoComplete()).prefetchCount(0);
+        verify(fixture.builder.receiver().queueName("saida").receiveMode(ServiceBusReceiveMode.PEEK_LOCK)
+                .disableAutoComplete(), never()).prefetchCount(anyInt());
         verifyNoInteractions(fixture.senderEntrada, fixture.senderSaida,
                 fixture.receiverEntrada, fixture.receiverSaida);
         clientes.fechar();
@@ -120,12 +127,14 @@ class ClientesServiceBusTest {
         private final ServiceBusSenderAsyncClient senderSaida =
                 builder.sender().queueName("saida").buildAsyncClient();
         private final ServiceBusReceiverAsyncClient receiverEntrada = builder.receiver().queueName("entrada")
-                .receiveMode(ServiceBusReceiveMode.PEEK_LOCK).disableAutoComplete().buildAsyncClient();
+                .receiveMode(ServiceBusReceiveMode.PEEK_LOCK).disableAutoComplete().prefetchCount(0).buildAsyncClient();
         private final ServiceBusReceiverAsyncClient receiverSaida = builder.receiver().queueName("saida")
                 .receiveMode(ServiceBusReceiveMode.PEEK_LOCK).disableAutoComplete().buildAsyncClient();
 
         private ClientesFixture() {
-            org.mockito.Mockito.clearInvocations(builder);
+            clearInvocations(builder.receiver().queueName("entrada")
+                    .receiveMode(ServiceBusReceiveMode.PEEK_LOCK).disableAutoComplete());
+            clearInvocations(builder);
         }
 
         private ClientesServiceBus criar(AmqpTransportType transporte) {

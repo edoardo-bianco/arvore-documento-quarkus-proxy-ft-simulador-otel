@@ -1,35 +1,126 @@
 package br.gov.caixa.simtr.monitoramento.aplicacao.casodeuso;
 
-import jakarta.enterprise.inject.Vetoed;
+import br.gov.caixa.simtr.monitoramento.aplicacao.porta.entrada.ProcessarTentativaMonitoramento;
+import br.gov.caixa.simtr.monitoramento.aplicacao.porta.saida.ConsultarPreValidacao;
+import br.gov.caixa.simtr.monitoramento.aplicacao.porta.saida.ConsultarSituacaoDossie;
+import br.gov.caixa.simtr.monitoramento.aplicacao.porta.saida.PublicarResultadoMonitoramento;
+import br.gov.caixa.simtr.monitoramento.dominio.modelo.DecisaoProcessamento;
+import br.gov.caixa.simtr.monitoramento.dominio.modelo.DecisaoProcessamento.PoliticaAplicada;
+import br.gov.caixa.simtr.monitoramento.dominio.modelo.ResultadoMonitoramento;
+import br.gov.caixa.simtr.monitoramento.dominio.modelo.SituacaoDossieConsultada;
+import br.gov.caixa.simtr.monitoramento.dominio.modelo.TentativaMonitoramento;
+import br.gov.caixa.simtr.monitoramento.dominio.politica.CatalogoPoliticasMonitoramento;
+import br.gov.caixa.simtr.monitoramento.dominio.politica.CatalogoPoliticasMonitoramento.Resolucao;
+import br.gov.caixa.simtr.monitoramento.dominio.politica.PoliticaMonitoramento;
+import io.smallrye.mutiny.Uni;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import java.time.Clock;
+import java.time.Instant;
+import java.util.Objects;
 
 /**
- * Coordenar consultas, politica e decisao de resultado ou reagendamento.
- *
- * <p><strong>Estado:</strong> estrutura sem lógica, mantida fora do CDI por {@link jakarta.enterprise.inject.Vetoed}.
- * Completar no item 7.1/8.1 do checklist da feature antes de habilitar o componente.
- *
- * <p><strong>Implementação e verificação previstas:</strong>
- * <ul>
- * <li>Implementar a porta de processamento usando portas próprias de consulta e a política do monitoramento.</li>
- * <li>Detalhar a decisão semântica e a coordenação de resultado/reagendamento antes dos itens 7.1/8.1; a assinatura estrutural não resolve essa coordenação.</li>
- * <li>Preservar instante, prazo e versão recebidos; definir o tratamento de política antiga sem substituição silenciosa.</li>
- * <li>Provar estados terminais/não conclusivos, prazo, limite de tentativas e falhas; manter SDK e settlement fora do núcleo.</li>
- * </ul>
- *
- * <p><strong>Fluxo aprovado a implementar:</strong> Coordenar, nesta ordem: consultar pré-validação; fora de {@code EM_ANALISE_ENVIO_MTR}, decidir no-op; verificar prazo/tentativas e produzir {@code QUARENTENA} quando esgotados; caso contrário consultar o Hub pela ACL. {@code CONFORME}, {@code NAO_CONFORME} e {@code PENDENTE_INFORMACAO} geram resultado na saída, preservando a situação MTR; no último caso calcular pré-validação {@code NAO_CONFORME}. Situação não conclusiva ainda dentro dos limites usa a política para reagendar na entrada. Resultado, quarentena e no-op não persistem transição nesta feature.
- * Consultar {@code doc/guias/guia-service-bus-amqp-dossie.md}.
- *
- * <p>As referências abaixo indicam dependências previstas; ainda não há injeção, chamada ou
- * implementação de interface. Não usar a classe vazia como retorno fictício de sucesso.
- * Consultar {@code tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md}.
- *
- * @see br.gov.caixa.simtr.monitoramento.aplicacao.porta.entrada.ProcessarTentativaMonitoramento
- * @see br.gov.caixa.simtr.monitoramento.aplicacao.porta.saida.ConsultarPreValidacao
- * @see br.gov.caixa.simtr.monitoramento.aplicacao.porta.saida.ConsultarSituacaoDossie
- * @see br.gov.caixa.simtr.monitoramento.aplicacao.porta.saida.PublicarResultadoMonitoramento
- * @see br.gov.caixa.simtr.monitoramento.aplicacao.porta.saida.ReagendarTentativaMonitoramento
- * @see br.gov.caixa.simtr.monitoramento.dominio.politica.PoliticaMonitoramento
+ * Coordena elegibilidade, limites e consultas; confirma resultados sem executar settlement.
+ * Versão ausente usa a v1 interna do catálogo, sempre com o prazo original.
+ * A intencao de reagendamento e executada pela borda transacional associada a entrega.
  */
-@Vetoed
-public final class ProcessarTentativaMonitoramentoUseCase {
+@ApplicationScoped
+public class ProcessarTentativaMonitoramentoUseCase implements ProcessarTentativaMonitoramento {
+
+    private final ConsultarPreValidacao preValidacao;
+    private final ConsultarSituacaoDossie hub;
+    private final PublicarResultadoMonitoramento publicacao;
+    private final CatalogoPoliticasMonitoramento catalogo;
+    private final Clock relogio;
+
+    @Inject
+    public ProcessarTentativaMonitoramentoUseCase(ConsultarPreValidacao preValidacao,
+            ConsultarSituacaoDossie hub, PublicarResultadoMonitoramento publicacao,
+            CatalogoPoliticasMonitoramento catalogo) {
+        this(preValidacao, hub, publicacao, catalogo, Clock.systemUTC());
+    }
+
+    ProcessarTentativaMonitoramentoUseCase(ConsultarPreValidacao preValidacao,
+            ConsultarSituacaoDossie hub, PublicarResultadoMonitoramento publicacao,
+            CatalogoPoliticasMonitoramento catalogo, Clock relogio) {
+        this.preValidacao = preValidacao;
+        this.hub = hub;
+        this.publicacao = publicacao;
+        this.catalogo = catalogo;
+        this.relogio = relogio;
+    }
+
+    @Override
+    public Uni<DecisaoProcessamento> executar(TentativaMonitoramento tentativa, long inputSequenceNumber) {
+        return Uni.createFrom().deferred(() -> {
+            Objects.requireNonNull(tentativa, "Tentativa de monitoramento obrigatoria.");
+            if (tentativa.tentativaAtual() < 1) {
+                throw new IllegalArgumentException("tentativaAtual deve ser maior que zero");
+            }
+            return preValidacao.executar(tentativa.idDossiePreValidacao()).flatMap(pre -> {
+                if (!"EM_ANALISE_ENVIO_MTR".equals(pre.situacao())) {
+                    return Uni.createFrom().item(new DecisaoProcessamento.Ignorar());
+                }
+                return processarElegivel(tentativa, inputSequenceNumber);
+            });
+        }).memoize().indefinitely();
+    }
+
+    private Uni<DecisaoProcessamento> processarElegivel(TentativaMonitoramento tentativa, long sequencia) {
+        var resolucao = catalogo.resolver(tentativa.politicaMonitoramentoVersao());
+        var agora = relogio.instant();
+        int realizadas = tentativa.tentativaAtual() - 1;
+        var motivo = resolucao.politica().motivoEncerramento(realizadas, agora, tentativa.limiteEm());
+        if (motivo.isPresent()) {
+            return publicarQuarentena(tentativa, sequencia, resolucao, motivo.get(), null, realizadas, agora);
+        }
+        return hub.executar(tentativa.idDossieMtr())
+                .flatMap(situacao -> decidirAposConsulta(tentativa, sequencia, resolucao, situacao));
+    }
+
+    private Uni<DecisaoProcessamento> decidirAposConsulta(TentativaMonitoramento tentativa,
+            long sequencia, Resolucao resolucao, SituacaoDossieConsultada situacao) {
+        var agora = relogio.instant();
+        String situacaoCalculada = switch (situacao.nome()) {
+            case "FINALIZADO_CONFORME" -> "CONFORME";
+            case "FINALIZADO_INCONFORME", "PENDENTE_INFORMACA" -> "INCONFORME";
+            default -> null;
+        };
+        // Conclusão de consulta iniciada no prazo tem precedência sobre a expiração em voo.
+        if (situacaoCalculada != null) {
+            var resultado = new ResultadoMonitoramento(tentativa.monitoramentoId(), tentativa.orquestracaoId(),
+                    tentativa.idDossiePreValidacao(), tentativa.idDossieMtr(), "CONCLUSIVO", situacao.nome(),
+                    situacaoCalculada, "SITUACAO_CONCLUSIVA_MTR", tentativa.tentativaAtual(),
+                    tentativa.iniciadoEm(), agora, sequencia);
+            return publicar(resultado, resolucao);
+        }
+        return switch (resolucao.politica().avaliarTentativaNaoConclusiva(
+                tentativa.tentativaAtual(), agora, tentativa.limiteEm())) {
+            case PoliticaMonitoramento.Decisao.Encerrar(var motivo) ->
+                publicarQuarentena(tentativa, sequencia, resolucao, motivo,
+                        situacao.nome(), tentativa.tentativaAtual(), agora);
+            case PoliticaMonitoramento.Decisao.Reagendar(var proximaTentativa, var intervalo) ->
+                Uni.createFrom().item(new DecisaoProcessamento.ReagendamentoPendente(tentativa,
+                        proximaTentativa, intervalo, agora, evidencia(resolucao)));
+        };
+    }
+
+    private Uni<DecisaoProcessamento> publicarQuarentena(TentativaMonitoramento tentativa,
+            long sequencia, Resolucao resolucao, PoliticaMonitoramento.MotivoEncerramento motivo,
+            String situacaoMtr, int realizadas, Instant agora) {
+        var resultado = new ResultadoMonitoramento(tentativa.monitoramentoId(), tentativa.orquestracaoId(),
+                tentativa.idDossiePreValidacao(), tentativa.idDossieMtr(), "QUARENTENA", situacaoMtr,
+                "QUARENTENA", motivo.name(), realizadas, tentativa.iniciadoEm(), agora, sequencia);
+        return publicar(resultado, resolucao);
+    }
+
+    private Uni<DecisaoProcessamento> publicar(ResultadoMonitoramento resultado, Resolucao resolucao) {
+        return publicacao.executar(resultado)
+                .replaceWith(new DecisaoProcessamento.ResultadoPublicado(resultado, evidencia(resolucao)));
+    }
+
+    private static PoliticaAplicada evidencia(Resolucao resolucao) {
+        return new PoliticaAplicada(resolucao.versaoSolicitada(), resolucao.politica().versao(),
+                resolucao.padraoAplicado());
+    }
 }

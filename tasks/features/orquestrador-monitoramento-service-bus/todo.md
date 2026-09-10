@@ -1,5 +1,152 @@
 # Checklist: orquestração de monitoramento com duas filas do Service Bus
 
+## Preparação do commit concluída — 2026-09-10
+
+- [x] Registrar pedido, escopo e critérios no plano.
+- [x] Definir manifesto de 42 arquivos e mensagem para o incremento desde d83b689.
+- [x] Revisar independentemente a produção acumulada: nenhum bloqueador concreto.
+- [x] Alinhar manifesto e guias com 21 integrações, início explícito e execução até 8.1.
+- [x] Conferir hashes antes do staging; a etapa documental preservou os 31 arquivos de código/teste.
+- [x] Ajustar somente EOF de seis testes novos e da continuidade após a conferência do índice; plano atualizado antes da edição.
+- [x] Repetir checkpoint obrigatório no mesmo baseline: 1.293 testes/189 classes, build e COMPLIANT / NOT_REQUIRED, 87,9% cobertura, 4,3% duplicação, zero issues novas/graves.
+- [x] Conferir links, âncoras, diff preparado sem erros e seleção exata dos 42 arquivos no índice.
+
+O [pacote revisável](pacote-commit.md) reúne os arquivos e comandos. Commit/push não executados;
+9.1/10.1 permanecem pendentes. O fechamento de 8.1 abaixo precede esta preparação do índice.
+
+## 8.1 concluída tecnicamente — 2026-09-10
+
+- [x] Pedido humano, escopo da prova e preservação do baseline registrados.
+- [x] Provar schedule + Complete, commit, rollback/redelivery e confirmação local perdida no emulador: três casos passaram.
+- [x] Detalhar prazo/contador e associação da entrega conforme resultado da prova e reafirmação humana.
+- [x] Implementar reagendamento e conexão ao listener com RED/GREEN sem broker.
+- [x] Validar cancelamento propagado ao SDK e nova assinatura sem repetir a transação.
+- [x] Integração completa em 09/09: 21 testes em cinco classes passaram no emulador.
+- [x] Revisão independente da implementação concluída; observações de Javadoc corrigidas.
+- [x] Checkpoint de 09/09: 1.293 testes sem broker; 87,9% cobertura, 4,3% duplicação, cinco issues novas, nenhuma grave; NON_COMPLIANT.
+- [x] Registrar a decisão humana ContinuarAjustes e a pausa antes das correções.
+- [x] Recuperar baseline original após o hook apagar session.json; conferir igualdade integral, sem reinicialização.
+- [x] Corrigir S6878 (listener), S1905 (modelo) e três S5778 (teste do adapter); cinco CLOSED/FIXED confirmados na API.
+- [x] Validar 68 testes focados e revisão independente dos ajustes sem apontamentos.
+- [x] Novo checkpoint completo: 1.293 testes/189 classes sem broker, build aprovado, COMPLIANT / NOT_REQUIRED; 87,9% cobertura, 4,3% duplicação, zero issues novas/graves.
+- [x] Atualizar evidências, guia do dev, plano e retomada; preservar cópia final do estado Sonar.
+- [x] Fechar tecnicamente 8.1, sem antecipar 9.1.
+
+Evidências e recuperação na [continuidade de 8.1](continuidade-8-1.md).
+9.1 e 10.1 permanecem pendentes e não foram iniciadas; encerramento humano da feature pendente.
+Sem staging/commit/push e sem comandos de trabalho em execução. Registros anteriores são históricos.
+
+## 7.1-D concluída — 7.1 encerrada tecnicamente
+
+- [x] Pedido humano, escopo e baseline preservado registrados antes da alteração executável.
+- [x] Nove cenários opt-in com listener/caso de uso/ACL/publishers reais e Hub controlado.
+- [x] Controle negativo e GREEN: terminais, no-op, limites, Abandon/redelivery e DLQ.
+- [x] Integração completa: 15 testes/4 classes, sem falhas/erros/ignorados; revisão final sem findings.
+- [x] Suíte padrão: 1.268 testes/187 classes sem broker; COMPLIANT, 87,8% cobertura, 4,3% duplicação, zero issues novas/graves; baseline preservado.
+- [x] Guias/arquitetura/retomada atualizadas; 7.1 concluída tecnicamente, sem commit/push.
+- [ ] Próximo item 8.1: detalhar prazo/contador e implementar/provar reagendamento transacional.
+
+Evidência detalhada na [continuidade](continuidade-7-1.md). Estados das subfatias anteriores
+abaixo são históricos; consumo geral continua inativo.
+
+## 7.1-C — listener concluído tecnicamente
+
+- [x] Pedido "7.1-C", baseline preservado e desenho/revisão inicial registrados.
+- [x] RED: provar entrega, efeitos, falhas e lifecycle sem broker.
+- [x] GREEN: listener CDI com início explícito, processamento serial e settlement único.
+- [x] 99 testes focados: logs mínimos seguros, shutdown, inatividade automática e guardrails.
+- [x] Revisão independente concluída sem findings ou bloqueadores.
+- [x] Registrar ContinuarAjustes humano e corrigir os 13 java:S8924 MINOR novos.
+- [x] Checkpoint repetido: 1.268 testes/187 classes sem broker, COMPLIANT, cobertura 87,8%, duplicação 4,3%, nenhuma issue nova/grave; baseline preservado.
+- [x] Atualizar guias/arquitetura/retomada; sem antecipar 8.1.
+- [ ] Próxima fatia 7.1-D: integração terminal real e fechamento técnico de 7.1.
+
+Evidência e limites de cancelamento/atomicidade na [continuidade de 7.1](continuidade-7-1.md).
+Os estados anteriores abaixo são históricos; preservar a próxima fatia indicada acima.
+
+## 7.1-B — caso de uso concluído tecnicamente
+
+- [x] GO "go"; baseline e alterações locais preservados, plano registrado antes de produção.
+- [x] RED por ausência da API/decisões; GREEN com 128 testes focados/nove classes sem broker.
+- [x] Caso de uso CDI, limite antes/depois do Hub e max=1; classificação exata e confirmação da publicação.
+- [x] Catálogo por versão e fallback v1 preservam tentativa/prazo; decisão pendente não executa 8.1.
+- [x] Revisão independente e três regressões fortalecidas; revisão final sem findings.
+- [x] Registrar ContinuarAjustes humano, corrigir duas S6878 e repetir checkpoint.
+- [x] 1.232 testes/186 classes; COMPLIANT, cobertura 87,6%, duplicação 4,3%; zero issues novas/graves.
+- [x] Atualizar arquitetura, guias, inventário e retomada; baseline integralmente preservado.
+- [ ] Próxima fatia 7.1-C: listener/settlement/lifecycle, sem ativar consumo geral antes de 8.1.
+- [ ] 7.1-D: integração terminal real e fechamento técnico do item 7.1 completo.
+- [ ] 8.1: transação/reagendamento; definir/testar data versus prazo e contador Integer.MAX_VALUE.
+
+Sem novo staging/commit/push. Evidência detalhada na [continuidade de 7.1](continuidade-7-1.md).
+Os checklists anteriores abaixo são históricos; a próxima implementação está explicitada acima.
+
+## 7.1-B — caso de uso autorizado por "go"
+
+- [x] Confirmar baseline preservado e registrar o recorte autorizado no plano.
+- [x] RED: testar decisões, contagem, políticas, ordem e falhas sem broker.
+- [x] GREEN: conectar porta CDI, decisões e limites sem efeitos de 8.1.
+- [x] Revisar e verificar testes focados/guardrails sem broker.
+- [x] Executar checkpoint completo preservando baseline e registrar resultado.
+- [x] Atualizar guia do dev, arquitetura e retomada; 7.1-C/D e 8.1 seguem pendentes.
+
+## Revisão de alinhamento dos critérios
+
+- [x] Conferir padrão PT30M/PT24H sem teto, lista configurável e max-tentativas opcional em código/testes/guias.
+- [x] Distinguir política/configuração verificadas do caso de uso e reagendamento ainda inativos; evidência anterior de 1.200 testes preservada, sem nova execução.
+- [ ] Em 8.1, definir/testar intervalo que alcança ou ultrapassa o prazo restante: hoje a política verifica expiração atual e retorna o intervalo inteiro. Exemplo: faltam 5 min e retorna PT30M. Preservar prazo original e verificar expiração no consumo.
+- [x] Ao implementar 7.1-B, alinhar o Javadoc do caso de uso inativo à resolução de versão já definida, junto das situações aprovadas.
+
+Esta revisão registra uma pendência do fluxo, não autoriza ativar listeners ou antecipar 8.1.
+A próxima implementação continua no caso de uso de 7.1-B.
+
+
+## 7.1-B — padrão de 30 minutos e repetição da lista
+
+- [x] Conferir implementação, baseline e registrar a alteração pedida.
+- [x] RED: 48 testes, seis falhas esperadas nos defaults antigos; sete casos novos de configuração/progressão já passaram.
+- [x] GREEN: ambos os defaults PT30M; 96 testes focados/8 classes provam listas, repetição, prazo e teto opcional preservado, sem broker.
+- [x] Resposta humana: sem teto somente no padrão; manter max-tentativas para outras configurações.
+- [x] Revisão sem findings executáveis; documentação corrigida e reconferida. 1.200 testes padrão/185 classes; Sonar COMPLIANT, cobertura 87,4%, duplicação 4,3%, nenhuma issue nova; baseline integralmente preservado.
+- [x] Atualizar guias/ADR/arquitetura, evidências e retomada; distinguir padrão atual de 30 minutos do marco histórico d83b689.
+
+O próximo caso de uso de 7.1-B permanece pendente; este ajuste muda os critérios usados por ele.
+
+
+## 7.1-B — recuperação de política ausente por v1 padrão
+
+Decisão humana recebida em 2026-09-09: continuar o monitoramento com valores padrão v1
+quando faltar a definição da versão recebida, sem quarentena por esse motivo.
+
+- [x] Conferir código, ADRs, baseline original e registrar decisão/recorte no plano.
+- [x] RED: catálogo ausente; compilação falhou exatamente pela API nova ainda não implementada.
+- [x] GREEN: catálogo imutável, composição CDI e preservação da política ativa.
+- [x] Verificar padrões, prazo original, configuração inválida/ambígua e CDI: 89 testes focados em oito classes, sem broker.
+- [x] Revisão independente sem findings; 1.193 testes padrão/185 classes; Sonar COMPLIANT, 87,4% de cobertura, 4,3% de duplicação e nenhuma issue nova. Baseline integralmente preservado.
+- [x] Atualizar ADR-0011/índice, arquitetura, guias, continuidade e retomada com evidências; 227 referências locais, 84 arquivos e 20 âncoras verificados, sem ausências. git diff --check sem erros; nenhuma alteração executável após o checkpoint.
+- [ ] Recorte seguinte de 7.1-B: conectar resolução e classificação ao caso de uso terminal.
+
+A decisão de versão está resolvida. Os registros abaixo sobre pergunta pendente são históricos.
+
+
+## Retomada após publicação — contrato de 7.1-B
+
+Pedido humano: "continuar desenvolvimento". Base publicada d83b689; baseline preservado.
+Primeiro recorte independente: preservar na saída os nomes originais do Hub informados
+pelo usuário, mantendo compatibilidade com os valores já publicados.
+
+- [x] Conferir estado publicado, código relacionado, baseline original e direção literal.
+- [x] Registrar recorte no plano; reapresentar a decisão ainda pendente de versão.
+- [x] Executar RED com os três nomes originais entre produtor e consumidor independentes: 123 casos, três rejeições novas esperadas.
+- [x] Ampliar a validação dos dois DTOs, preservando JSON, quarentena e valores anteriores; GREEN/regressão com 181 testes sem broker.
+- [x] Verificar regressão, revisão independente e checkpoint: 1.175 testes padrão/184 classes; COMPLIANT, cobertura 87,4%, duplicação 4,3%, nenhuma issue nova. Evidência na continuidade de 7.1.
+- [x] Conferir os sete documentos e seus links: 207 referências locais, 79 arquivos de destino e 20 âncoras válidas; git diff --check sem erros. Nenhuma alteração executável após o checkpoint.
+- [ ] Completar caso de uso de 7.1-B após definir a estratégia de versão.
+
+Não há autorização inferida para uma das alternativas de versão. Não ativar listener
+nem iniciar 8.1 neste recorte.
+
+
 ## Preparação documental para o dev — 2026-09-09
 
 Pedido humano: atualizar o material de entrega, incluindo o guia que o dev seguirá.
@@ -106,8 +253,8 @@ Detalhes e histórico das verificações no [checklist](todo.md).
 - [x] 5.1 Implementar em `monitoramento` consulta simulada da pré-validação e ACL local para o Hub;
 - [x] 6.1 Implementar em `orquestrador` a fatia POST REST -> fila de entrada, através das portas;
 - [x] C2 Revisar contrato, segurança, telemetria e checkpoint Sonar da primeira fatia; aceite humano em 2026-09-09;
-- [ ] 7.1 Implementar em `monitoramento` processamento terminal da entrada -> fila de saída;
-- [ ] 8.1 Implementar em `monitoramento` reagendamento transacional da situação não conclusiva;
+- [x] 7.1 Implementar em `monitoramento` processamento terminal da entrada -> fila de saída; A–D concluídas tecnicamente, com início explícito e integração verificada;
+- [x] 8.1 Implementar em `monitoramento` reagendamento transacional da situação não conclusiva; concluída tecnicamente em 2026-09-10;
 - [ ] 9.1 Implementar em `orquestrador` listener da saída -> porta/caso de uso -> log estruturado;
 - [ ] 10.1 Fechar e testar correlação OpenTelemetry ponta a ponta;
 - [ ] C3 Executar fluxo com emulador e revisar Complete, Abandon, DLQ, retry e sinais;
@@ -1603,9 +1750,9 @@ Pedido explícito do usuário: "7.1". C2 aceito. Preservar código anterior e ba
 Ver [recorte e verificações](plan.md#go-e-execução-de-71--2026-09-09).
 
 - [x] 7.1-A Publisher de resultado com confirmação e regressão sem broker; checkpoint final COMPLIANT após ContinuarAjustes.
-- [ ] 7.1-B Decisão/caso de uso terminal, situações originais e tratamento de versão.
-- [ ] 7.1-C Listener, settlement e lifecycle, com ramo não conclusivo explicitado.
-- [ ] 7.1-D Integração explícita, regressão, revisão, Sonar e documentação.
+- [x] 7.1-B Decisão/caso de uso terminal, situações originais e tratamento de versão; conclusão técnica registrada na continuidade.
+- [x] 7.1-C Listener, settlement e lifecycle, com ramo não conclusivo explicitado; conclusão técnica registrada na continuidade.
+- [x] 7.1-D Integração explícita, regressão, revisão, Sonar e documentação; evidência final no topo e na continuidade.
 
 ## Evidência parcial de 7.1-A — 2026-09-09
 

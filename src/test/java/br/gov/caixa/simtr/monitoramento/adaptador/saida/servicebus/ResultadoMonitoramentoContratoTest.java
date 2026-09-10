@@ -52,7 +52,9 @@ class ResultadoMonitoramentoContratoTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"CONFORME,CONFORME", "NAO_CONFORME,NAO_CONFORME", "PENDENTE_INFORMACAO,NAO_CONFORME"})
+    @CsvSource({"CONFORME,CONFORME", "NAO_CONFORME,NAO_CONFORME", "PENDENTE_INFORMACAO,NAO_CONFORME",
+            "FINALIZADO_CONFORME,CONFORME", "FINALIZADO_INCONFORME,INCONFORME",
+            "PENDENTE_INFORMACA,INCONFORME"})
     void devePreservarSeparadamenteSituacaoOriginalECalculadaEntreModelosIndependentes(
             String situacaoMtr, String situacaoPre) {
         var origem = ResultadoFixture.resultado();

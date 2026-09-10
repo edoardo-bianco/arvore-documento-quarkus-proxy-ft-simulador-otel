@@ -48,7 +48,8 @@ public class ClientesServiceBus {
             senderSaida = builder.sender().queueName(saida).buildAsyncClient();
             fechamentos.addFirst(senderSaida::close);
             receiverEntrada = builder.receiver().queueName(entrada)
-                    .receiveMode(ServiceBusReceiveMode.PEEK_LOCK).disableAutoComplete().buildAsyncClient();
+                    .receiveMode(ServiceBusReceiveMode.PEEK_LOCK).disableAutoComplete()
+                    .prefetchCount(0).buildAsyncClient();
             fechamentos.addFirst(receiverEntrada::close);
             receiverSaida = builder.receiver().queueName(saida)
                     .receiveMode(ServiceBusReceiveMode.PEEK_LOCK).disableAutoComplete().buildAsyncClient();

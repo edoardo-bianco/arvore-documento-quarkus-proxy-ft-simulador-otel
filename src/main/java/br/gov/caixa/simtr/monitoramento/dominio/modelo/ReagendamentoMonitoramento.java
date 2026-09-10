@@ -1,25 +1,35 @@
 package br.gov.caixa.simtr.monitoramento.dominio.modelo;
 
-import jakarta.enterprise.inject.Vetoed;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Objects;
 
-/**
- * Representar a proxima tentativa e o instante de agendamento; a transacao pertence a borda.
- *
- * <p><strong>Estado:</strong> estrutura sem lógica, mantida fora do CDI por {@link jakarta.enterprise.inject.Vetoed}.
- * Completar no item 8.1 do checklist da feature antes de habilitar o componente.
- *
- * <p><strong>Implementação e verificação previstas:</strong>
- * <ul>
- * <li>Definir os dados da próxima tentativa e do instante previsto de agendamento no item 8.1.</li>
- * <li>Preservar os parâmetros da tentativa original e expressar somente a intenção de negócio.</li>
- * <li>Detalhar a associação com a entrega atual na borda; não carregar handles Azure nem definir transação no domínio.</li>
- * <li>Provar preservação de prazo/versão e distinção entre tentativa funcional e redelivery técnica.</li>
- * </ul>
- *
- * <p>As referências abaixo indicam dependências previstas; ainda não há injeção, chamada ou
- * implementação de interface. Não usar a classe vazia como retorno fictício de sucesso.
- * Consultar {@code tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md}.
- */
-@Vetoed
-public final class ReagendamentoMonitoramento {
+/** Proxima tentativa e horario dentro da janela original; transacao pertence a borda. */
+public record ReagendamentoMonitoramento(TentativaMonitoramento proximaTentativa, Instant agendadoEm) {
+    public ReagendamentoMonitoramento {
+        Objects.requireNonNull(proximaTentativa, "proximaTentativa");
+        Objects.requireNonNull(agendadoEm, "agendadoEm");
+        if (agendadoEm.isBefore(proximaTentativa.iniciadoEm())
+                || agendadoEm.isAfter(proximaTentativa.limiteEm())) {
+            throw new IllegalArgumentException("Agendamento fora da janela original.");
+        }
+    }
+
+    public static ReagendamentoMonitoramento aPartirDe(DecisaoProcessamento.ReagendamentoPendente decisao) {
+        var atual = decisao.tentativa();
+        var intervalo = decisao.intervalo();
+        if (intervalo.isNegative() || intervalo.isZero()
+                || !decisao.processadoEm().isBefore(atual.limiteEm())
+                || decisao.proximaTentativa() != (long) atual.tentativaAtual() + 1) {
+            throw new IllegalArgumentException("Decisao de reagendamento invalida.");
+        }
+        // Comparar antes de somar tambem protege contra intervalos que excedem Instant.
+        var restante = Duration.between(decisao.processadoEm(), atual.limiteEm());
+        var horario = intervalo.compareTo(restante) >= 0
+                ? atual.limiteEm() : decisao.processadoEm().plus(intervalo);
+        var proxima = new TentativaMonitoramento(atual.monitoramentoId(), atual.orquestracaoId(),
+                atual.idDossiePreValidacao(), atual.idDossieMtr(), decisao.proximaTentativa(),
+                atual.iniciadoEm(), atual.limiteEm(), atual.politicaMonitoramentoVersao());
+        return new ReagendamentoMonitoramento(proxima, horario);
+    }
 }

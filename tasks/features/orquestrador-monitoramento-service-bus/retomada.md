@@ -1,5 +1,158 @@
 # Retomada — orquestrador e monitoramento Service Bus
 
+## Preparação do commit — 2026-09-10
+
+O pedido posterior é preparar um commit seguro e esclarecer execução/testes/guias.
+O [manifesto atual](pacote-commit.md) descreve os 42 arquivos de 7.1-B/C/D + 8.1
+já selecionados no índice desde d83b689, com mensagem e roteiro de reprodução.
+Índice/workspace conferidos e diff preparado sem erros; commit/push não executados.
+Foram removidas somente linhas vazias finais de seis testes novos e da continuidade,
+com novo checkpoint completo no mesmo baseline: 1.293 testes/189 classes, build e
+COMPLIANT / NOT_REQUIRED, 87,9% cobertura, 4,3% duplicação, nenhuma issue nova/grave.
+Análise `79215d12-7a59-4071-b60a-08d491e8815b`, fingerprint `3871c60389fe2d7425a3c22d8c74e0c14146088e4501d8f8ba61bacf7f1482f7`.
+Cópia final de sessão: `.codex/.state/session-after-commit-preparation-20260910.json`. O patch temporário e os
+artefatos locais ficam preservados fora do pacote.
+
+Guia do dev e guia Service Bus explicitam 1.293 testes padrão, 21 integrações e início
+obrigatoriamente explícito do listener. A prova do fluxo é a integração com emulador;
+subir dev mode não ativa consumo. Código, baseline e checkpoint de 8.1 permanecem preservados.
+O registro de fechamento abaixo descreve o estado anterior à preparação do índice.
+
+## Ponto seguro — 8.1 concluída tecnicamente em 2026-09-10
+
+Este registro documenta a conclusão de 8.1 antes da preparação do commit descrita acima.
+
+- As cinco issues autorizadas foram corrigidas e confirmadas CLOSED/FIXED.
+- Passaram **68 testes focados** e **1.293 testes padrão em 189 classes**, sem falhas,
+  erros ou ignorados. Build e checkpoint completos concluídos.
+- Sonar **COMPLIANT / NOT_REQUIRED**: cobertura **87,9%**, duplicação **4,3%**,
+  213 issues abertas, nenhuma nova ou HIGH/BLOCKER/CRITICAL.
+- As **21 integrações em cinco classes** passaram em 09/09; não foram repetidas para
+  estas correções de sintaxe/testes, que preservam o comportamento.
+- Revisão independente dos ajustes concluída sem apontamentos.
+- Branch `feature/orquestrador-monitoramento-service-bus`; HEAD publicado
+  `d83b6895a196718880e8e3d23519702f6eb77682`, até 7.1-A. Trabalho posterior segue local.
+  Todos os arquivos, inclusive `.codex-doc-alignment.patch`, foram preservados.
+- Baseline READY original de 217 issues recuperado após o hook apagar o estado de sessão,
+  conferido integralmente idêntico; nenhuma reinicialização.
+- Sem staging, commit ou push. Comandos de trabalho concluídos; serviços preexistentes preservados.
+- **9.1 e 10.1 permanecem pendentes e não foram iniciadas.** Não houve encerramento humano da feature.
+
+Evidências, IDs das análises e recuperação do baseline na
+[continuidade de 8.1](continuidade-8-1.md).
+
+### Próximo passo ao retomar
+
+1. Conferir branch e alterações com `git status -sb`; preservar arquivos rastreados e não rastreados.
+2. Ler continuidade, checklist, plano, guia do dev e referências exigidas por AGENTS.md.
+3. Conferir `.codex/.state/session.json` antes de qualquer edição executável. O hook de
+   abertura pode apagá-lo; a cópia final validada é
+   `.codex/.state/session-after-commit-preparation-20260910.json`.
+   Usar essa evidência para recuperar o mesmo baseline, sem InitializeBaseline.
+4. Próximo item funcional: **9.1 — consumo e log da saída**, a detalhar e executar em fatia própria.
+   Os ajustes Sonar de 8.1 já terminaram; não repetir decisões humanas anteriores.
+
+### Decisões que continuam válidas
+
+Padrão v1 PT30M repetido até o prazo original, normalmente PT24H, sem max-tentativas
+operacional. Outras políticas podem configurar máximo e intervalos como PT3H/PT4H/PT6H,
+repetindo o último. Versão recebida configurada prevalece; versão removida usa v1 interna,
+preservando versão, início e prazo recebidos. O agendamento é limitado ao prazo original.
+Prazo vencido encerra por QUARENTENA/PRAZO_MAXIMO antes do Hub; máximo esgotado após consulta
+não conclusiva encerra por QUARENTENA/MAXIMO_TENTATIVAS. Proteção contra overflow preservada.
+
+Situações originais: FINALIZADO_CONFORME → CONFORME, FINALIZADO_INCONFORME → INCONFORME,
+PENDENTE_INFORMACA → INCONFORME, preservando situacaoMtr.
+Consumo exige iniciar() explícito. O dev escolhe emulador ou Azure para a aplicação;
+testes padrão continuam sem broker. Provas transacionais são locais no emulador.
+Publicação terminal + Complete ainda não é atômica; não há Outbox/idempotência durável.
+
+## Estado anterior — 7.1-D concluída; 7.1 encerrada tecnicamente
+
+Base até 7.1-A publicada em d83b689; alterações posteriores de 7.1-B/C/D permanecem locais.
+Integração terminal verificada com listener/caso de uso/ACL/publishers reais CDI e somente
+a porta pública do Hub controlada. Situações originais, no-op, prazo, versão removida,
+política inativa max=1, Abandon/redelivery e DLQ cobertos. Consumo automático segue inativo.
+
+15 testes de integração/4 classes passaram no emulador, incluindo as seis provas anteriores.
+Suíte padrão: 1.268 testes/187 classes sem broker. Sonar COMPLIANT / NOT_REQUIRED:
+cobertura 87,8%, duplicação 4,3%, zero issues novas/graves. Baseline original integralmente
+preservado. Evidências e IDs na [continuidade de 7.1](continuidade-7-1.md).
+
+Próximo item funcional: **8.1 — reagendamento transacional**. Antes de implementar, detalhar
+intervalo versus prazo original e contador no limite inteiro; provar schedule + Complete,
+rollback e redelivery no SDK/emulador. Não ativar consumo geral antes da capacidade segura.
+9.1 (consumo/log da saída) e 10.1 (telemetria) seguem pendentes; o demonstrador não está completo.
+
+Preservar alterações rastreadas/não rastreadas, inclusive .codex-doc-alignment.patch e baseline.
+Defaults PT30M repetido, prazo original, max-tentativas opcional nas outras políticas e
+situações MTR permanecem preservados. O dev escolhe emulador ou Azure para a aplicação;
+testes padrão continuam sem broker. Sem staging/commit/push adicional.
+Nenhum comando desta execução ficou em andamento; containers temporários dos testes
+encerrados, containers preexistentes preservados. Os estados abaixo são históricos.
+
+## Estado anterior — 7.1-C tecnicamente concluída
+
+Base até 7.1-A publicada em d83b689; 7.1-B/C concluídas localmente. Listener da entrada CDI
+com início explícito, processamento serial, settlement único, logs mínimos e shutdown antes
+da fábrica. Consumo automático permanece inativo; ReagendamentoPendente encerra a assinatura
+sem settlement, aguardando 8.1. Publicação e Complete ainda não são atômicos.
+
+Os 13 apontamentos java:S8924 MINOR foram corrigidos após ContinuarAjustes humano.
+1.268 testes padrão/187 classes passaram sem broker; COMPLIANT / NOT_REQUIRED:
+cobertura 87,8%, duplicação 4,3%, zero issues novas ou graves. Baseline READY original
+integralmente preservado. Evidência e IDs do checkpoint na [continuidade de 7.1](continuidade-7-1.md).
+
+Próxima fatia: **7.1-D**, integração terminal real e fechamento técnico de 7.1.
+Não ativar consumo geral antes do reagendamento seguro de 8.1. Manter testes padrão sem
+broker; o dev escolhe emulador ou filas Azure para a aplicação.
+Preservar todas as alterações locais, inclusive arquivos não rastreados e o baseline.
+Padrão PT30M repetido, prazo original e max-tentativas opcional nas outras políticas
+permanecem preservados, assim como as situações originais do Hub.
+Sem novo staging/commit/push; nenhum comando desta execução ficou em andamento.
+
+## Estado anterior — 7.1-B tecnicamente concluída
+
+Base até 7.1-A publicada em d83b689; 7.1-B concluída localmente após GO e ContinuarAjustes.
+Caso de uso CDI aplica pré-validação, catálogo, limites, três situações originais do Hub e
+publicação terminal confirmada. Versão ausente usa v1 interna PT30M, sem teto de tentativas
+e sem renovar o prazo recebido; outras configurações mantêm max-tentativas opcional.
+
+1.232 testes padrão/186 classes passaram sem broker. Checkpoint COMPLIANT / NOT_REQUIRED:
+cobertura 87,6%, duplicação 4,3%, nenhuma issue nova ou grave. Duas S6878 corrigidas após
+a decisão humana; baseline original integralmente preservado. Evidência e IDs na
+[continuidade de 7.1](continuidade-7-1.md).
+
+Próximo trabalho: detalhar e executar 7.1-C (listener, settlement e lifecycle), seguido da
+integração terminal de 7.1-D. Consumo geral permanece inativo até a prova de reagendamento
+de 8.1. ReagendamentoPendente é intenção, não confirmação de agendamento nem Complete.
+Em 8.1, tratar intervalo que alcança/ultrapassa limiteEm e tentativaAtual no limite inteiro.
+
+Preservar todas as alterações locais, o patch temporário e o baseline. Nenhum novo staging,
+commit ou push; não reinicializar baseline, não repetir as decisões de versão/situação/padrão.
+Testes padrão sem emulador; o dev escolhe emulador ou filas Azure para a aplicação.
+Nenhum comando do agente ficou em execução. Os registros abaixo são históricos.
+
+## Estado anterior — contrato e resolução de políticas de 7.1-B concluídos
+
+Base até 7.1-A publicada em d83b689. O contrato aceita os nomes originais informados pelo usuário.
+Decisão humana posterior: versão recebida configurada usa sua definição; versão ausente usa
+v1 padrão, sem quarentena por esse motivo. A direção atual usa PT30M repetido até o prazo;
+max-tentativas fica ausente no padrão e disponível para outras configurações.
+Catálogo e producer CDI implementam essa resolução.
+Preservar início/prazo/versão da tentativa; padrões não abrem uma nova janela de 24 horas.
+
+1.200 testes padrão/185 classes e 96 testes focados passaram sem broker após o ajuste de PT30M.
+Checkpoint COMPLIANT: cobertura 87,4%, duplicação 4,3%, nenhuma issue nova ou grave.
+Baseline original integralmente preservado. Evidência em [continuidade de 7.1](continuidade-7-1.md).
+
+Próximo trabalho: conectar catálogo e classificação ao caso de uso terminal de 7.1-B,
+usando o GO vigente. A decisão de versão já foi dada; não reapresentar a pergunta.
+Listeners e agendamento de 8.1 permanecem inativos. Alterações locais, sem novo
+staging/commit/push; patch temporário preservado. Nenhum comando do agente ficou em execução.
+Os registros abaixo representam a entrega publicada e as preparações anteriores.
+
+
 ## Material preparado para continuidade pelo dev — 2026-09-09
 
 Atualizados o [pacote de commit até 7.1-A](pacote-commit.md) e o

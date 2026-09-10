@@ -134,6 +134,38 @@ class PoliticaMonitoramentoProgressivaTest {
                         Duration.ZERO));
     }
 
+    @Test
+    void avaliaLimitesComZeroTentativasSemConsumirAPrimeiraConsulta() {
+        var politica = novaPolitica(List.of(Duration.ofMinutes(30)), OptionalInt.of(1));
+        assertEquals(java.util.Optional.empty(), politica.motivoEncerramento(0, INICIO, LIMITE));
+        assertEquals(java.util.Optional.of(MotivoEncerramento.MAXIMO_TENTATIVAS),
+                politica.motivoEncerramento(1, INICIO, LIMITE));
+        assertEquals(java.util.Optional.of(MotivoEncerramento.PRAZO_MAXIMO),
+                politica.motivoEncerramento(1, LIMITE, LIMITE));
+    }
+
+    @Test
+    void rejeitaContagemNegativaEInstantesAusentesNaConsultaDeLimites() {
+        var politica = novaPolitica(List.of(Duration.ofMinutes(30)), OptionalInt.empty());
+        assertThrows(IllegalArgumentException.class, () -> politica.motivoEncerramento(-1, INICIO, LIMITE));
+        assertThrows(NullPointerException.class, () -> politica.motivoEncerramento(0, null, LIMITE));
+        assertThrows(NullPointerException.class, () -> politica.motivoEncerramento(0, INICIO, null));
+    }
+
+    @Test
+    void encerraNoLimiteRepresentavelAntesDeIncrementarMesmoSemMaximoConfigurado() {
+        var politica = novaPolitica(List.of(Duration.ofMinutes(30)), OptionalInt.empty());
+        var ultimaAgendada = assertInstanceOf(Reagendar.class,
+                politica.avaliarTentativaNaoConclusiva(Integer.MAX_VALUE - 1, INICIO, LIMITE));
+        assertEquals(Integer.MAX_VALUE, ultimaAgendada.proximaTentativa());
+        var encerrada = assertInstanceOf(Encerrar.class,
+                politica.avaliarTentativaNaoConclusiva(Integer.MAX_VALUE, INICIO, LIMITE));
+        assertEquals(MotivoEncerramento.MAXIMO_TENTATIVAS, encerrada.motivo());
+        var expirada = assertInstanceOf(Encerrar.class,
+                politica.avaliarTentativaNaoConclusiva(Integer.MAX_VALUE, LIMITE, LIMITE));
+        assertEquals(MotivoEncerramento.PRAZO_MAXIMO, expirada.motivo());
+    }
+
     private static PoliticaMonitoramentoProgressiva novaPolitica(
             List<Duration> intervalos,
             OptionalInt maximoTentativas) {

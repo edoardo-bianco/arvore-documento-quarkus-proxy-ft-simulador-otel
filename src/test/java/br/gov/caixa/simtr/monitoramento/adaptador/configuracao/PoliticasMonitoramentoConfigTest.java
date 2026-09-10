@@ -1,6 +1,7 @@
 package br.gov.caixa.simtr.monitoramento.adaptador.configuracao;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -39,6 +40,23 @@ class PoliticasMonitoramentoConfigTest {
         assertEquals(INICIO.plus(Duration.ofHours(12)), politica.calcularLimite(INICIO));
         assertEquals(new Decisao.Reagendar(101, Duration.ofMinutes(30)),
                 politica.avaliarTentativaNaoConclusiva(100, INICIO, politica.calcularLimite(INICIO)));
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+            "PT30M|1|PT30M", "PT30M|100|PT30M",
+            "PT3H,PT4H,PT6H|1|PT3H", "PT3H,PT4H,PT6H|2|PT4H",
+            "PT3H,PT4H,PT6H|3|PT6H", "PT3H,PT4H,PT6H|4|PT6H", "PT3H,PT4H,PT6H|100|PT6H"})
+    void aplicaListaConfiguradaSemTetoDeTentativasAteOPrazo(String intervalos, int tentativa, String esperado) {
+        var propriedades = propriedadesValidas();
+        propriedades.put(DEFINICAO + "intervalos", intervalos);
+        var politica = produzir(mapear(propriedades));
+        var limite = politica.calcularLimite(INICIO);
+
+        assertEquals(new Decisao.Reagendar(tentativa + 1, Duration.parse(esperado)),
+                politica.avaliarTentativaNaoConclusiva(tentativa, INICIO, limite));
+        assertEquals(new Decisao.Encerrar(MotivoEncerramento.PRAZO_MAXIMO),
+                politica.avaliarTentativaNaoConclusiva(tentativa, limite, limite));
     }
 
     @Test
@@ -109,6 +127,44 @@ class PoliticasMonitoramentoConfigTest {
     void rejeitaConfiguracaoNaConstrucaoAntesDeProduzirPolitica() {
         var propriedades = propriedadesValidas();
         propriedades.put(DEFINICAO + "intervalos", "PT0S");
+        var config = mapear(propriedades);
+
+        assertThrows(IllegalArgumentException.class, () -> new PoliticaMonitoramentoProducer(config));
+    }
+
+    @Test
+    void resolveVersaoInativaSemTrocarPoliticaDeNovosMonitoramentos() {
+        var producer = new PoliticaMonitoramentoProducer(mapear(propriedadesValidas()));
+
+        var resolucao = producer.catalogo().resolver("progressiva-v3");
+
+        assertEquals("fixa-v2", producer.politica().versao());
+        assertEquals("progressiva-v3", resolucao.politica().versao());
+        assertFalse(resolucao.padraoAplicado());
+        assertEquals(new Decisao.Reagendar(2, Duration.ofMinutes(10)),
+                resolucao.politica().avaliarTentativaNaoConclusiva(1, INICIO, INICIO.plusSeconds(3600)));
+    }
+
+    @Test
+    void ausenciaDaV1RecuperaPadroesSemUsarAConfiguracaoAtiva() {
+        var propriedades = propriedadesValidas();
+        propriedades.put(DEFINICAO + "intervalos", "PT7M");
+        propriedades.put(DEFINICAO + "max-tentativas", "1");
+        var producer = new PoliticaMonitoramentoProducer(mapear(propriedades));
+
+        var resolucao = producer.catalogo().resolver("v1");
+
+        assertTrue(resolucao.padraoAplicado());
+        assertEquals("v1", resolucao.politica().versao());
+        assertEquals(new Decisao.Reagendar(2, Duration.ofMinutes(30)),
+                resolucao.politica().avaliarTentativaNaoConclusiva(1, INICIO, INICIO.plusSeconds(3600)));
+        assertEquals("fixa-v2", producer.politica().versao());
+    }
+
+    @Test
+    void rejeitaVersoesDuplicadasEntreDefinicoesNomeadas() {
+        var propriedades = propriedadesValidas();
+        propriedades.put(PREFIXO + "definicoes.progressiva.versao", "fixa-v2");
         var config = mapear(propriedades);
 
         assertThrows(IllegalArgumentException.class, () -> new PoliticaMonitoramentoProducer(config));

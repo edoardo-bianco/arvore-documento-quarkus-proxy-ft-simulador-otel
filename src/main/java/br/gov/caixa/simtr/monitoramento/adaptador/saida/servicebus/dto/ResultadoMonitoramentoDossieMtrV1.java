@@ -53,7 +53,8 @@ public record ResultadoMonitoramentoDossieMtrV1(
     public boolean isConsultaConclusivaValida() {
         return !"CONCLUSIVO".equals(resultadoMonitoramento)
                 || tentativasRealizadas >= 1 && switch (situacaoMtr) {
-                    case "CONFORME", "NAO_CONFORME", "PENDENTE_INFORMACAO" -> true;
+                    case "CONFORME", "NAO_CONFORME", "PENDENTE_INFORMACAO",
+                            "FINALIZADO_CONFORME", "FINALIZADO_INCONFORME", "PENDENTE_INFORMACA" -> true;
                     case null, default -> false;
                 };
     }

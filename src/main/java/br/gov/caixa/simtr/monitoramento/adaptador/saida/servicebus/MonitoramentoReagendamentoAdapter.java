@@ -1,31 +1,63 @@
 package br.gov.caixa.simtr.monitoramento.adaptador.saida.servicebus;
 
-import jakarta.enterprise.inject.Vetoed;
+import br.gov.caixa.simtr.arquitetura.infraestrutura.servicebus.FilaEntrada;
+import br.gov.caixa.simtr.monitoramento.aplicacao.porta.saida.ReagendarTentativaMonitoramento;
+import br.gov.caixa.simtr.monitoramento.dominio.modelo.ReagendamentoMonitoramento;
+import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
+import com.azure.messaging.servicebus.ServiceBusReceiverAsyncClient;
+import com.azure.messaging.servicebus.ServiceBusSenderAsyncClient;
+import com.azure.messaging.servicebus.models.CompleteOptions;
+import io.smallrye.mutiny.Uni;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.Objects;
+import reactor.core.publisher.Mono;
 
-/**
- * Agendar a proxima tentativa e coordenar a transacao de entidade unica na borda.
- *
- * <p><strong>Estado:</strong> estrutura sem lógica, mantida fora do CDI por {@link jakarta.enterprise.inject.Vetoed}.
- * Completar no item 8.1 do checklist da feature antes de habilitar o componente.
- *
- * <p><strong>Implementação e verificação previstas:</strong>
- * <ul>
- * <li>Implementar a porta de reagendamento depois de detalhar a associação com a entrega corrente na borda.</li>
- * <li>Agendar a próxima mensagem e concluir a atual na transação de entidade única prevista; manter contexto/handles Azure nesta borda.</li>
- * <li>Preservar instante inicial, limite e versão; não usar singleton com contexto mutável de entrega nem incrementar tentativa por falha técnica.</li>
- * <li>Provar commit, rollback, falha de agendamento e redelivery no emulador antes de habilitar o fluxo.</li>
- * </ul>
- *
- * <p><strong>Fluxo aprovado a implementar:</strong> Escrever a próxima tentativa em {@code q.prevalidacao.monitoramento-mtr.in}, com horário calculado a partir do processamento e intervalo decidido pela política. O destinatário continua sendo o listener do monitoramento. A escrita agendada e o Complete da entrega atual devem compor a transação prevista, comprovada antes do uso; não usar Abandon, sleep ou timer local como reagendamento funcional.
- * Consultar {@code doc/guias/guia-service-bus-amqp-dossie.md}.
- *
- * <p>As referências abaixo indicam dependências previstas; ainda não há injeção, chamada ou
- * implementação de interface. Não usar a classe vazia como retorno fictício de sucesso.
- * Consultar {@code tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md}.
- *
- * @see br.gov.caixa.simtr.monitoramento.aplicacao.porta.saida.ReagendarTentativaMonitoramento
- * @see br.gov.caixa.simtr.arquitetura.infraestrutura.servicebus.ClientesServiceBus
- */
-@Vetoed
-public final class MonitoramentoReagendamentoAdapter {
+/** Associa cada entrega a sua transacao sem guardar contexto mutavel no bean. */
+@ApplicationScoped
+public class MonitoramentoReagendamentoAdapter {
+    private final Instance<ServiceBusSenderAsyncClient> clientes;
+    private final MonitoramentoReagendamentoServiceBusMapper mapper;
+
+    @Inject
+    public MonitoramentoReagendamentoAdapter(@FilaEntrada Instance<ServiceBusSenderAsyncClient> clientes,
+            MonitoramentoReagendamentoServiceBusMapper mapper) {
+        this.clientes = clientes;
+        this.mapper = mapper;
+    }
+
+    /** Handles permanecem capturados na borda; a porta recebe somente a intencao de negocio. */
+    public ReagendarTentativaMonitoramento associar(ServiceBusReceiverAsyncClient receiver,
+            ServiceBusReceivedMessage atual) {
+        Objects.requireNonNull(receiver, "receiver");
+        Objects.requireNonNull(atual, "atual");
+        return pedido -> Uni.createFrom().item(() -> transacionar(receiver, atual, pedido).toFuture())
+                // Compartilhar o futuro, e nao a espera: cancelamento deve alcancar o SDK.
+                .memoize().indefinitely()
+                .onItem().transformToUni(futuro -> Uni.createFrom().completionStage(futuro));
+    }
+
+    private Mono<Void> transacionar(ServiceBusReceiverAsyncClient receiver,
+            ServiceBusReceivedMessage atual, ReagendamentoMonitoramento pedido) {
+        return Mono.defer(() -> {
+            var proxima = mapper.paraMensagem(pedido.proximaTentativa());
+            var horario = OffsetDateTime.ofInstant(pedido.agendadoEm(), ZoneOffset.UTC);
+            var sender = clientes.get();
+            return receiver.createTransaction().flatMap(tx ->
+                    Mono.defer(() -> sender.scheduleMessage(proxima, horario, tx))
+                            .flatMap(_ -> Mono.defer(() -> receiver.complete(atual,
+                                    new CompleteOptions().setTransactionContext(tx))))
+                            .onErrorResume(_ -> Mono.defer(() -> receiver.rollbackTransaction(tx))
+                                    .then(Mono.error(falhaNaoConfirmada())))
+                            // Commit fica fora do recovery: falha aqui pode significar efeito remoto confirmado.
+                            .then(Mono.defer(() -> receiver.commitTransaction(tx))));
+        }).onErrorMap(_ -> falhaNaoConfirmada());
+    }
+
+    private static IllegalStateException falhaNaoConfirmada() {
+        return new IllegalStateException("Reagendamento transacional nao confirmado.");
+    }
 }

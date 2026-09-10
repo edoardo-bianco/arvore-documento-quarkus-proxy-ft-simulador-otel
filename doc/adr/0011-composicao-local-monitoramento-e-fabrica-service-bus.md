@@ -68,9 +68,34 @@ orquestrador.aplicacao (início, no item 6.1)
   local precede a publicação; o processamento e seu resultado continuam passando pelas duas filas;
 - os valores retornados compõem a mensagem inicial. Reagendamento preserva o instante, o limite e
   a versão recebidos, sem recalcular a janela a cada tentativa;
-- a estratégia para uma mensagem antiga cuja versão de política não corresponda à seleção atual
-  ainda precisa ser detalhada antes do processamento em 7.1/8.1; não haverá substituição silenciosa
-  por uma política diferente.
+- a política da mensagem é resolvida pela versão recebida, conforme o detalhamento abaixo;
+  a seleção ativa continua destinada à preparação de novos monitoramentos.
+
+### Resolução da política de monitoramentos em curso
+
+- Uma definição configurada para a versão recebida tem precedência, mesmo quando não é a ativa.
+- Se a definição não existir, o monitoramento usa uma política progressiva v1 interna com valores
+  fixos: intervalo único PT30M, repetido até o prazo, duração PT24H e sem máximo
+  opcional de tentativas. A ausência da versão não gera QUARENTENA.
+- A v1 padrão configurada também usa PT30M sem teto adicional de tentativas. Outras definições
+  podem usar listas como PT3H,PT4H,PT6H: os intervalos são aplicados em ordem e depois PT6H
+  se repete. max-tentativas continua opcional para essas configurações; o prazo máximo permanece
+  obrigatório. Os valores representam intervalos entre tentativas, não horários desde o início.
+- A recuperação fornece um objeto em memória; não escreve propriedades nem altera a seleção ativa.
+  A resolução mantém a versão solicitada separada da política efetiva e indica padrão aplicado,
+  inclusive quando a versão solicitada também é v1.
+- A aplicação conserva IDs, tentativa, iniciadoEm, limiteEm e versão recebida. Avalia a política
+  com o limite transportado, sem recalcular ou reiniciar a janela de monitoramento.
+  Encerramento por prazo e demais critérios funcionais permanecem válidos.
+- A recuperação cobre somente uma versão válida ausente. Definições presentes inválidas ou
+  seleção ativa inválida continuam rejeitadas no bootstrap. Versões repetidas entre definições
+  são rejeitadas para impedir resolução ambígua.
+- Valores personalizados removidos não podem ser reconstruídos. Os padrões internos são
+  determinísticos e independem de uma eventual definição v1 personalizada ainda configurada.
+
+O catálogo pertence ao domínio de monitoramento e é composto pelo producer de configuração.
+Não cria porta compartilhada, dependência no orquestrador ou contrato de transporte novo.
+A implementação e a ligação incremental ao processamento ficam registradas nas tasks.
 
 ### Fábrica técnica única
 
