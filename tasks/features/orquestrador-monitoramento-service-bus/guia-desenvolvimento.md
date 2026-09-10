@@ -8,9 +8,11 @@ Próximo item de desenvolvimento: **10.1**, correlação OpenTelemetry; começar
 Passaram **1.345 testes padrão em 192 classes** e **27 integrações em sete classes**, sem
 falhas, erros ou ignorados. Build e Sonar **COMPLIANT / NOT_REQUIRED**: cobertura **88,1%**,
 duplicação **4,4%**, nenhuma issue nova ou grave. Baseline original preservado.
-As provas usam o emulador com a porta do Hub controlada. A validação em dev mode interativo
-continua pendente; Azure gerenciado não foi executado. O problema de startup relatado pelo usuário
-será analisado após esta publicação, conforme sua orientação. O [manifesto de 8.2](pacote-commit.md) preserva o marco publicado anterior
+As provas automatizadas usam o emulador com a porta do Hub controlada. Após a publicação,
+duas inicializações em dev mode e um POST até o log final foram verificados com a fixture real
+do simulador. Os avisos JDBC de prelogin foram transitórios nessas reproduções; o bloqueio
+persistente original não foi reproduzido. [Diagnóstico e operação](diagnostico-devmode-20260910.md).
+Azure gerenciado não foi executado. O [manifesto de 8.2](pacote-commit.md) preserva o marco publicado anterior
 a797114; a [continuidade de 9.1](continuidade-9-1.md) conserva os checkpoints de A/B/C.
 
 O caso de uso, o adapter de log e o listener da saída estão conectados por CDI.

@@ -8,7 +8,7 @@
 - [x] Publicar implementação/regressões em fcbe38a e integração em 2c6c4cd; confirmar hash remoto/local.
 - [x] Consolidar registro de publicação e roteiro manual em Markdown para o complemento documental.
 - [x] Preservar baseline, aceite C9.1-L e arquivos locais fora do pacote.
-- [ ] Após publicação documental, analisar o problema de startup Quarkus em dev mode relatado pelo usuário.
+- [x] Após publicação documental, verificar startup Quarkus em dev mode: duas inicializações, health/Swagger e POST até log final; avisos transitórios, bloqueio original não reproduzido. [Evidência e limites](diagnostico-devmode-20260910.md).
 - [ ] Próximo item funcional: 10.1; C3 e encerramento humano permanecem pendentes.
 
 [Manifesto de 9.1](pacote-commit-9-1.md). Os checkpoints abaixo conservam a evidência de cada subfatia.

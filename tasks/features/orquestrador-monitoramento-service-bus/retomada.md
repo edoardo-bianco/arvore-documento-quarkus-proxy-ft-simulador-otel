@@ -1,5 +1,20 @@
 # Retomada — orquestrador e monitoramento Service Bus
 
+## Diagnóstico de dev mode verificado — 2026-09-10
+
+Após a publicação 0ec09ac, o usuário pediu verificar o startup e a emulação do Service Bus.
+Duas reproduções iniciaram em 24,416 s e 27,213 s. SQL/emulador criaram as duas filas,
+health/Swagger responderam 200 e o POST com fixture real 4324680 retornou 202 e chegou ao
+log final com IDs correspondentes. Avisos JDBC foram transitórios; o bloqueio persistente
+original não foi reproduzido. [Evidências, limites e operação](diagnostico-devmode-20260910.md).
+
+Nenhuma mudança executável ou nova análise Sonar. .env, baseline, aceite C9.1-L e patch local
+preservados. Aplicações e containers do diagnóstico encerrados; infraestrutura preexistente
+preservada. Somente Markdown alterado; commit e push deste diagnóstico foram autorizados pelo
+usuário após a verificação, sem nova mudança executável.
+Próximo item funcional continua **10.1**, seguido dos checkpoints restantes.
+Os registros abaixo descrevem o estado antes desta verificação operacional.
+
 ## Marco publicado de 9.1 e retomada — 2026-09-10
 
 9.1-A/B/C publicada na branch `feature/orquestrador-monitoramento-service-bus`:
