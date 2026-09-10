@@ -6,25 +6,22 @@ import jakarta.enterprise.inject.Vetoed;
 import jakarta.ws.rs.Path;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-
 import java.util.stream.Stream;
-
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
-class EsqueletosMonitoramentoCdiTest {
-
-    static Stream<String> esqueletos() {
-        return EstruturaPlanejada.ESQUELETOS.stream();
+class ResultadoMonitoramentoCdiTest {
+    static Stream<String> componentes() {
+        return ComponentesResultadoMonitoramento.CLASSES.stream();
     }
 
     @ParameterizedTest
-    @MethodSource("esqueletos")
-    void estruturaPendenteNaoDeveSerAtivada(String nomeClasse) throws ClassNotFoundException {
+    @MethodSource("componentes")
+    void componenteDeResultadoDeveResolverComoBeanUnicoSemEndpoint(String nomeClasse) throws ClassNotFoundException {
         Class<?> tipo = Class.forName(nomeClasse);
-        assertTrue(tipo.isAnnotationPresent(Vetoed.class), nomeClasse);
+        assertFalse(tipo.isAnnotationPresent(Vetoed.class), nomeClasse);
         assertFalse(tipo.isAnnotationPresent(Path.class), nomeClasse);
-        assertTrue(Arc.container().beanManager().getBeans(tipo).isEmpty(), nomeClasse);
+        assertEquals(1, Arc.container().beanManager().getBeans(tipo).size(), nomeClasse);
     }
 }
