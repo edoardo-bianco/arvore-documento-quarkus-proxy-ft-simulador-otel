@@ -340,7 +340,7 @@ A infraestrutura não importa Hub, orquestrador ou monitoramento; somente os ada
 Service Bus acessam a fábrica. Ela não é barramento genérico, dona do retry funcional,
 reagendamento, validação, DTO ou settlement. Essas responsabilidades continuam nos componentes.
 
-## Fluxo completo a implementar
+## Fluxo completo e evolução
 
 O diagrama representa o fluxo aprovado. REST, iniciação, publicações, consultas, processamento
 e listener da entrada estão implementados; a 8.2 permite opt-in no startup. Integração
@@ -387,8 +387,8 @@ continua dona dos clientes.
 
 | Fila | Quem escreve | Quem lê | Finalidade |
 |---|---|---|---|
-| `q.prevalidacao.monitoramento-mtr.in` | Orquestrador, na tentativa inicial; monitoramento, no reagendamento | Listener de entrada do monitoramento | Executar uma tentativa do monitoramento |
-| `q.prevalidacao.monitoramento-mtr.out` | Publisher de resultado do monitoramento | Listener de resultado do orquestrador | Informar resultado terminal ou quarentena e encerrar o demonstrador com log |
+| Fila de entrada (default `q.prevalidacao.monitoramento-mtr.in`) | Orquestrador, na tentativa inicial; monitoramento, no reagendamento | Listener de entrada do monitoramento | Executar uma tentativa do monitoramento |
+| Fila de saída (default `q.prevalidacao.monitoramento-mtr.out`) | Publisher de resultado do monitoramento | Listener de resultado do orquestrador | Informar resultado terminal ou quarentena e encerrar o demonstrador com log |
 
 A direção de um package é relativa ao componente: o orquestrador escreve na fila de entrada
 por `adaptador.saida.servicebus` e lê a fila de saída por `adaptador.entrada.servicebus`.
@@ -494,8 +494,9 @@ Isso não fornece idempotência durável nem garantia de entrega exatamente uma 
 A validação mantém `400/ARVDOCP0001` no mapper global existente. Falha na iniciação/publicação
 retorna `500/ARVDOCP9999`, mensagem genérica e ID de erro, sem causa ou dados do broker.
 `ErroInicioMonitoramentoDto` pertence à borda REST do orquestrador e preserva o formato
-existente, sem importar o DTO do Hub. Não foram acrescentados logs manuais ou spans neste item;
-os logs de erro dos mappers permanecem. Campos desconhecidos não controlam IDs ou tentativa.
+existente, sem importar o DTO do Hub. B1 acrescentou posteriormente os spans
+SERVER/INTERNAL/PRODUCER e o log da publicação inicial. Os logs de erro dos mappers
+permanecem. Campos desconhecidos não controlam IDs ou tentativa.
 
 A fila de entrada usa os nove campos v1 abaixo. Exemplo sintético compatível com os mappers
 já implementados:
@@ -531,8 +532,8 @@ campos desconhecidos dos antigos exemplos do ADR-0009 como requisitos já implem
 Cada borda possui DTO e mapper próprios: produtor inicial no orquestrador, consumidor no
 monitoramento e produtor de reagendamento no monitoramento. A compatibilidade é demonstrada
 pelo JSON; os tipos Java não são compartilhados entre essas bordas.
-O mapper monta a mensagem; o publisher inicial já a envia. O agendamento permanece responsabilidade
-do adapter futuro de reagendamento.
+O mapper monta a mensagem; o publisher inicial a envia. O adapter de reagendamento implementado
+em 8.1 agenda a próxima tentativa e conclui a entrega atual na mesma transação da entidade.
 
 ### Fila de saída
 
@@ -580,7 +581,7 @@ A nulidade e o contador da quarentena foram confirmados pelo usuário e estão r
 [plano/checklist](../../tasks/features/orquestrador-monitoramento-service-bus/todo.md).
 Exemplo de quarentena antes da primeira consulta: no objeto acima, o resultado e a situação
 da pré-validação são `QUARENTENA`, `situacaoMtr` é
-ull`,
+`null`,
 `tentativasRealizadas` é `0` e o motivo descreve o limite atingido. O prazo pode vencer
 antes da primeira consulta; o mapper não inventa uma situação MTR para preencher o campo.
 
@@ -696,19 +697,258 @@ habilita o mock automaticamente. Para Azure já configurado, acrescentar
 "-Dquarkus.profile=dev,azure". O consumo usa as filas desse ambiente.
 
 A prova `mvn -q -Pservicebus-integration "-Dtest=MonitoramentoAtivacaoEmuladorTest" test`
-inicia o runtime por configuração, chama o POST e verifica terminal/reagendamento sem acesso
-ao listener pelo teste. O harness lê/confirma a saída; consumo/log dessa fila continuam em 9.1.
-O [roteiro de execução](../../tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md#verificação-rápida-do-marco-até-82)
-traz o request, os cenários, os limites e os demais testes. Dev mode interativo e Azure real
-não foram executados nesta fatia.
+inicia o runtime por configuração, chama o POST e verifica terminal/reagendamento. O consumo e
+o log da saída foram conectados posteriormente em 9.1. O roteiro abaixo mostra como executar o
+fluxo atual e como observar as mensagens sem confundir `peek` com presença durável.
 
 Pontos de entrada oficiais: [Quarkus Azure Services](https://docs.quarkiverse.io/quarkus-azure-services/dev/index.html)
 e [extensão Service Bus/Dev Services](https://docs.quarkiverse.io/quarkus-azure-services/dev/quarkus-azure-servicebus.html).
 Conferir exemplos contra as versões fixadas no projeto; este guia não autoriza upgrade.
 
+## Teste operacional em dois modos
+
+A aplicação pode ser executada com `quarkus:dev` tanto com emuladores quanto a partir de uma
+máquina sem Docker conectada às filas Azure de DES. Os dois modos usam o mesmo POST e os mesmos
+contratos, mas a estratégia de observação é diferente.
+
+| Modo | Transporte e infraestrutura | Como observar com segurança |
+|---|---|---|
+| 1 — Dev Services | Service Bus local e, quando necessário, Cosmos local iniciados pelo Quarkus; exige Docker | Execução ponta a ponta para o log; testes de integração em debug para controlar listener e `peek` |
+| 2 — Azure DES | Aplicação local; Service Bus real de DES; nenhum Dev Service; não exige Docker | Reinícios controlados preservam a mensagem no broker; Azure Portal faz `peek` da entrada, saída e DLQs |
+
+No modo 2, **DES é o ambiente dos recursos Azure**. Os profiles da aplicação local são
+`dev,azure`: `dev` mantém os simuladores locais das dependências funcionais e `azure` seleciona
+Service Bus externo com AMQP sobre WebSockets/443. Não combinar os profiles `dev` e `des`.
+O profile `des` pertence à validação separada do Cosmos real. Como o adapter Cosmos operacional
+continua pendente em P3, os dois ensaios abaixo desabilitam Cosmos explicitamente.
+
+### Cenário comum e resposta esperada
+
+O exemplo usa a pré-validação simulada `pre-em-analise` e a fixture Hub `4324680`, cuja situação
+é `Rascunho`. A propriedade `max-tentativas=1` força uma saída rápida de QUARENTENA, evitando
+esperar o intervalo padrão de 30 minutos.
+
+Em um terminal PowerShell separado daquele em que o Quarkus está executando:
+
+```powershell
+$corpo = @{
+  idDossiePreValidacao = 'pre-em-analise'
+  idDossieMtr = '4324680'
+} | ConvertTo-Json
+
+$http = Invoke-WebRequest `
+  -Method Post `
+  -Uri 'http://localhost:8080/simtr-hub/v1/monitoramentos-dossie' `
+  -ContentType 'application/json' `
+  -Body $corpo
+
+$http.StatusCode
+$resposta = $http.Content | ConvertFrom-Json
+$resposta
+$monitoramentoId = [string] $resposta.monitoramentoId
+$orquestracaoId = [string] $resposta.orquestracaoId
+```
+
+O status esperado é `202`. Guardar os dois UUIDs. O `MessageId` esperado na entrada é
+`<monitoramentoId>:tentativa:1`; na saída é `<monitoramentoId>:resultado:v1`. O
+`CorrelationId` das duas mensagens deve ser igual a `orquestracaoId`.
+
+### Modo 1 — máquina com Docker e Dev Services
+
+1. Iniciar o Docker Desktop. Não manter variáveis externas de Service Bus na sessão usada pelo
+   Maven; o gate de integração recusa configuração que possa apontar para Azure.
+2. Se houver Jaeger em `localhost:4317`, usar `dev,jaeger`; caso contrário, trocar o profile do
+   comando por `dev`.
+3. Iniciar o fluxo completo:
+
+```powershell
+mvn quarkus:dev "-Ddebug=false" "-Dquarkus.profile=dev,jaeger" `
+  "-Dquarkus.azure.cosmos.enabled=false" `
+  "-Dquarkus.azure.cosmos.devservices.enabled=false" `
+  "-Dmonitoramento.simulador.prevalidacao.habilitado=true" `
+  "-Dmonitoramento.politicas.definicoes.padrao.max-tentativas=1" `
+  "-Dmonitoramento.service-bus.entrada.consumo-habilitado=true" `
+  "-Dmonitoramento.service-bus.saida.consumo-habilitado=true"
+```
+
+4. Aguardar o startup em `http://localhost:8080` e executar o POST do cenário comum.
+5. Conferir o log conforme a seção “Conferência do log” abaixo.
+
+Com os dois listeners ativos, entrada e saída podem receber `Complete` antes do `peek`. Isso é
+esperado e não significa que as mensagens não existiram. Para observar as duas mensagens de
+forma determinística no emulador, executar as integrações em modo debug pela IDE:
+
+```powershell
+mvn -q -Pservicebus-integration `
+  "-Dtest=MonitoramentoTerminalEmuladorTest,MonitoramentoResultadoEmuladorTest" test
+```
+
+Na classe `MonitoramentoTerminalEmuladorTest`:
+
+1. O cenário `deveProcessarSolicitacaoRestPreservandoSituacaoMtr` faz um POST real.
+2. Colocar breakpoint em `observarEntrada`, depois de `peekMessage(0L)`, e inspecionar
+   `mensagem`: corpo, `MessageId`, `CorrelationId`, `Subject`, `ContentType`, application
+   properties, `SequenceNumber`, `DeliveryCount` e horário de enfileiramento.
+3. Guardar o `SequenceNumber` da entrada. O teste repete `peekMessage(sequenceNumber)` antes de
+   iniciar o listener e exige o mesmo `MessageId`.
+4. Colocar breakpoint em `receberResultado`, antes do mapper, e inspecionar `recebida`. O campo
+   `inputSequenceNumber` do corpo deve ser igual ao `SequenceNumber` guardado da entrada. A
+   mensagem de saída possui outro `SequenceNumber`, próprio dela.
+5. Depois do `Complete`, o teste consulta a partir da sequência guardada e exige que a mensagem
+   exata não esteja mais presente.
+
+`MonitoramentoResultadoEmuladorTest` mantém a consulta Hub pendente enquanto faz `peek` de cada
+tentativa, depois libera o processamento, verifica o log final e confirma as filas vazias. Não
+executar essas integrações ao mesmo tempo que outra aplicação ou teste que consuma as filas.
+
+### Modo 2 — máquina sem Docker usando Service Bus de DES
+
+Este modo requer duas filas **isoladas para o teste**, sem consumidores implantados concorrendo.
+Não usar as filas compartilhadas de outro teste ou do serviço de DES: ao ativar o listener, a
+aplicação consumirá qualquer mensagem disponível na entidade configurada.
+
+As seguintes variáveis devem existir no ambiente que inicia o Maven:
+
+- `QUARKUS_AZURE_SERVICEBUS_CONNECTION_STRING`, com a SAS de DES autorizada para `Send + Listen`;
+- `SERVICE_BUS_INPUT_QUEUE`, com a fila de entrada isolada;
+- `SERVICE_BUS_OUTPUT_QUEUE`, com a fila de saída isolada.
+
+Validar apenas a presença da configuração, sem imprimir a connection string:
+
+```powershell
+$obrigatorias = @(
+  'QUARKUS_AZURE_SERVICEBUS_CONNECTION_STRING',
+  'SERVICE_BUS_INPUT_QUEUE',
+  'SERVICE_BUS_OUTPUT_QUEUE'
+)
+$faltantes = $obrigatorias | Where-Object {
+  [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($_))
+}
+if ($faltantes) { throw "Configuração ausente: $($faltantes -join ', ')" }
+```
+
+Usar o mesmo comando nas três etapas seguintes, mudando somente `$consumirEntrada` e
+`$consumirSaida`. O profile `azure` desabilita o Dev Service de Service Bus; as propriedades
+explícitas também impedem que o Quarkus tente iniciar Cosmos ou outro broker pelo Docker.
+
+```powershell
+$consumirEntrada = 'false'
+$consumirSaida = 'false'
+
+mvn quarkus:dev "-Ddebug=false" "-Dquarkus.profile=dev,azure" `
+  "-Dquarkus.azure.servicebus.devservices.enabled=false" `
+  "-Dquarkus.azure.cosmos.enabled=false" `
+  "-Dquarkus.azure.cosmos.devservices.enabled=false" `
+  "-Dmonitoramento.simulador.prevalidacao.habilitado=true" `
+  "-Dmonitoramento.politicas.definicoes.padrao.max-tentativas=1" `
+  "-Dmonitoramento.service-bus.entrada.consumo-habilitado=$consumirEntrada" `
+  "-Dmonitoramento.service-bus.saida.consumo-habilitado=$consumirSaida"
+```
+
+Executar a mesma mensagem pelas três etapas:
+
+1. **Publicar e observar a entrada.** Manter os dois valores `false`, executar o POST e guardar
+   os UUIDs. No Azure Portal, abrir o namespace DES, a fila indicada por
+   `SERVICE_BUS_INPUT_QUEUE`, `Service Bus Explorer`, `Peek Mode` e `Peek with options`.
+   Localizar o `MessageId=<monitoramentoId>:tentativa:1` e guardar seu `SequenceNumber`.
+2. **Processar e observar a saída.** Encerrar o Quarkus com `q`, definir
+   `$consumirEntrada='true'` e `$consumirSaida='false'`, e executar novamente o mesmo comando.
+   A entrada será processada e concluída; não fazer outro POST. No Portal, localizar na fila de
+   saída `MessageId=<monitoramentoId>:resultado:v1`. Guardar o `SequenceNumber` próprio da saída
+   e conferir no corpo que `inputSequenceNumber` é igual à sequência guardada da entrada.
+3. **Consumir a saída e registrar o log.** Encerrar novamente, definir
+   `$consumirEntrada='false'` e `$consumirSaida='true'`, e executar o mesmo comando. A mensagem
+   de saída existente será registrada e concluída. Conferir o arquivo local de log pelos UUIDs.
+4. **Confirmar remoção.** No Portal, executar `Peek with options` a partir de cada sequência.
+   A mensagem exata não deve aparecer. Se aparecer uma mensagem posterior, comparar o número;
+   não concluir que a sequência original continua presente.
+
+O Portal usa a identidade do desenvolvedor para operações de dados. A SAS configurada para a
+aplicação não concede automaticamente acesso ao Portal. Se o usuário não tiver permissão de
+leitura na entidade, usar um cliente SDK autorizado; o repositório ainda não oferece esse CLI,
+pois o observador operacional é P9.
+
+### O que conferir em cada fila
+
+| Fila | Propriedades e corpo |
+|---|---|
+| Fila de entrada (default `q.prevalidacao.monitoramento-mtr.in`) | `MessageId=<monitoramentoId>:tentativa:1`; `CorrelationId=orquestracaoId`; subject `MONITORAR_DOSSIE_MTR`; JSON com os dois IDs de dossiê, tentativa 1, início, limite e política v1; application property `traceparent` válida no marco B1 |
+| Fila de saída (default `q.prevalidacao.monitoramento-mtr.out`) | `MessageId=<monitoramentoId>:resultado:v1`; mesmo `CorrelationId`; subject `RESULTADO_MONITORAMENTO_DOSSIE_MTR`; resultado `QUARENTENA`, `situacaoMtr=Rascunho`, `situacaoPreValidacao=QUARENTENA`, motivo `MAXIMO_TENTATIVAS`, uma tentativa e `inputSequenceNumber` igual à sequência da entrada |
+| DLQ da entrada | Deve permanecer vazia para o POST válido; mensagem inválida usa motivo `MONITORAMENTO_ENTRADA_INVALIDA` |
+| DLQ da saída | Deve permanecer vazia para o resultado válido; mensagem inválida usa motivo `MONITORAMENTO_SAIDA_INVALIDA` |
+
+A DLQ não faz parte do `peek` da fila principal. No Portal, selecionar a subfila Dead Letter.
+No SDK, construir outro receiver com `subQueue(SubQueue.DEAD_LETTER_QUEUE)` e aplicar a mesma
+paginação. Não usar `ReceiveAndDelete`, não reenviar e não concluir mensagens durante diagnóstico.
+
+### Semântica correta de `peek` e `SequenceNumber`
+
+`SequenceNumber` é um inteiro de 64 bits atribuído pelo broker e identifica a mensagem armazenada.
+O parâmetro de `peekMessage(sequenceNumber)` é um **ponto inicial**, não uma busca por igualdade.
+Se a sequência pedida já recebeu `Complete`, o retorno pode ser a primeira mensagem posterior.
+Sempre validar `retorno.getSequenceNumber() == sequenceNumber`; outro número não prova presença da
+mensagem original. Para percorrer a fila, continuar em `ultimoSequenceNumber + 1` e também filtrar
+pelo `MessageId` esperado.
+
+`peek` não bloqueia nem liquida a mensagem. Ele pode mostrar mensagens ativas, bloqueadas,
+agendadas e diferidas; a DLQ exige receiver próprio. A documentação oficial detalha
+[message browsing](https://learn.microsoft.com/en-us/azure/service-bus-messaging/message-browsing),
+a API Java do [ServiceBusReceiverAsyncClient](https://learn.microsoft.com/en-us/java/api/com.azure.messaging.servicebus.servicebusreceiverasyncclient)
+e o [Service Bus Explorer do Portal](https://learn.microsoft.com/en-us/azure/service-bus-messaging/explorer).
+
+`DeliveryCount` não é tentativa funcional. A ligação segura entre as filas é:
+
+```text
+entrada.SequenceNumber
+  == saida.body.inputSequenceNumber
+
+entrada.MessageId  = <monitoramentoId>:tentativa:<tentativaAtual>
+saida.MessageId    = <monitoramentoId>:resultado:v1
+ambas.CorrelationId = <orquestracaoId>
+```
+
+### Conferência do log
+
+Depois da execução completa do modo 1 ou da etapa 3 do modo 2:
+
+```powershell
+$eventos = Get-Content 'target/logs/simtr-hub.json' | ForEach-Object {
+  try { $_ | ConvertFrom-Json } catch { }
+}
+
+$eventos | Where-Object {
+  $_.monitoramento_id -eq $monitoramentoId -or
+  $_.orquestracao_id -eq $orquestracaoId -or
+  $_.message_id -like "$monitoramentoId*"
+} | Select-Object timestamp, level, evento, operacao, message_id, tentativa_atual,
+    monitoramento_id, orquestracao_id, traceId, spanId, decisao, settlement
+```
+
+O settlement atual não possui os UUIDs e não passa pelo filtro anterior. Em uma execução isolada,
+conferir os últimos settlements pela janela de tempo; até B2–B4, não atribuí-los ao dossiê apenas
+pela proximidade temporal em ambiente compartilhado:
+
+```powershell
+$eventos | Where-Object {
+  $_.evento -eq 'doctree.monitoramento-mtr.settlement.executado'
+} | Select-Object -Last 5 timestamp, evento, operacao, settlement
+```
+
+| Evento | Evidência atual | Limite atual |
+|---|---|---|
+| `orquestrador.monitoramento-dossie.publicacao.confirmada` | `message_id`, tentativa, IDs e `traceId`/`spanId` do PRODUCER inicial | Não contém `SequenceNumber`; o publisher não recebe esse valor no ACK do send |
+| `doctree.monitoramento-mtr.settlement.executado` | Settlement da entrada: `complete`, `dead_letter` ou `complete_transacional` | Ainda não contém os IDs do dossiê; B2–B4 completarão a correlação |
+| `doctree.monitoramento-mtr.decisao.tomada` | Emitido nos caminhos IGNORAR e REAGENDAR | Não é obrigatório no caminho terminal que publica resultado |
+| `orquestrador.monitoramento-dossie.resultado.registrado` | IDs após a leitura da saída | B5 ainda precisa ligar o log ao trace causal e ao settlement da saída |
+
+Fila vazia, isoladamente, não comprova que houve publicação. No estado atual, avaliar em conjunto
+`202`, `MessageId`/`CorrelationId`, `SequenceNumber`, `inputSequenceNumber`, eventos do log e os
+asserts das integrações. A evidência durável no Cosmos e a consulta operacional ficam pendentes
+nos incrementos P2–P10.
+
 ## Consumo, confirmação e tratamento de erro
 
-Os listeners planejados usam `ServiceBusReceiverAsyncClient`, prefetch inicial zero, concorrência limitada e consumo contínuo com
+Os listeners implementados usam `ServiceBusReceiverAsyncClient`, prefetch inicial zero, concorrência limitada e consumo contínuo com
 `PEEK_LOCK` e auto-complete desabilitado. Os publishers usam
 `ServiceBusSenderAsyncClient`; a aplicação compõe a conclusão em Mutiny sem bloquear o
 event loop. Não criar cliente por mensagem nem usar scheduler local para simular agendamento.
