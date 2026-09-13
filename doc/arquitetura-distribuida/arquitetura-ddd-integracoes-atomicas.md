@@ -3,7 +3,7 @@
 ## Como usar este documento
 
 - **Status:** aceito
-- **Última consolidação:** 2026-09-10
+- **Última consolidação:** 2026-09-12
 - **Objetivo:** explicar rapidamente a arquitetura implementada e as restrições que novas features
   devem respeitar.
 
@@ -41,6 +41,17 @@ até log/Complete e DLQ está implementada em 9.1-C com emulador e Hub controlad
 Não existem endpoint único de pré-validação, motor de workflow durável,
 MCP Server ou implantação desses componentes como microsserviços separados.
 
+A extensão Azure Cosmos DB 1.2.5 integra o build, com Cosmos SDK 4.73.1 no stack efetivo.
+O perfil dev habilita seu Dev Services; o teste opt-in cosmos-integration cria e valida
+simtr-hub/doctree com partition key /idDossiePreValidacao, corpo exato, ETag e batch atômico.
+A suíte padrão desabilita Cosmos/Dev Services e exclui classes de integração antes da
+descoberta JUnit, além das tags. Os perfis servicebus-integration e cosmos-integration
+selecionam cada família; azure-integration executa ambas.
+O perfil des recebe endpoint/database externos e mantém Dev Services desabilitado.
+O [ADR-0013 aceito](../adr/0013-acompanhamento-dossie-cosmos.md) orienta a capacidade de
+acompanhamento, ainda sem modelo/adapter operacional ou gravações do fluxo no Cosmos.
+O bootstrap operacional e a rejeição de bypass TLS precisam existir antes dessa ativação.
+O emulador local é descartável; as provas atuais não demonstram persistência após removê-lo.
 Além da borda REST, a consulta de documentos do dossiê pode ser iniciada pelo consumidor CDI local
 `br.gov.caixa.simtr.dossie.ConsultaDocumentosDossieProduto`, no mesmo artifact e runtime Quarkus.
 Esse caminho entra pela mesma porta de aplicação e não cria chamada HTTP local nem nova superfície
@@ -295,6 +306,54 @@ Validação mantém `400/ARVDOCP0001` pelo mapper global existente. Falhas da in
 traduzidas localmente para `500/ARVDOCP9999`, com mensagem genérica e ID técnico, sem causa do
 broker. O DTO de erro pertence à borda REST do orquestrador: mantém o formato existente sem
 importar o DTO atualmente localizado no Hub. O Hub e sua exceção arquitetural permanecem intactos.
+
+
+A iniciação reutiliza o SERVER HTTP automático com o nome
+`simtr-hub.api.monitoramento-dossie.iniciar` para execuções do método REST (202/500).
+A rota estática é informada com precedência CONTROLLER antes da renomeação; validações
+400 anteriores ao método mantêm o span automático. O caso de uso abre um INTERNAL
+`orquestrador.service.monitoramento-dossie.iniciar`, filho do Context capturado na
+invocação, somente na primeira assinatura e até a confirmação/falha upstream.
+Falhas acrescentam apenas `error.type=FALHA_INICIO` e status ERROR, sem Throwable;
+sucesso mantém UNSET. A memoização mantém um span/envio mesmo após cancelamento dos
+observadores, aguardando o término real da operação.
+
+A construção do Uni, inclusive memoização, usa um ThreadContext local da API
+MicroProfile com OpenTelemetry unchanged e demais contextos propagados. Isso evita a
+captura automática do provider MP instalado nesse trecho; Context/Scope explícitos
+controlam preparação, assinatura e callback terminal, sem atravessar threads. O
+resultado é encaminhado após fechar o Scope, preservando o contexto Mutiny do assinante.
+A limitação preexistente do provider em callbacks criados externamente permanece
+registrada nas tasks. Não há mudança global de provider/configuração.
+
+O publisher inicial abre um PRODUCER `send {fila}`, filho do contexto capturado na
+invocação, antes da serialização e até a confirmação/falha do SDK. Usa a mesma
+política local de callbacks e memoização, preservando uma publicação por invocação.
+Injeta somente W3C traceparent/tracestate do PRODUCER nas application properties,
+inclusive para contexto válido sem gravação, sem alterar JSON/envelope existente.
+O span contém messaging.system=servicebus, destino da configuração, operação send
+(nome/tipo) e, nas falhas, apenas error.type controlado e status ERROR.
+Serialização mantém seu evento/tipo de erro, agora com o contexto do PRODUCER;
+erros SDK continuam traduzidos para mensagem fixa sem causa/suppressed originais.
+O publisher emite publicacao.confirmada (INFO) após ACK ou publicacao.falhou (ERROR)
+na falha de preparação/envio, com o par explícito do PRODUCER e error_type controlado
+somente na falha. Serialização mantém apenas seu evento existente. O helper local
+LogPublicacaoEntrada reutiliza CamposLogJson/formatter; inclui somente UUIDs técnicos
+canônicos disponíveis e tentativa positiva, sem payload/Throwable/MDC/NDC herdados.
+O campo message_id exige os dois UUIDs e a tentativa válidos. Omissão de metadado inválido
+não altera a publicação. RuntimeException restrita à emissão do novo log preserva
+ACK/erro seguro, sem segundo evento/envio; Error não é capturado. O span termina em
+finally após tentar o log, e a conclusão preserva a identidade da falha da publicação.
+Extração no consumo, propagação nos reagendamentos e correlação da consulta Hub/MTR
+permanecem pendentes.
+
+A prova opt-in dedicada ao trecho inicial usa POST real com parent remoto, os dois
+listeners desabilitados e leitura da mensagem própria no emulador. Confirma os três
+spans SERVER → INTERNAL → PRODUCER, o carrier W3C do PRODUCER e um log de publicação
+com o mesmo par traceId/spanId, preservando HTTP/AMQP/JSON. O controle positivo do
+exporter e a captura completa precedem a seleção dos sinais. Isso comprova somente
+o trecho inicial em teste local: não comprova trace distribuído completo, exportação
+ou visualização real no Jaeger, Azure gerenciado ou correlação do log final.
 
 A composição dos parâmetros iniciais implementa o
 [ADR-0011 aceito](../adr/0011-composicao-local-monitoramento-e-fabrica-service-bus.md):

@@ -87,20 +87,32 @@ class MonitoramentoTerminalEmuladorTest {
     ConsultarDossieProduto hub;
 
     private Instance.Handle<MonitoramentoEntradaListener> listener;
+    private ServiceBusReceiverAsyncClient observadorEntrada;
+    private ServiceBusReceiverAsyncClient observadorSaida;
 
     @BeforeEach
     void prepararListenerSemAtivarConsumo() {
+        observadorEntrada = criarObservador(entrada.getEntityPath());
+        observadorSaida = criarObservador(saida.getEntityPath());
         listener = listeners.getHandle();
         listener.get();
-        assertFilaVazia(entrada);
-        assertFilaVazia(saida);
+        assertFilaVazia(observadorEntrada);
+        assertFilaVazia(observadorSaida);
     }
 
     @AfterEach
-    void encerrarSomenteAssinaturaDoTeste() {
-        if (listener != null) {
-            listener.destroy();
+    void encerrarAssinaturaEObservadoresDoTeste() {
+        try (var _ = observadorEntrada; var _ = observadorSaida) {
+            if (listener != null) {
+                listener.destroy();
+            }
         }
+    }
+
+    private ServiceBusReceiverAsyncClient criarObservador(String fila) {
+        // Peeks nao compartilham o lifecycle da assinatura receive/cancel do consumidor.
+        return builder.receiver().queueName(fila).receiveMode(ServiceBusReceiveMode.PEEK_LOCK)
+                .disableAutoComplete().prefetchCount(0).buildAsyncClient();
     }
 
     @ParameterizedTest
@@ -128,8 +140,8 @@ class MonitoramentoTerminalEmuladorTest {
         assertEquals("SITUACAO_CONCLUSIVA_MTR", resultado.motivo());
         assertEquals(1, resultado.tentativasRealizadas());
         verify(hub).executar(new IdentificadorDossieProduto(7L));
-        aguardarRemocao(entrada, enviada.getSequenceNumber());
-        assertFilaVazia(saida);
+        aguardarRemocao(observadorEntrada, enviada.getSequenceNumber());
+        assertFilaVazia(observadorSaida);
     }
 
     @Test
@@ -138,10 +150,10 @@ class MonitoramentoTerminalEmuladorTest {
         verificarAntesDoInicio(enviada);
 
         iniciarListener();
-        aguardarRemocao(entrada, enviada.getSequenceNumber());
+        aguardarRemocao(observadorEntrada, enviada.getSequenceNumber());
 
         verifyNoInteractions(hub);
-        assertFilaVazia(saida);
+        assertFilaVazia(observadorSaida);
     }
 
     @Test
@@ -159,8 +171,8 @@ class MonitoramentoTerminalEmuladorTest {
         assertEquals(0, resultado.tentativasRealizadas());
         assertNull(resultado.situacaoMtr());
         verifyNoInteractions(hub);
-        aguardarRemocao(entrada, enviada.getSequenceNumber());
-        assertFilaVazia(saida);
+        aguardarRemocao(observadorEntrada, enviada.getSequenceNumber());
+        assertFilaVazia(observadorSaida);
     }
 
     @Test
@@ -177,8 +189,8 @@ class MonitoramentoTerminalEmuladorTest {
         assertEquals("Rascunho", resultado.situacaoMtr());
         assertEquals(1, resultado.tentativasRealizadas());
         verify(hub).executar(new IdentificadorDossieProduto(7L));
-        aguardarRemocao(entrada, enviada.getSequenceNumber());
-        assertFilaVazia(saida);
+        aguardarRemocao(observadorEntrada, enviada.getSequenceNumber());
+        assertFilaVazia(observadorSaida);
     }
 
     @Test
@@ -195,8 +207,8 @@ class MonitoramentoTerminalEmuladorTest {
         assertEquals("CONFORME", resultado.situacaoPreValidacao());
         assertEquals(4, resultado.tentativasRealizadas());
         verify(hub).executar(new IdentificadorDossieProduto(7L));
-        aguardarRemocao(entrada, enviada.getSequenceNumber());
-        assertFilaVazia(saida);
+        aguardarRemocao(observadorEntrada, enviada.getSequenceNumber());
+        assertFilaVazia(observadorSaida);
     }
 
     @Test
@@ -217,12 +229,12 @@ class MonitoramentoTerminalEmuladorTest {
         iniciarListener();
         try {
             assertTrue(segundaConsulta.await(ESPERA.toSeconds(), TimeUnit.SECONDS));
-            var emProcessamento = entrada.peekMessage(enviada.getSequenceNumber()).block(ESPERA);
+            var emProcessamento = observadorEntrada.peekMessage(enviada.getSequenceNumber()).block(ESPERA);
             assertNotNull(emProcessamento);
             assertEquals(enviada.getSequenceNumber(), emProcessamento.getSequenceNumber());
             assertEquals(enviada.getBody().toString(), emProcessamento.getBody().toString());
             assertTrue(emProcessamento.getDeliveryCount() > enviada.getDeliveryCount());
-            assertFilaVazia(saida);
+            assertFilaVazia(observadorSaida);
         } finally {
             respostaPendente.complete(respostaHub("FINALIZADO_INCONFORME"));
         }
@@ -233,8 +245,8 @@ class MonitoramentoTerminalEmuladorTest {
         assertEquals("INCONFORME", resultado.situacaoPreValidacao());
         assertEquals(3, resultado.tentativasRealizadas());
         verify(hub, times(2)).executar(new IdentificadorDossieProduto(7L));
-        aguardarRemocao(entrada, enviada.getSequenceNumber());
-        assertFilaVazia(saida);
+        aguardarRemocao(observadorEntrada, enviada.getSequenceNumber());
+        assertFilaVazia(observadorSaida);
     }
 
     @Test
@@ -246,8 +258,11 @@ class MonitoramentoTerminalEmuladorTest {
         // Cliente adicional pertence apenas a esta prova; clientes CDI continuam na fabrica.
         try (var dlq = builder.receiver().queueName(entrada.getEntityPath()).subQueue(SubQueue.DEAD_LETTER_QUEUE)
                 .receiveMode(ServiceBusReceiveMode.PEEK_LOCK).disableAutoComplete().prefetchCount(0)
-                .buildAsyncClient()) {
-            assertFilaVazia(dlq);
+                .buildAsyncClient();
+                var observadorDlq = builder.receiver().queueName(entrada.getEntityPath())
+                        .subQueue(SubQueue.DEAD_LETTER_QUEUE).receiveMode(ServiceBusReceiveMode.PEEK_LOCK)
+                        .disableAutoComplete().prefetchCount(0).buildAsyncClient()) {
+            assertFilaVazia(observadorDlq);
             iniciarListener();
             var recebida = receberEConcluir(dlq);
 
@@ -255,9 +270,9 @@ class MonitoramentoTerminalEmuladorTest {
             assertEquals("MONITORAMENTO_ENTRADA_INVALIDA", recebida.getDeadLetterReason());
             assertEquals("Mensagem nao atende ao contrato de entrada.", recebida.getDeadLetterErrorDescription());
             verifyNoInteractions(hub);
-            aguardarRemocao(entrada, enviada.getSequenceNumber());
-            assertFilaVazia(dlq);
-            assertFilaVazia(saida);
+            aguardarRemocao(observadorEntrada, enviada.getSequenceNumber());
+            assertFilaVazia(observadorDlq);
+            assertFilaVazia(observadorSaida);
         }
     }
 
@@ -288,9 +303,9 @@ class MonitoramentoTerminalEmuladorTest {
             assertFalse(consultas.get(i).isBefore(consultas.get(i - 1).plusSeconds(intervalos.get(i - 1))),
                     "A proxima consulta deve aguardar o intervalo progressivo.");
         }
-        aguardarRemocao(entrada, resultado.inputSequenceNumber());
-        assertFilaVazia(entrada);
-        assertFilaVazia(saida);
+        aguardarRemocao(observadorEntrada, resultado.inputSequenceNumber());
+        assertFilaVazia(observadorEntrada);
+        assertFilaVazia(observadorSaida);
     }
 
     @Test
@@ -309,9 +324,9 @@ class MonitoramentoTerminalEmuladorTest {
         assertFalse(resultado.concluidoEm().isBefore(limite));
         assertNull(resultado.situacaoMtr());
         verify(hub).executar(new IdentificadorDossieProduto(7L));
-        aguardarRemocao(entrada, resultado.inputSequenceNumber());
-        assertFilaVazia(entrada);
-        assertFilaVazia(saida);
+        aguardarRemocao(observadorEntrada, resultado.inputSequenceNumber());
+        assertFilaVazia(observadorEntrada);
+        assertFilaVazia(observadorSaida);
     }
 
     private void iniciarListener() {
@@ -333,7 +348,7 @@ class MonitoramentoTerminalEmuladorTest {
     }
 
     private ServiceBusReceivedMessage observarEntrada(String messageId) {
-        var mensagem = entrada.peekMessage(0L).block(ESPERA);
+        var mensagem = observadorEntrada.peekMessage(0L).block(ESPERA);
         assertNotNull(mensagem);
         assertEquals(messageId, mensagem.getMessageId());
         return mensagem;
@@ -341,8 +356,8 @@ class MonitoramentoTerminalEmuladorTest {
 
     private void verificarAntesDoInicio(ServiceBusReceivedMessage mensagem) {
         verifyNoInteractions(hub);
-        assertFilaVazia(saida);
-        assertEquals(mensagem.getMessageId(), entrada.peekMessage(mensagem.getSequenceNumber()).block(ESPERA).getMessageId());
+        assertFilaVazia(observadorSaida);
+        assertEquals(mensagem.getMessageId(), observadorEntrada.peekMessage(mensagem.getSequenceNumber()).block(ESPERA).getMessageId());
     }
 
     private ResultadoMonitoramento receberResultado(ServiceBusReceivedMessage enviada) throws Exception {

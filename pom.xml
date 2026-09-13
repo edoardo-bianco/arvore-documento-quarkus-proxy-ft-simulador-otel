@@ -23,7 +23,8 @@
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
         <quarkus.platform.version>3.33.2.1</quarkus.platform.version>
         <surefire-plugin.version>3.5.3</surefire-plugin.version>
-        <test.groups>!servicebus-integration</test.groups>
+        <test.groups>!servicebus-integration &amp; !cosmos-integration</test.groups>
+        <test.integration.excludes>**/*EmuladorTest.java,**/*DevServicesTest.java</test.integration.excludes>
     </properties>
 
     <dependencyManagement>
@@ -53,6 +54,10 @@
         <dependency>
             <groupId>io.quarkiverse.azureservices</groupId>
             <artifactId>quarkus-azure-servicebus</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkiverse.azureservices</groupId>
+            <artifactId>quarkus-azure-cosmos</artifactId>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
@@ -214,6 +219,11 @@
                 <configuration>
                     <argLine>@{argLine} -javaagent:${project.build.directory}/test-agents/mockito-core.jar</argLine>
                     <groups>${test.groups}</groups>
+                    <!-- Filtrar classes antes do discovery: tags nao impedem bootstrap de Dev Services. -->
+                    <excludes>
+                        <exclude>**/*$*</exclude>
+                        <exclude>${test.integration.excludes}</exclude>
+                    </excludes>
                     <systemPropertyVariables>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                     </systemPropertyVariables>
@@ -226,6 +236,21 @@
             <id>servicebus-integration</id>
             <properties>
                 <test.groups>servicebus-integration</test.groups>
+                <test.integration.excludes>**/CosmosDevServicesTest.java</test.integration.excludes>
+            </properties>
+        </profile>
+        <profile>
+            <id>cosmos-integration</id>
+            <properties>
+                <test.groups>cosmos-integration</test.groups>
+                <test.integration.excludes>**/*EmuladorTest.java,**/ServiceBusDevServicesTest.java</test.integration.excludes>
+            </properties>
+        </profile>
+        <profile>
+            <id>azure-integration</id>
+            <properties>
+                <test.groups>servicebus-integration | cosmos-integration</test.groups>
+                <test.integration.excludes>**/*$*</test.integration.excludes>
             </properties>
         </profile>
     </profiles>

@@ -152,11 +152,14 @@ class MonitoramentoResultadoEmuladorTest {
         // Cliente exclusivo da prova: nunca disputa a fila principal com o listener.
         try (var dlq = builder.receiver().queueName(saida.getEntityPath()).subQueue(SubQueue.DEAD_LETTER_QUEUE)
                 .receiveMode(ServiceBusReceiveMode.PEEK_LOCK).disableAutoComplete().prefetchCount(0)
-                .buildAsyncClient()) {
-            assertFilaVazia(dlq);
+                .buildAsyncClient();
+                var observadorDlq = builder.receiver().queueName(saida.getEntityPath())
+                        .subQueue(SubQueue.DEAD_LETTER_QUEUE).receiveMode(ServiceBusReceiveMode.PEEK_LOCK)
+                        .disableAutoComplete().prefetchCount(0).buildAsyncClient()) {
+            assertFilaVazia(observadorDlq);
             var mensagem = new ServiceBusMessage("{").setMessageId(UUID.randomUUID().toString());
             senderSaida.sendMessage(mensagem).block(ESPERA);
-            var movida = Mono.defer(() -> dlq.peekMessage(0L))
+            var movida = Mono.defer(() -> observadorDlq.peekMessage(0L))
                     .repeatWhen(repeticoes -> repeticoes.delayElements(INTERVALO)).next().block(ESPERA);
             assertNotNull(movida);
             assertEquals(mensagem.getMessageId(), movida.getMessageId());
@@ -171,7 +174,7 @@ class MonitoramentoResultadoEmuladorTest {
             assertEquals("MONITORAMENTO_SAIDA_INVALIDA", recebida.getDeadLetterReason());
             assertEquals("Mensagem nao atende ao contrato de resultado.", recebida.getDeadLetterErrorDescription());
             aguardarSaidaVazia();
-            assertFilaVazia(dlq);
+            assertFilaVazia(observadorDlq);
             assertFilaVazia(entrada);
             assertTrue(registros().isEmpty());
             verifyNoInteractions(hub);

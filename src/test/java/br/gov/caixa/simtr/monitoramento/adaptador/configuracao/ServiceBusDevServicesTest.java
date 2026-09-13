@@ -64,10 +64,11 @@ class ServiceBusDevServicesTest {
                         .buildAsyncClient()) {
             sender.sendMessage(message).block(TIMEOUT);
 
-            var received = receiver.receiveMessages().next().block(TIMEOUT);
+            var received = receiver.receiveMessages().concatMap(entrega -> {
+                assertEquals(messageId, entrega.getMessageId());
+                return receiver.complete(entrega).thenReturn(entrega);
+            }, 0).next().block(TIMEOUT);
             assertNotNull(received);
-            assertEquals(messageId, received.getMessageId());
-            receiver.complete(received).block(TIMEOUT);
         }
     }
 }

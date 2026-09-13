@@ -4,6 +4,10 @@ import br.gov.caixa.simtr.orquestrador.adaptador.entrada.rest.v1.dto.ErroInicioM
 import br.gov.caixa.simtr.orquestrador.adaptador.entrada.rest.v1.dto.IniciarMonitoramentoDossieRequest;
 import br.gov.caixa.simtr.orquestrador.adaptador.entrada.rest.v1.dto.IniciarMonitoramentoDossieResponse;
 import br.gov.caixa.simtr.orquestrador.aplicacao.porta.entrada.IniciarMonitoramento;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.instrumentation.api.semconv.http.HttpServerRoute;
+import io.opentelemetry.instrumentation.api.semconv.http.HttpServerRouteSource;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
@@ -46,6 +50,10 @@ public class MonitoramentoDossieResource {
             content = @Content(schema = @Schema(implementation = ErroInicioMonitoramentoDto.class)))
     public Uni<Response> iniciar(@NotNull(message = "A solicitacao deve ser informada.")
             @Valid IniciarMonitoramentoDossieRequest request) {
+        // A rota do controller prevalece sobre a atualizacao tardia do filtro HTTP do Quarkus.
+        HttpServerRoute.update(Context.current(), HttpServerRouteSource.CONTROLLER,
+                "/simtr-hub/v1/monitoramentos-dossie");
+        Span.current().updateName("simtr-hub.api.monitoramento-dossie.iniciar");
         return Uni.createFrom().deferred(() ->
                         iniciar.executar(MonitoramentoDossieRestMapper.paraSolicitacao(request)))
                 .onItem().transform(resultado ->

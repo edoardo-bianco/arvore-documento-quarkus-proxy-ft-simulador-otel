@@ -1,5 +1,9 @@
 # Guia Service Bus — orquestrador e monitoramento de dossiê
 
+A continuidade do acompanhamento durável e do tracing está no
+[guia Cosmos e Jaeger para o desenvolvedor](../../tasks/features/rastreabilidade-fluxo-dossie-cosmos/guia-desenvolvimento.md).
+Ele distingue a base já codificada do trabalho P2–P10 ainda necessário, com testes e critérios por etapa.
+
 ## O que os desenvolvedores recebem nesta branch
 
 **O workspace implementa o fluxo até 9.1: POST, consumo opt-in da entrada, processamento,

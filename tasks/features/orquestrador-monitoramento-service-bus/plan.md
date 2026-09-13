@@ -1,5 +1,213 @@
 # Plano: implementar orquestração de monitoramento com duas filas do Service Bus
 
+## CP-COSMOS recebido; P1 em validação — 2026-09-12
+
+GO humano: "GO para o desenho e implementação incremental", reiterado "GO ao ADR-0013".
+ADR-0013 Aceito; o registro anterior de espera está superado. P1 adicionou a extensão,
+perfis local/DES e teste opt-in; quatro provas Cosmos aprovadas, incluindo ETag/batch/rollback.
+Regressão conjunta e checkpoint em andamento. Ainda não existe persistência operacional
+nem rastreamento completo. [Execução P1](../rastreabilidade-fluxo-dossie-cosmos/execucao-p1.md).
+B2–B5 continuam coordenados com P6–P8. Sem staging, commit ou push.
+
+## Ampliação humana: Cosmos DB, situações, mensagens e DLQ — 2026-09-12
+
+O usuário confirmou estado durável em Cosmos DB, extensão Quarkus, Dev Services local e
+configuração posterior do Cosmos real de DES. Container novo doctree; chave de negócio
+idDossiePreValidacao. Incluir situação/etapa, mudanças, mensagens enviadas, filas, agendamento,
+situações Pré-Valida/MTR, quarentena e DLQs com motivos.
+[Plano específico](../rastreabilidade-fluxo-dossie-cosmos/plan.md),
+[dados/transições](../rastreabilidade-fluxo-dossie-cosmos/especificacao.md) e ADR-0013 Aceito após o GO humano.
+A alternativa inicial sem banco foi superada pelo pedido humano. O GO posterior aprovou
+arquitetura e consistência; a extensão e o gate local foram implementados em P1.
+Persistência operacional e trace completo continuam pendentes no checklist Cosmos.
+
+Complemento B1.5: DevServicesTest e A1 ajustados para preservar lifecycle de receive/peek;
+10 repetições DevServices e 13 focados aprovados. Regressão final: 41 testes/11 classes,
+zero falhas/erros/ignorados. Checkpoint final COMPLIANT: 1.403 testes padrão/194 classes,
+213 issues (0 novas/graves), cobertura 88,3% e duplicação 4,4%; baseline original preservado.
+B1.5 e B1 consolidados tecnicamente. [Evidência final](execucao-10-1-b1-5.md#complemento-final-da-regressão-e-consolidação-técnica--2026-09-12).
+A revisão do desenho Cosmos terminou sem bloqueadores e o CP-COSMOS humano foi recebido; seguir o checklist Cosmos vigente.
+Os blocos posteriores preservam marcos históricos e suas pendências à época; este estado prevalece.
+B2–B5 permanecem pendentes e serão coordenados com P6–P8 do novo plano. Sem commit/push.
+
+
+## Continuidade solicitada: rastreabilidade completa e Jaeger — 2026-09-12
+
+O usuário solicitou habilitar o Jaeger e completar a rastreabilidade, incluindo localização
+nas filas e investigação de Dead Letter. [Escopo, ordem, critérios e limites](rastreabilidade-completa-jaeger.md).
+Próximo incremento: estabilização complementar B1.5 em ServiceBusDevServicesTest;
+depois B2–B5, prova real Jaeger e diagnóstico de leitura das filas/DLQs.
+C0.4/CP-B1 preservados; detalhes novos passam pelo checkpoint aplicável. Sem commit/push.
+
+
+## 10.1-B1.5 — prova validada; consolidação pendente — 2026-09-12
+
+Timeout pós-Complete reproduzido e corrigido somente no harness B1.5: identidade e
+igualdade antes de Complete; peeks finais com receive link ativo; cancelamento depois.
+Dez repetições passaram após o ajuste. Prova permanente e revisão final aprovadas:
+3 spans relacionados, W3C exato do PRODUCER, 1 log confirmado, contrato preservado.
+[Diagnóstico, inventário, regressão e checkpoint](execucao-10-1-b1-5.md).
+
+Checkpoint **COMPLIANT / NOT_REQUIRED**: 1.403 testes padrão/194 classes e build
+aprovados; 213 issues, zero novas/graves, cobertura 88,3%, duplicação 4,4%.
+Baseline original recuperado do snapshot B1.4 após reset pelo hook e preservado.
+
+Suíte opt-in: 41 testes, 0 falhas, 1 erro em ServiceBusDevServicesTest preexistente;
+A1/A2/B1.5 passaram. Repetição focada DevServices + B1.5 passou, mas não corrige a
+corrida preexistente: esse teste cancela receive antes de Complete.
+A estabilização dessa regressão fica registrada como pendência explícita de B1.5,
+sem alterar outro arquivo de teste silenciosamente. Proposta mínima na execução.
+Não declarar a execução ampla inteiramente aprovada nem encerrar B1 com base no rerun.
+
+Rastreabilidade completa ainda ausente: só POST → iniciação → envio inicial está
+correlacionado. B2–B5 e validação real no Jaeger permanecem pendentes, assim como
+10.1-C/C3 e encerramento humano. Sem staging, commit, push ou derivados.
+
+## 10.1-B1.5 — pausada, em andamento — 2026-09-11
+
+Pedido humano **10.1-B1.5**, sob o GO do desenho/CP-B1.
+Prova dedicada POST → broker em um novo teste de integração; produção e suporte A2
+preservados. Baseline/checkpoint B1.4 conferidos antes de qualquer alteração executável.
+[Recorte, critérios e verificações](execucao-10-1-b1-5.md).
+Pausa humana solicitada; retomar pelo diagnóstico do timeout no peek após Complete.
+Prova final, suíte opt-in completa (incluindo A1/A2), revisão e checkpoint pendentes.
+B2–B5 e C3 continuam pendentes.
+
+## 10.1-B1.4 — concluída tecnicamente — 2026-09-11
+
+Eventos confirmada/falhou da publicação inicial entregues em cinco arquivos executáveis,
+com contexto do PRODUCER, campos seguros e política de logging aprovada em CP-B1.
+**92 focados, 2 integrações A2 e 1.403 padrão/194 classes** aprovados.
+Após **ContinuarAjustes** humano, extraída a finalização privada do publisher;
+**45 focados e o checkpoint completo** passaram novamente. S3776 CLOSED/FIXED.
+
+Sonar **COMPLIANT / NOT_REQUIRED**: nenhuma issue nova ou grave, cobertura 88,3%,
+duplicação 4,4%. Baseline/assessment originais preservados; fingerprint conferido.
+A2: exatamente 3/6 spans e 3/16 logs, uma confirmação inicial correlacionada ao PRODUCER.
+[Execução, ajuste, inventários e checkpoint](execucao-10-1-b1-4.md).
+
+**Próximo item: 10.1-B1.5**, prova POST → broker e consolidação de B1, com GO
+já recebido para o desenho/CP-B1. B1.5 e B2–B5 permanecem pendentes;
+C0.4/C9.1-L preservados. Sem staging/commit/push; C3 e encerramento humano da feature pendentes.
+Os registros abaixo conservam os marcos anteriores.
+
+## 10.1-B1.2 — concluída tecnicamente — 2026-09-11
+
+Pedido humano **"10.1-B1.2"**, executado sob o GO **"go"** do desenho/CP-B1.
+SERVER existente renomeado e INTERNAL de iniciação correlacionado, lazy e único
+por invocação. Erros sanitizados, memorização, cancelamento e restauração de Context
+verificados; refinamentos locais de rota e callbacks documentados.
+
+**41 testes focados** (17 HTTP, 15 caso de uso e 9 publisher), **2 integrações A2** e
+**1.358 testes padrão/192 classes** passaram; build aprovado. A2 exige 2/5 spans e
+2/15 logs, preservando as relações dos logs e os carriers vazios neste recorte.
+Sonar **COMPLIANT / NOT_REQUIRED**: 213 issues, zero novas/graves, cobertura 88,1%,
+duplicação 4,4%. Baseline original de 217 issues e fingerprint final conferidos.
+[Execução, diagnóstico, revisão e checkpoint](execucao-10-1-b1-2.md).
+
+**Próximo item: 10.1-B1.3**, PRODUCER inicial e W3C, com GO já recebido para o desenho.
+O caso de uso controla OTel manualmente dentro de sua política local; callbacks
+externos continuam sujeitos à limitação preexistente do provider MP registrada.
+B1.3–B1.5 e B2–B5 permanecem pendentes. C0.4/C9.1-L preservados.
+Sem staging/commit/push; C3 e encerramento humano da feature pendentes.
+Os registros abaixo conservam os marcos anteriores.
+
+## 10.1-B1.1 — concluída tecnicamente — 2026-09-11
+
+Pedidos humanos "10.1-B1" e "go" registrados. GO para o desenho B1/CP-B1; executado
+somente B1.1, com cinco arquivos de teste. Cancelamento de um/todos os assinantes,
+conclusão/falha tardia memorizada e invocações intercaladas comprovados. Regressões A2
+preparadas com contagens e relações exatas, sem instrumentar produção.
+
+Passaram **18 testes focados**, **2 integrações A2** e **1.352 testes padrão em 192
+classes**, sem falhas/erros/ignorados; build aprovado. Sonar **COMPLIANT / NOT_REQUIRED**:
+213 issues, nenhuma nova ou grave, cobertura 88,1%, duplicação 4,4%.
+Baseline/assessment originais de 217 issues preservados; fingerprint final conferido.
+[Execução, revisão, inventário e checkpoint](execucao-10-1-b1-1.md).
+
+**Próximo incremento: 10.1-B1.2**, correlação HTTP/iniciação, com GO já recebido para
+o desenho/CP-B1. C0.4/C9.1-L preservados; B1.2–B1.5 não implementadas.
+C3 e encerramento humano da feature pendentes. Sem staging/commit/push ou derivados.
+Os registros abaixo conservam os marcos anteriores.
+
+## 10.1-B1 — desenho registrado — 2026-09-11
+
+Pedido humano "desenho da 10.1-B1" atendido em [desenho-10-1-b1.md](desenho-10-1-b1.md).
+Recorte: SERVER HTTP existente, iniciação, PRODUCER do envio inicial, carrier W3C e
+logs de publicação. Cinco incrementos, com até cinco arquivos executáveis por etapa
+e evolução explícita das regressões A2. Implementação ainda não iniciada.
+
+**Próximo item executável: 10.1-B1.1**, contratos do lifecycle atual e preparação das
+regressões, somente testes. CP-B1 registra os detalhes novos de carrier, atributos/erros
+e falha de logging para decisão humana antes dos ajustes de produção afetados.
+C0.4 e C9.1-L preservados; nenhuma nova decisão humana inferida.
+
+Esta entrega alterou somente Markdown da feature. A evidência técnica abaixo pertence
+à A2; não houve Maven, inspeção Sonar ou novo checkpoint no desenho. C3 e encerramento
+humano permanecem pendentes. Sem staging/commit/push ou formatos derivados.
+Os registros de execução abaixo conservam os marcos anteriores.
+
+## 10.1-A2 — concluída tecnicamente — 2026-09-11
+
+Caracterização do POST, dois listeners, wrapper real do Hub, reagendamento e log final
+entregue em três arquivos de teste. No cenário da fixture, cada consulta do Hub abre
+um trace próprio; seus logs acompanham a consulta, mas o log final fica sem trace/span.
+O settlement referencia o span HTTP: correlação parcial, sem cadeia distribuída completa.
+Produção e dependências preservadas. [Matriz, inventário e verificações](continuidade-10-1.md).
+
+Validados 40 cenários opt-in em 10 classes: execução completa com 39 aprovados e uma
+falha na contagem do teste; correção exclusiva 14 → 15 e repetição da classe afetada aprovada.
+Revisão independente sem pendências obrigatórias. Checkpoint: 1.345 testes padrão em
+192 classes e build aprovados; Sonar **COMPLIANT / NOT_REQUIRED**, 213 issues,
+nenhuma nova ou grave, cobertura 88,1%, duplicação 4,4%. Baseline original 217 preservado.
+Fingerprint c82d12e2cdc14d7afaa4ab828690898b4eca95cdff4d4784327ccc980a768ee1 conferido.
+
+**Próximo item: desenho concreto de 10.1-B1**, ainda não iniciado. C0.4/doctree e
+C9.1-L preservados; C3 e encerramento humano pendentes. Branch
+feature/orquestrador-monitoramento-service-bus; HEAD/origin local em 1f32466.
+Pausa, patch e .env preservados; sem staging/commit/push ou formatos derivados.
+Os registros abaixo são históricos.
+
+
+## 10.1-A1 — concluída tecnicamente — 2026-09-11
+
+Usuário escolheu ContinuarAjustes; decisão registrada. Aplicadas somente as duas
+correções S1612/S1481 no novo teste, com comportamento e fechamento do scope preservados.
+Após os ajustes: 11 focados e 1.345 testes padrão em 192 classes passaram, sem falhas,
+erros ou ignorados; build aprovado. Sonar **COMPLIANT / NOT_REQUIRED**:
+213 issues, nenhuma nova ou grave, cobertura 88,1%, duplicação 4,4%.
+Baseline original 217 preservado. A suíte opt-in completa anterior aos ajustes de
+estilo passou com 38 testes em oito classes; a classe afetada foi repetida após eles.
+[Inventário, decisão, análise final e limitações](continuidade-10-1.md).
+
+A caracterização confirma provider Azure ausente, zero spans SDK e carrier recebido vazio.
+Próxima subfatia: **10.1-A2**, caracterizar o fluxo real e sua ligação com Hub/log; ainda
+não iniciada. Produção/dependências, C0.4/doctree e C9.1-L preservados.
+C3/encerramento humano da feature pendentes. Branch feature/orquestrador-monitoramento-service-bus;
+HEAD/origin local em 1f32466. Pausa, patch e .env preservados. Sem staging/commit/push.
+Registros abaixo conservam os marcos anteriores.
+
+
+## Planejamento de 10.1 — 2026-09-11
+
+Pedido humano: "retomamos pelo planejamento da 10.1". O
+[detalhamento de 10.1](continuidade-10-1.md) registra contexto confirmado, contrato C0.4,
+escopo, riscos, arquivos, critérios e verificações. A1 caracteriza SDK/captura; A2 caracteriza
+o fluxo real; B1–B5 preenchem lacunas demonstradas; C reúne regressão/evidência para C3.
+A previsão antiga de até cinco arquivos foi desdobrada por incremento antes de qualquer
+alteração executável.
+
+Próxima ação proposta: **10.1-A1**, após solicitação de continuidade executável.
+GO/C0.4 existentes continuam válidos; incompatibilidade, dependência, contrato/carrier novo,
+capacidade transversal ou exceção de segurança exigem proposta/decisão antes do ajuste.
+Preservar nomes doctree e aceite C9.1-L. IDs de negócio ou mock da porta pública do Hub
+não comprovam a cadeia de traces.
+
+HEAD/referência local de origin: 1f3246620821a4a3b3aad66a380c64b927d27e3a.
+Somente Markdown: sem caracterização executável, inspeção Sonar, Maven/checkpoint,
+nova decisão humana, staging/commit/push. Pausa/patch preservados; C3/encerramento pendentes.
+Registros abaixo conservam os marcos anteriores.
+
 ## Consolidação e publicação de 9.1 — 2026-09-10
 
 Pedido humano: "podemos organizar commit e push? o guia do desnvolvedor foi atualizado para ele

@@ -1,9 +1,101 @@
 # Guia de desenvolvimento — orquestrador e monitoramento Service Bus
 
+## Continuidade aprovada: Cosmos e Jaeger
+
+O [guia de implementação restante](../rastreabilidade-fluxo-dossie-cosmos/guia-desenvolvimento.md)
+descreve o estado codificado, o ambiente local/DES, P2–P10, os pontos de integração, as
+provas de falha e a navegação Jaeger/log/Cosmos. O [checklist vigente](../rastreabilidade-fluxo-dossie-cosmos/todo.md)
+é a fonte do próximo incremento. ADR-0013 aceito; B2–B5 seguem coordenados com P6–P8.
+O commit local estável deste marco foi solicitado pelo usuário; não significa feature completa.
+
+## CP-COSMOS recebido; P1 em validação — 2026-09-12
+
+GO humano: "GO para o desenho e implementação incremental", reiterado "GO ao ADR-0013".
+ADR-0013 Aceito; o registro anterior de espera está superado. P1 adicionou a extensão,
+perfis local/DES e teste opt-in; quatro provas Cosmos aprovadas, incluindo ETag/batch/rollback.
+Regressão conjunta e checkpoint em andamento. Ainda não existe persistência operacional
+nem rastreamento completo. [Execução P1](../rastreabilidade-fluxo-dossie-cosmos/execucao-p1.md).
+B2–B5 continuam coordenados com P6–P8. Sem staging, commit ou push.
+
+## Ampliação humana: Cosmos DB, situações, mensagens e DLQ — 2026-09-12
+
+O usuário confirmou estado durável em Cosmos DB, extensão Quarkus, Dev Services local e
+configuração posterior do Cosmos real de DES. Container novo doctree; chave de negócio
+idDossiePreValidacao. Incluir situação/etapa, mudanças, mensagens enviadas, filas, agendamento,
+situações Pré-Valida/MTR, quarentena e DLQs com motivos.
+[Plano específico](../rastreabilidade-fluxo-dossie-cosmos/plan.md),
+[dados/transições](../rastreabilidade-fluxo-dossie-cosmos/especificacao.md) e ADR-0013 Aceito após o GO humano.
+A alternativa inicial sem banco foi superada pelo pedido humano. O GO posterior aprovou
+arquitetura e consistência; a extensão e o gate local foram implementados em P1.
+Persistência operacional e trace completo continuam pendentes no checklist Cosmos.
+
+Complemento B1.5: DevServicesTest e A1 ajustados para preservar lifecycle de receive/peek;
+10 repetições DevServices e 13 focados aprovados. Regressão final: 41 testes/11 classes,
+zero falhas/erros/ignorados. Checkpoint final COMPLIANT: 1.403 testes padrão/194 classes,
+213 issues (0 novas/graves), cobertura 88,3% e duplicação 4,4%; baseline original preservado.
+B1.5 e B1 consolidados tecnicamente. [Evidência final](execucao-10-1-b1-5.md#complemento-final-da-regressão-e-consolidação-técnica--2026-09-12).
+A revisão do desenho Cosmos terminou sem bloqueadores e o CP-COSMOS humano foi recebido; seguir o checklist Cosmos vigente.
+Os blocos posteriores preservam marcos históricos e suas pendências à época; este estado prevalece.
+B2–B5 permanecem pendentes e serão coordenados com P6–P8 do novo plano. Sem commit/push.
+
+
+## 10.1-B1.5 — prova validada; consolidação pendente — 2026-09-12
+
+Timeout pós-Complete reproduzido e corrigido somente no harness B1.5: identidade e
+igualdade antes de Complete; peeks finais com receive link ativo; cancelamento depois.
+Dez repetições passaram após o ajuste. Prova permanente e revisão final aprovadas:
+3 spans relacionados, W3C exato do PRODUCER, 1 log confirmado, contrato preservado.
+[Diagnóstico, inventário, regressão e checkpoint](execucao-10-1-b1-5.md).
+
+Checkpoint **COMPLIANT / NOT_REQUIRED**: 1.403 testes padrão/194 classes e build
+aprovados; 213 issues, zero novas/graves, cobertura 88,3%, duplicação 4,4%.
+Baseline original recuperado do snapshot B1.4 após reset pelo hook e preservado.
+
+Suíte opt-in: 41 testes, 0 falhas, 1 erro em ServiceBusDevServicesTest preexistente;
+A1/A2/B1.5 passaram. Repetição focada DevServices + B1.5 passou, mas não corrige a
+corrida preexistente: esse teste cancela receive antes de Complete.
+A estabilização dessa regressão fica registrada como pendência explícita de B1.5,
+sem alterar outro arquivo de teste silenciosamente. Proposta mínima na execução.
+Não declarar a execução ampla inteiramente aprovada nem encerrar B1 com base no rerun.
+
+Rastreabilidade completa ainda ausente: só POST → iniciação → envio inicial está
+correlacionado. B2–B5 e validação real no Jaeger permanecem pendentes, assim como
+10.1-C/C3 e encerramento humano. Sem staging, commit, push ou derivados.
+
+## Estado atual — 10.1-B1.4 concluída tecnicamente
+
+[Execução e evidências de B1.4](execucao-10-1-b1-4.md): confirmação/falha da publicação
+com contexto explícito do PRODUCER, campos seguros e falha de logging isolada.
+92 focados, 45 repetidos, 2 integrações A2 e 1.403 padrão/194 classes passaram.
+A2 exige exatamente 3/6 spans e 3/16 logs, com uma confirmação inicial.
+
+Após ContinuarAjustes humano, extraída finalização privada; S3776 CLOSED/FIXED.
+45 focados e 1.403 padrão/194 classes passaram novamente. Sonar COMPLIANT /
+NOT_REQUIRED, nenhuma issue nova/grave, cobertura 88,3%, duplicação 4,4%.
+Baseline preservado; próximo item **B1.5**, prova POST → broker e consolidação de B1,
+com GO já recebido para o desenho/CP-B1.
+
+O roteiro operacional abaixo permanece válido. Extração no consumo, correlação após
+a fila e Hub/MTR completa continuam nas próximas etapas.
+
 **9.1-A/B/C publicadas: implementação `fcbe38a` e integração `2c6c4cd`.**
 O [manifesto de 9.1](pacote-commit-9-1.md) reúne seleção, evidências e registro de publicação.
-Próximo item de desenvolvimento: **10.1**, correlação OpenTelemetry; começar pelo
-[roteiro para assumir a entrega](#roteiro-para-assumir-a-entrega).
+**10.1-A2 concluída tecnicamente em 2026-09-11.** Os novos testes caracterizam
+POST, listeners e wrapper real do Hub: três consultas em traces próprios, logs Hub
+correlacionados e log final sem trace/span. A cadeia distribuída ainda precisa dos ajustes B.
+Validados 40 cenários opt-in pela execução completa e repetição da classe afetada após
+corrigir uma contagem de asserção. Os 1.345 testes padrão e build passaram;
+Sonar **COMPLIANT / NOT_REQUIRED**, 213 issues, nenhuma nova ou grave,
+cobertura 88,1%, duplicação 4,4%; baseline original 217 preservado.
+[Inventário e limites da validação](continuidade-10-1.md).
+**Desenho de B1 registrado:** [cadeia inicial e cinco incrementos](desenho-10-1-b1.md).
+B1.1/B1.2/B1.3/B1.4 concluídas tecnicamente, conforme o estado atual acima.
+B1.5 pendente. CP-B1 autorizado pelo GO humano. Os números deste bloco pertencem à A2.
+O [roteiro para assumir a entrega](#roteiro-para-assumir-a-entrega) preserva a operação
+publicada; produção/dependências não mudaram em A1/A2. C3/encerramento humano pendentes.
+
+
+No marco publicado de 9.1:
 
 Passaram **1.345 testes padrão em 192 classes** e **27 integrações em sete classes**, sem
 falhas, erros ou ignorados. Build e Sonar **COMPLIANT / NOT_REQUIRED**: cobertura **88,1%**,
@@ -569,7 +661,9 @@ A escolha local segue o [guia principal](../../../doc/guias/guia-service-bus-amq
 | Uso | Comando |
 |---|---|
 | Testes padrão, sem emulador nem fila Azure | `mvn test` |
-| Somente integração explícita com emulador | `mvn -Pservicebus-integration test` |
+| Integração Service Bus com emulador | `mvn -Pservicebus-integration test` |
+| Integração Cosmos com Dev Services | `mvn -Pcosmos-integration test` |
+| Integrações Cosmos e Service Bus juntas | `mvn -Pazure-integration clean test` |
 | Aplicação local no emulador | `mvn quarkus:dev` |
 | Aplicação local nas filas Azure configuradas | `mvn quarkus:dev "-Dquarkus.profile=dev,azure"` |
 
@@ -579,8 +673,12 @@ externamente `QUARKUS_AZURE_SERVICEBUS_CONNECTION_STRING`, `SERVICE_BUS_INPUT_QU
 Credenciais nunca entram nos argumentos, arquivos ou logs. O uso de Azure real não foi testado
 nesta entrega; os 27 casos de integração, em sete classes, usam exclusivamente o emulador.
 
-Surefire exclui a tag `servicebus-integration` por padrão; o profile Maven seleciona apenas
-essa tag. Testes locais usam mocks/stubs, mesmo quando usam `@QuarkusTest` para CDI/cobertura.
+Surefire exclui por padrão as tags `servicebus-integration` e `cosmos-integration` e as
+classes `*EmuladorTest`/`*DevServicesTest` antes da descoberta JUnit. Essa exclusão de classes
+evita que a API antiga de Dev Services inicie emuladores antes do filtro por tags. Cada
+perfil seleciona sua família; `azure-integration` seleciona as duas. Para execução focada,
+combinar o perfil com `-Dtest=NomeDaClasse`: `-Dtest` substitui includes/excludes do Surefire.
+Testes locais usam mocks/stubs, mesmo quando usam `@QuarkusTest` para CDI/cobertura.
 A extensão e Dev Services permanecem desabilitados na configuração comum de testes.
 O profile de integração fixa `test` e verifica as fontes efetivas do Quarkus antes do bootstrap,
 incluindo arquivos e `%test`. Conexão/namespace presentes são rejeitados sem expandir expressões;
