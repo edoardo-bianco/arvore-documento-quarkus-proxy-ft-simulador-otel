@@ -4,11 +4,115 @@ A continuidade do acompanhamento durável e do tracing está no
 [guia Cosmos e Jaeger para o desenvolvedor](../../tasks/features/rastreabilidade-fluxo-dossie-cosmos/guia-desenvolvimento.md).
 Ele distingue a base já codificada do trabalho P2–P10 ainda necessário, com testes e critérios por etapa.
 
+## Contexto consolidado para manutenção — commit 58920dd
+
+Este documento é o ponto de entrada para manter o fluxo assíncrono de dossiê. O marco
+`58920dd` consolidou o fluxo funcional já existente, o primeiro trecho de observabilidade
+e o gate técnico do Cosmos. A feature não está encerrada: a persistência operacional do
+acompanhamento e a cadeia completa de spans continuam nos incrementos P2–P10.
+
+O fluxo funcional atual é:
+
+```text
+POST /simtr-hub/v1/monitoramentos-dossie
+  -> orquestrador cria monitoramento e publica tentativa na fila de entrada
+  -> monitoramento recebe, consulta Pré-Valida e MTR/Hub
+  -> ignora, publica resultado ou agenda nova tentativa na entrada
+  -> orquestrador recebe o resultado da fila de saída
+  -> registra o log final e conclui a entrega
+```
+
+Os listeners de entrada e saída têm ativação independente e ficam desabilitados por padrão.
+Reagendamento executa `schedule + Complete` em uma transação da mesma entidade. Falha
+técnica anterior ao settlement usa Abandon; contrato inválido pode ir para a DLQ com motivo
+controlado. Quarentena funcional continua diferente de Dead Letter do broker.
+
+### Decisões arquiteturais aplicáveis
+
+- [ADR-0002](../adr/0002-limites-por-dominio-e-capacidade.md): direção de dependências e
+  domínio independente de SDKs.
+- [ADR-0003](../adr/0003-orquestracao-e-colaboracao-por-portas.md): colaboração
+  entre capacidades por portas públicas e ACLs locais.
+- [ADR-0006](../adr/0006-compatibilidade-observabilidade-e-testes.md): compatibilidade dos
+  sinais e provas antes de substituir comportamento observável.
+- [ADR-0010](../adr/0010-extensao-quarkus-service-bus-connection-string-dev-services.md):
+  Service Bus, Dev Services local e autenticação SAS nos ambientes reais desta feature.
+- [ADR-0011](../adr/0011-composicao-local-monitoramento-e-fabrica-service-bus.md): ownership e
+  fechamento dos clientes Service Bus.
+- [ADR-0013](../adr/0013-acompanhamento-dossie-cosmos.md): acompanhamento durável no Cosmos,
+  eventos/snapshot por dossiê, intenção/confirmação, observação de filas/DLQs e correlação
+  homogênea Jaeger/log/Cosmos. O ADR está Aceito após o GO humano de 2026-09-12.
+
+O ADR-0013 prevê a capacidade `br.gov.caixa.simtr.acompanhamento`, ainda sem package de
+produção. Orquestrador e monitoramento colaborarão com ela por portas de saída e ACLs próprias.
+DTOs/documentos do Cosmos ficam no adapter de persistência; regras de política, classificação,
+prazo e routing continuam pertencendo ao monitoramento. Não colocar SDK Cosmos ou
+OpenTelemetry no domínio.
+
+### Estado implementado e estado pendente
+
+| Área | Implementado no marco | Ainda necessário |
+|---|---|---|
+| Fluxo Service Bus | POST, entrada, processamento, resultado, reagendamento transacional, saída, log, Complete/Abandon/DLQ | Preservar comportamento enquanto a persistência e os spans restantes forem inseridos |
+| Tracing | SERVER do POST, INTERNAL de iniciação, PRODUCER da publicação inicial, carrier W3C e log técnico ligado ao span | B2–B5: receber entrada, avaliar/consultar, publicar/agendar, settlements, receber saída e registrar resultado |
+| Cosmos | Dependência, configuração local/DES e teste opt-in de CRUD, partição, corpo, ETag e batch/rollback | Modelo, adapter operacional, bootstrap/validação, eventos/snapshot, idempotência, consultas e spans CLIENT |
+| Investigação | Logs JSON e provas com emulador; Jaeger local acessível | Navegação real Jaeger → EVENTO/EXECUCAO → Jaeger e observação paginada das filas/DLQs |
+| Ambientes | Dev Services local; parâmetros externos previstos para DES | Validar recursos preexistentes, TLS e credencial no Cosmos real de DES sem fallback local |
+
+O container aprovado é `doctree`, database local `simtr-hub`, partition key
+`/idDossiePreValidacao`. A aplicação ainda não grava eventos de negócio nele: o database e
+o container criados atualmente pertencem ao teste `CosmosDevServicesTest`. Não interpretar
+o gate P1 como acompanhamento operacional ou durabilidade depois de remover o emulador.
+
+### Contrato homogêneo de observabilidade
+
+Cada etapa usa o mesmo vínculo entre os sinais:
+
+| Referência | Responsabilidade |
+|---|---|
+| `traceId` | Localiza o trace no Jaeger e os EVENTO relacionados no Cosmos |
+| `spanId` | Localiza a operação exata; é persistido no evento correspondente |
+| `monitoramentoId` | Identifica uma execução durável do fluxo |
+| `idDossiePreValidacao` | Identifica o dossiê e a partição Cosmos; preserva a string original |
+| `messageId`, tentativa e fase | Identificam mensagem/efeito para idempotência e histórico |
+
+O evento Cosmos registra `traceId`/`spanId` do span da operação de negócio. A gravação ou
+consulta do banco possui span CLIENT filho; seu span não substitui a referência da operação.
+O parentage continua vindo de `traceparent`/`tracestate` W3C. Nunca reconstruir parentage a
+partir do Cosmos, MDC, correlationId ou ID de negócio.
+
+Spans e logs não recebem corpo da mensagem, partition key, situação externa, credencial,
+lock token ou texto bruto de erro. Esses detalhes ficam no Cosmos conforme o modelo aprovado.
+O span de uma entrega termina depois do settlement conhecido. A espera por mensagem agendada
+não mantém span aberto. Movimento automático para DLQ só é registrado quando observado; não
+fabricar span retrospectivo para um instante desconhecido.
+
+### Persistência e consistência aprovadas
+
+O container reúne dois tipos físicos na mesma partição:
+
+- `EXECUCAO`, com `id=execucao:<monitoramentoId>` e projeção limitada do estado atual;
+- `EVENTO`, imutável e criado com identidade determinística de operação e fase.
+
+Uma preparação persiste o corpo exato enviado ao SDK, seu SHA-256, envelope permitido,
+destino e horário aplicável. A confirmação referencia essa preparação. Evento e projeção
+são gravados em batch na mesma partição; ETag protege a projeção. Mesma identidade/conteúdo
+é idempotente; mesma identidade com conteúdo diferente é conflito. Evento atrasado permanece
+no histórico sem regredir outra dimensão já avançada.
+
+Cosmos e Service Bus não compartilham transação. A intenção durável vem antes do efeito.
+A confirmação vem depois do ACK/commit. Se a intenção falhar, o efeito protegido não ocorre.
+Se a confirmação Cosmos falhar depois de um ACK conhecido, preservar o efeito e o retorno
+funcional — inclusive HTTP 202 —, deixar a intenção pendente e registrar diagnóstico seguro.
+Não enviar, agendar ou liquidar novamente por dedução. Não existe dispatcher/replay automático
+nem garantia exactly-once no escopo aprovado.
+
 ## O que os desenvolvedores recebem nesta branch
 
 **O workspace implementa o fluxo até 9.1: POST, consumo opt-in da entrada, processamento,
 reagendamento/publicação e consumo/log da saída, com prova funcional no emulador.**
-9.1-A/B/C já está publicada; correlação/telemetria e revisão final continuam nas próximas etapas.
+9.1-A/B/C e o primeiro incremento de tracing B1 estão publicados neste marco. B1 cobre
+POST → iniciação → publicação inicial; a correlação das demais etapas continua pendente.
 Os parágrafos abaixo situam a evolução já implementada.
 Política/configuração CDI, consultas de pré-validação/Hub, contratos/mappers e logs de erro
 já estavam prontos. Agora também funcionam parâmetros pela ACL, fábrica de clientes, iniciação
@@ -29,7 +133,7 @@ a 9.1-C comprova startup/log/Complete e DLQ da saída no emulador, com o Hub con
 | Logging técnico e fronteiras | Implementados | Campos JSON tipados, diagnóstico seguro, isolamento de bordas e ACLs |
 | Consultas de 5.1 | Implementadas e injetáveis | Mock com ativação explícita, DTO/mapper próprios e ACL pela porta pública do Hub; resultados mínimos e falhas verificados |
 | Clientes Service Bus | Implementados em 6.1 | Quatro clientes duradouros, qualifiers por fila e fechamento completo/idempotente |
-| Conexões funcionais | Até 9.1-B implementado | Onze portas conectadas, incluindo reagendamento por entrega e consumo/log da saída; não restam esqueletos inativos |
+| Conexões funcionais | Até 9.1-C implementado | Onze portas conectadas, incluindo reagendamento por entrega e consumo/log da saída; não restam esqueletos inativos |
 
 As evidências da suíte padrão sem broker e do checkpoint vigente estão na
 [continuidade de 9.1](../../tasks/features/orquestrador-monitoramento-service-bus/continuidade-9-1.md).
@@ -475,7 +579,8 @@ somente os três nomes originais do Hub; os nomes antigos abaixo são compatibil
 A nulidade e o contador da quarentena foram confirmados pelo usuário e estão registrados no
 [plano/checklist](../../tasks/features/orquestrador-monitoramento-service-bus/todo.md).
 Exemplo de quarentena antes da primeira consulta: no objeto acima, o resultado e a situação
-da pré-validação são `QUARENTENA`, `situacaoMtr` é `null`,
+da pré-validação são `QUARENTENA`, `situacaoMtr` é
+ull`,
 `tentativasRealizadas` é `0` e o motivo descreve o limite atingido. O prazo pode vencer
 antes da primeira consulta; o mapper não inventa uma situação MTR para preencher o campo.
 
@@ -676,21 +781,24 @@ A repetição entre helpers é um ponto de manutenção registrado: a medição 
 do limite de 5%. Reduzi-la por extração transversal exige decisão arquitetural concreta;
 não compartilhar DTOs ou sanitização nem excluir arquivos da análise para reduzir o indicador.
 
-### Telemetria do fluxo ainda a implementar
+### Telemetria: marco B1 implementado e continuidade pendente
 
-Pelos [ADRs 0006](../adr/0006-compatibilidade-observabilidade-e-testes.md) e
-[0010](../adr/0010-extensao-quarkus-service-bus-connection-string-dev-services.md), a Task 10
-primeiro caracteriza o que o SDK efetivo já emite. Propagação W3C nas application properties
-e spans manuais só preenchem lacunas comprovadas; não duplicar instrumentação automática.
+Pelos [ADRs 0006](../adr/0006-compatibilidade-observabilidade-e-testes.md),
+[0010](../adr/0010-extensao-quarkus-service-bus-connection-string-dev-services.md) e
+[0013](../adr/0013-acompanhamento-dossie-cosmos.md), a instrumentação primeiro caracteriza
+o que o SDK efetivo emite. O marco B1 comprovou ausência de provider de tracing do Azure SDK
+no runtime atual e implementou a primeira lacuna: SERVER do POST, INTERNAL da iniciação,
+PRODUCER do envio inicial, carrier W3C e log de confirmação/falha. Os spans B2–B5 e a
+persistência da referência técnica no Cosmos ainda precisam ser implementados.
 
 | Contrato planejado no C0.4 | Nome/kind |
 |---|---|
-| Entrada REST | `simtr-hub.api.monitoramento-dossie.iniciar` — SERVER |
-| Início da orquestração | `orquestrador.service.monitoramento-dossie.iniciar` — INTERNAL |
+| Entrada REST | `simtr-hub.api.monitoramento-dossie.iniciar` — SERVER — implementado em B1 |
+| Início da orquestração | `orquestrador.service.monitoramento-dossie.iniciar` — INTERNAL — implementado em B1 |
 | Consulta de pré-validação | `doctree.service.prevalidacao.dossie.consultar` — INTERNAL |
 | Avaliação do monitoramento | `doctree.service.monitoramento-mtr.avaliar` — INTERNAL |
 | Registro do resultado | `orquestrador.service.monitoramento-dossie.resultado-registrar` — INTERNAL |
-| Enviar/agendar | `send <fila>` e `schedule <fila>` — PRODUCER |
+| Enviar/agendar | `send <fila>` e `schedule <fila>` — PRODUCER; envio inicial implementado em B1, demais pendentes |
 | Processar entrega | `process <fila>` — CONSUMER |
 | Settlement | `complete <fila>`, `abandon <fila>`, `dead_letter <fila>` — CLIENT |
 
@@ -698,8 +806,11 @@ Os prefixos `doctree` acima são nomes observáveis do planejamento original, n�
 Java atuais. A revisão humana dos packages não os renomeou automaticamente. Conferir o
 contrato de sinais antes da implementação; eventual alteração exige checkpoint próprio.
 
-Os eventos planejados incluem publicação confirmada/falha e resultado registrado/falha no
-orquestrador, e `doctree.monitoramento-mtr.decisao.tomada`,
+Os logs de publicação inicial confirmada/falha, resultado registrado, decisão,
+falha de processamento e settlement já são emitidos. B2–B5 devem executá-los dentro dos spans
+causais correspondentes e completar os caminhos de falha aprovados. Os eventos atuais incluem
+`orquestrador.monitoramento-dossie.resultado.registrado`,
+`doctree.monitoramento-mtr.decisao.tomada`,
 `doctree.monitoramento-mtr.processamento.falhou` e
 `doctree.monitoramento-mtr.settlement.executado`. Eles são distintos dos erros de mapper
 já implementados com prefixos `monitoramento.servicebus`/`orquestrador.servicebus`.
@@ -709,9 +820,9 @@ decisão e settlement. Nomes/atributos de mensageria devem ser conferidos com a 
 do SDK. Payload, connection string, SAS, namespace, documentos e PII ficam fora da telemetria.
 IDs de alta cardinalidade não viram labels de métrica; novas métricas/dashboards estão fora
 desta feature. Os logs atuais só acrescentam trace/span quando já existe contexto válido.
-Na integração de 6.1, os logs automáticos do SDK exibiram metadados de conexão/entidade do
-emulador. Sua caracterização e adequação ao contrato de telemetria continuam na Task 10;
-6.1 não comprova a segurança/correlação de todos os sinais de um ambiente Azure real.
+A caracterização A1 do SDK efetivo comprovou ausência de provider de tracing Azure no runtime e
+registrou os metadados técnicos observados no emulador. Ela não comprova segurança/correlação
+de todos os sinais em Azure real; essa validação permanece em P10.
 
 ## Continuidade manual e estado real
 
@@ -735,7 +846,10 @@ deverá declarar os métodos/implementações ao executar o item correspondente.
 | 8.1 implementada | Agendamento transacional ligado ao listener; cancelamento, teto e prazo original verificados |
 | 8.2 implementada | Ativação da entrada por configuração no startup; evidências atuais nas tasks |
 | 9.1 implementada e verificada | Caso de uso/log e listener/ativação conectados; integração da saída concluída em 9.1-C |
-| 10.1 em diante pendente | Correlação ponta a ponta, cenários integrados e fechamento do demonstrador |
+| 10.1-B1 implementado | POST, iniciação, publicação inicial, carrier W3C e log técnico correlacionados |
+| 10.1-B2–B5 pendentes | Entrada, avaliação/consultas, resultado/reagendamento, saída/log e settlements ainda precisam de spans causais |
+| P1 Cosmos implementado | Extensão/configuração e gate local; sem gravação operacional |
+| P2–P10 pendentes | Modelo, adapter, integração do diário, observador de filas/DLQs e prova Jaeger/Cosmos |
 
 O mapper de reagendamento já está implementado. Os testes preservados provaram JSON/envelope,
 validação equivalente à entrada, compatibilidade com o consumidor e erro JSON sanitizado.
@@ -746,84 +860,101 @@ C2 foi aceito pelo usuário em 2026-09-09. 7.1 está concluída tecnicamente, co
 saída, caso de uso/listener da entrada e integração terminal local verificados. A 8.1 concluiu
 o reagendamento transacional e a 8.2 acrescentou ativação da entrada no startup por opt-in.
 O consumo/log da saída está conectado em 9.1-A/B, com opt-in, e foi verificado no emulador
-em 9.1-C. Preservar as entregas e seguir para o detalhamento de 10.1 no checklist.
+em 9.1-C. Preservar as entregas; B1 está concluído. Seguir pelo P2 do checklist Cosmos e coordenar B2–B5 com P6–P8.
 Os comandos e critérios de verificação estão no guia de desenvolvimento e no plano.
 
 O [manifesto de commit](../../tasks/features/orquestrador-monitoramento-service-bus/pacote-commit.md)
-descreve o marco publicado de 8.2. A implementação de 9.1 permanece local.
+descreve o marco anterior de 8.2. O commit `58920dd` consolidou 9.1, B1, o gate P1 Cosmos
+e as decisões/documentação de continuidade.
 O checklist registra a evidência executável e as pendências; a preparação documental não executa publicação Git.
 Preservar arquivos rastreados e não rastreados ao materializar novas entregas.
 
 A [solução ampla de origem](../feat/solucao-duas-filas-azure-service-bus-quarkus-azure-servicebus-reactive-jdk25.md)
-inclui persistência e continuidade durável que não pertencem a este recorte. Para esta feature,
-prevalecem as adaptações explícitas do plano e dos ADRs aceitos: sem alteração em `dossie`
-ou Hub, sem persistência nova, e encerramento do demonstrador por log.
+inclui alternativas amplas. Para a continuidade vigente, prevalece o ADR-0013: sem alteração
+em `dossie` ou nas regras do Hub, com acompanhamento durável próprio no Cosmos. O adapter
+operacional ainda não existe; Outbox com dispatcher, replay automático e exactly-once
+continuam fora do escopo.
 
-## Roteiro para continuar a implementação
+## Roteiro atual para completar manualmente
 
-### Ponto de partida para o desenvolvedor
+A fonte do próximo item é o
+[checklist do acompanhamento](../../tasks/features/rastreabilidade-fluxo-dossie-cosmos/todo.md).
+O P1 está concluído; iniciar por P2. Antes de cada RED, registrar a subfatia no
+[plano](../../tasks/features/rastreabilidade-fluxo-dossie-cosmos/plan.md), limitando-a a
+cinco arquivos executáveis. Mudança de contrato público, arquitetura, segurança ou sinal
+observável exige o checkpoint humano definido em `AGENTS.md`.
 
-1. Trabalhar na branch `feature/orquestrador-monitoramento-service-bus` e consultar
-   [plano](../../tasks/features/orquestrador-monitoramento-service-bus/plan.md),
-   [checklist](../../tasks/features/orquestrador-monitoramento-service-bus/todo.md) e
-   [evidência de 6.1](../../tasks/features/orquestrador-monitoramento-service-bus/continuidade-6-1.md).
-   C2 está aceito e 7.1 concluída tecnicamente; consultar também a
-   [continuidade de 7.1](../../tasks/features/orquestrador-monitoramento-service-bus/continuidade-7-1.md).
-2. Conferir o fechamento de [8.1](../../tasks/features/orquestrador-monitoramento-service-bus/continuidade-8-1.md)
-   e a ativação de 8.2 antes de seguir para 9.1 quando autorizado. Reutilizar classificação e resolução de versão de 7.1-B:
-   definição recebida quando disponível, v1 padrão quando ausente, sempre com prazo original.
-   A fixture `1 / Rascunho` não fornece IDs para os nomes conclusivos.
-3. Ler `ProcessarTentativaMonitoramentoUseCase` e `DecisaoProcessamento` no
-   [inventário Java](../../tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md).
-   A porta recebe tentativa e sequência escalar. Ignorar e ResultadoPublicado resultam em
-   Complete pelo listener; ReagendamentoPendente executa schedule + Complete com o mesmo
-   contexto na borda. Situação original e calculada permanecem separadas.
-4. Exercitar `MonitoramentoEntradaListener`, já conectado ao receiver qualificado e à porta,
-   em integração com cenários controlados. As provas antigas chamam iniciar(); a prova
-   de 8.2 ativa o consumo por configuração no startup e entra pelo POST. Não há endpoint de ativação.
-   O reagendamento só permite avançar após commit confirmado e nunca gera Complete simples
-   adicional. O shutdown cancela a operação pendente antes da fábrica; cancelar a espera na
-   fronteira de commit não comprova reversão remota nem autoriza segunda liquidação.
-5. Usar `MonitoramentoResultadoPublisher`, já implementado pela porta e pelo sender da
-   saída. O adapter reutiliza seu mapper; concluir a entrada somente após confirmação do envio.
-   Provar no-op, limites, falha, contratos inválidos e ausência de Complete antecipado. Sem Outbox,
-   publicação na saída e Complete da entrada não são uma operação atômica.
-6. Executar testes locais sem broker e integração explícita para o trecho conectado.
-   Atualizar provas CDI, Javadocs, documentação e checkpoint Sonar com o baseline
-   original. Preservar prazo/versão/IDs e as provas de `schedule + Complete`, rollback,
-   redelivery e cancelamento; falha de commit nunca tenta rollback ou nova publicação.
+| Ordem | Implementação manual | Pontos existentes a integrar | Prova mínima |
+|---|---|---|---|
+| P2 | Criar domínio de acompanhamento e redução de eventos por dimensões | `TentativaMonitoramento`, `ResultadoMonitoramento`, `DecisaoProcessamento`, `PreValidacaoConsultada`, `SituacaoDossieConsultada` somente como fatos de entrada | Várias execuções por dossiê; repetição/conflito; evento atrasado sem regressão; observado e calculado distintos |
+| P3 | Criar porta, documentos/mapper e adapter Cosmos | Extensão 1.2.5 fornece `CosmosClient` síncrono `Dependent`, sem disposer | Batch EVENTO+EXECUCAO, ETag, idempotência, concorrência, corpo exato, paginação, lifecycle, DES/TLS e spans CLIENT |
+| P4 | Criar portas de saída e ACLs de orquestrador/monitoramento | Nova capacidade `br.gov.caixa.simtr.acompanhamento` | ArchUnit/guardrails impedem SDK/DTO Cosmos nos núcleos consumidores |
+| P5 | Integrar intenção e confirmação da publicação inicial | `IniciarMonitoramentoUseCase`, `MonitoramentoEntradaPublisher`, mapper da entrada | Intenção antes do send; confirmação após ACK; 202 preservado se só confirmação Cosmos falhar; sem segundo envio |
+| P6 / B2–B3 | Instrumentar e registrar entrada, consultas, decisão, publicação de resultado e Complete | `MonitoramentoEntradaListener`, `ProcessarTentativaMonitoramentoUseCase`, adapters Pré-Valida/Hub, publisher da saída | Um CONSUMER por entrega, parent W3C correto, situações/origem, resultado/quarentena/no-op e settlement separados |
+| P7 / B4 | Integrar diário e tracing do reagendamento | Adapter/mapper de reagendamento e transação Service Bus | ACK de schedule/Complete ainda pendente até commit; rollback/ambiguidade sem replay; nova tentativa guarda carrier próprio |
+| P8 / B5 | Integrar saída, log e Complete | `MonitoramentoResultadoListener`, `ReceberResultadoMonitoramentoUseCase`, `ResultadoMonitoramentoLogAdapter` | CONSUMER de saída, log submetido e settlement distintos; preservar limite C9.1-L e falha pós-ACK |
+| P9 | Criar observador não destrutivo de entrada, saída e DLQs | Clientes de observação próprios; não reutilizar receive link cancelado | Peek paginado/limitado, fonte/data/motivo; nenhuma liquidação/republicação; ausência não vira conclusão |
+| P10 | Executar prova integrada local e roteiro DES | Cosmos/Service Bus/Jaeger, logs JSON e consultas do `doctree` | Caminhos conclusivo, no-op, quarentena, reagendamento e DLQ; falhas; reinício; navegação nos dois sentidos |
 
-**6.1 entrega a publicação inicial confirmada e C2 está aceito.** 7.1-A entrega o publisher
-da saída; 7.1-B/C conectam o processamento e o listener com início explícito, verificados no
-emulador em 7.1-D. A 8.1 conecta o reagendamento; 9.1-A/B conectam consumo/log da saída.
-A verificação do demonstrador completo permanece pendente.
+### Comandos de desenvolvimento e verificação
 
-### Ordem das entregas restantes
+```powershell
+# Suíte padrão: integrações excluídas antes da descoberta JUnit
+mvn -q clean test
 
-| Item | Entrega a implementar | Verificação para considerar pronta |
-|---|---|---|
-| 7.1-B — implementada | Caso de uso conectado ao catálogo, consultas e publisher | Ver evidência local sem broker e checkpoint nas tasks |
-| 7.1-C — implementada | Listener da entrada, settlement e lifecycle, sem início automático | Saída confirmada antes de Complete, falhas sem segundo settlement, encerramento antes da fábrica e logs mínimos; evidência sem broker nas tasks |
-| 7.1-D — concluída tecnicamente | Integração terminal e fechamento do item | 15 integrações, 1.268 testes sem broker, revisão e Sonar COMPLIANT; evidências nas tasks |
-| 8.1 — implementada | Reagendamento de situação não conclusiva | Política/versão, prazo, teto, schedule + Complete, rollback/redelivery e cancelamento; fechamento nas tasks |
-| 8.2 — implementada | Ativação da entrada por configuração no startup | Default inativo, início único, falhas/shutdown e POST real no emulador |
-| 9.1-A/B/C — concluídas tecnicamente | Listener da saída, caso de uso e log final | Comportamento sem broker e ativação real até log/Complete/DLQ no emulador; limites em C9.1-L |
-| 10.1 e C3 | Correlação e fluxo integrado no emulador | Propagação, sinais sem duplicação, caminhos de sucesso, falha e quarentena |
-| 11.1–CF | Verificação final e revisão do demonstrador | Suíte/checkpoint, documentação e decisão humana de encerramento |
+# Gates explícitos com emuladores
+mvn -q -Pcosmos-integration clean test
+mvn -q -Pservicebus-integration clean test
+mvn -q -Pazure-integration clean test
 
-Ao assumir uma fatia, seguir o [inventário Java](../../tasks/features/orquestrador-monitoramento-service-bus/guia-desenvolvimento.md)
-e o próximo item do checklist. As onze portas estão conectadas e não há esqueleto `@Vetoed`
-restante nesse inventário. Preservar as provas positivas CDI dos três componentes de resultado,
-os guardrails arquiteturais e os contratos/mappers já verificados.
+# Aplicação local com exportação OTLP para Jaeger
+mvn quarkus:dev "-Ddebug=false" "-Dquarkus.profile=dev,jaeger" `
+  "-Dmonitoramento.service-bus.entrada.consumo-habilitado=true" `
+  "-Dmonitoramento.service-bus.saida.consumo-habilitado=true"
+```
 
-O tratamento de prazo/contador e a associação da entrega à transação foram implementados em
-8.1, com prova de commit, rollback e redelivery no emulador. Os listeners cancelam antes da
-factory, com provas de lifecycle; a 9.1-C acrescentou a prova integrada da saída. Caracterização
-da telemetria automática e correlação permanecem em 10.1/C3. A recuperação v1 autorizada é
-explícita no modelo de resolução; não introduzir outras recuperações.
+O Jaeger local usa UI em `http://localhost:16686` e OTLP gRPC em `localhost:4317`.
+O profile `dev` inicia Dev Services de Service Bus e Cosmos. Não executar os testes de
+emulador com connection string/namespace Service Bus ou endpoint/chave Cosmos externos.
+Tags sozinhas não impedem o bootstrap na descoberta: usar os profiles Maven acima.
 
-O histórico de execução e publicação permanece nas tasks. O workspace inclui as implementações
-até 9.1 e sua prova funcional com emulador; telemetria, revisão final e entrega produtiva
-dependem das etapas restantes.
-Persistência, Cosmos DB, Outbox, idempotência durável, workflow durável, métricas e novas
-integrações ficam fora deste recorte.
+Para DES, iniciar processo novo com profile `des`. Fornecer externamente
+`SIMTR_COSMOS_ENDPOINT`, `SIMTR_COSMOS_DATABASE` e a credencial escolhida para o ambiente.
+Dev Services deve permanecer desabilitado; o container `doctree` com partition key
+`/idDossiePreValidacao` deve existir e o bypass de certificado local deve ser recusado.
+Nenhuma credencial entra em código, argumento, log, task ou commit.
+
+### Critérios que impedem um falso encerramento
+
+- Jaeger acessível não comprova trace completo: conferir nomes, kinds, parentage, erros e
+  ausência de spans duplicados no backend real.
+- Evento Cosmos gravado não comprova presença atual na fila; toda localização exige fonte
+  e instante. Peek sem resultado continua inconclusivo.
+- `Complete`, send ou commit confirmado não pode ser repetido porque a confirmação Cosmos
+  posterior falhou. A intenção permanece pendente para diagnóstico/reconciliação por evidência.
+- Quarentena funcional e DLQ são dimensões diferentes. Registrar motivo funcional e motivo
+  do broker separadamente.
+- Entrada e saída podem coexistir. A projeção não força uma localização única falsa nem
+  usa timestamp como único critério de ordem.
+- Uma execução termina sem publicação de saída quando a decisão é no-op; não fabricar
+  mensagem, log ou span de uma operação inexistente.
+- A feature só está completa após P10, checkpoint técnico e aceite humano de encerramento.
+
+### Onde registrar e onde investigar
+
+Decisões permanentes ficam neste guia, no
+[consolidado arquitetural](../arquitetura-distribuida/arquitetura-ddd-integracoes-atomicas.md)
+e nos ADRs. Estado e evidência incremental ficam nas tasks da feature. Não colocar histórico
+de execução em ADR nem transformar log bruto em documentação permanente.
+
+Partindo do Jaeger, consultar EVENTO por `traceId` e, para uma etapa, `spanId`. O resultado
+fornece `idDossiePreValidacao` e `monitoramentoId`; então ler `execucao:<monitoramentoId>`
+com a partition key original e paginar os eventos daquela execução. No caminho inverso,
+abrir `/trace/<traceId>` na base configurada e localizar o `spanId`. Uma busca cross-partition
+pode retornar várias execuções; não escolher uma silenciosamente.
+
+A especificação completa de campos, transições e consultas está em
+[estado/histórico](../../tasks/features/rastreabilidade-fluxo-dossie-cosmos/especificacao.md)
+e [observabilidade homogênea](../../tasks/features/rastreabilidade-fluxo-dossie-cosmos/observabilidade-homogenea.md).
+As provas e limitações do gate estão em
+[execução P1](../../tasks/features/rastreabilidade-fluxo-dossie-cosmos/execucao-p1.md).
