@@ -726,9 +726,29 @@ continua pendente em P3, os dois ensaios abaixo desabilitam Cosmos explicitament
 
 O exemplo usa a pré-validação simulada `pre-em-analise` e a fixture Hub `4324680`, cuja situação
 é `Rascunho`. A propriedade `max-tentativas=1` força uma saída rápida de QUARENTENA, evitando
-esperar o intervalo padrão de 30 minutos.
+esperar o intervalo padrão de 30 minutos. Execute o POST por **uma** das opções abaixo. As duas
+convergem para o mesmo roteiro de correlação; não repita o POST ao trocar de ferramenta.
 
-Em um terminal PowerShell separado daquele em que o Quarkus está executando:
+#### Opção A — Postman
+
+1. Criar uma requisição `POST` para
+   `http://localhost:8080/simtr-hub/v1/monitoramentos-dossie`.
+2. Em `Headers`, informar `Content-Type: application/json`.
+3. Em `Body`, selecionar `raw` e `JSON` e usar:
+
+```json
+{
+  "idDossiePreValidacao": "pre-em-analise",
+  "idDossieMtr": "4324680"
+}
+```
+
+4. Enviar uma única vez, confirmar o status `202` e copiar da resposta os valores de
+   `monitoramentoId` e `orquestracaoId`.
+
+#### Opção B — PowerShell
+
+Em um terminal separado daquele em que o Quarkus está executando:
 
 ```powershell
 $corpo = @{
@@ -745,11 +765,10 @@ $http = Invoke-WebRequest `
 $http.StatusCode
 $resposta = $http.Content | ConvertFrom-Json
 $resposta
-$monitoramentoId = [string] $resposta.monitoramentoId
-$orquestracaoId = [string] $resposta.orquestracaoId
 ```
 
-O status esperado é `202`. Guardar os dois UUIDs. O `MessageId` esperado na entrada é
+O status esperado também é `202`. Copie os dois UUIDs exibidos e prossiga para “Roteiro de
+correlação do POST até o Jaeger”. O `MessageId` esperado na entrada é
 `<monitoramentoId>:tentativa:1`; na saída é `<monitoramentoId>:resultado:v1`. O
 `CorrelationId` das duas mensagens deve ser igual a `orquestracaoId`.
 
@@ -772,7 +791,7 @@ mvn quarkus:dev "-Ddebug=false" "-Dquarkus.profile=dev,jaeger" `
 ```
 
 4. Aguardar o startup em `http://localhost:8080` e executar o POST do cenário comum.
-5. Conferir o log conforme a seção “Conferência do log” abaixo.
+5. Conferir o log conforme a seção “Roteiro de correlação do POST até o Jaeger” abaixo.
 
 Com os dois listeners ativos, entrada e saída podem receber `Complete` antes do `peek`. Isso é
 esperado e não significa que as mensagens não existiram. Para observar as duas mensagens de
@@ -907,44 +926,187 @@ saida.MessageId    = <monitoramentoId>:resultado:v1
 ambas.CorrelationId = <orquestracaoId>
 ```
 
-### Conferência do log
+### Roteiro de correlação do POST até o Jaeger
 
-Depois da execução completa do modo 1 ou da etapa 3 do modo 2:
+Execute este roteiro uma vez para cada POST, independentemente de ele ter sido enviado pelo
+Postman ou pelo PowerShell.
+
+#### 1. Informar os IDs retornados pelo POST
+
+Abra um PowerShell no diretório raiz do repositório, cole os dois UUIDs da resposta e valide-os:
+
+```powershell
+$monitoramentoId = 'COLE_AQUI_O_monitoramentoId'
+$orquestracaoId = 'COLE_AQUI_O_orquestracaoId'
+
+$formatoUuid = '^[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$'
+if ($monitoramentoId -notmatch $formatoUuid -or
+    $orquestracaoId -notmatch $formatoUuid) {
+  throw 'Substitua os dois valores pelos UUIDs retornados pelo POST.'
+}
+```
+
+Não execute outro POST para obter os logs. Os próximos comandos reutilizam essas duas variáveis.
+
+#### 2. Localizar e normalizar os eventos no log
+
+Carregue o log JSON e localize os dois IDs tanto nos campos da raiz quanto no `mdc`, pois os sinais
+atuais ainda não usam uma posição única:
 
 ```powershell
 $eventos = Get-Content 'target/logs/simtr-hub.json' | ForEach-Object {
   try { $_ | ConvertFrom-Json } catch { }
 }
 
-$eventos | Where-Object {
+$correlacionados = $eventos | Where-Object {
   $_.monitoramento_id -eq $monitoramentoId -or
   $_.orquestracao_id -eq $orquestracaoId -or
+  $_.mdc.monitoramento_id -eq $monitoramentoId -or
+  $_.mdc.orquestracao_id -eq $orquestracaoId -or
   $_.message_id -like "$monitoramentoId*"
-} | Select-Object timestamp, level, evento, operacao, message_id, tentativa_atual,
-    monitoramento_id, orquestracao_id, traceId, spanId, decisao, settlement
+}
+
+$correlacionados |
+  Sort-Object timestamp |
+  Select-Object timestamp, sequence, level,
+    @{Name='evento'; Expression={
+      if ($_.evento) { $_.evento } else { $_.mdc.evento }
+    }},
+    @{Name='operacao'; Expression={
+      if ($_.operacao) { $_.operacao } else { $_.mdc.operacao }
+    }},
+    message_id, tentativa_atual,
+    @{Name='monitoramento_id'; Expression={
+      if ($_.monitoramento_id) {
+        $_.monitoramento_id
+      } else {
+        $_.mdc.monitoramento_id
+      }
+    }},
+    @{Name='orquestracao_id'; Expression={
+      if ($_.orquestracao_id) {
+        $_.orquestracao_id
+      } else {
+        $_.mdc.orquestracao_id
+      }
+    }},
+    @{Name='traceId'; Expression={
+      if ($_.traceId) { $_.traceId } else { $_.mdc.traceId }
+    }},
+    @{Name='spanId'; Expression={
+      if ($_.spanId) { $_.spanId } else { $_.mdc.spanId }
+    }},
+    decisao, settlement |
+  Format-List
 ```
 
-O settlement atual não possui os UUIDs e não passa pelo filtro anterior. Em uma execução isolada,
-conferir os últimos settlements pela janela de tempo; até B2–B4, não atribuí-los ao dossiê apenas
-pela proximidade temporal em ambiente compartilhado:
+Esse é o único filtro de correlação do guia. Ele cobre o formato atual da publicação, cujos campos
+ficam na raiz, e o registro de resultado, cujos IDs ficam no `mdc`.
+
+#### 3. Extrair o trace e abrir o Jaeger
+
+Extraia um `traceId` W3C válido dos registros correlacionados, dando preferência ao campo da raiz,
+e abra o trace correspondente no Jaeger:
+
+```powershell
+$traceId = $correlacionados | ForEach-Object {
+  if ($_.traceId) { [string] $_.traceId }
+  elseif ($_.mdc.traceId) { [string] $_.mdc.traceId }
+} | Where-Object { $_ -match '^[0-9a-fA-F]{32}$' } | Select-Object -First 1
+
+if ([string]::IsNullOrWhiteSpace($traceId)) {
+  throw 'Nenhum traceId válido foi encontrado para os IDs informados.'
+}
+
+$jaegerUrl = "http://localhost:16686/trace/$traceId"
+$jaegerUrl
+Start-Process $jaegerUrl
+```
+
+Para obter um inventário copiável sem depender apenas da leitura visual da UI, consultar também
+a API local do Jaeger. O resultado lista exatamente os spans armazenados para o `traceId`,
+incluindo serviço, operação, kind, `spanId` e parent:
+
+```powershell
+$respostaJaeger = Invoke-RestMethod `
+  -Uri "http://localhost:16686/api/traces/$traceId"
+$traceJaeger = $respostaJaeger.data | Select-Object -First 1
+
+if ($null -eq $traceJaeger) {
+  throw "O Jaeger não retornou o trace $traceId."
+}
+
+$traceJaeger.spans | Sort-Object startTime | ForEach-Object {
+  $span = $_
+  $processo = $traceJaeger.processes.PSObject.Properties[$span.processID].Value
+  $kind = $span.tags | Where-Object { $_.key -eq 'span.kind' } |
+    Select-Object -ExpandProperty value -First 1
+
+  [pscustomobject]@{
+    servico = $processo.serviceName
+    operacao = $span.operationName
+    kind = $kind
+    spanId = $span.spanID
+    parentSpanId = $span.references[0].spanID
+  }
+} | Format-Table -AutoSize
+```
+
+Uma etapa ausente desse inventário permanece uma lacuna de instrumentação, mesmo que exista um
+log próximo no tempo ou um trace separado para uma consulta interna.
+
+#### 4. Percorrer as etapas do fluxo
+
+Na UI, conferir nomes, kinds, parentage, duração, status e atributos de cada span. A tabela abaixo
+é o checklist obrigatório. “Esperado” descreve o sinal necessário para fechar a evidência; quando
+o marco atual ainda não o produz ou não o correlaciona, registrar a célula como lacuna em vez de
+inferir sucesso pela proximidade temporal.
+
+| Etapa | Evento/log esperado | Span esperado | Verificação na fila/DLQ |
+|---|---|---|---|
+| POST | HTTP `202` e resposta com `monitoramentoId` e `orquestracaoId` | `simtr-hub.api.monitoramento-dossie.iniciar` — SERVER; `orquestrador.service.monitoramento-dossie.iniciar` — INTERNAL | Com o listener de entrada parado, fazer `peek` na fila principal de entrada pelo `MessageId` esperado |
+| Publicação da entrada | `orquestrador.monitoramento-dossie.publicacao.confirmada`, com IDs, `message_id` e tentativa | `send <fila-entrada>` — PRODUCER, filho do fluxo do POST e com carrier W3C | Na fila principal de entrada, conferir `MessageId`, `CorrelationId`, corpo/application properties e guardar o `SequenceNumber` |
+| Leitura da entrada | Log de recebimento com fila `entrada`, IDs, `messageId`, tentativa e `SequenceNumber` | `process <fila-entrada>` — CONSUMER, com parent extraído do carrier; pendente em B2 | Fazer `peek` antes do consumo; depois do settlement, a ausência deve ser confrontada com o `SequenceNumber` exato |
+| Processamento e decisão | Log de processamento e `doctree.monitoramento-mtr.decisao.tomada`, quando emitido, com situações, decisão e motivo funcional | `doctree.service.monitoramento-mtr.avaliar` — INTERNAL, com spans filhos das consultas; pendente em B2–B3 | Conferir o efeito correspondente: nenhum envio para no-op, nova entrada para reagendamento ou mensagem na saída para decisão final/quarentena |
+| Reagendamento, quando aplicável | Log de intenção e confirmação do agendamento com IDs, tentativa seguinte, fila, `messageId`, instante e motivo funcional | `schedule <fila-entrada>` — PRODUCER e settlement transacional da entrega atual; pendente em B4 | Na fila principal de entrada, fazer `peek` da nova tentativa e guardar seu próprio `SequenceNumber`; não reutilizar o número da tentativa anterior |
+| Publicação da saída | Log de publicação confirmada com fila `saida`, todos os IDs, `messageId`, tentativa, decisão e referência ao `SequenceNumber` da entrada | `send <fila-saida>` — PRODUCER; pendente em B3–B4 | Com o listener de saída parado, fazer `peek` na fila principal de saída, conferir todos os atributos e guardar o `SequenceNumber` próprio da saída |
+| Leitura da saída | Log de recebimento com fila `saida`, IDs, `messageId`, tentativa e `SequenceNumber` da saída | `process <fila-saida>` — CONSUMER, com parent extraído do carrier; pendente em B5 | Fazer `peek` antes do consumo; depois, usar o número guardado para distinguir remoção da mensagem original de uma mensagem posterior |
+| Registro do resultado | `orquestrador.monitoramento-dossie.resultado.registrado`, com IDs e resultado; a correlação causal completa ainda é B5 | `orquestrador.service.monitoramento-dossie.resultado-registrar` — INTERNAL; pendente em B5 | Não cria nova mensagem; verificar a saída até o settlement e correlacionar pelo `MessageId`/`SequenceNumber` recebidos |
+| Settlement `complete`/`abandon` | `doctree.monitoramento-mtr.settlement.executado`, identificando explicitamente fila `entrada` ou `saida`, IDs, `messageId`, `SequenceNumber` e settlement | `complete <fila>` ou `abandon <fila>` — CLIENT; pendente em B2–B5 | Em `complete`, a mensagem exata deixa a fila principal; em `abandon`, permanece disponível para redelivery e pode aumentar `DeliveryCount` |
+| DLQ e motivo | Log de dead-letter com fila `entrada-dlq` ou `saida-dlq`, motivo da DLQ separado do motivo funcional, IDs, `messageId` e `SequenceNumber` | `dead_letter <fila>` — CLIENT quando a aplicação fizer o settlement; movimento automático só pode ser registrado quando observado | Fazer `peek` separadamente na subfila DLQ, conferir `DeadLetterReason`/descrição e não concluir, abandonar ou republicar a mensagem durante o diagnóstico |
+
+#### 5. Conferir settlements ainda não correlacionados
+
+O settlement atual não possui os UUIDs e, por isso, não aparece em `$correlacionados`. Somente em
+uma execução local isolada, liste os últimos registros e compare a janela de tempo:
 
 ```powershell
 $eventos | Where-Object {
   $_.evento -eq 'doctree.monitoramento-mtr.settlement.executado'
-} | Select-Object -Last 5 timestamp, evento, operacao, settlement
+} | Select-Object -Last 5 timestamp, sequence, evento, operacao, settlement, traceId, spanId |
+  Format-List
 ```
 
-| Evento | Evidência atual | Limite atual |
-|---|---|---|
-| `orquestrador.monitoramento-dossie.publicacao.confirmada` | `message_id`, tentativa, IDs e `traceId`/`spanId` do PRODUCER inicial | Não contém `SequenceNumber`; o publisher não recebe esse valor no ACK do send |
-| `doctree.monitoramento-mtr.settlement.executado` | Settlement da entrada: `complete`, `dead_letter` ou `complete_transacional` | Ainda não contém os IDs do dossiê; B2–B4 completarão a correlação |
-| `doctree.monitoramento-mtr.decisao.tomada` | Emitido nos caminhos IGNORAR e REAGENDAR | Não é obrigatório no caminho terminal que publica resultado |
-| `orquestrador.monitoramento-dossie.resultado.registrado` | IDs após a leitura da saída | B5 ainda precisa ligar o log ao trace causal e ao settlement da saída |
+Não atribua esses registros ao POST apenas pela proximidade temporal em ambiente compartilhado.
+No marco atual, a publicação confirmada contém IDs, `message_id`, tentativa e o trace da publicação,
+mas não recebe `SequenceNumber` no ACK do send. O resultado registrado contém os IDs no `mdc`,
+sem a correlação causal completa de B5. O evento de decisão aparece nos caminhos IGNORAR e
+REAGENDAR, mas não é obrigatório no caminho terminal que publica resultado.
 
-Fila vazia, isoladamente, não comprova que houve publicação. No estado atual, avaliar em conjunto
-`202`, `MessageId`/`CorrelationId`, `SequenceNumber`, `inputSequenceNumber`, eventos do log e os
-asserts das integrações. A evidência durável no Cosmos e a consulta operacional ficam pendentes
-nos incrementos P2–P10.
+#### 6. Interpretar a evidência sem criar correlação falsa
+
+O campo `sequence` de cada linha em `simtr-hub.json` é somente a sequência do log. Ele não é o
+`SequenceNumber`, propriedade de 64 bits atribuída pelo Service Bus a cada mensagem armazenada.
+O `SequenceNumber` deve ser obtido pela mensagem recebida ou por observação do broker.
+
+`peek` é não destrutivo, mas precisa ser executado separadamente na fila principal e na respectiva
+DLQ; resultado vazio em uma delas não descreve a outra. A ausência de log ou span não prova que a
+etapa não ocorreu, assim como um span isolado não prova o estado atual da mensagem no broker.
+Quando um evento, span ou settlement não puder ser ligado aos mesmos IDs, `messageId`,
+`SequenceNumber` e `traceId`, registrar explicitamente uma lacuna de instrumentação. Não completar
+a cadeia por horário aproximado, ordem do campo `sequence` ou suposição sobre fila vazia. No
+estado atual, avaliar em conjunto o `202`, os identificadores, os sinais do log/Jaeger, a observação
+do broker e os asserts das integrações. A evidência durável no Cosmos continua pendente em P2–P10.
 
 ## Consumo, confirmação e tratamento de erro
 
@@ -1064,6 +1226,50 @@ A caracterização A1 do SDK efetivo comprovou ausência de provider de tracing 
 registrou os metadados técnicos observados no emulador. Ela não comprova segurança/correlação
 de todos os sinais em Azure real; essa validação permanece em P10.
 
+#### Checklist para completar manualmente os sinais B2–B5
+
+Este checklist permite que um desenvolvedor experiente implemente as lacunas sem depender de
+automação do Codex. Ele não substitui o plano, o GO humano nem o checkpoint de comportamento
+observável exigidos pelo `AGENTS.md`. Na etapa das lacunas rápidas, não alterar o contrato REST e
+não iniciar a persistência Cosmos.
+
+1. Localizar primeiro os pontos já instrumentados e os limites assíncronos reais, sem criar uma
+   segunda convenção de eventos ou tracing:
+
+```powershell
+rg -n 'publicacao\.confirmada|decisao\.tomada|processamento\.falhou|resultado\.registrado|settlement\.executado' `
+  src/main/java src/test
+rg -n 'traceparent|SpanKind|ServiceBusReceivedMessageContext|scheduleMessage|complete\(|abandon\(|deadLetter\(' `
+  src/main/java src/test
+```
+
+2. Propagar em cada evento de entrada, processamento, reagendamento, saída e settlement os quatro
+   identificadores funcionais: `monitoramentoId`, `orquestracaoId`, `idDossiePreValidacao` e
+   `idDossieMtr`. Manter o padrão de nomes JSON já adotado pelo projeto.
+3. Registrar a localização com um valor inequívoco: `entrada`, `saida`, `entrada-dlq` ou
+   `saida-dlq`. Acrescentar `messageId`, tentativa funcional e o `SequenceNumber` obtido da
+   mensagem recebida ou observada. Nunca copiar para esse campo o `sequence` do log.
+4. Abrir os spans definidos na tabela do roteiro para leitura da entrada, processamento,
+   consultas, decisão, reagendamento, publicação da saída, leitura da saída e settlement. O span
+   CONSUMER extrai o parent de `traceparent`/`tracestate`; cada PRODUCER injeta o contexto na nova
+   mensagem. Log e span da mesma operação usam o contexto ativo e, portanto, os mesmos
+   `traceId`/`spanId`.
+5. Registrar separadamente a decisão e o motivo funcional, de um lado, e o motivo/descrição de
+   DLQ, do outro. Não usar falha técnica, quarentena e dead-letter como sinônimos.
+6. Emitir transições explícitas conforme o caminho real: `recebido`, `em processamento`,
+   `reagendado`, `concluído`, `quarentena`, `erro técnico`, `entrada DLQ` ou `saída DLQ`. Não
+   fabricar uma transição que o broker ou a aplicação não confirmou.
+7. Encerrar o span de entrega somente depois de conhecer o settlement. Registrar `complete`,
+   `abandon` ou `dead_letter` junto com fila e identidade da mensagem, preservando as proteções
+   existentes contra uma segunda liquidação.
+8. Criar testes focados para cada novo sinal: nomes/kinds e parentage dos spans, quatro IDs nos
+   logs, fila, `messageId`, tentativa, `SequenceNumber` quando disponível, separação dos motivos e
+   settlement de entrada/saída. Reexecutar então o roteiro Postman → filas/DLQs → log → Jaeger.
+
+Se o broker confirmar `send` ou `Complete` e uma futura gravação Cosmos falhar, não repetir a
+operação já confirmada. Essa condição pertence à etapa posterior de persistência durável e deve
+ser registrada para reconciliação, conforme o ADR-0013.
+
 ## Continuidade manual e estado real
 
 Na estrutura existente, Javadoc de classe informa responsabilidade, fluxo, item pendente e
@@ -1100,8 +1306,11 @@ C2 foi aceito pelo usuário em 2026-09-09. 7.1 está concluída tecnicamente, co
 saída, caso de uso/listener da entrada e integração terminal local verificados. A 8.1 concluiu
 o reagendamento transacional e a 8.2 acrescentou ativação da entrada no startup por opt-in.
 O consumo/log da saída está conectado em 9.1-A/B, com opt-in, e foi verificado no emulador
-em 9.1-C. Preservar as entregas; B1 está concluído. Seguir pelo P2 do checklist Cosmos e coordenar B2–B5 com P6–P8.
-Os comandos e critérios de verificação estão no guia de desenvolvimento e no plano.
+em 9.1-C. Preservar as entregas; B1 está concluído.
+Antes do Cosmos, executar as lacunas rápidas B2–B5, sem alterar contratos REST, e obter um novo GO
+após sua conclusão. Somente então atualizar o plano geral do ADR-0013 e retomar P2–P10,
+reconciliando P6–P8 para não duplicar a instrumentação já entregue. Os comandos e critérios de
+verificação estão neste guia e nos planos das duas features.
 
 O [manifesto de commit](../../tasks/features/orquestrador-monitoramento-service-bus/pacote-commit.md)
 descreve o marco anterior de 8.2. O commit `58920dd` consolidou 9.1, B1, o gate P1 Cosmos
